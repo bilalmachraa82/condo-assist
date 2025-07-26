@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./AppSidebar"
 import UserMenu from "@/components/auth/UserMenu"
+import RealtimeNotificationCenter from "./RealtimeNotificationCenter"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,7 +14,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex h-14 items-center gap-4 px-4">
               <SidebarTrigger className="h-8 w-8" />
               <div className="flex-1" />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
+                <RealtimeNotificationCenter />
                 <div className="text-sm text-muted-foreground">
                   Admin Portal
                 </div>
