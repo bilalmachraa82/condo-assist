@@ -8,7 +8,8 @@ import {
   BarChart3,
   FileText,
   Bell,
-  HelpCircle
+  HelpCircle,
+  Euro
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -28,6 +29,7 @@ import {
 const menuItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Assistências", url: "/assistencias", icon: Wrench },
+  { title: "Orçamentos", url: "/orcamentos", icon: Euro },
   { title: "Edifícios", url: "/edificios", icon: Building2 },
   { title: "Fornecedores", url: "/fornecedores", icon: Users },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },

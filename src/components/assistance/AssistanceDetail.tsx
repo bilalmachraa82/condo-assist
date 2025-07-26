@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import PhotoUpload from "./PhotoUpload";
 import PhotoGallery from "./PhotoGallery";
+import QuotationList from "@/components/quotations/QuotationList";
 import type { Assistance } from "@/hooks/useAssistances";
 
 interface AssistanceDetailProps {
@@ -168,11 +169,13 @@ export default function AssistanceDetail({ assistance, onBack }: AssistanceDetai
             </CardContent>
           </Card>
 
-          {/* Photos Section */}
+          {/* Photos and Quotations Section */}
           <Tabs defaultValue="gallery" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="gallery">Ver Fotos</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="gallery">Fotos</TabsTrigger>
               <TabsTrigger value="upload">Adicionar Foto</TabsTrigger>
+              <TabsTrigger value="quotations">Orçamentos</TabsTrigger>
+              <TabsTrigger value="details">Detalhes</TabsTrigger>
             </TabsList>
             
             <TabsContent value="gallery" className="mt-4">
@@ -184,6 +187,32 @@ export default function AssistanceDetail({ assistance, onBack }: AssistanceDetai
                 assistanceId={assistance.id} 
                 onPhotoUploaded={handlePhotoUploaded}
               />
+            </TabsContent>
+
+            <TabsContent value="quotations" className="mt-4">
+              <QuotationList assistanceId={assistance.id} />
+            </TabsContent>
+
+            <TabsContent value="details" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Detalhes Técnicos</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">ID da Assistência</p>
+                      <p className="text-sm text-muted-foreground font-mono">{assistance.id}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Última Atualização</p>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(assistance.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>

@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Assistencias from "./pages/Assistencias";
 import Edificios from "./pages/Edificios";
 import Fornecedores from "./pages/Fornecedores";
+import Quotations from "./pages/Quotations";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
 import NotFound from "./pages/NotFound";
@@ -55,6 +56,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DashboardLayout><Fornecedores /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/orcamentos" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><Quotations /></DashboardLayout>
                 </ProtectedRoute>
               } 
             />

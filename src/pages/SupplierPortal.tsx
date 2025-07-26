@@ -9,7 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Building, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Building, CheckCircle, Clock, AlertCircle, FileText, Euro } from "lucide-react";
+import SubmitQuotationForm from "@/components/quotations/SubmitQuotationForm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Supplier {
   id: string;
@@ -332,51 +334,76 @@ export default function SupplierPortal() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div>
-                        <Label className="text-sm font-medium">Descrição</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {assistance.description}
-                        </p>
-                      </div>
-                      
-                      {assistance.supplier_notes && (
-                        <div>
-                          <Label className="text-sm font-medium">Suas Notas</Label>
-                          <p className="text-sm text-muted-foreground">
-                            {assistance.supplier_notes}
-                          </p>
-                        </div>
-                      )}
-
-                      <Separator />
-                      
-                      <div className="flex gap-2">
-                        {assistance.status === "pending" && (
-                          <Button
-                            size="sm"
-                            onClick={() => updateAssistanceMutation.mutate({
-                              assistanceId: assistance.id,
-                              status: "in_progress"
-                            })}
-                            disabled={updateAssistanceMutation.isPending}
-                          >
-                            Aceitar Assistência
-                          </Button>
-                        )}
+                      <Tabs defaultValue="details" className="w-full">
+                        <TabsList className="grid w-full grid-cols-3">
+                          <TabsTrigger value="details">Detalhes</TabsTrigger>
+                          <TabsTrigger value="quotation">Orçamento</TabsTrigger>
+                          <TabsTrigger value="actions">Ações</TabsTrigger>
+                        </TabsList>
                         
-                        {assistance.status === "in_progress" && (
-                          <Button
-                            size="sm"
-                            onClick={() => updateAssistanceMutation.mutate({
-                              assistanceId: assistance.id,
-                              status: "completed"
-                            })}
-                            disabled={updateAssistanceMutation.isPending}
-                          >
-                            Marcar como Concluída
-                          </Button>
-                        )}
-                      </div>
+                        <TabsContent value="details" className="mt-4 space-y-4">
+                          <div>
+                            <Label className="text-sm font-medium">Descrição</Label>
+                            <p className="text-sm text-muted-foreground">
+                              {assistance.description}
+                            </p>
+                          </div>
+                          
+                          {assistance.supplier_notes && (
+                            <div>
+                              <Label className="text-sm font-medium">Suas Notas</Label>
+                              <p className="text-sm text-muted-foreground">
+                                {assistance.supplier_notes}
+                              </p>
+                            </div>
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="quotation" className="mt-4">
+                          {supplier && (
+                            <SubmitQuotationForm
+                              assistanceId={assistance.id}
+                              supplierId={supplier.id}
+                              onQuotationSubmitted={() => {
+                                toast({
+                                  title: "Orçamento submetido",
+                                  description: "O seu orçamento foi enviado com sucesso!",
+                                });
+                              }}
+                            />
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="actions" className="mt-4">
+                          <div className="flex gap-2">
+                            {assistance.status === "pending" && (
+                              <Button
+                                size="sm"
+                                onClick={() => updateAssistanceMutation.mutate({
+                                  assistanceId: assistance.id,
+                                  status: "in_progress"
+                                })}
+                                disabled={updateAssistanceMutation.isPending}
+                              >
+                                Aceitar Assistência
+                              </Button>
+                            )}
+                            
+                            {assistance.status === "in_progress" && (
+                              <Button
+                                size="sm"
+                                onClick={() => updateAssistanceMutation.mutate({
+                                  assistanceId: assistance.id,
+                                  status: "completed"
+                                })}
+                                disabled={updateAssistanceMutation.isPending}
+                              >
+                                Marcar como Concluída
+                              </Button>
+                            )}
+                          </div>
+                        </TabsContent>
+                      </Tabs>
                     </CardContent>
                   </Card>
                 ))}
