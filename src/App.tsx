@@ -9,6 +9,7 @@ import Assistencias from "./pages/Assistencias";
 import Edificios from "./pages/Edificios";
 import Fornecedores from "./pages/Fornecedores";
 import Auth from "./pages/Auth";
+import SupplierPortal from "./pages/SupplierPortal";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -24,6 +25,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/supplier-portal" element={<SupplierPortal />} />
             <Route 
               path="/" 
               element={
