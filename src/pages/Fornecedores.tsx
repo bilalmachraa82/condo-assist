@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { 
   Plus, 
   Search, 
@@ -22,96 +23,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-
-interface Supplier {
-  id: string
-  name: string
-  email: string
-  phone?: string
-  address?: string
-  nif?: string
-  specialization: string
-  status: "ativo" | "inativo"
-  adminNotes?: string
-  assistanceCount: number
-  lastAssistance?: string
-  rating?: number
-}
-
-const mockSuppliers: Supplier[] = [
-  {
-    id: "22",
-    name: "TKE",
-    email: "info.tkept@tkelevator.com",
-    phone: "+351 21 43 08 100",
-    address: "Sintra Business Park, Edifício 4, 2B, Zona Industrial da Abrunheira, 2710‑089 Sintra",
-    nif: "501 445 226",
-    specialization: "Elevadores",
-    status: "ativo",
-    assistanceCount: 24,
-    lastAssistance: "2024-01-15",
-    rating: 4.8
-  },
-  {
-    id: "23",
-    name: "Clefta", 
-    email: "geral@clefta.pt",
-    phone: "(+351) 217 648 435",
-    address: "Rua Mariano Pina, 13, Loja B, 1500‑442 Lisboa",
-    nif: "501 324 046",
-    specialization: "Segurança",
-    status: "ativo",
-    assistanceCount: 18,
-    lastAssistance: "2024-01-14",
-    rating: 4.6
-  },
-  {
-    id: "24",
-    name: "Sr. Obras",
-    email: "ana.ferreira.santos@srobras.pt", 
-    phone: "961 777 625 / 966 370 189",
-    address: "Avenida da República, 6, 7.º Esq., 1050‑191 Lisboa",
-    nif: "509 541 887",
-    specialization: "Construção e Reparações",
-    status: "ativo",
-    assistanceCount: 32,
-    lastAssistance: "2024-01-13",
-    rating: 4.9
-  },
-  {
-    id: "25",
-    name: "Mestre das Chaves",
-    email: "lojamestredaschaves@gmail.com",
-    phone: "939 324 688 / 933 427 963", 
-    address: "Rua Augusto Gil, 14‑A, 2675‑507 Odivelas (Lisboa)",
-    nif: "506 684 504",
-    specialization: "Serralharia",
-    status: "ativo",
-    assistanceCount: 15,
-    lastAssistance: "2024-01-12",
-    rating: 4.4
-  },
-  {
-    id: "26",
-    name: "Desinfest Lar",
-    email: "desinfestlar@sapo.pt",
-    phone: "+351 219 336 788",
-    address: "Largo da Saudade, Vivenda Rosinha, 2675‑260 Odivelas",
-    nif: "502 763 760", 
-    specialization: "Controlo de Pragas",
-    status: "ativo",
-    assistanceCount: 8,
-    lastAssistance: "2024-01-10",
-    rating: 4.7
-  }
-]
+import { useSuppliers, useSupplierStats } from "@/hooks/useSuppliers"
 
 export default function Fornecedores() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [filteredSuppliers] = useState(mockSuppliers)
+  const { data: suppliers = [], isLoading } = useSuppliers()
+  const { data: stats, isLoading: isLoadingStats } = useSupplierStats()
 
-  const getStatusBadge = (status: Supplier["status"]) => {
-    return status === "ativo" ? (
+  const filteredSuppliers = useMemo(() => {
+    if (!searchTerm) return suppliers
+    return suppliers.filter(supplier => 
+      supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier.specialization?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }, [suppliers, searchTerm])
+
+  const getStatusBadge = (isActive: boolean) => {
+    return isActive ? (
       <Badge className="bg-success/10 text-success border-success/20">
         Ativo
       </Badge>
@@ -184,7 +113,11 @@ export default function Fornecedores() {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-2xl font-bold text-primary">{mockSuppliers.length}</p>
+                {isLoadingStats ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold text-primary">{stats?.total || 0}</p>
+                )}
                 <p className="text-xs text-muted-foreground">Total</p>
               </div>
             </div>
@@ -195,9 +128,11 @@ export default function Fornecedores() {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-success" />
               <div>
-                <p className="text-2xl font-bold text-success">
-                  {mockSuppliers.filter(s => s.status === "ativo").length}
-                </p>
+                {isLoadingStats ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold text-success">{stats?.active || 0}</p>
+                )}
                 <p className="text-xs text-muted-foreground">Ativos</p>
               </div>
             </div>
@@ -208,9 +143,11 @@ export default function Fornecedores() {
             <div className="flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-accent" />
               <div>
-                <p className="text-2xl font-bold text-accent">
-                  {new Set(mockSuppliers.map(s => s.specialization)).size}
-                </p>
+                {isLoadingStats ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold text-accent">{stats?.specializations || 0}</p>
+                )}
                 <p className="text-xs text-muted-foreground">Especialidades</p>
               </div>
             </div>
@@ -221,9 +158,11 @@ export default function Fornecedores() {
             <div className="flex items-center gap-2">
               <span className="text-lg">★</span>
               <div>
-                <p className="text-2xl font-bold text-warning">
-                  {(mockSuppliers.reduce((sum, s) => sum + (s.rating || 0), 0) / mockSuppliers.filter(s => s.rating).length).toFixed(1)}
-                </p>
+                {isLoadingStats ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold text-warning">{stats?.averageRating || 0}</p>
+                )}
                 <p className="text-xs text-muted-foreground">Avaliação Média</p>
               </div>
             </div>
@@ -232,116 +171,120 @@ export default function Fornecedores() {
       </div>
 
       {/* Suppliers Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {filteredSuppliers.map((supplier) => (
-          <Card key={supplier.id} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-xl">{supplier.name}</CardTitle>
-                    {getStatusBadge(supplier.status)}
+      {isLoading ? (
+        <div className="grid gap-6 md:grid-cols-2">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-20 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2">
+          {filteredSuppliers.map((supplier) => (
+            <Card key={supplier.id} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CardTitle className="text-xl">{supplier.name}</CardTitle>
+                      {getStatusBadge(supplier.is_active)}
+                    </div>
+                    {supplier.specialization && (
+                      <Badge variant="outline" className="bg-accent/10 text-accent w-fit">
+                        <Briefcase className="h-3 w-3 mr-1" />
+                        {supplier.specialization}
+                      </Badge>
+                    )}
+                    {renderStars(supplier.rating ? Number(supplier.rating) : undefined)}
                   </div>
-                  <Badge variant="outline" className="bg-accent/10 text-accent w-fit">
-                    <Briefcase className="h-3 w-3 mr-1" />
-                    {supplier.specialization}
-                  </Badge>
-                  {renderStars(supplier.rating)}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Enviar Email
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver Detalhes
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Enviar Email
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <span className="text-sm truncate">{supplier.email}</span>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  {supplier.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm truncate">{supplier.email}</span>
+                    </div>
+                  )}
+                  
+                  {supplier.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm">{supplier.phone}</span>
+                    </div>
+                  )}
+
+                  {supplier.address && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-muted-foreground">{supplier.address}</span>
+                    </div>
+                  )}
+
+                  {supplier.nif && (
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">NIF:</span>
+                      <span className="ml-2 font-mono">{supplier.nif}</span>
+                    </div>
+                  )}
                 </div>
-                
-                {supplier.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm">{supplier.phone}</span>
+
+                {supplier.admin_notes && (
+                  <div className="p-3 bg-warning/10 border border-warning/20 rounded-md">
+                    <p className="text-xs text-warning-foreground">
+                      <strong>Nota:</strong> {supplier.admin_notes}
+                    </p>
                   </div>
                 )}
 
-                {supplier.address && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-muted-foreground">{supplier.address}</span>
-                  </div>
-                )}
-
-                {supplier.nif && (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">NIF:</span>
-                    <span className="ml-2 font-mono">{supplier.nif}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-primary">{supplier.assistanceCount}</p>
-                  <p className="text-xs text-muted-foreground">Assistências</p>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
+                    <Eye className="h-3 w-3 mr-1" />
+                    Ver
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
+                    <Edit className="h-3 w-3 mr-1" />
+                    Editar
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
+                    <Mail className="h-3 w-3 mr-1" />
+                    Email
+                  </Button>
                 </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium">
-                    {supplier.lastAssistance ? 
-                      new Date(supplier.lastAssistance).toLocaleDateString('pt-PT') : 
-                      "N/A"
-                    }
-                  </p>
-                  <p className="text-xs text-muted-foreground">Última assistência</p>
-                </div>
-              </div>
-
-              {supplier.adminNotes && (
-                <div className="p-3 bg-warning/10 border border-warning/20 rounded-md">
-                  <p className="text-xs text-warning-foreground">
-                    <strong>Nota:</strong> {supplier.adminNotes}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex gap-2 pt-2">
-                <Button variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
-                  <Eye className="h-3 w-3 mr-1" />
-                  Ver
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
-                  <Edit className="h-3 w-3 mr-1" />
-                  Editar
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
-                  <Mail className="h-3 w-3 mr-1" />
-                  Email
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {filteredSuppliers.length === 0 && (
         <Card className="p-8">
