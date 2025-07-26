@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useUpdateAssistanceStatus } from "@/hooks/useAssistances";
 import { Building, CheckCircle, Clock, AlertCircle, FileText, Euro } from "lucide-react";
 import SubmitQuotationForm from "@/components/quotations/SubmitQuotationForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -115,38 +116,8 @@ export default function SupplierPortal() {
   });
 
   // Update assistance status
-  const updateAssistanceMutation = useMutation({
-    mutationFn: async ({ assistanceId, status, notes }: { 
-      assistanceId: string; 
-      status: string; 
-      notes?: string 
-    }) => {
-      const { error } = await supabase
-        .from("assistances")
-        .update({ 
-          status: status as any,
-          supplier_notes: notes,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", assistanceId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["supplier-assistances"] });
-      toast({
-        title: "Status atualizado",
-        description: "Estado da assistência foi atualizado com sucesso.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erro",
-        description: "Erro ao atualizar estado da assistência.",
-        variant: "destructive",
-      });
-    },
-  });
+  // Import the new status update hook
+  const updateAssistanceMutation = useUpdateAssistanceStatus();
 
   const handleCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -381,7 +352,7 @@ export default function SupplierPortal() {
                                 size="sm"
                                 onClick={() => updateAssistanceMutation.mutate({
                                   assistanceId: assistance.id,
-                                  status: "in_progress"
+                                  newStatus: "in_progress"
                                 })}
                                 disabled={updateAssistanceMutation.isPending}
                               >
@@ -394,7 +365,7 @@ export default function SupplierPortal() {
                                 size="sm"
                                 onClick={() => updateAssistanceMutation.mutate({
                                   assistanceId: assistance.id,
-                                  status: "completed"
+                                  newStatus: "completed"
                                 })}
                                 disabled={updateAssistanceMutation.isPending}
                               >

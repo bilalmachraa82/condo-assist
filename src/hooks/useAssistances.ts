@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
+import { useToast } from "@/hooks/use-toast";
 
 export type Assistance = Tables<"assistances"> & {
   buildings?: Tables<"buildings">;
@@ -63,4 +64,106 @@ export const useAssistanceStats = () => {
       };
     },
   });
+};
+
+export const useUpdateAssistanceStatus = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      assistanceId, 
+      newStatus, 
+      supplierNotes 
+    }: { 
+      assistanceId: string; 
+      newStatus: string; 
+      supplierNotes?: string;
+    }) => {
+      // First get the current assistance data
+      const { data: currentAssistance, error: fetchError } = await supabase
+        .from("assistances")
+        .select(`
+          *,
+          buildings (id, name, code),
+          suppliers (id, name, email),
+          intervention_types (id, name, category)
+        `)
+        .eq("id", assistanceId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update the assistance status
+      const updateData: any = { 
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      };
+
+      if (supplierNotes) {
+        updateData.supplier_notes = supplierNotes;
+      }
+
+      if (newStatus === 'completed') {
+        updateData.completed_date = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from("assistances")
+        .update(updateData)
+        .eq("id", assistanceId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Send status change notifications
+      try {
+        await supabase.functions.invoke('send-status-notification', {
+          body: {
+            assistanceId,
+            oldStatus: currentAssistance.status,
+            newStatus,
+            assistance: {
+              ...currentAssistance,
+              status: newStatus,
+              supplier_notes: supplierNotes || currentAssistance.supplier_notes
+            }
+          }
+        });
+      } catch (emailError) {
+        console.error('Status notification email error:', emailError);
+        // Don't fail the whole operation if email fails
+      }
+
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Status atualizado",
+        description: `Assistência marcada como ${getStatusLabel(data.status)}`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["assistances"] });
+      queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
+    },
+    onError: (error: any) => {
+      console.error("Update status error:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar status. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+const getStatusLabel = (status: string) => {
+  const labels = {
+    pending: "pendente",
+    in_progress: "em progresso", 
+    completed: "concluída",
+    cancelled: "cancelada"
+  };
+  return labels[status as keyof typeof labels] || status;
 };

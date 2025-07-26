@@ -4,12 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import PhotoUpload from "./PhotoUpload";
 import PhotoGallery from "./PhotoGallery";
 import QuotationList from "@/components/quotations/QuotationList";
+import { useUpdateAssistanceStatus } from "@/hooks/useAssistances";
 import type { Assistance } from "@/hooks/useAssistances";
 
 interface AssistanceDetailProps {
@@ -68,10 +70,18 @@ const getPriorityBadge = (priority: string) => {
 
 export default function AssistanceDetail({ assistance, onBack }: AssistanceDetailProps) {
   const [refreshPhotos, setRefreshPhotos] = useState(0);
+  const updateStatusMutation = useUpdateAssistanceStatus();
 
   const handlePhotoUploaded = () => {
     // Trigger photo gallery refresh
     setRefreshPhotos(prev => prev + 1);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    updateStatusMutation.mutate({
+      assistanceId: assistance.id,
+      newStatus
+    });
   };
 
   return (
@@ -296,6 +306,51 @@ export default function AssistanceDetail({ assistance, onBack }: AssistanceDetai
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Status Management Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Gestão de Estado
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Estado Atual</p>
+                {getStatusBadge(assistance.status)}
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Alterar Estado</p>
+                <Select 
+                  value={assistance.status} 
+                  onValueChange={handleStatusChange}
+                  disabled={updateStatusMutation.isPending}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">⏳ Pendente</SelectItem>
+                    <SelectItem value="in_progress">🔧 Em Progresso</SelectItem>
+                    <SelectItem value="completed">✅ Concluída</SelectItem>
+                    <SelectItem value="cancelled">❌ Cancelada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {updateStatusMutation.isPending && (
+                <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded border">
+                  🔄 Atualizando estado e enviando notificações...
+                </div>
+              )}
+              
+              <div className="text-xs text-muted-foreground bg-info/10 p-2 rounded border border-info/20">
+                💡 <strong>Nota:</strong> Alterar o estado enviará automaticamente notificações por email ao fornecedor.
+              </div>
             </CardContent>
           </Card>
         </div>
