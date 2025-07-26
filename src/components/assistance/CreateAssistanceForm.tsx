@@ -187,7 +187,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                       <SelectContent>
                         {buildings.map((building) => (
                           <SelectItem key={building.id} value={building.id}>
-                            {building.name} - {building.code}
+                            {building.code} - {building.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
