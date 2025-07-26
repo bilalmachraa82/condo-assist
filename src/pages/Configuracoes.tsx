@@ -64,7 +64,7 @@ export default function Configuracoes() {
 
   const getSettingValue = (settings: any[], key: string, defaultValue: any = "") => {
     const setting = settings?.find(s => s.key === key);
-    return setting ? (typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value) : defaultValue;
+    return setting ? setting.value : defaultValue;
   };
 
   const getUrgencyLabel = (level: string) => {
