@@ -20,6 +20,7 @@ import {
 import { useAssistances, useAssistanceStats, type Assistance } from "@/hooks/useAssistances"
 import { formatDistanceToNow, format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import AssistanceDetail from "@/components/assistance/AssistanceDetail"
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -87,6 +88,7 @@ const getPriorityBadge = (priority: string) => {
 
 export default function Assistencias() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedAssistance, setSelectedAssistance] = useState<Assistance | null>(null)
   const { data: assistances, isLoading } = useAssistances();
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
 
@@ -97,6 +99,16 @@ export default function Assistencias() {
     assistance.buildings?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     assistance.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+
+  // Show detail view if assistance is selected
+  if (selectedAssistance) {
+    return (
+      <AssistanceDetail 
+        assistance={selectedAssistance} 
+        onBack={() => setSelectedAssistance(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -261,7 +273,12 @@ export default function Assistencias() {
                   
                   <div className="flex items-center gap-2">
                     {getStatusIcon(assistance.status)}
-                    <Button variant="outline" size="sm" className="hover:bg-muted/50">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="hover:bg-muted/50"
+                      onClick={() => setSelectedAssistance(assistance)}
+                    >
                       Ver Detalhes
                     </Button>
                   </div>
