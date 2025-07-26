@@ -11,7 +11,7 @@ export const useBuildings = () => {
       const { data, error } = await supabase
         .from("buildings")
         .select("*")
-        .order("name", { ascending: true });
+        .order("code", { ascending: true });
 
       if (error) throw error;
       return data as Building[];
