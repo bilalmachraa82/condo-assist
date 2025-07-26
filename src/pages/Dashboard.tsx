@@ -18,8 +18,10 @@ import {
 import { useAssistanceStats } from "@/hooks/useAssistances"
 import { useBuildingStats } from "@/hooks/useBuildings"
 import { useSupplierStats } from "@/hooks/useSuppliers"
+import { useNavigate } from "react-router-dom"
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { data: assistanceStats, isLoading: assistanceLoading } = useAssistanceStats();
   const { data: buildingStats, isLoading: buildingLoading } = useBuildingStats();
   const { data: supplierStats, isLoading: supplierLoading } = useSupplierStats();
@@ -39,15 +41,26 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3">
-        <Button className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300">
+        <Button 
+          onClick={() => navigate("/assistencias")}
+          className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Nova Assistência
         </Button>
-        <Button variant="outline" className="hover:bg-muted/50">
+        <Button 
+          onClick={() => navigate("/edificios")}
+          variant="outline" 
+          className="hover:bg-muted/50"
+        >
           <Building2 className="h-4 w-4 mr-2" />
           Gestão Edifícios
         </Button>
-        <Button variant="outline" className="hover:bg-muted/50">
+        <Button 
+          onClick={() => navigate("/fornecedores")}
+          variant="outline" 
+          className="hover:bg-muted/50"
+        >
           <Users className="h-4 w-4 mr-2" />
           Gestão Fornecedores
         </Button>
