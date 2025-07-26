@@ -1,5 +1,8 @@
+import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import QuotationDashboard from "@/components/quotations/QuotationDashboard";
+import QuotationManagement from "@/components/quotations/QuotationManagement";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Quotations() {
   return (
@@ -15,7 +18,20 @@ export default function Quotations() {
           </p>
         </div>
 
-        <QuotationDashboard />
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="management">Manage Quotations</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="dashboard">
+            <QuotationDashboard />
+          </TabsContent>
+          
+          <TabsContent value="management">
+            <QuotationManagement />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

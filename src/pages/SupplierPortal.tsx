@@ -81,7 +81,7 @@ export default function SupplierPortal() {
         const { data: assistanceData, error } = await (supabase as any)
           .from("assistances")
           .select("id, description, status, supplier_notes, created_at, building_id, intervention_type_id")
-          .eq("supplier_id", supplier.id)
+          .eq("assigned_supplier_id", supplier.id)
           .order("created_at", { ascending: false });
 
         if (error) throw error;
