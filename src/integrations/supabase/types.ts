@@ -152,9 +152,12 @@ export type Database = {
           description: string | null
           estimated_cost: number | null
           final_cost: number | null
+          follow_up_count: number | null
           id: string
           intervention_type_id: string
+          last_follow_up_sent: string | null
           priority: Database["public"]["Enums"]["assistance_priority"]
+          response_deadline: string | null
           scheduled_date: string | null
           status: Database["public"]["Enums"]["assistance_status"]
           supplier_notes: string | null
@@ -172,9 +175,12 @@ export type Database = {
           description?: string | null
           estimated_cost?: number | null
           final_cost?: number | null
+          follow_up_count?: number | null
           id?: string
           intervention_type_id: string
+          last_follow_up_sent?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
+          response_deadline?: string | null
           scheduled_date?: string | null
           status?: Database["public"]["Enums"]["assistance_status"]
           supplier_notes?: string | null
@@ -192,9 +198,12 @@ export type Database = {
           description?: string | null
           estimated_cost?: number | null
           final_cost?: number | null
+          follow_up_count?: number | null
           id?: string
           intervention_type_id?: string
+          last_follow_up_sent?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
+          response_deadline?: string | null
           scheduled_date?: string | null
           status?: Database["public"]["Enums"]["assistance_status"]
           supplier_notes?: string | null
@@ -511,6 +520,60 @@ export type Database = {
           },
         ]
       }
+      supplier_responses: {
+        Row: {
+          assistance_id: string
+          created_at: string
+          decline_reason: string | null
+          estimated_completion_date: string | null
+          id: string
+          notes: string | null
+          response_date: string | null
+          response_type: string
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          assistance_id: string
+          created_at?: string
+          decline_reason?: string | null
+          estimated_completion_date?: string | null
+          id?: string
+          notes?: string | null
+          response_date?: string | null
+          response_type: string
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          assistance_id?: string
+          created_at?: string
+          decline_reason?: string | null
+          estimated_completion_date?: string | null
+          id?: string
+          notes?: string | null
+          response_date?: string | null
+          response_type?: string
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_responses_assistance_id_fkey"
+            columns: ["assistance_id"]
+            isOneToOne: false
+            referencedRelation: "assistances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_responses_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           address: string | null
@@ -585,6 +648,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assistance_needs_followup: {
+        Args: { assistance_id: string }
+        Returns: boolean
+      }
       generate_magic_code: {
         Args: Record<PropertyKey, never>
         Returns: string
