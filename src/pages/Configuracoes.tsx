@@ -1,60 +1,94 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { 
-  Settings, 
-  Building2, 
-  Mail, 
-  Clock, 
-  Shield,
-  Wrench,
-  Plus,
-  Edit,
-  Trash2,
-  Save
-} from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
-import { supabase } from "@/integrations/supabase/client"
-import { useState } from "react"
-import { useToast } from "@/hooks/use-toast"
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Settings, Building2, Bell, Cog, Edit2, Save, X, Plus, Trash2, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAppSettings, useUpdateAppSetting } from "@/hooks/useAppSettings";
+import { useInterventionTypes, useDeleteInterventionType } from "@/hooks/useInterventionTypes";
+import { InterventionTypeForm } from "@/components/settings/InterventionTypeForm";
 
 export default function Configuracoes() {
-  const { toast } = useToast()
-  const [isEditing, setIsEditing] = useState(false)
+  const [isEditing, setIsEditing] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingType, setEditingType] = useState(null);
+  const { toast } = useToast();
 
-  // Fetch intervention types
-  const { data: interventionTypes = [], isLoading: loadingTypes } = useQuery({
-    queryKey: ['intervention-types'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('intervention_types')
-        .select('*')
-        .order('name')
-      
-      if (error) throw error
-      return data || []
+  // Fetch data
+  const { data: companySettings, isLoading: isLoadingCompany } = useAppSettings("company");
+  const { data: systemSettings, isLoading: isLoadingSystem } = useAppSettings("system");
+  const { data: notificationSettings, isLoading: isLoadingNotifications } = useAppSettings("notifications");
+  const { data: interventionTypes, isLoading: isLoadingTypes } = useInterventionTypes();
+  
+  const updateSetting = useUpdateAppSetting();
+  const deleteType = useDeleteInterventionType();
+
+  const handleSettingChange = async (key: string, value: any) => {
+    try {
+      await updateSetting.mutateAsync({ key, value });
+      toast({
+        title: "Configuração atualizada",
+        description: "A configuração foi salva com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar configuração.",
+        variant: "destructive",
+      });
     }
-  })
+  };
 
-  const handleSaveSettings = () => {
-    toast({
-      title: "Configurações guardadas",
-      description: "As suas configurações foram atualizadas com sucesso."
-    })
-    setIsEditing(false)
-  }
+  const handleDeleteType = async (id: string) => {
+    try {
+      await deleteType.mutateAsync(id);
+      toast({
+        title: "Tipo removido",
+        description: "Tipo de intervenção removido com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao remover tipo de intervenção.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getSettingValue = (settings: any[], key: string, defaultValue: any = "") => {
+    const setting = settings?.find(s => s.key === key);
+    return setting ? (typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value) : defaultValue;
+  };
+
+  const getUrgencyLabel = (level: string) => {
+    switch (level) {
+      case 'normal': return 'Normal';
+      case 'urgent': return 'Urgente';
+      case 'critical': return 'Crítico';
+      default: return level;
+    }
+  };
+
+  const getUrgencyVariant = (level: string) => {
+    switch (level) {
+      case 'urgent': return 'destructive';
+      case 'critical': return 'destructive';
+      default: return 'secondary';
+    }
+  };
 
   return (
-    <div className="container max-w-6xl py-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Settings className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Configurações</h1>
+    <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <div className="flex items-center gap-2 mb-8">
+        <Settings className="h-8 w-8 text-primary" />
+        <h1 className="text-3xl font-bold">Configurações</h1>
       </div>
 
       <Tabs defaultValue="geral" className="space-y-6">
@@ -64,147 +98,170 @@ export default function Configuracoes() {
             Geral
           </TabsTrigger>
           <TabsTrigger value="tipos" className="flex items-center gap-2">
-            <Wrench className="h-4 w-4" />
+            <Cog className="h-4 w-4" />
             Tipos de Assistência
           </TabsTrigger>
           <TabsTrigger value="notificacoes" className="flex items-center gap-2">
-            <Mail className="h-4 w-4" />
+            <Bell className="h-4 w-4" />
             Notificações
           </TabsTrigger>
           <TabsTrigger value="sistema" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
+            <Settings className="h-4 w-4" />
             Sistema
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="geral" className="space-y-6">
+        <TabsContent value="geral">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Informações da Empresa</CardTitle>
-                <CardDescription>
-                  Configure as informações básicas da sua empresa ou condomínio
-                </CardDescription>
-              </div>
-              <Button 
-                variant={isEditing ? "default" : "outline"}
-                size="sm"
-                onClick={() => isEditing ? handleSaveSettings() : setIsEditing(true)}
-              >
-                {isEditing ? (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Guardar
-                  </>
-                ) : (
-                  <>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
-                  </>
-                )}
-              </Button>
+            <CardHeader>
+              <CardTitle>Informações da Empresa</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="company-name">Nome da Empresa</Label>
-                  <Input 
-                    id="company-name" 
-                    defaultValue="Gestão de Condomínios Lda."
-                    disabled={!isEditing}
-                  />
+            <CardContent className="space-y-6">
+              {isLoadingCompany ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company-nif">NIF</Label>
-                  <Input 
-                    id="company-nif" 
-                    defaultValue="123456789"
-                    disabled={!isEditing}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="company-address">Morada</Label>
-                <Textarea 
-                  id="company-address" 
-                  defaultValue="Rua das Flores, 123&#10;1000-001 Lisboa"
-                  disabled={!isEditing}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="company-phone">Telefone</Label>
-                  <Input 
-                    id="company-phone" 
-                    defaultValue="+351 210 000 000"
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company-email">Email</Label>
-                  <Input 
-                    id="company-email" 
-                    type="email"
-                    defaultValue="geral@gestaocondominio.pt"
-                    disabled={!isEditing}
-                  />
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="empresa-nome">Nome da Empresa</Label>
+                      <Input
+                        id="empresa-nome"
+                        defaultValue={getSettingValue(companySettings, "company_name")}
+                        onBlur={(e) => handleSettingChange("company_name", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="empresa-nif">NIF</Label>
+                      <Input
+                        id="empresa-nif"
+                        defaultValue={getSettingValue(companySettings, "company_nif")}
+                        onBlur={(e) => handleSettingChange("company_nif", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="empresa-endereco">Endereço</Label>
+                    <Input
+                      id="empresa-endereco"
+                      defaultValue={getSettingValue(companySettings, "company_address")}
+                      onBlur={(e) => handleSettingChange("company_address", e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="empresa-telefone">Telefone</Label>
+                      <Input
+                        id="empresa-telefone"
+                        defaultValue={getSettingValue(companySettings, "company_phone")}
+                        onBlur={(e) => handleSettingChange("company_phone", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="empresa-email">Email</Label>
+                      <Input
+                        id="empresa-email"
+                        type="email"
+                        defaultValue={getSettingValue(companySettings, "company_email")}
+                        onBlur={(e) => handleSettingChange("company_email", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="tipos" className="space-y-6">
+        <TabsContent value="tipos">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Tipos de Assistência</CardTitle>
-                <CardDescription>
-                  Gerir os tipos de intervenção disponíveis no sistema
-                </CardDescription>
-              </div>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Tipo
-              </Button>
+              <CardTitle>Tipos de Assistência</CardTitle>
+              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" onClick={() => setEditingType(null)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Tipo
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingType ? "Editar Tipo de Intervenção" : "Novo Tipo de Intervenção"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <InterventionTypeForm
+                    interventionType={editingType}
+                    onSuccess={() => {
+                      setIsFormOpen(false);
+                      setEditingType(null);
+                    }}
+                    onCancel={() => {
+                      setIsFormOpen(false);
+                      setEditingType(null);
+                    }}
+                  />
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent>
-              {loadingTypes ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  A carregar tipos de assistência...
+              {isLoadingTypes ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {interventionTypes.map((type) => (
-                    <div key={type.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-3">
+                  {interventionTypes?.map((type) => (
+                    <div key={type.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-3">
                           <h4 className="font-medium">{type.name}</h4>
-                          <Badge variant={
-                            type.urgency_level === 'critical' ? 'destructive' :
-                            'outline'
-                          }>
-                            {type.urgency_level === 'critical' ? 'Crítico' : 'Normal'}
+                          <Badge variant={getUrgencyVariant(type.urgency_level)}>
+                            {getUrgencyLabel(type.urgency_level)}
                           </Badge>
                         </div>
                         {type.description && (
-                          <p className="text-sm text-muted-foreground">{type.description}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{type.description}</p>
                         )}
                         {type.category && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Categoria: {type.category}
-                          </p>
+                          <p className="text-sm text-muted-foreground">Categoria: {type.category}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingType(type);
+                            setIsFormOpen(true);
+                          }}
+                        >
+                          <Edit2 className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remover Tipo de Intervenção</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja remover "{type.name}"? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteType(type.id)}>
+                                Remover
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   ))}
@@ -214,132 +271,134 @@ export default function Configuracoes() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="notificacoes" className="space-y-6">
+        <TabsContent value="notificacoes">
           <Card>
             <CardHeader>
               <CardTitle>Configurações de Notificações</CardTitle>
-              <CardDescription>
-                Configure quando e como as notificações são enviadas
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Notificações por Email</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receber notificações por email para eventos importantes
-                  </p>
+              {isLoadingNotifications ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
-                <Switch defaultChecked />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Auto-notificar Fornecedores</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Notificar automaticamente fornecedores quando atribuídos
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Lembretes de Prazo</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enviar lembretes quando prazos estão próximos
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <Label>Email de Remetente</Label>
-                <Input 
-                  defaultValue="noreply@gestaocondominio.pt"
-                  placeholder="Email que aparece como remetente"
-                />
-              </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Notificações por Email</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Enviar notificações por email para eventos importantes
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={getSettingValue(notificationSettings, "email_notifications_enabled", false)}
+                      onCheckedChange={(checked) => handleSettingChange("email_notifications_enabled", checked)}
+                    />
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Notificar Fornecedores Automaticamente</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Enviar notificações automáticas para fornecedores quando são atribuídas assistências
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={getSettingValue(notificationSettings, "auto_notify_suppliers", false)}
+                      onCheckedChange={(checked) => handleSettingChange("auto_notify_suppliers", checked)}
+                    />
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Lembretes de Prazo</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Enviar lembretes quando os prazos estão próximos do vencimento
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={getSettingValue(notificationSettings, "deadline_reminders_enabled", false)}
+                      onCheckedChange={(checked) => handleSettingChange("deadline_reminders_enabled", checked)}
+                    />
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="sistema" className="space-y-6">
+        <TabsContent value="sistema">
           <Card>
             <CardHeader>
               <CardTitle>Configurações do Sistema</CardTitle>
-              <CardDescription>
-                Configure o comportamento geral do sistema
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="default-deadline">Prazo Padrão (dias)</Label>
-                  <Input 
-                    id="default-deadline" 
-                    type="number"
-                    defaultValue="7"
-                    min="1"
-                  />
+              {isLoadingSystem ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quotation-validity">Validade Orçamentos (dias)</Label>
-                  <Input 
-                    id="quotation-validity" 
-                    type="number"
-                    defaultValue="30"
-                    min="1"
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Aprovação Automática</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Aprovar automaticamente orçamentos abaixo de €500
-                  </p>
-                </div>
-                <Switch />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Modo de Manutenção</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Desabilitar acesso temporariamente para manutenção
-                  </p>
-                </div>
-                <Switch />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center gap-2 p-4 bg-muted/50 rounded-lg">
-                <Clock className="h-5 w-5 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Backup Automático</p>
-                  <p className="text-xs text-muted-foreground">
-                    Último backup: Hoje às 03:00
-                  </p>
-                </div>
-                <Badge variant="outline">Ativo</Badge>
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="prazo-resposta">Prazo Padrão de Resposta (horas)</Label>
+                      <Input 
+                        id="prazo-resposta" 
+                        type="number" 
+                        defaultValue={getSettingValue(systemSettings, "default_response_deadline_hours", 24)}
+                        onBlur={(e) => handleSettingChange("default_response_deadline_hours", parseInt(e.target.value))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="validade-cotacao">Validade das Cotações (dias)</Label>
+                      <Input 
+                        id="validade-cotacao" 
+                        type="number" 
+                        defaultValue={getSettingValue(systemSettings, "quotation_validity_days", 30)}
+                        onBlur={(e) => handleSettingChange("quotation_validity_days", parseInt(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Aprovação Automática</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Aprovar automaticamente cotações que estejam dentro do orçamento predefinido
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={getSettingValue(systemSettings, "auto_approve_quotations", false)}
+                      onCheckedChange={(checked) => handleSettingChange("auto_approve_quotations", checked)}
+                    />
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Modo de Manutenção</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Ativar modo de manutenção para o sistema
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={getSettingValue(systemSettings, "maintenance_mode", false)}
+                      onCheckedChange={(checked) => handleSettingChange("maintenance_mode", checked)}
+                    />
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
