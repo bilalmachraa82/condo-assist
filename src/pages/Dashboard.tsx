@@ -1,8 +1,10 @@
 import { StatsCard } from "@/components/dashboard/StatsCard"
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
+import SystemMonitor from "@/components/dashboard/SystemMonitor"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Wrench, 
   Clock, 
@@ -113,92 +115,106 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        {/* Activity Feed */}
-        <div className="lg:col-span-4">
-          <ActivityFeed />
-        </div>
+      {/* Tabs for different views */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="monitoring">System Monitor</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview">
+          {/* Main Content Grid */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+            {/* Activity Feed */}
+            <div className="lg:col-span-4">
+              <ActivityFeed />
+            </div>
 
-        {/* Side Cards */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Urgent Alerts */}
-          <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
-                Alertas Urgentes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="p-3 bg-background/50 rounded-lg">
-                  <h4 className="text-sm font-medium">Elevador Avariado</h4>
-                  <p className="text-xs text-muted-foreground">COND. R. ALEXANDRE HERCULANO - Edif. 003</p>
-                  <p className="text-xs text-destructive mt-1">Há 2 horas sem resposta</p>
-                </div>
-                <div className="p-3 bg-background/50 rounded-lg">
-                  <h4 className="text-sm font-medium">Fuga de Água</h4>
-                  <p className="text-xs text-muted-foreground">COND. RUA D. AFONSO HENRIQUES - Edif. 101</p>
-                  <p className="text-xs text-destructive mt-1">Prioridade alta</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Side Cards */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Urgent Alerts */}
+              <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-5 w-5" />
+                    Alertas Urgentes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="p-3 bg-background/50 rounded-lg">
+                      <h4 className="text-sm font-medium">Elevador Avariado</h4>
+                      <p className="text-xs text-muted-foreground">COND. R. ALEXANDRE HERCULANO - Edif. 003</p>
+                      <p className="text-xs text-destructive mt-1">Há 2 horas sem resposta</p>
+                    </div>
+                    <div className="p-3 bg-background/50 rounded-lg">
+                      <h4 className="text-sm font-medium">Fuga de Água</h4>
+                      <p className="text-xs text-muted-foreground">COND. RUA D. AFONSO HENRIQUES - Edif. 101</p>
+                      <p className="text-xs text-destructive mt-1">Prioridade alta</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Performance Overview */}
-          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2 text-success">
-                <TrendingUp className="h-5 w-5" />
-                Performance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Tempo médio resposta</span>
-                  <span className="text-sm font-medium text-success">2.3 horas</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Taxa resolução</span>
-                  <span className="text-sm font-medium text-success">94.5%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Satisfação média</span>
-                  <span className="text-sm font-medium text-success">4.7/5</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              {/* Performance Overview */}
+              <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2 text-success">
+                    <TrendingUp className="h-5 w-5" />
+                    Performance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Tempo médio resposta</span>
+                      <span className="text-sm font-medium text-success">2.3 horas</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Taxa resolução</span>
+                      <span className="text-sm font-medium text-success">94.5%</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Satisfação média</span>
+                      <span className="text-sm font-medium text-success">4.7/5</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Upcoming Schedules */}
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2 text-primary">
-                <Calendar className="h-5 w-5" />
-                Próximos Agendamentos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="p-3 bg-background/50 rounded-lg">
-                  <h4 className="text-sm font-medium">Manutenção Elevador</h4>
-                  <p className="text-xs text-muted-foreground">TKE - Amanhã às 09:00</p>
-                </div>
-                <div className="p-3 bg-background/50 rounded-lg">
-                  <h4 className="text-sm font-medium">Limpeza Garagem</h4>
-                  <p className="text-xs text-muted-foreground">Limpeza Geral - 15:30</p>
-                </div>
-                <div className="p-3 bg-background/50 rounded-lg">
-                  <h4 className="text-sm font-medium">Controlo Pragas</h4>
-                  <p className="text-xs text-muted-foreground">Desinfest Lar - Quinta-feira</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              {/* Upcoming Schedules */}
+              <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2 text-primary">
+                    <Calendar className="h-5 w-5" />
+                    Próximos Agendamentos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="p-3 bg-background/50 rounded-lg">
+                      <h4 className="text-sm font-medium">Manutenção Elevador</h4>
+                      <p className="text-xs text-muted-foreground">TKE - Amanhã às 09:00</p>
+                    </div>
+                    <div className="p-3 bg-background/50 rounded-lg">
+                      <h4 className="text-sm font-medium">Limpeza Garagem</h4>
+                      <p className="text-xs text-muted-foreground">Limpeza Geral - 15:30</p>
+                    </div>
+                    <div className="p-3 bg-background/50 rounded-lg">
+                      <h4 className="text-sm font-medium">Controlo Pragas</h4>
+                      <p className="text-xs text-muted-foreground">Desinfest Lar - Quinta-feira</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="monitoring">
+          <SystemMonitor />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
