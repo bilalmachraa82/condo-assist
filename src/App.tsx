@@ -9,6 +9,7 @@ import Assistencias from "./pages/Assistencias";
 import Edificios from "./pages/Edificios";
 import Fornecedores from "./pages/Fornecedores";
 import Quotations from "./pages/Quotations";
+import Configuracoes from "./pages/Configuracoes";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
 import NotFound from "./pages/NotFound";
@@ -64,6 +65,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DashboardLayout><Quotations /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/configuracoes" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><Configuracoes /></DashboardLayout>
                 </ProtectedRoute>
               } 
             />
