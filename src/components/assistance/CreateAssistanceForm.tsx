@@ -24,6 +24,7 @@ const assistanceSchema = z.object({
   priority: z.enum(["normal", "urgent", "critical"]),
   assigned_supplier_id: z.string().optional().or(z.literal("")),
   deadline_response: z.string().optional(),
+  response_deadline: z.string().optional(),
 });
 
 type AssistanceFormValues = z.infer<typeof assistanceSchema>;
@@ -64,11 +65,29 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
       priority: "normal",
       assigned_supplier_id: "",
       deadline_response: "",
+      response_deadline: "",
     },
   });
 
   const createAssistanceMutation = useMutation({
     mutationFn: async (values: AssistanceFormValues) => {
+      // Calculate response deadline based on priority if not set
+      let responseDeadline = values.response_deadline ? new Date(values.response_deadline) : null;
+      
+      if (!responseDeadline && values.assigned_supplier_id) {
+        const now = new Date();
+        switch (values.priority) {
+          case 'critical':
+            responseDeadline = new Date(now.getTime() + 4 * 60 * 60 * 1000); // 4 hours
+            break;
+          case 'urgent':
+            responseDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+            break;
+          default:
+            responseDeadline = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours
+        }
+      }
+
       const { data, error } = await supabase
         .from("assistances")
         .insert({
@@ -79,6 +98,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
           priority: values.priority as any,
           assigned_supplier_id: values.assigned_supplier_id || null,
           deadline_response: values.deadline_response ? new Date(values.deadline_response).toISOString() : null,
+          response_deadline: responseDeadline ? responseDeadline.toISOString() : null,
           status: "pending",
         })
         .select()
@@ -392,6 +412,30 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                       />
                     </div>
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="response_deadline"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Prazo para Resposta do Fornecedor (opcional)</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        {...field} 
+                        type="datetime-local"
+                        className="pl-10"
+                      />
+                    </div>
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Se não definido, será calculado automaticamente baseado na prioridade
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

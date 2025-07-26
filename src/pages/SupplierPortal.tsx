@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateAssistanceStatus } from "@/hooks/useAssistances";
+import { useCreateSupplierResponse } from "@/hooks/useSupplierResponses";
 import { Building, CheckCircle, Clock, AlertCircle, FileText, Euro } from "lucide-react";
 import SubmitQuotationForm from "@/components/quotations/SubmitQuotationForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -116,8 +117,9 @@ export default function SupplierPortal() {
   });
 
   // Update assistance status
-  // Import the new status update hook
+  // Import the new status update hook and response hook
   const updateAssistanceMutation = useUpdateAssistanceStatus();
+  const createResponseMutation = useCreateSupplierResponse();
 
   const handleCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -346,31 +348,79 @@ export default function SupplierPortal() {
                         </TabsContent>
 
                         <TabsContent value="actions" className="mt-4">
-                          <div className="flex gap-2">
+                          <div className="space-y-4">
                             {assistance.status === "pending" && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateAssistanceMutation.mutate({
-                                  assistanceId: assistance.id,
-                                  newStatus: "in_progress"
-                                })}
-                                disabled={updateAssistanceMutation.isPending}
-                              >
-                                Aceitar Assistência
-                              </Button>
+                              <div className="space-y-3">
+                                <h4 className="font-medium">Responder à Assistência</h4>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="default"
+                                    onClick={() => {
+                                      if (supplier) {
+                                        createResponseMutation.mutate({
+                                          assistanceId: assistance.id,
+                                          supplierId: supplier.id,
+                                          responseType: "accepted"
+                                        });
+                                      }
+                                    }}
+                                    disabled={createResponseMutation.isPending}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    ✅ Aceitar Assistência
+                                  </Button>
+                                  
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      const reason = prompt("Motivo da recusa (opcional):");
+                                      if (supplier) {
+                                        createResponseMutation.mutate({
+                                          assistanceId: assistance.id,
+                                          supplierId: supplier.id,
+                                          responseType: "declined",
+                                          declineReason: reason || undefined
+                                        });
+                                      }
+                                    }}
+                                    disabled={createResponseMutation.isPending}
+                                    className="border-red-200 text-red-600 hover:bg-red-50"
+                                  >
+                                    ❌ Recusar Assistência
+                                  </Button>
+                                </div>
+                                
+                                {(createResponseMutation.isPending || updateAssistanceMutation.isPending) && (
+                                  <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded border">
+                                    🔄 A processar resposta e enviar notificações...
+                                  </div>
+                                )}
+                              </div>
                             )}
                             
                             {assistance.status === "in_progress" && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateAssistanceMutation.mutate({
-                                  assistanceId: assistance.id,
-                                  newStatus: "completed"
-                                })}
-                                disabled={updateAssistanceMutation.isPending}
-                              >
-                                Marcar como Concluída
-                              </Button>
+                              <div className="space-y-3">
+                                <h4 className="font-medium">Marcar Progresso</h4>
+                                <Button
+                                  size="sm"
+                                  onClick={() => updateAssistanceMutation.mutate({
+                                    assistanceId: assistance.id,
+                                    newStatus: "completed"
+                                  })}
+                                  disabled={updateAssistanceMutation.isPending}
+                                  className="bg-blue-600 hover:bg-blue-700"
+                                >
+                                  ✅ Marcar como Concluída
+                                </Button>
+                              </div>
+                            )}
+
+                            {assistance.status === "completed" && (
+                              <div className="bg-green-50 border border-green-200 p-3 rounded">
+                                <p className="text-green-800 text-sm">
+                                  ✅ <strong>Assistência Concluída</strong> - Obrigado pelo seu trabalho!
+                                </p>
+                              </div>
                             )}
                           </div>
                         </TabsContent>
