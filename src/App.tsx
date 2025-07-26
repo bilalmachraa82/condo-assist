@@ -8,26 +8,60 @@ import Dashboard from "./pages/Dashboard";
 import Assistencias from "./pages/Assistencias";
 import Edificios from "./pages/Edificios";
 import Fornecedores from "./pages/Fornecedores";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { AuthProvider } from "./hooks/useAuth";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-          <Route path="/assistencias" element={<DashboardLayout><Assistencias /></DashboardLayout>} />
-          <Route path="/edificios" element={<DashboardLayout><Edificios /></DashboardLayout>} />
-          <Route path="/fornecedores" element={<DashboardLayout><Fornecedores /></DashboardLayout>} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><Dashboard /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/assistencias" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><Assistencias /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/edificios" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><Edificios /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/fornecedores" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><Fornecedores /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

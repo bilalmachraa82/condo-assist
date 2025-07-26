@@ -1,5 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./AppSidebar"
+import UserMenu from "@/components/auth/UserMenu"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="text-sm text-muted-foreground">
                   Admin Portal
                 </div>
+                <UserMenu />
               </div>
             </div>
           </header>
