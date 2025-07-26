@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { 
   Plus, 
   Search, 
@@ -13,7 +15,8 @@ import {
   FileText,
   Edit,
   Eye,
-  MoreHorizontal
+  MoreHorizontal,
+  Trash2
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -21,12 +24,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useBuildings, useBuildingStats } from "@/hooks/useBuildings"
+import { useBuildings, useBuildingStats, useDeleteBuilding, type Building } from "@/hooks/useBuildings"
+import { BuildingForm } from "@/components/buildings/BuildingForm"
+import { useToast } from "@/hooks/use-toast"
 
 export default function Edificios() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null)
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [buildingToDelete, setBuildingToDelete] = useState<Building | null>(null)
+  
   const { data: buildings = [], isLoading } = useBuildings()
   const { data: stats, isLoading: isLoadingStats } = useBuildingStats()
+  const deleteBuilding = useDeleteBuilding()
+  const { toast } = useToast()
 
   const filteredBuildings = useMemo(() => {
     if (!searchTerm) return buildings
@@ -47,6 +58,37 @@ export default function Edificios() {
         Inativo
       </Badge>
     )
+  }
+
+  const handleEdit = (building: Building) => {
+    setSelectedBuilding(building)
+    setIsFormOpen(true)
+  }
+
+  const handleCreate = () => {
+    setSelectedBuilding(null)
+    setIsFormOpen(true)
+  }
+
+  const handleFormSuccess = () => {
+    setIsFormOpen(false)
+    setSelectedBuilding(null)
+  }
+
+  const handleDelete = async () => {
+    if (!buildingToDelete) return
+    
+    try {
+      await deleteBuilding.mutateAsync(buildingToDelete.id)
+      toast({ title: "Edifício eliminado com sucesso!" })
+      setBuildingToDelete(null)
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao eliminar edifício",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -78,7 +120,7 @@ export default function Edificios() {
             Filtros
           </Button>
         </div>
-        <Button className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300">
+        <Button onClick={handleCreate} className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300">
           <Plus className="h-4 w-4 mr-2" />
           Novo Edifício
         </Button>
@@ -189,13 +231,20 @@ export default function Edificios() {
                         <Eye className="h-4 w-4 mr-2" />
                         Ver Detalhes
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(building)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <FileText className="h-4 w-4 mr-2" />
                         Assistências
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => setBuildingToDelete(building)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -236,7 +285,7 @@ export default function Edificios() {
                     <Eye className="h-3 w-3 mr-1" />
                     Ver
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
+                  <Button onClick={() => handleEdit(building)} variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
                     <Edit className="h-3 w-3 mr-1" />
                     Editar
                   </Button>
@@ -258,6 +307,45 @@ export default function Edificios() {
           </div>
         </Card>
       )}
+
+      {/* Form Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedBuilding ? "Editar Edifício" : "Novo Edifício"}
+            </DialogTitle>
+          </DialogHeader>
+          <BuildingForm
+            building={selectedBuilding || undefined}
+            onSuccess={handleFormSuccess}
+            onCancel={() => setIsFormOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!buildingToDelete} onOpenChange={() => setBuildingToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Edifício</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem a certeza que deseja eliminar o edifício "{buildingToDelete?.name}"? 
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteBuilding.isPending}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

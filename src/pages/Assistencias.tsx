@@ -320,6 +320,7 @@ export default function Assistencias() {
           </div>
         </Card>
       )}
+
     </div>
   )
 }

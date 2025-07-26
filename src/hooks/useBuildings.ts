@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 
@@ -54,5 +54,84 @@ export const useBuildingStats = () => {
         totalAssistances: assistanceCount || 0,
       };
     },
+  });
+};
+
+export const useCreateBuilding = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (building: Omit<Building, "id" | "created_at" | "updated_at">) => {
+      const { data, error } = await supabase
+        .from("buildings")
+        .insert(building)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["buildings"] });
+      queryClient.invalidateQueries({ queryKey: ["building-stats"] });
+    },
+  });
+};
+
+export const useUpdateBuilding = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Building> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("buildings")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["buildings"] });
+      queryClient.invalidateQueries({ queryKey: ["building-stats"] });
+    },
+  });
+};
+
+export const useDeleteBuilding = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("buildings")
+        .delete()
+        .eq("id", id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["buildings"] });
+      queryClient.invalidateQueries({ queryKey: ["building-stats"] });
+    },
+  });
+};
+
+export const useBuilding = (id: string) => {
+  return useQuery({
+    queryKey: ["building", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("buildings")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as Building | null;
+    },
+    enabled: !!id,
   });
 };

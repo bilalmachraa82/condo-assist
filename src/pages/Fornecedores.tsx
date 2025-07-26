@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { 
   Plus, 
   Search, 
@@ -15,7 +17,8 @@ import {
   Briefcase,
   Edit,
   Eye,
-  MoreHorizontal
+  MoreHorizontal,
+  Trash2
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -23,12 +26,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useSuppliers, useSupplierStats } from "@/hooks/useSuppliers"
+import { useAllSuppliers, useSupplierStats, useDeleteSupplier, type Supplier } from "@/hooks/useSuppliers"
+import { SupplierForm } from "@/components/suppliers/SupplierForm"
+import { useToast } from "@/hooks/use-toast"
 
 export default function Fornecedores() {
   const [searchTerm, setSearchTerm] = useState("")
-  const { data: suppliers = [], isLoading } = useSuppliers()
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null)
+  
+  const { data: suppliers = [], isLoading } = useAllSuppliers()
   const { data: stats, isLoading: isLoadingStats } = useSupplierStats()
+  const deleteSupplier = useDeleteSupplier()
+  const { toast } = useToast()
 
   const filteredSuppliers = useMemo(() => {
     if (!searchTerm) return suppliers
@@ -71,6 +82,37 @@ export default function Fornecedores() {
     )
   }
 
+  const handleEdit = (supplier: Supplier) => {
+    setSelectedSupplier(supplier)
+    setIsFormOpen(true)
+  }
+
+  const handleCreate = () => {
+    setSelectedSupplier(null)
+    setIsFormOpen(true)
+  }
+
+  const handleFormSuccess = () => {
+    setIsFormOpen(false)
+    setSelectedSupplier(null)
+  }
+
+  const handleDelete = async () => {
+    if (!supplierToDelete) return
+    
+    try {
+      await deleteSupplier.mutateAsync(supplierToDelete.id)
+      toast({ title: "Fornecedor eliminado com sucesso!" })
+      setSupplierToDelete(null)
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao eliminar fornecedor",
+        variant: "destructive",
+      })
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -100,7 +142,7 @@ export default function Fornecedores() {
             Filtros
           </Button>
         </div>
-        <Button className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300">
+        <Button onClick={handleCreate} className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300">
           <Plus className="h-4 w-4 mr-2" />
           Novo Fornecedor
         </Button>
@@ -215,13 +257,20 @@ export default function Fornecedores() {
                         <Eye className="h-4 w-4 mr-2" />
                         Ver Detalhes
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(supplier)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Mail className="h-4 w-4 mr-2" />
                         Enviar Email
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => setSupplierToDelete(supplier)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -271,7 +320,7 @@ export default function Fornecedores() {
                     <Eye className="h-3 w-3 mr-1" />
                     Ver
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
+                  <Button onClick={() => handleEdit(supplier)} variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
                     <Edit className="h-3 w-3 mr-1" />
                     Editar
                   </Button>
@@ -297,6 +346,45 @@ export default function Fornecedores() {
           </div>
         </Card>
       )}
+
+      {/* Form Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedSupplier ? "Editar Fornecedor" : "Novo Fornecedor"}
+            </DialogTitle>
+          </DialogHeader>
+          <SupplierForm
+            supplier={selectedSupplier || undefined}
+            onSuccess={handleFormSuccess}
+            onCancel={() => setIsFormOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!supplierToDelete} onOpenChange={() => setSupplierToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Fornecedor</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem a certeza que deseja eliminar o fornecedor "{supplierToDelete?.name}"? 
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteSupplier.isPending}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

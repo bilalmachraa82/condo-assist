@@ -66,6 +66,90 @@ export const useAssistanceStats = () => {
   });
 };
 
+export const useCreateAssistance = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (assistance: Omit<Tables<"assistances">, "id" | "created_at" | "updated_at">) => {
+      const { data, error } = await supabase
+        .from("assistances")
+        .insert(assistance)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assistances"] });
+      queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
+    },
+  });
+};
+
+export const useUpdateAssistance = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Tables<"assistances">> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("assistances")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assistances"] });
+      queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
+    },
+  });
+};
+
+export const useDeleteAssistance = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("assistances")
+        .delete()
+        .eq("id", id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assistances"] });
+      queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
+    },
+  });
+};
+
+export const useAssistance = (id: string) => {
+  return useQuery({
+    queryKey: ["assistance", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("assistances")
+        .select(`
+          *,
+          buildings(name, code),
+          suppliers(name),
+          intervention_types(name)
+        `)
+        .eq("id", id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+};
+
 export const useUpdateAssistanceStatus = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
