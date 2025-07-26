@@ -21,7 +21,7 @@ const assistanceSchema = z.object({
   building_id: z.string().min(1, "Edifício é obrigatório"),
   intervention_type_id: z.string().min(1, "Tipo de intervenção é obrigatório"),
   priority: z.enum(["normal", "urgent", "critical"]),
-  assigned_supplier_id: z.string().optional(),
+  assigned_supplier_id: z.string().optional().or(z.literal("")),
   deadline_response: z.string().optional(),
 });
 
@@ -298,9 +298,8 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                           <SelectValue placeholder="Atribuir fornecedor" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="">Nenhum fornecedor</SelectItem>
-                        {suppliers.map((supplier) => (
+                       <SelectContent>
+                         {suppliers.map((supplier) => (
                           <SelectItem key={supplier.id} value={supplier.id}>
                             {supplier.name}
                             {supplier.specialization && (
