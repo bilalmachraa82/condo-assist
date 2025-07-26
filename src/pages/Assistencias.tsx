@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { 
   Plus, 
   Search, 
@@ -16,118 +17,86 @@ import {
   Building2,
   User
 } from "lucide-react"
+import { useAssistances, useAssistanceStats, type Assistance } from "@/hooks/useAssistances"
+import { formatDistanceToNow, format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
-interface Assistance {
-  id: string
-  type: string
-  building: string
-  supplier?: string
-  status: "pendente" | "aceite" | "agendado" | "concluido" | "rejeitado"
-  priority: "normal" | "urgente" | "critico"
-  createdAt: string
-  scheduledDate?: string
-  description: string
-}
-
-const mockAssistances: Assistance[] = [
-  {
-    id: "ASS-001",
-    type: "Reparação de Elevador",
-    building: "COND. R. ALEXANDRE HERCULANO,Nº35",
-    supplier: "TKE",
-    status: "agendado",
-    priority: "urgente",
-    createdAt: "2024-01-15T09:30:00Z",
-    scheduledDate: "2024-01-16T09:00:00Z",
-    description: "Elevador parado no 3º andar"
-  },
-  {
-    id: "ASS-002", 
-    type: "Manutenção Preventiva",
-    building: "COND. TRAVESSA CONDE DA RIBEIRA, Nº12",
-    supplier: "Clefta",
-    status: "pendente",
-    priority: "normal",
-    createdAt: "2024-01-15T14:20:00Z",
-    description: "Verificação sistema CCTV"
-  },
-  {
-    id: "ASS-003",
-    type: "Limpeza de Caleiras",
-    building: "COND.R.NOSSA SRA DA ANUNCIAÇÃO Nº5",
-    supplier: "Sr. Obras",
-    status: "concluido",
-    priority: "normal", 
-    createdAt: "2024-01-14T11:00:00Z",
-    description: "Limpeza caleiras e algerozes"
-  },
-  {
-    id: "ASS-004",
-    type: "Controlo de Pragas",
-    building: "COND. R.VITORINO NEMÉSIO, 8", 
-    supplier: "Desinfest Lar",
-    status: "aceite",
-    priority: "normal",
-    createdAt: "2024-01-15T16:45:00Z",
-    description: "Tratamento preventivo garagem"
-  }
-]
-
-const getStatusIcon = (status: Assistance["status"]) => {
+const getStatusIcon = (status: string) => {
   switch (status) {
-    case "pendente":
+    case "pending":
       return <Clock className="h-4 w-4" />
-    case "aceite":
+    case "in_progress":
       return <CheckCircle className="h-4 w-4" />
-    case "agendado":
-      return <Calendar className="h-4 w-4" />
-    case "concluido":
+    case "completed":
       return <CheckCircle className="h-4 w-4" />
-    case "rejeitado":
+    case "cancelled":
       return <XCircle className="h-4 w-4" />
+    default:
+      return <Clock className="h-4 w-4" />
   }
 }
 
-const getStatusBadge = (status: Assistance["status"]) => {
+const getStatusBadge = (status: string) => {
   const variants = {
-    pendente: "bg-warning/10 text-warning border-warning/20",
-    aceite: "bg-primary/10 text-primary border-primary/20",
-    agendado: "bg-accent/10 text-accent border-accent/20",
-    concluido: "bg-success/10 text-success border-success/20",
-    rejeitado: "bg-destructive/10 text-destructive border-destructive/20"
+    pending: "bg-warning/10 text-warning border-warning/20",
+    in_progress: "bg-primary/10 text-primary border-primary/20",
+    completed: "bg-success/10 text-success border-success/20",
+    cancelled: "bg-destructive/10 text-destructive border-destructive/20"
+  }
+
+  const labels = {
+    pending: "Pendente",
+    in_progress: "Em Progresso",
+    completed: "Concluída",
+    cancelled: "Cancelada"
   }
 
   return (
-    <Badge className={variants[status]}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+    <Badge className={variants[status as keyof typeof variants] || variants.pending}>
+      {labels[status as keyof typeof labels] || status}
     </Badge>
   )
 }
 
-const getPriorityBadge = (priority: Assistance["priority"]) => {
+const getPriorityBadge = (priority: string) => {
   const variants = {
     normal: "bg-muted/50 text-muted-foreground",
-    urgente: "bg-warning/10 text-warning border-warning/20",
-    critico: "bg-destructive/10 text-destructive border-destructive/20"
+    urgent: "bg-warning/10 text-warning border-warning/20",
+    critical: "bg-destructive/10 text-destructive border-destructive/20"
   }
 
   const icons = {
     normal: null,
-    urgente: <AlertTriangle className="h-3 w-3 mr-1" />,
-    critico: <AlertTriangle className="h-3 w-3 mr-1" />
+    urgent: <AlertTriangle className="h-3 w-3 mr-1" />,
+    critical: <AlertTriangle className="h-3 w-3 mr-1" />
+  }
+
+  const labels = {
+    normal: "Normal",
+    urgent: "Urgente",
+    critical: "Crítico"
   }
 
   return (
-    <Badge className={`text-xs ${variants[priority]}`}>
-      {icons[priority]}
-      {priority.charAt(0).toUpperCase() + priority.slice(1)}
+    <Badge className={`text-xs ${variants[priority as keyof typeof variants] || variants.normal}`}>
+      {icons[priority as keyof typeof icons]}
+      {labels[priority as keyof typeof labels] || priority}
     </Badge>
   )
 }
 
 export default function Assistencias() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [filteredAssistances] = useState(mockAssistances)
+  const { data: assistances, isLoading } = useAssistances();
+  const { data: stats, isLoading: statsLoading } = useAssistanceStats();
+
+  // Filter assistances based on search term
+  const filteredAssistances = assistances?.filter(assistance => 
+    assistance.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    assistance.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    assistance.buildings?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    assistance.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
   return (
     <div className="space-y-6">
@@ -166,108 +135,141 @@ export default function Assistencias() {
 
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Wrench className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-2xl font-bold text-primary">{mockAssistances.length}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-warning/10 to-warning/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-warning" />
-              <div>
-                <p className="text-2xl font-bold text-warning">
-                  {mockAssistances.filter(a => a.status === "pendente").length}
-                </p>
-                <p className="text-xs text-muted-foreground">Pendentes</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-accent/10 to-accent/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-accent" />
-              <div>
-                <p className="text-2xl font-bold text-accent">
-                  {mockAssistances.filter(a => a.status === "agendado").length}
-                </p>
-                <p className="text-xs text-muted-foreground">Agendadas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-success/10 to-success/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-success" />
-              <div>
-                <p className="text-2xl font-bold text-success">
-                  {mockAssistances.filter(a => a.status === "concluido").length}
-                </p>
-                <p className="text-xs text-muted-foreground">Concluídas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {statsLoading ? (
+          <>
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </>
+        ) : (
+          <>
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-2xl font-bold text-primary">{stats?.total || 0}</p>
+                    <p className="text-xs text-muted-foreground">Total</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-warning/10 to-warning/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-warning" />
+                  <div>
+                    <p className="text-2xl font-bold text-warning">{stats?.pending || 0}</p>
+                    <p className="text-xs text-muted-foreground">Pendentes</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-accent/10 to-accent/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-accent" />
+                  <div>
+                    <p className="text-2xl font-bold text-accent">{stats?.in_progress || 0}</p>
+                    <p className="text-xs text-muted-foreground">Em Progresso</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-success/10 to-success/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-success" />
+                  <div>
+                    <p className="text-2xl font-bold text-success">{stats?.completed || 0}</p>
+                    <p className="text-xs text-muted-foreground">Concluídas</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Assistances List */}
       <div className="grid gap-4">
-        {filteredAssistances.map((assistance) => (
-          <Card key={assistance.id} className="hover:shadow-md transition-all duration-300 cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex-1 space-y-2">
+        {isLoading ? (
+          <>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="p-6">
+                <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm text-muted-foreground">{assistance.id}</span>
-                    {getStatusBadge(assistance.status)}
-                    {getPriorityBadge(assistance.priority)}
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-5 w-16" />
                   </div>
-                  
-                  <h3 className="font-semibold text-lg">{assistance.type}</h3>
-                  <p className="text-sm text-muted-foreground">{assistance.description}</p>
-                  
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Building2 className="h-4 w-4" />
-                      <span className="truncate max-w-xs">{assistance.building}</span>
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <div className="flex gap-4">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-28" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </>
+        ) : (
+          filteredAssistances.map((assistance) => (
+            <Card key={assistance.id} className="hover:shadow-md transition-all duration-300 cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-sm text-muted-foreground">{assistance.id}</span>
+                      {getStatusBadge(assistance.status)}
+                      {getPriorityBadge(assistance.priority)}
                     </div>
-                    {assistance.supplier && (
+                    
+                    <h3 className="font-semibold text-lg">
+                      {assistance.intervention_types?.name || assistance.title || 'Assistência'}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {assistance.description || 'Sem descrição'}
+                    </p>
+                    
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <User className="h-4 w-4" />
-                        <span>{assistance.supplier}</span>
+                        <Building2 className="h-4 w-4" />
+                        <span className="truncate max-w-xs">
+                          {assistance.buildings?.name || 'Edifício não especificado'}
+                        </span>
                       </div>
-                    )}
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      <span>
-                        {new Date(assistance.createdAt).toLocaleDateString('pt-PT')} às{' '}
-                        {new Date(assistance.createdAt).toLocaleTimeString('pt-PT', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </span>
+                      {assistance.suppliers && (
+                        <div className="flex items-center gap-1">
+                          <User className="h-4 w-4" />
+                          <span>{assistance.suppliers.name}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        <span>
+                          {formatDistanceToNow(new Date(assistance.created_at), { 
+                            addSuffix: true, 
+                            locale: ptBR 
+                          })}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(assistance.status)}
+                    <Button variant="outline" size="sm" className="hover:bg-muted/50">
+                      Ver Detalhes
+                    </Button>
+                  </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(assistance.status)}
-                  <Button variant="outline" size="sm" className="hover:bg-muted/50">
-                    Ver Detalhes
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {filteredAssistances.length === 0 && (

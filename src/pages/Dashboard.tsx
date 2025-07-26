@@ -2,6 +2,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard"
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { 
   Wrench, 
   Clock, 
@@ -14,8 +15,16 @@ import {
   TrendingUp,
   Calendar
 } from "lucide-react"
+import { useAssistanceStats } from "@/hooks/useAssistances"
+import { useBuildingStats } from "@/hooks/useBuildings"
+import { useSupplierStats } from "@/hooks/useSuppliers"
 
 export default function Dashboard() {
+  const { data: assistanceStats, isLoading: assistanceLoading } = useAssistanceStats();
+  const { data: buildingStats, isLoading: buildingLoading } = useBuildingStats();
+  const { data: supplierStats, isLoading: supplierLoading } = useSupplierStats();
+
+  const isLoading = assistanceLoading || buildingLoading || supplierLoading;
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -46,38 +55,49 @@ export default function Dashboard() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Total Assistências"
-          value="156"
-          description="Este mês"
-          icon={Wrench}
-          trend={{ value: 12, label: "vs mês anterior", isPositive: true }}
-          variant="primary"
-        />
-        <StatsCard
-          title="Pendentes"
-          value="23"
-          description="Aguardam resposta"
-          icon={Clock}
-          trend={{ value: -8, label: "vs semana anterior", isPositive: false }}
-          variant="warning"
-        />
-        <StatsCard
-          title="Concluídas"
-          value="98"
-          description="Este mês"
-          icon={CheckCircle}
-          trend={{ value: 15, label: "vs mês anterior", isPositive: true }}
-          variant="success"
-        />
-        <StatsCard
-          title="Canceladas"
-          value="5"
-          description="Este mês"
-          icon={XCircle}
-          trend={{ value: -2, label: "vs mês anterior", isPositive: true }}
-          variant="destructive"
-        />
+        {isLoading ? (
+          <>
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </>
+        ) : (
+          <>
+            <StatsCard
+              title="Total Assistências"
+              value={assistanceStats?.total.toString() || "0"}
+              description="Total no sistema"
+              icon={Wrench}
+              trend={{ value: 12, label: "vs mês anterior", isPositive: true }}
+              variant="primary"
+            />
+            <StatsCard
+              title="Pendentes"
+              value={assistanceStats?.pending.toString() || "0"}
+              description="Aguardam resposta"
+              icon={Clock}
+              trend={{ value: -8, label: "vs semana anterior", isPositive: false }}
+              variant="warning"
+            />
+            <StatsCard
+              title="Concluídas"
+              value={assistanceStats?.completed.toString() || "0"}
+              description="Finalizadas"
+              icon={CheckCircle}
+              trend={{ value: 15, label: "vs mês anterior", isPositive: true }}
+              variant="success"
+            />
+            <StatsCard
+              title="Canceladas"
+              value={assistanceStats?.cancelled.toString() || "0"}
+              description="Canceladas"
+              icon={XCircle}
+              trend={{ value: -2, label: "vs mês anterior", isPositive: true }}
+              variant="destructive"
+            />
+          </>
+        )}
       </div>
 
       {/* Main Content Grid */}
