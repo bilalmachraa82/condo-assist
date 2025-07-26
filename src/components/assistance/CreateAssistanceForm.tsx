@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useBuildings } from "@/hooks/useBuildings";
 import { useSuppliers } from "@/hooks/useSuppliers";
+import { sendMagicCodeToSupplier } from "@/utils/sendMagicCode";
 
 const assistanceSchema = z.object({
   title: z.string().min(3, "Título deve ter pelo menos 3 caracteres"),
@@ -100,10 +101,70 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
           }
         });
 
-      toast({
-        title: "Sucesso",
-        description: "Assistência criada com sucesso!",
-      });
+      // Send email notification if supplier is assigned
+      if (assistance.assigned_supplier_id) {
+        try {
+          const supplier = suppliers.find(s => s.id === assistance.assigned_supplier_id);
+          const building = buildings.find(b => b.id === assistance.building_id);
+          const interventionType = interventionTypes.find(i => i.id === assistance.intervention_type_id);
+          
+          if (supplier?.email && supplier?.name) {
+            await sendMagicCodeToSupplier(
+              supplier.id,
+              supplier.email,
+              supplier.name,
+              {
+                title: assistance.title,
+                priority: assistance.priority,
+                buildingName: building?.name || 'N/A',
+                interventionType: interventionType?.name || 'N/A',
+                description: assistance.description || undefined
+              }
+            );
+
+            // Log email sending
+            await supabase
+              .from("email_logs")
+              .insert({
+                assistance_id: assistance.id,
+                supplier_id: supplier.id,
+                recipient_email: supplier.email,
+                subject: 'Nova Assistência Atribuída',
+                template_used: 'new_assistance_assignment',
+                status: 'sent',
+                metadata: {
+                  assistance_title: assistance.title,
+                  priority: assistance.priority,
+                  building_name: building?.name,
+                  intervention_type: interventionType?.name
+                }
+              });
+
+            toast({
+              title: "Sucesso",
+              description: "Assistência criada e fornecedor notificado por email!",
+            });
+          } else {
+            toast({
+              title: "Sucesso",
+              description: "Assistência criada! Aviso: Fornecedor sem email configurado.",
+              variant: "default",
+            });
+          }
+        } catch (emailError) {
+          console.error("Email sending error:", emailError);
+          toast({
+            title: "Sucesso com Aviso",
+            description: "Assistência criada, mas houve erro ao enviar email de notificação.",
+            variant: "default",
+          });
+        }
+      } else {
+        toast({
+          title: "Sucesso",
+          description: "Assistência criada com sucesso!",
+        });
+      }
 
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
       queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
