@@ -21,6 +21,7 @@ import { useAssistances, useAssistanceStats, type Assistance } from "@/hooks/use
 import { formatDistanceToNow, format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import AssistanceDetail from "@/components/assistance/AssistanceDetail"
+import CreateAssistanceForm from "@/components/assistance/CreateAssistanceForm"
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -89,6 +90,7 @@ const getPriorityBadge = (priority: string) => {
 export default function Assistencias() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedAssistance, setSelectedAssistance] = useState<Assistance | null>(null)
+  const [showCreateForm, setShowCreateForm] = useState(false)
   const { data: assistances, isLoading } = useAssistances();
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
 
@@ -107,6 +109,21 @@ export default function Assistencias() {
         assistance={selectedAssistance} 
         onBack={() => setSelectedAssistance(null)}
       />
+    );
+  }
+
+  // Show create form if needed
+  if (showCreateForm) {
+    return (
+      <div className="space-y-6">
+        <CreateAssistanceForm 
+          onClose={() => setShowCreateForm(false)}
+          onSuccess={() => {
+            setShowCreateForm(false);
+            // Data will be refreshed automatically via React Query
+          }}
+        />
+      </div>
     );
   }
 
@@ -139,7 +156,10 @@ export default function Assistencias() {
             Filtros
           </Button>
         </div>
-        <Button className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300">
+        <Button 
+          className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
+          onClick={() => setShowCreateForm(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Nova Assistência
         </Button>
