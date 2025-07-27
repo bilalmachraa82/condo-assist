@@ -116,18 +116,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
       return data;
     },
     onSuccess: async (assistance) => {
-      // Log activity
-      await supabase
-        .from("activity_log")
-        .insert({
-          assistance_id: assistance.id,
-          action: "assistance_created",
-          details: `Nova assistência criada: ${assistance.title}`,
-          metadata: {
-            priority: assistance.priority,
-            building_id: assistance.building_id
-          }
-        });
+      // Activity logging is now handled by database triggers
 
       // Send email notification if supplier is assigned
       if (assistance.assigned_supplier_id) {
