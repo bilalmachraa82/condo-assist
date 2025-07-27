@@ -120,9 +120,9 @@ export default function QuotationManagement() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { variant: "outline" as const, icon: Clock, text: "Pending Review" },
-      approved: { variant: "default" as const, icon: CheckCircle, text: "Approved" },
-      rejected: { variant: "destructive" as const, icon: XCircle, text: "Rejected" },
+      pending: { variant: "outline" as const, icon: Clock, text: "Pendente" },
+      approved: { variant: "default" as const, icon: CheckCircle, text: "Aprovado" },
+      rejected: { variant: "destructive" as const, icon: XCircle, text: "Rejeitado" },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
@@ -137,22 +137,22 @@ export default function QuotationManagement() {
   };
 
   if (isLoading) {
-    return <div className="text-center py-8">Loading quotations...</div>;
+    return <div className="text-center py-8">Carregando orçamentos...</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Quotation Management</h2>
-          <p className="text-muted-foreground">Review and manage supplier quotations</p>
+          <h2 className="text-2xl font-bold">Gestão de Orçamentos</h2>
+          <p className="text-muted-foreground">Analisar e gerir orçamentos de fornecedores</p>
         </div>
       </div>
 
       {quotations.length === 0 ? (
         <Card>
           <CardContent className="text-center py-8">
-            <p className="text-muted-foreground">No quotations found</p>
+            <p className="text-muted-foreground">Nenhum orçamento encontrado</p>
           </CardContent>
         </Card>
       ) : (
@@ -164,7 +164,7 @@ export default function QuotationManagement() {
                   <div className="space-y-1">
                     <CardTitle className="text-lg">{quotation.assistances.title}</CardTitle>
                     <CardDescription>
-                      Supplier: {quotation.suppliers.name} • €{quotation.amount.toLocaleString()}
+                      Fornecedor: {quotation.suppliers.name} • €{quotation.amount.toLocaleString()}
                     </CardDescription>
                   </div>
                   {getStatusBadge(quotation.status)}
@@ -174,17 +174,17 @@ export default function QuotationManagement() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="font-medium">Submitted:</span>{" "}
-                      {new Date(quotation.created_at).toLocaleDateString()}
+                      <span className="font-medium">Submetido:</span>{" "}
+                      {new Date(quotation.created_at).toLocaleDateString('pt-PT')}
                     </div>
                     <div>
-                      <span className="font-medium">Valid for:</span> {quotation.validity_days} days
+                      <span className="font-medium">Válido por:</span> {quotation.validity_days} dias
                     </div>
                   </div>
                   
                   {quotation.description && (
                     <div>
-                      <span className="font-medium text-sm">Description:</span>
+                      <span className="font-medium text-sm">Descrição:</span>
                       <p className="text-sm text-muted-foreground mt-1">{quotation.description}</p>
                     </div>
                   )}
@@ -198,48 +198,48 @@ export default function QuotationManagement() {
                           onClick={() => setSelectedQuotation(quotation)}
                         >
                           <Eye className="h-4 w-4 mr-2" />
-                          Review Details
+                          Rever Detalhes
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl">
                         <DialogHeader>
-                          <DialogTitle>Quotation Review</DialogTitle>
+                          <DialogTitle>Revisão de Orçamento</DialogTitle>
                           <DialogDescription>
-                            Review and approve or reject this quotation
+                            Rever e aprovar ou rejeitar este orçamento
                           </DialogDescription>
                         </DialogHeader>
                         {selectedQuotation && (
                           <div className="space-y-6">
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <Label className="font-medium">Supplier</Label>
+                                <Label className="font-medium">Fornecedor</Label>
                                 <p>{selectedQuotation.suppliers.name}</p>
                                 <p className="text-sm text-muted-foreground">{selectedQuotation.suppliers.email}</p>
                               </div>
                               <div>
-                                <Label className="font-medium">Amount</Label>
+                                <Label className="font-medium">Valor</Label>
                                 <p className="text-2xl font-bold text-primary">€{selectedQuotation.amount.toLocaleString()}</p>
                               </div>
                             </div>
                             
                             <div>
-                              <Label className="font-medium">Assistance</Label>
+                              <Label className="font-medium">Assistência</Label>
                               <p>{selectedQuotation.assistances.title}</p>
                               <p className="text-sm text-muted-foreground">{selectedQuotation.assistances.description}</p>
                             </div>
 
                             {selectedQuotation.description && (
                               <div>
-                                <Label className="font-medium">Quotation Details</Label>
+                                <Label className="font-medium">Detalhes do Orçamento</Label>
                                 <p className="text-sm">{selectedQuotation.description}</p>
                               </div>
                             )}
 
                             <div>
-                              <Label htmlFor="review-notes">Review Notes (Optional)</Label>
+                              <Label htmlFor="review-notes">Notas de Revisão (Opcional)</Label>
                               <Textarea
                                 id="review-notes"
-                                placeholder="Add notes about your decision..."
+                                placeholder="Adicione notas sobre a sua decisão..."
                                 value={reviewNotes}
                                 onChange={(e) => setReviewNotes(e.target.value)}
                                 className="mt-2"
@@ -254,7 +254,7 @@ export default function QuotationManagement() {
                                   className="flex-1"
                                 >
                                   <CheckCircle className="h-4 w-4 mr-2" />
-                                  Approve Quotation
+                                  Aprovar Orçamento
                                 </Button>
                                 <Button
                                   variant="destructive"
@@ -263,7 +263,7 @@ export default function QuotationManagement() {
                                   className="flex-1"
                                 >
                                   <XCircle className="h-4 w-4 mr-2" />
-                                  Reject Quotation
+                                  Rejeitar Orçamento
                                 </Button>
                               </div>
                             )}
