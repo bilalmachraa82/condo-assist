@@ -49,12 +49,17 @@ export default function SupplierPortal() {
     queryFn: async (): Promise<Supplier | null> => {
       if (!enteredCode) return null;
       
+      console.log("Verifying magic code:", enteredCode.toUpperCase());
+      console.log("Current time:", new Date().toISOString());
+      
       const { data: magicCodeData, error } = await supabase
         .from("supplier_magic_codes")
         .select("supplier_id, expires_at")
         .eq("magic_code", enteredCode.toUpperCase())
         .gt("expires_at", new Date().toISOString())
         .single();
+
+      console.log("Magic code query result:", { magicCodeData, error });
 
       if (error) throw error;
       if (!magicCodeData) return null;
