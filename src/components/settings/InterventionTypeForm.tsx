@@ -12,7 +12,7 @@ import { useCreateInterventionType, useUpdateInterventionType, InterventionType 
 
 const interventionTypeSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
-  category: z.string().optional(),
+  category: z.string().min(1, "Categoria é obrigatória"),
   description: z.string().optional(),
   urgency_level: z.enum(["normal", "urgent", "critical"]),
 });
@@ -90,9 +90,19 @@ export function InterventionTypeForm({ interventionType, onSuccess, onCancel }: 
           render={({ field }) => (
             <FormItem>
               <FormLabel>Categoria</FormLabel>
-              <FormControl>
-                <Input placeholder="Categoria (opcional)" {...field} />
-              </FormControl>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Manutenção Preventiva">Manutenção Preventiva</SelectItem>
+                  <SelectItem value="Manutenção Corretiva">Manutenção Corretiva</SelectItem>
+                  <SelectItem value="Manutenção Preditiva">Manutenção Preditiva</SelectItem>
+                  <SelectItem value="Serviços Especializados">Serviços Especializados</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

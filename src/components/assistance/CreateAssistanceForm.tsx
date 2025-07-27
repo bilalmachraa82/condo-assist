@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,13 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
       response_deadline: "",
     },
   });
+
+  // Set default intervention type when data loads
+  useEffect(() => {
+    if (interventionTypes.length > 0 && !form.getValues("intervention_type_id")) {
+      form.setValue("intervention_type_id", interventionTypes[0].id);
+    }
+  }, [interventionTypes, form]);
 
   const createAssistanceMutation = useMutation({
     mutationFn: async (values: AssistanceFormValues) => {
@@ -223,6 +231,16 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
     return variants[priority as keyof typeof variants] || "secondary";
   };
 
+  // Group intervention types by category
+  const groupedInterventionTypes = interventionTypes?.reduce((acc, type) => {
+    const category = type.category || 'Outros';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(type);
+    return acc;
+  }, {} as Record<string, typeof interventionTypes>) || {};
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -291,13 +309,22 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {interventionTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.name}
-                            {type.category && (
-                              <span className="text-muted-foreground ml-2">({type.category})</span>
-                            )}
-                          </SelectItem>
+                        {Object.entries(groupedInterventionTypes).map(([category, types]) => (
+                          <div key={category}>
+                            <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-b">
+                              {category}
+                            </div>
+                            {types.map((type) => (
+                              <SelectItem key={type.id} value={type.id} className="pl-4">
+                                {type.name}
+                                {type.description && (
+                                  <span className="text-xs text-muted-foreground block truncate max-w-[200px]">
+                                    {type.description}
+                                  </span>
+                                )}
+                              </SelectItem>
+                            ))}
+                          </div>
                         ))}
                       </SelectContent>
                     </Select>

@@ -19,7 +19,7 @@ import {
 } from "lucide-react"
 import { useAssistances, useAssistanceStats, type Assistance } from "@/hooks/useAssistances"
 import { formatDistanceToNow, format } from "date-fns"
-import { ptBR } from "date-fns/locale"
+import { pt } from "date-fns/locale"
 import AssistanceDetail from "@/components/assistance/AssistanceDetail"
 import CreateAssistanceForm from "@/components/assistance/CreateAssistanceForm"
 
@@ -284,7 +284,7 @@ export default function Assistencias() {
                         <span>
                           {formatDistanceToNow(new Date(assistance.created_at), { 
                             addSuffix: true, 
-                            locale: ptBR 
+                            locale: pt 
                           })}
                         </span>
                       </div>
