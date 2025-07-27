@@ -20,8 +20,8 @@ export default function Quotations() {
 
         <Tabs defaultValue="dashboard" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="management">Manage Quotations</TabsTrigger>
+            <TabsTrigger value="dashboard">Painel</TabsTrigger>
+            <TabsTrigger value="management">Gerir Orçamentos</TabsTrigger>
           </TabsList>
           
           <TabsContent value="dashboard">

@@ -88,7 +88,7 @@ export default function Configuracoes() {
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <div className="flex items-center gap-2 mb-8">
         <Settings className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-bold">Configurações</h1>
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">Configurações</h1>
       </div>
 
       <Tabs defaultValue="geral" className="space-y-6">
@@ -99,7 +99,7 @@ export default function Configuracoes() {
           </TabsTrigger>
           <TabsTrigger value="tipos" className="flex items-center gap-2">
             <Cog className="h-4 w-4" />
-            Tipos de Assistência
+            Tipos de Intervenção
           </TabsTrigger>
           <TabsTrigger value="notificacoes" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />

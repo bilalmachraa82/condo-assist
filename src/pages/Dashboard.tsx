@@ -34,7 +34,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">
-          Dashboard
+          Painel de Controlo
         </h1>
         <p className="text-muted-foreground">
           Visão geral do sistema de gestão de assistências técnicas
@@ -118,8 +118,8 @@ export default function Dashboard() {
       {/* Tabs for different views */}
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="monitoring">System Monitor</TabsTrigger>
+          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="monitoring">Monitor do Sistema</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview">
