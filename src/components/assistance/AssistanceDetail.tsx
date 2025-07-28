@@ -5,18 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings } from "lucide-react";
+import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import PhotoUpload from "./PhotoUpload";
 import PhotoGallery from "./PhotoGallery";
 import QuotationList from "@/components/quotations/QuotationList";
-import { useUpdateAssistanceStatus } from "@/hooks/useAssistances";
+import { useUpdateAssistanceStatus, useDeleteAssistance } from "@/hooks/useAssistances";
 import type { Assistance } from "@/hooks/useAssistances";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface AssistanceDetailProps {
   assistance: Assistance;
   onBack: () => void;
+  onDeleted?: () => void;
 }
 
 const getStatusBadge = (status: string) => {
@@ -68,9 +71,11 @@ const getPriorityBadge = (priority: string) => {
   )
 }
 
-export default function AssistanceDetail({ assistance, onBack }: AssistanceDetailProps) {
+export default function AssistanceDetail({ assistance, onBack, onDeleted }: AssistanceDetailProps) {
   const [refreshPhotos, setRefreshPhotos] = useState(0);
   const updateStatusMutation = useUpdateAssistanceStatus();
+  const deleteAssistanceMutation = useDeleteAssistance();
+  const { toast } = useToast();
 
   const handlePhotoUploaded = () => {
     // Trigger photo gallery refresh
@@ -81,6 +86,26 @@ export default function AssistanceDetail({ assistance, onBack }: AssistanceDetai
     updateStatusMutation.mutate({
       assistanceId: assistance.id,
       newStatus
+    });
+  };
+
+  const handleDelete = () => {
+    deleteAssistanceMutation.mutate(assistance.id, {
+      onSuccess: () => {
+        toast({
+          title: "Assistência eliminada",
+          description: "A assistência foi eliminada com sucesso.",
+        });
+        onDeleted?.();
+        onBack();
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Erro",
+          description: "Erro ao eliminar assistência. Tente novamente.",
+          variant: "destructive",
+        });
+      }
     });
   };
 
@@ -101,6 +126,33 @@ export default function AssistanceDetail({ assistance, onBack }: AssistanceDetai
         <div className="flex items-center gap-2">
           {getStatusBadge(assistance.status)}
           {getPriorityBadge(assistance.priority)}
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Eliminar Assistência</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja eliminar esta assistência? Esta ação não pode ser desfeita.
+                  Todos os dados associados (fotos, orçamentos, logs) também serão eliminados.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDelete}
+                  className="bg-destructive hover:bg-destructive/90"
+                  disabled={deleteAssistanceMutation.isPending}
+                >
+                  {deleteAssistanceMutation.isPending ? "A eliminar..." : "Eliminar"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 

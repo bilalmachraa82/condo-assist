@@ -111,6 +111,7 @@ export const useUpdateAssistance = () => {
 
 export const useDeleteAssistance = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   return useMutation({
     mutationFn: async (id: string) => {
@@ -124,6 +125,19 @@ export const useDeleteAssistance = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
       queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["activity-log"] });
+      toast({
+        title: "Assistência eliminada",
+        description: "A assistência foi eliminada com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Delete assistance error:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao eliminar assistência. Verifique as suas permissões.",
+        variant: "destructive",
+      });
     },
   });
 };
