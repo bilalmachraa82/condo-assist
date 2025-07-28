@@ -10,6 +10,9 @@ import Edificios from "./pages/Edificios";
 import Fornecedores from "./pages/Fornecedores";
 import Quotations from "./pages/Quotations";
 import Configuracoes from "./pages/Configuracoes";
+import Relatorios from "./pages/Relatorios";
+import TiposAssistencia from "./pages/TiposAssistencia";
+import Notificacoes from "./pages/Notificacoes";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
 import NotFound from "./pages/NotFound";
@@ -73,6 +76,30 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DashboardLayout><Configuracoes /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/relatorios" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><Relatorios /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/tipos-assistencia" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><TiposAssistencia /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/notificacoes" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><Notificacoes /></DashboardLayout>
                 </ProtectedRoute>
               } 
             />
