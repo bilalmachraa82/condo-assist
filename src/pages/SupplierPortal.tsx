@@ -29,6 +29,7 @@ interface Supplier {
 
 interface Assistance {
   id: string;
+  title: string;
   description: string;
   status: string;
   supplier_notes?: string;
@@ -45,6 +46,8 @@ interface Assistance {
   requires_quotation?: boolean;
   quotation_requested_at?: string;
   quotation_deadline?: string;
+  buildings?: { name: string; address: string };
+  intervention_types?: { name: string };
 }
 
 interface SupplierResponse {
@@ -212,50 +215,79 @@ export default function SupplierPortal() {
     enabled: !!enteredCode && authenticated,
   });
 
-  // Get supplier's assistances with all required fields
-  const { data: assistances = [], isLoading: loadingAssistances } = useQuery({
+  // Get supplier's assistances with all required fields using optimized query
+  const { data: assistances = [], isLoading: loadingAssistances, error: assistancesError } = useQuery({
     queryKey: ["supplier-assistances", supplier?.id],
     queryFn: async () => {
-      if (!supplier?.id) return [];
+      if (!supplier?.id) {
+        console.log("❌ No supplier ID available for fetching assistances");
+        return [];
+      }
+      
+      console.log("🔍 Fetching assistances for supplier:", supplier.id);
       
       try {
+        // Use a single query with joins for better performance and reliability
         const { data: assistanceData, error } = await supabase
           .from("assistances")
           .select(`
-            id, description, status, supplier_notes, created_at, building_id, intervention_type_id,
-            scheduled_start_date, scheduled_end_date, actual_start_date, actual_end_date,
-            completion_photos_required, requires_validation, requires_quotation,
-            quotation_requested_at, quotation_deadline
+            id, 
+            title,
+            description, 
+            status, 
+            supplier_notes, 
+            created_at,
+            scheduled_start_date, 
+            scheduled_end_date, 
+            actual_start_date, 
+            actual_end_date,
+            completion_photos_required, 
+            requires_validation, 
+            requires_quotation,
+            quotation_requested_at, 
+            quotation_deadline,
+            buildings!inner (
+              name,
+              address
+            ),
+            intervention_types!inner (
+              name
+            )
           `)
           .eq("assigned_supplier_id", supplier.id)
           .order("created_at", { ascending: false });
 
-        if (error) throw error;
-        if (!assistanceData) return [];
-        
-        // Get related data
-        const results = [];
-        for (const assistance of assistanceData) {
-          const [buildingRes, typeRes] = await Promise.all([
-            supabase.from("buildings").select("name, address").eq("id", assistance.building_id).single(),
-            supabase.from("intervention_types").select("name").eq("id", assistance.intervention_type_id).single()
-          ]);
-          
-          results.push({
-            ...assistance,
-            building_name: buildingRes.data?.name || "N/A",
-            building_address: buildingRes.data?.address || "N/A",
-            intervention_type_name: typeRes.data?.name || "N/A",
-          });
+        console.log("📊 Query result:", { data: assistanceData, error });
+
+        if (error) {
+          console.error("❌ Database error:", error);
+          throw error;
         }
         
-        return results;
+        if (!assistanceData || assistanceData.length === 0) {
+          console.log("⚠️ No assistances found for supplier", supplier.id);
+          return [];
+        }
+        
+        // Transform the data to match the expected interface
+        const transformedData = assistanceData.map(assistance => ({
+          ...assistance,
+          building_name: assistance.buildings?.name || "N/A",
+          building_address: assistance.buildings?.address || "N/A", 
+          intervention_type_name: assistance.intervention_types?.name || "N/A",
+        }));
+        
+        console.log("✅ Successfully fetched assistances:", transformedData.length);
+        return transformedData;
+        
       } catch (error) {
-        console.error("Error fetching assistances:", error);
-        return [];
+        console.error("❌ Error fetching assistances:", error);
+        throw error; // Re-throw to show error in UI
       }
     },
     enabled: !!supplier?.id,
+    retry: 2,
+    staleTime: 30000, // 30 seconds
   });
 
   // Get supplier responses for each assistance
@@ -453,11 +485,37 @@ export default function SupplierPortal() {
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Suas Assistências</h2>
             
-            {assistances?.length === 0 ? (
+            {assistancesError ? (
               <Card>
                 <CardContent className="text-center py-8">
+                  <div className="text-destructive mb-2">
+                    <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+                    <p className="font-medium">Erro ao carregar assistências</p>
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    {assistancesError.message || "Ocorreu um erro inesperado"}
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4"
+                    onClick={() => queryClient.invalidateQueries({ queryKey: ["supplier-assistances"] })}
+                  >
+                    Tentar Novamente
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : assistances?.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <div className="text-muted-foreground mb-2">
+                    <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  </div>
                   <p className="text-muted-foreground">
                     Não há assistências atribuídas no momento.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Código: {enteredCode} | Fornecedor: {supplier?.name}
                   </p>
                 </CardContent>
               </Card>
