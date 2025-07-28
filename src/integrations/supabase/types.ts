@@ -177,7 +177,15 @@ export type Database = {
           title?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "assistance_progress_assistance_id_fkey"
+            columns: ["assistance_id"]
+            isOneToOne: false
+            referencedRelation: "assistances"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       assistances: {
         Row: {
@@ -595,6 +603,13 @@ export type Database = {
           supplier_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "supplier_magic_codes_assistance_id_fkey"
+            columns: ["assistance_id"]
+            isOneToOne: false
+            referencedRelation: "assistances"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supplier_magic_codes_supplier_id_fkey"
             columns: ["supplier_id"]
