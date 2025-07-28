@@ -157,6 +157,9 @@ export type Database = {
           intervention_type_id: string
           last_follow_up_sent: string | null
           priority: Database["public"]["Enums"]["assistance_priority"]
+          quotation_deadline: string | null
+          quotation_requested_at: string | null
+          requires_quotation: boolean | null
           response_deadline: string | null
           scheduled_date: string | null
           status: Database["public"]["Enums"]["assistance_status"]
@@ -180,6 +183,9 @@ export type Database = {
           intervention_type_id: string
           last_follow_up_sent?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
+          quotation_deadline?: string | null
+          quotation_requested_at?: string | null
+          requires_quotation?: boolean | null
           response_deadline?: string | null
           scheduled_date?: string | null
           status?: Database["public"]["Enums"]["assistance_status"]
@@ -203,6 +209,9 @@ export type Database = {
           intervention_type_id?: string
           last_follow_up_sent?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
+          quotation_deadline?: string | null
+          quotation_requested_at?: string | null
+          requires_quotation?: boolean | null
           response_deadline?: string | null
           scheduled_date?: string | null
           status?: Database["public"]["Enums"]["assistance_status"]
@@ -433,7 +442,9 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_requested: boolean | null
           notes: string | null
+          requested_at: string | null
           status: Database["public"]["Enums"]["quotation_status"]
           submitted_at: string | null
           supplier_id: string
@@ -446,7 +457,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_requested?: boolean | null
           notes?: string | null
+          requested_at?: string | null
           status?: Database["public"]["Enums"]["quotation_status"]
           submitted_at?: string | null
           supplier_id: string
@@ -459,7 +472,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_requested?: boolean | null
           notes?: string | null
+          requested_at?: string | null
           status?: Database["public"]["Enums"]["quotation_status"]
           submitted_at?: string | null
           supplier_id?: string
@@ -681,6 +696,10 @@ export type Database = {
         | "awaiting_approval"
         | "completed"
         | "cancelled"
+        | "awaiting_quotation"
+        | "quotation_received"
+        | "quotation_approved"
+        | "quotation_rejected"
       quotation_status:
         | "pending"
         | "submitted"
@@ -826,6 +845,10 @@ export const Constants = {
         "awaiting_approval",
         "completed",
         "cancelled",
+        "awaiting_quotation",
+        "quotation_received",
+        "quotation_approved",
+        "quotation_rejected",
       ],
       quotation_status: [
         "pending",

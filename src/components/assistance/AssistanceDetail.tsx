@@ -11,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 import PhotoUpload from "./PhotoUpload";
 import PhotoGallery from "./PhotoGallery";
 import QuotationList from "@/components/quotations/QuotationList";
+import QuotationSection from "./QuotationSection";
 import { useUpdateAssistanceStatus, useDeleteAssistance } from "@/hooks/useAssistances";
 import type { Assistance } from "@/hooks/useAssistances";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -27,14 +28,22 @@ const getStatusBadge = (status: string) => {
     pending: "bg-warning/10 text-warning border-warning/20",
     in_progress: "bg-primary/10 text-primary border-primary/20",
     completed: "bg-success/10 text-success border-success/20",
-    cancelled: "bg-destructive/10 text-destructive border-destructive/20"
+    cancelled: "bg-destructive/10 text-destructive border-destructive/20",
+    awaiting_quotation: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+    quotation_received: "bg-purple-500/10 text-purple-600 border-purple-500/20",
+    quotation_approved: "bg-green-500/10 text-green-600 border-green-500/20",
+    quotation_rejected: "bg-red-500/10 text-red-600 border-red-500/20"
   }
 
   const labels = {
     pending: "Pendente",
     in_progress: "Em Progresso",
     completed: "Concluída",
-    cancelled: "Cancelada"
+    cancelled: "Cancelada",
+    awaiting_quotation: "Aguardando Orçamento",
+    quotation_received: "Orçamento Recebido",
+    quotation_approved: "Orçamento Aprovado",
+    quotation_rejected: "Orçamento Rejeitado"
   }
 
   return (
@@ -252,7 +261,7 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
             </TabsContent>
 
             <TabsContent value="quotations" className="mt-4">
-              <QuotationList assistanceId={assistance.id} />
+              <QuotationSection assistance={assistance} />
             </TabsContent>
 
             <TabsContent value="details" className="mt-4">
@@ -387,6 +396,10 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">⏳ Pendente</SelectItem>
+                    <SelectItem value="awaiting_quotation">💰 Aguardando Orçamento</SelectItem>
+                    <SelectItem value="quotation_received">📋 Orçamento Recebido</SelectItem>
+                    <SelectItem value="quotation_approved">✅ Orçamento Aprovado</SelectItem>
+                    <SelectItem value="quotation_rejected">❌ Orçamento Rejeitado</SelectItem>
                     <SelectItem value="in_progress">🔧 Em Progresso</SelectItem>
                     <SelectItem value="completed">✅ Concluída</SelectItem>
                     <SelectItem value="cancelled">❌ Cancelada</SelectItem>

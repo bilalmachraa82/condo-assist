@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateAssistanceStatus } from "@/hooks/useAssistances";
 import { useCreateSupplierResponse } from "@/hooks/useSupplierResponses";
+import { useQuotationsByAssistance } from "@/hooks/useQuotations";
 import { Building, CheckCircle, Clock, AlertCircle, FileText, Euro } from "lucide-react";
 import SubmitQuotationForm from "@/components/quotations/SubmitQuotationForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
