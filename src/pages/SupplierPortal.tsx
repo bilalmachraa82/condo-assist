@@ -191,8 +191,14 @@ export default function SupplierPortal() {
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <Building className="h-12 w-12 mx-auto mb-4 text-primary" />
-            <CardTitle>Portal do Fornecedor</CardTitle>
+            <div className="flex justify-center mb-4">
+              <img 
+                src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
+                alt="Luvimg" 
+                className="h-16 w-auto"
+              />
+            </div>
+            <CardTitle className="text-primary">Portal do Fornecedor</CardTitle>
             <CardDescription>
               Insira o código de acesso enviado por email
             </CardDescription>
@@ -240,9 +246,13 @@ export default function SupplierPortal() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Building className="h-6 w-6 text-primary" />
+              <img 
+                src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
+                alt="Luvimg" 
+                className="h-8 w-auto"
+              />
               <div>
-                <h1 className="font-semibold">Portal do Fornecedor</h1>
+                <h1 className="font-semibold">Portal do Fornecedor - Luvimg</h1>
                 <p className="text-sm text-muted-foreground">
                   {supplier?.name}
                 </p>
