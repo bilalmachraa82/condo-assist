@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUpdateAssistanceStatus } from "@/hooks/useAssistances";
 import { useCreateSupplierResponse } from "@/hooks/useSupplierResponses";
 import { useQuotationsByAssistance } from "@/hooks/useQuotations";
-import { Building, CheckCircle, Clock, AlertCircle, FileText, Euro, Calendar, Play, Pause } from "lucide-react";
+import { Building, CheckCircle, Clock, AlertCircle, FileText, Euro, Calendar, Play, Pause, Eye, XCircle } from "lucide-react";
 import SubmitQuotationForm from "@/components/quotations/SubmitQuotationForm";
 import ScheduleForm from "@/components/supplier/ScheduleForm";
 import ProgressTracker from "@/components/supplier/ProgressTracker";
@@ -42,6 +42,136 @@ interface Assistance {
   actual_end_date?: string;
   completion_photos_required?: boolean;
   requires_validation?: boolean;
+  requires_quotation?: boolean;
+  quotation_requested_at?: string;
+  quotation_deadline?: string;
+}
+
+interface SupplierResponse {
+  id: string;
+  response_type: string;
+  response_date: string;
+  decline_reason?: string;
+  notes?: string;
+}
+
+interface Quotation {
+  id: string;
+  amount: number;
+  status: string;
+  submitted_at: string;
+  description?: string;
+  notes?: string;
+  validity_days?: number;
+}
+
+// Helper function to determine what actions are available for each assistance status
+function getAvailableActions(assistance: Assistance, supplierResponse: SupplierResponse | null, quotations: Quotation[]) {
+  const actions = {
+    canRespond: false,
+    canSubmitQuotation: false,
+    canViewQuotation: false,
+    canStartWork: false,
+    canCompleteWork: false,
+    showScheduling: false,
+    showProgress: false,
+    message: ""
+  };
+
+  // Check if supplier has already responded
+  const hasResponded = supplierResponse !== null;
+  const hasAccepted = supplierResponse?.response_type === "accepted";
+  const hasDeclined = supplierResponse?.response_type === "declined";
+  
+  // Check quotation status
+  const hasQuotations = quotations.length > 0;
+  const latestQuotation = quotations[0]; // Assuming sorted by newest first
+  const quotationApproved = latestQuotation?.status === "approved";
+  const quotationPending = latestQuotation?.status === "pending";
+  const quotationRejected = latestQuotation?.status === "rejected";
+
+  switch (assistance.status) {
+    case "pending":
+      if (!hasResponded) {
+        actions.canRespond = true;
+        actions.message = "Por favor, aceite ou recuse esta assistência.";
+      } else if (hasDeclined) {
+        actions.message = "Assistência recusada.";
+      } else if (hasAccepted) {
+        if (assistance.requires_quotation && !hasQuotations) {
+          actions.canSubmitQuotation = true;
+          actions.message = "Assistência aceite. Por favor, submeta um orçamento.";
+        } else if (assistance.requires_quotation && hasQuotations) {
+          actions.canViewQuotation = true;
+          actions.message = "Orçamento submetido. Aguardando aprovação.";
+        } else {
+          actions.canStartWork = true;
+          actions.message = "Assistência aceite. Pode iniciar o trabalho.";
+        }
+      }
+      break;
+
+    case "awaiting_quotation":
+      if (hasAccepted) {
+        if (!hasQuotations) {
+          actions.canSubmitQuotation = true;
+          actions.message = "Por favor, submeta um orçamento para esta assistência.";
+        } else {
+          actions.canViewQuotation = true;
+          actions.message = "Orçamento submetido. Aguardando aprovação.";
+        }
+      }
+      break;
+
+    case "quotation_received":
+      actions.canViewQuotation = true;
+      if (quotationPending) {
+        actions.message = "Orçamento submetido. Aguardando aprovação do administrador.";
+      } else if (quotationApproved) {
+        actions.canStartWork = true;
+        actions.message = "Orçamento aprovado! Pode iniciar o trabalho.";
+      } else if (quotationRejected) {
+        actions.canSubmitQuotation = true;
+        actions.message = "Orçamento rejeitado. Por favor, submeta um novo orçamento.";
+      }
+      break;
+
+    case "accepted":
+      actions.canStartWork = true;
+      actions.showScheduling = true;
+      actions.message = "Assistência aceite. Pode iniciar o trabalho.";
+      break;
+
+    case "scheduled":
+      actions.canStartWork = true;
+      actions.showScheduling = true;
+      actions.message = "Assistência agendada. Pode iniciar o trabalho.";
+      break;
+
+    case "in_progress":
+      actions.canCompleteWork = true;
+      actions.showProgress = true;
+      actions.message = "Trabalho em progresso. Registe o progresso e complete quando terminar.";
+      break;
+
+    case "awaiting_validation":
+      actions.showProgress = true;
+      actions.message = "Assistência enviada para validação pelo administrador.";
+      break;
+
+    case "completed":
+      actions.message = "Assistência concluída com sucesso.";
+      break;
+
+    case "cancelled":
+      actions.message = "Assistência cancelada.";
+      break;
+
+    default:
+      actions.message = "Estado não reconhecido.";
+  }
+
+  return actions;
 }
 
 export default function SupplierPortal() {
@@ -59,7 +189,6 @@ export default function SupplierPortal() {
       if (!enteredCode) return null;
       
       console.log("Verifying magic code:", enteredCode.toUpperCase());
-      console.log("Current time:", new Date().toISOString());
       
       const { data: magicCodeData, error } = await supabase
         .from("supplier_magic_codes")
@@ -67,8 +196,6 @@ export default function SupplierPortal() {
         .eq("magic_code", enteredCode.toUpperCase())
         .gt("expires_at", new Date().toISOString())
         .single();
-
-      console.log("Magic code query result:", { magicCodeData, error });
 
       if (error) throw error;
       if (!magicCodeData) return null;
@@ -85,19 +212,20 @@ export default function SupplierPortal() {
     enabled: !!enteredCode && authenticated,
   });
 
-  // Get supplier's assistances
+  // Get supplier's assistances with all required fields
   const { data: assistances = [], isLoading: loadingAssistances } = useQuery({
     queryKey: ["supplier-assistances", supplier?.id],
     queryFn: async () => {
       if (!supplier?.id) return [];
       
       try {
-        const { data: assistanceData, error } = await (supabase as any)
+        const { data: assistanceData, error } = await supabase
           .from("assistances")
           .select(`
             id, description, status, supplier_notes, created_at, building_id, intervention_type_id,
             scheduled_start_date, scheduled_end_date, actual_start_date, actual_end_date,
-            completion_photos_required, requires_validation
+            completion_photos_required, requires_validation, requires_quotation,
+            quotation_requested_at, quotation_deadline
           `)
           .eq("assigned_supplier_id", supplier.id)
           .order("created_at", { ascending: false });
@@ -105,7 +233,7 @@ export default function SupplierPortal() {
         if (error) throw error;
         if (!assistanceData) return [];
         
-        // Get related data separately to avoid complex TypeScript issues
+        // Get related data
         const results = [];
         for (const assistance of assistanceData) {
           const [buildingRes, typeRes] = await Promise.all([
@@ -114,20 +242,10 @@ export default function SupplierPortal() {
           ]);
           
           results.push({
-            id: assistance.id,
-            description: assistance.description,
-            status: assistance.status,
-            supplier_notes: assistance.supplier_notes,
-            created_at: assistance.created_at,
+            ...assistance,
             building_name: buildingRes.data?.name || "N/A",
             building_address: buildingRes.data?.address || "N/A",
             intervention_type_name: typeRes.data?.name || "N/A",
-            scheduled_start_date: assistance.scheduled_start_date,
-            scheduled_end_date: assistance.scheduled_end_date,
-            actual_start_date: assistance.actual_start_date,
-            actual_end_date: assistance.actual_end_date,
-            completion_photos_required: assistance.completion_photos_required,
-            requires_validation: assistance.requires_validation
           });
         }
         
@@ -140,8 +258,23 @@ export default function SupplierPortal() {
     enabled: !!supplier?.id,
   });
 
-  // Update assistance status
-  // Import the new status update hook and response hook
+  // Get supplier responses for each assistance
+  const { data: supplierResponses = [] } = useQuery({
+    queryKey: ["supplier-responses", supplier?.id],
+    queryFn: async () => {
+      if (!supplier?.id) return [];
+      
+      const { data, error } = await supabase
+        .from("supplier_responses")
+        .select("*")
+        .eq("supplier_id", supplier.id);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!supplier?.id,
+  });
+
   const updateAssistanceMutation = useUpdateAssistanceStatus();
   const createResponseMutation = useCreateSupplierResponse();
 
@@ -165,8 +298,10 @@ export default function SupplierPortal() {
       scheduled: { variant: "outline" as const, icon: Calendar, text: "Agendado" },
       in_progress: { variant: "default" as const, icon: Play, text: "Em Progresso" },
       awaiting_validation: { variant: "secondary" as const, icon: Pause, text: "Aguardando Validação" },
+      awaiting_quotation: { variant: "outline" as const, icon: FileText, text: "Aguardando Orçamento" },
+      quotation_received: { variant: "outline" as const, icon: Euro, text: "Orçamento Recebido" },
       completed: { variant: "default" as const, icon: CheckCircle, text: "Concluída" },
-      cancelled: { variant: "destructive" as const, icon: AlertCircle, text: "Cancelada" },
+      cancelled: { variant: "destructive" as const, icon: XCircle, text: "Cancelada" },
     };
     
     const config = variants[status as keyof typeof variants] || variants.pending;
@@ -328,250 +463,321 @@ export default function SupplierPortal() {
               </Card>
             ) : (
               <div className="grid gap-4">
-                {assistances?.map((assistance) => (
-                  <Card key={assistance.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-base">
-                            {assistance.intervention_type_name}
-                          </CardTitle>
-                          <CardDescription>
-                            {assistance.building_name} - {assistance.building_address}
-                          </CardDescription>
-                        </div>
-                        {getStatusBadge(assistance.status)}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <Tabs defaultValue="details" className="w-full">
-                        <TabsList className="grid w-full grid-cols-5">
-                          <TabsTrigger value="details">Detalhes</TabsTrigger>
-                          <TabsTrigger value="quotation">Orçamento</TabsTrigger>
-                          <TabsTrigger value="progress">Progresso</TabsTrigger>
-                          <TabsTrigger value="schedule">Agendamento</TabsTrigger>
-                          <TabsTrigger value="actions">Ações</TabsTrigger>
-                        </TabsList>
-                        
-                        <TabsContent value="details" className="mt-4 space-y-4">
-                          <div>
-                            <Label className="text-sm font-medium">Descrição</Label>
-                            <p className="text-sm text-muted-foreground">
-                              {assistance.description}
-                            </p>
-                          </div>
-                          
-                          {assistance.supplier_notes && (
-                            <div>
-                              <Label className="text-sm font-medium">Suas Notas</Label>
-                              <p className="text-sm text-muted-foreground">
-                                {assistance.supplier_notes}
-                              </p>
-                            </div>
-                          )}
-                        </TabsContent>
-
-                        <TabsContent value="quotation" className="mt-4">
-                          {supplier && (
-                            <SubmitQuotationForm
-                              assistanceId={assistance.id}
-                              supplierId={supplier.id}
-                              onQuotationSubmitted={() => {
-                                toast({
-                                  title: "Orçamento submetido",
-                                  description: "O seu orçamento foi enviado com sucesso!",
-                                });
-                              }}
-                            />
-                          )}
-                        </TabsContent>
-
-                        <TabsContent value="progress" className="mt-4">
-                          {supplier && (assistance.status === "in_progress" || assistance.status === "scheduled") && (
-                            <ProgressTracker
-                              assistanceId={assistance.id}
-                              supplierId={supplier.id}
-                              currentStatus={assistance.status}
-                            />
-                          )}
-                          {assistance.status === "pending" && (
-                            <div className="text-center py-8 text-muted-foreground">
-                              <p>O progresso só pode ser registado após aceitar a assistência.</p>
-                            </div>
-                          )}
-                        </TabsContent>
-
-                        <TabsContent value="schedule" className="mt-4">
-                          {assistance.status === "pending" && (
-                            <ScheduleForm
-                              onSubmit={(scheduleData) => {
-                                if (supplier) {
-                                  createResponseMutation.mutate({
-                                    assistanceId: assistance.id,
-                                    supplierId: supplier.id,
-                                    responseType: "accepted",
-                                    ...scheduleData
-                                  });
-                                }
-                              }}
-                              isLoading={createResponseMutation.isPending}
-                            />
-                          )}
-                          {assistance.status !== "pending" && assistance.scheduled_start_date && (
-                            <Card>
-                              <CardContent className="p-6">
-                                <div className="space-y-4">
-                                  <h4 className="font-medium">Informações de Agendamento</h4>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                      <Label className="text-sm font-medium text-muted-foreground">Início Agendado</Label>
-                                      <p className="text-sm">
-                                        {assistance.scheduled_start_date ? 
-                                          new Date(assistance.scheduled_start_date).toLocaleString("pt-PT") 
-                                          : "Não agendado"
-                                        }
-                                      </p>
-                                    </div>
-                                    {assistance.scheduled_end_date && (
-                                      <div>
-                                        <Label className="text-sm font-medium text-muted-foreground">Fim Agendado</Label>
-                                        <p className="text-sm">
-                                          {new Date(assistance.scheduled_end_date).toLocaleString("pt-PT")}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                          {assistance.status !== "pending" && !assistance.scheduled_start_date && (
-                            <div className="text-center py-8 text-muted-foreground">
-                              <p>Não há informações de agendamento para esta assistência.</p>
-                            </div>
-                          )}
-                        </TabsContent>
-
-                        <TabsContent value="actions" className="mt-4">
-                          <div className="space-y-4">
-                            {assistance.status === "pending" && (
-                              <div className="space-y-3">
-                                <h4 className="font-medium">Responder à Assistência</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  Use o separador "Agendamento" para aceitar e agendar, ou recuse aqui.
-                                </p>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => {
-                                    const reason = prompt("Motivo da recusa (opcional):");
-                                    if (supplier) {
-                                      createResponseMutation.mutate({
-                                        assistanceId: assistance.id,
-                                        supplierId: supplier.id,
-                                        responseType: "declined",
-                                        declineReason: reason || undefined
-                                      });
-                                    }
-                                  }}
-                                  disabled={createResponseMutation.isPending}
-                                  className="border-red-200 text-red-600 hover:bg-red-50"
-                                >
-                                  ❌ Recusar Assistência
-                                </Button>
-                                
-                                {(createResponseMutation.isPending || updateAssistanceMutation.isPending) && (
-                                  <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded border">
-                                    🔄 A processar resposta e enviar notificações...
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {assistance.status === "accepted" && (
-                              <div className="space-y-3">
-                                <h4 className="font-medium">Iniciar Assistência</h4>
-                                <Button
-                                  onClick={() => updateAssistanceMutation.mutate({
-                                    assistanceId: assistance.id,
-                                    newStatus: "in_progress"
-                                  })}
-                                  disabled={updateAssistanceMutation.isPending}
-                                  className="bg-blue-600 hover:bg-blue-700"
-                                >
-                                  ▶️ Iniciar Trabalho
-                                </Button>
-                              </div>
-                            )}
-
-                            {assistance.status === "scheduled" && (
-                              <div className="space-y-3">
-                                <h4 className="font-medium">Iniciar Assistência</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  Pode iniciar o trabalho a qualquer momento.
-                                </p>
-                                <Button
-                                  onClick={() => updateAssistanceMutation.mutate({
-                                    assistanceId: assistance.id,
-                                    newStatus: "in_progress"
-                                  })}
-                                  disabled={updateAssistanceMutation.isPending}
-                                  className="bg-blue-600 hover:bg-blue-700"
-                                >
-                                  ▶️ Iniciar Trabalho
-                                </Button>
-                              </div>
-                            )}
-                            
-                            {assistance.status === "in_progress" && (
-                              <div className="space-y-3">
-                                <h4 className="font-medium">Concluir Assistência</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {assistance.completion_photos_required && "Certifique-se de que adicionou fotos de conclusão no separador 'Progresso'."}
-                                </p>
-                                 <Button
-                                   onClick={() => updateAssistanceMutation.mutate({
-                                     assistanceId: assistance.id,
-                                     newStatus: assistance.requires_validation ? "awaiting_validation" : "completed"
-                                   })}
-                                   disabled={updateAssistanceMutation.isPending}
-                                   className="bg-green-600 hover:bg-green-700"
-                                 >
-                                   ✅ {assistance.requires_validation ? "Enviar para Validação" : "Marcar como Concluída"}
-                                 </Button>
-                               </div>
-                             )}
-
-                             {assistance.status === "awaiting_validation" && (
-                               <div className="space-y-3 text-center">
-                                 <h4 className="font-medium">Aguardando Validação</h4>
-                                 <p className="text-sm text-muted-foreground">
-                                   A assistência foi enviada para validação pelo administrador.
-                                 </p>
-                                 <Badge variant="secondary" className="inline-flex">
-                                   <Clock className="h-3 w-3 mr-1" />
-                                   Pendente de Aprovação
-                                 </Badge>
-                               </div>
-                             )}
-
-                             {(assistance.status === "completed" || assistance.status === "cancelled") && (
-                               <div className="text-center py-4">
-                                 <p className="text-sm text-muted-foreground">
-                                   Esta assistência foi {assistance.status === "completed" ? "concluída" : "cancelada"}.
-                                 </p>
-                               </div>
-                             )}
-                          </div>
-                        </TabsContent>
-                      </Tabs>
-                    </CardContent>
-                  </Card>
-                ))}
+                {assistances?.map((assistance) => {
+                  const supplierResponse = supplierResponses.find(r => r.assistance_id === assistance.id);
+                  
+                  return (
+                    <AssistanceCard 
+                      key={assistance.id}
+                      assistance={assistance}
+                      supplier={supplier!}
+                      supplierResponse={supplierResponse}
+                      onResponseSubmit={createResponseMutation.mutate}
+                      onStatusUpdate={updateAssistanceMutation.mutate}
+                      isLoading={createResponseMutation.isPending || updateAssistanceMutation.isPending}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
       </main>
     </div>
+  );
+}
+
+// Separate component for each assistance card
+function AssistanceCard({ 
+  assistance, 
+  supplier, 
+  supplierResponse, 
+  onResponseSubmit, 
+  onStatusUpdate, 
+  isLoading 
+}: {
+  assistance: Assistance;
+  supplier: Supplier;
+  supplierResponse: SupplierResponse | null;
+  onResponseSubmit: any;
+  onStatusUpdate: any;
+  isLoading: boolean;
+}) {
+  const { data: quotations = [] } = useQuotationsByAssistance(assistance.id);
+  const actions = getAvailableActions(assistance, supplierResponse, quotations);
+  
+  // Determine which tabs to show
+  const tabs = [
+    { id: "details", label: "Detalhes", show: true },
+    { id: "quotation", label: "Orçamento", show: assistance.requires_quotation },
+    { id: "progress", label: "Progresso", show: actions.showProgress },
+    { id: "schedule", label: "Agendamento", show: actions.showScheduling },
+    { id: "actions", label: "Ações", show: true }
+  ].filter(tab => tab.show);
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      pending: { variant: "secondary" as const, icon: Clock, text: "Pendente" },
+      accepted: { variant: "default" as const, icon: CheckCircle, text: "Aceite" },
+      scheduled: { variant: "outline" as const, icon: Calendar, text: "Agendado" },
+      in_progress: { variant: "default" as const, icon: Play, text: "Em Progresso" },
+      awaiting_validation: { variant: "secondary" as const, icon: Pause, text: "Aguardando Validação" },
+      awaiting_quotation: { variant: "outline" as const, icon: FileText, text: "Aguardando Orçamento" },
+      quotation_received: { variant: "outline" as const, icon: Euro, text: "Orçamento Recebido" },
+      completed: { variant: "default" as const, icon: CheckCircle, text: "Concluída" },
+      cancelled: { variant: "destructive" as const, icon: XCircle, text: "Cancelada" },
+    };
+    
+    const config = variants[status as keyof typeof variants] || variants.pending;
+    const Icon = config.icon;
+    
+    return (
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {config.text}
+      </Badge>
+    );
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-base">
+              {assistance.intervention_type_name}
+            </CardTitle>
+            <CardDescription>
+              {assistance.building_name} - {assistance.building_address}
+            </CardDescription>
+          </div>
+          {getStatusBadge(assistance.status)}
+        </div>
+        {actions.message && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+            <p className="text-sm text-blue-800">{actions.message}</p>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className={`grid w-full grid-cols-${tabs.length}`}>
+            {tabs.map(tab => (
+              <TabsTrigger key={tab.id} value={tab.id}>{tab.label}</TabsTrigger>
+            ))}
+          </TabsList>
+          
+          <TabsContent value="details" className="mt-4 space-y-4">
+            <div>
+              <Label className="text-sm font-medium">Descrição</Label>
+              <p className="text-sm text-muted-foreground">
+                {assistance.description}
+              </p>
+            </div>
+            
+            {assistance.supplier_notes && (
+              <div>
+                <Label className="text-sm font-medium">Suas Notas</Label>
+                <p className="text-sm text-muted-foreground">
+                  {assistance.supplier_notes}
+                </p>
+              </div>
+            )}
+
+            {assistance.quotation_deadline && (
+              <div>
+                <Label className="text-sm font-medium">Prazo para Orçamento</Label>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(assistance.quotation_deadline).toLocaleDateString("pt-PT")}
+                </p>
+              </div>
+            )}
+          </TabsContent>
+
+          {assistance.requires_quotation && (
+            <TabsContent value="quotation" className="mt-4">
+              {actions.canSubmitQuotation ? (
+                <SubmitQuotationForm
+                  assistanceId={assistance.id}
+                  supplierId={supplier.id}
+                  onQuotationSubmitted={() => {
+                    // Refresh data after quotation submission
+                  }}
+                />
+              ) : actions.canViewQuotation && quotations.length > 0 ? (
+                <div className="space-y-4">
+                  <h4 className="font-medium">Orçamento Submetido</h4>
+                  {quotations.map(quotation => (
+                    <Card key={quotation.id}>
+                      <CardContent className="p-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Valor</Label>
+                            <p className="text-lg font-semibold">€{quotation.amount}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Estado</Label>
+                            <Badge variant={quotation.status === "approved" ? "default" : quotation.status === "rejected" ? "destructive" : "secondary"}>
+                              {quotation.status === "approved" ? "Aprovado" : quotation.status === "rejected" ? "Rejeitado" : "Pendente"}
+                            </Badge>
+                          </div>
+                          {quotation.description && (
+                            <div className="col-span-2">
+                              <Label className="text-sm font-medium text-muted-foreground">Descrição</Label>
+                              <p className="text-sm">{quotation.description}</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Não é necessário orçamento para esta assistência.</p>
+                </div>
+              )}
+            </TabsContent>
+          )}
+
+          {actions.showProgress && (
+            <TabsContent value="progress" className="mt-4">
+              <ProgressTracker
+                assistanceId={assistance.id}
+                supplierId={supplier.id}
+                currentStatus={assistance.status}
+              />
+            </TabsContent>
+          )}
+
+          {actions.showScheduling && (
+            <TabsContent value="schedule" className="mt-4">
+              {assistance.status === "pending" && actions.canRespond ? (
+                <ScheduleForm
+                  onSubmit={(scheduleData) => {
+                    onResponseSubmit({
+                      assistanceId: assistance.id,
+                      supplierId: supplier.id,
+                      responseType: "accepted",
+                      ...scheduleData
+                    });
+                  }}
+                  isLoading={isLoading}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {assistance.scheduled_start_date ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Início Agendado</Label>
+                        <p className="text-sm">
+                          {new Date(assistance.scheduled_start_date).toLocaleString("pt-PT")}
+                        </p>
+                      </div>
+                      {assistance.scheduled_end_date && (
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Fim Agendado</Label>
+                          <p className="text-sm">
+                            {new Date(assistance.scheduled_end_date).toLocaleString("pt-PT")}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-center py-8 text-muted-foreground">
+                      Não há informações de agendamento para esta assistência.
+                    </p>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+          )}
+
+          <TabsContent value="actions" className="mt-4">
+            <div className="space-y-4">
+              {actions.canRespond && (
+                <div className="space-y-3">
+                  <h4 className="font-medium">Responder à Assistência</h4>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        onResponseSubmit({
+                          assistanceId: assistance.id,
+                          supplierId: supplier.id,
+                          responseType: "accepted"
+                        });
+                      }}
+                      disabled={isLoading}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      ✅ Aceitar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const reason = prompt("Motivo da recusa (opcional):");
+                        onResponseSubmit({
+                          assistanceId: assistance.id,
+                          supplierId: supplier.id,
+                          responseType: "declined",
+                          declineReason: reason || undefined
+                        });
+                      }}
+                      disabled={isLoading}
+                      className="border-red-200 text-red-600 hover:bg-red-50"
+                    >
+                      ❌ Recusar
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {actions.canStartWork && (
+                <div className="space-y-3">
+                  <h4 className="font-medium">Iniciar Trabalho</h4>
+                  <Button
+                    onClick={() => onStatusUpdate({
+                      assistanceId: assistance.id,
+                      newStatus: "in_progress"
+                    })}
+                    disabled={isLoading}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    ▶️ Iniciar Assistência
+                  </Button>
+                </div>
+              )}
+              
+              {actions.canCompleteWork && (
+                <div className="space-y-3">
+                  <h4 className="font-medium">Concluir Assistência</h4>
+                  {assistance.completion_photos_required && (
+                    <p className="text-sm text-muted-foreground">
+                      Certifique-se de que adicionou fotos de conclusão no separador 'Progresso'.
+                    </p>
+                  )}
+                  <Button
+                    onClick={() => onStatusUpdate({
+                      assistanceId: assistance.id,
+                      newStatus: assistance.requires_validation ? "awaiting_validation" : "completed"
+                    })}
+                    disabled={isLoading}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    ✅ {assistance.requires_validation ? "Enviar para Validação" : "Marcar como Concluída"}
+                  </Button>
+                </div>
+              )}
+
+              {isLoading && (
+                <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded border">
+                  🔄 A processar...
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 }
