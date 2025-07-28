@@ -19,14 +19,17 @@ import {
   Building2,
   User,
   FileText,
-  Euro
+  Euro,
+  Trash2
 } from "lucide-react"
-import { useAssistances, useAssistanceStats, type Assistance } from "@/hooks/useAssistances"
+import { useAssistances, useAssistanceStats, useDeleteAssistance, type Assistance } from "@/hooks/useAssistances"
 import { useRequestQuotation, useQuotationsByAssistance } from "@/hooks/useQuotations"
 import { formatDistanceToNow, format } from "date-fns"
 import { pt } from "date-fns/locale"
 import AssistanceDetail from "@/components/assistance/AssistanceDetail"
 import CreateAssistanceForm from "@/components/assistance/CreateAssistanceForm"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -173,6 +176,53 @@ function QuickQuotationAction({ assistance }: { assistance: Assistance }) {
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+// Delete assistance component
+function DeleteAssistanceAction({ assistance, onDeleted }: { assistance: Assistance; onDeleted?: () => void }) {
+  const deleteAssistance = useDeleteAssistance()
+  const { toast } = useToast()
+
+  const handleDelete = () => {
+    deleteAssistance.mutate(assistance.id, {
+      onSuccess: () => {
+        onDeleted?.()
+      }
+    })
+  }
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="text-destructive hover:bg-destructive/10 border-destructive/20"
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Eliminar Assistência</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja eliminar esta assistência permanentemente? Esta ação não pode ser desfeita.
+            Todos os dados associados (fotos, orçamentos, logs) também serão eliminados.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleDelete}
+            className="bg-destructive hover:bg-destructive/90"
+            disabled={deleteAssistance.isPending}
+          >
+            {deleteAssistance.isPending ? "A eliminar..." : "Eliminar"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 
@@ -387,6 +437,7 @@ export default function Assistencias() {
                   
                   <div className="flex items-center gap-2">
                     {getStatusIcon(assistance.status)}
+                    <DeleteAssistanceAction assistance={assistance} />
                     <Button 
                       variant="outline" 
                       size="sm" 
