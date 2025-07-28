@@ -17,7 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="flex items-center gap-4">
                 <RealtimeNotificationCenter />
                 <div className="text-sm text-muted-foreground">
-                  Admin Portal
+                  Luvimg Portal
                 </div>
                 <UserMenu />
               </div>

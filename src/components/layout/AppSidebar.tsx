@@ -64,13 +64,24 @@ export function AppSidebar() {
         <div className="p-4 border-b">
           {!isCollapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-light rounded-lg flex items-center justify-center">
-                <Building2 className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <img 
+                src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
+                alt="Luvimg" 
+                className="w-8 h-8 object-contain"
+              />
               <div>
-                <h2 className="font-semibold text-sm">Gestão Condomínios</h2>
-                <p className="text-xs text-muted-foreground">Sistema Assistências</p>
+                <h2 className="font-semibold text-sm">Luvimg</h2>
+                <p className="text-xs text-muted-foreground">Administração de Condomínios</p>
               </div>
+            </div>
+          )}
+          {isCollapsed && (
+            <div className="flex justify-center">
+              <img 
+                src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
+                alt="Luvimg" 
+                className="w-8 h-8 object-contain"
+              />
             </div>
           )}
         </div>

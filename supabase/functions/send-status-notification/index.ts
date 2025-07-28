@@ -86,7 +86,8 @@ const handler = async (req: Request): Promise<Response> => {
     
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-        <div style="background: linear-gradient(135deg, ${newStatusInfo.color}, ${newStatusInfo.color}dd); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+        <div style="background: linear-gradient(135deg, #5FB3B3, #7BC4C4); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+          <img src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" alt="Luvimg" style="height: 40px; width: auto; margin-bottom: 15px;" />
           <h1 style="color: white; margin: 0; font-size: 24px;">${newStatusInfo.emoji} Status Atualizado</h1>
         </div>
         
@@ -141,7 +142,9 @@ const handler = async (req: Request): Promise<Response> => {
           
           <div style="border-top: 1px solid #e5e7eb; margin-top: 30px; padding-top: 20px;">
             <p style="color: #9ca3af; font-size: 13px; margin: 0; text-align: center;">
-              Esta é uma notificação automática do sistema de gestão de assistências.<br>
+              <strong>Luvimg - Administração de Condomínios</strong><br>
+              Praceta Pedro Manuel Pereira nº 1 – 1º esq, 2620-158 Póvoa Santo Adrião<br>
+              Tel: +351 219 379 248 | Email: arquivo@luvimg.com<br>
               Atualização realizada em ${new Date().toLocaleString('pt-PT')}
             </p>
           </div>
@@ -153,7 +156,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (assistance.suppliers?.email) {
       try {
         await resend.emails.send({
-          from: "Gestão de Assistências <onboarding@resend.dev>",
+          from: "Luvimg - Administração de Condomínios <arquivo@luvimg.com>",
           to: [assistance.suppliers.email],
           subject: emailSubject,
           html: emailHtml,
