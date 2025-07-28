@@ -18,6 +18,7 @@ import { useAssistanceProgress, useCreateAssistanceProgress } from "@/hooks/useA
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProgressTrackerProps {
   assistanceId: string;
@@ -51,29 +52,64 @@ export default function ProgressTracker({
       return;
     }
 
-    // Handle photo uploads if needed
-    let photoUrls: string[] = [];
-    if (photoFiles.length > 0 && progressType === "photo") {
-      // TODO: Implement photo upload to Supabase Storage
-      // For now, we'll use placeholder URLs
-      photoUrls = photoFiles.map((file, index) => 
-        `placeholder-url-${index}-${file.name}`
-      );
+    try {
+      let photoUrls: string[] = [];
+      
+      // Upload photos if any are selected
+      if (photoFiles.length > 0) {
+        for (const file of photoFiles) {
+          const reader = new FileReader();
+          const base64Data = await new Promise<string>((resolve) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+
+          const { data, error } = await supabase.functions.invoke('upload-assistance-photo', {
+            body: {
+              assistanceId,
+              photoType: progressType,
+              caption: title || 'Progress photo',
+              file: {
+                name: file.name,
+                type: file.type,
+                data: base64Data.split(',')[1], // Remove data:image/xxx;base64, prefix
+              }
+            }
+          });
+
+          if (error) throw error;
+          if (data?.photo?.file_url) {
+            photoUrls.push(data.photo.file_url);
+          }
+        }
+      }
+
+      await createProgress.mutateAsync({
+        assistanceId,
+        supplierId,
+        progressType,
+        title: title || undefined,
+        description,
+        photoUrls: photoUrls.length > 0 ? photoUrls : undefined
+      });
+
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setPhotoFiles([]);
+      
+      toast({
+        title: "Sucesso",
+        description: "Progresso registado com sucesso",
+      });
+    } catch (error) {
+      console.error('Error creating progress:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao registar progresso",
+        variant: "destructive",
+      });
     }
-
-    await createProgress.mutateAsync({
-      assistanceId,
-      supplierId,
-      progressType,
-      title: title || undefined,
-      description,
-      photoUrls: photoUrls.length > 0 ? photoUrls : undefined
-    });
-
-    // Reset form
-    setTitle("");
-    setDescription("");
-    setPhotoFiles([]);
   };
 
   const getProgressIcon = (type: string) => {
@@ -259,12 +295,13 @@ export default function ProgressTracker({
                         {progress.photo_urls && progress.photo_urls.length > 0 && (
                           <div className="flex gap-2">
                             {progress.photo_urls.map((url, photoIndex) => (
-                              <div 
+                              <img 
                                 key={photoIndex}
-                                className="w-16 h-16 bg-muted rounded border flex items-center justify-center"
-                              >
-                                <Camera className="h-6 w-6 text-muted-foreground" />
-                              </div>
+                                src={url}
+                                alt={`Progress photo ${photoIndex + 1}`}
+                                className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => window.open(url, '_blank')}
+                              />
                             ))}
                           </div>
                         )}
