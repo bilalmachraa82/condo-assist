@@ -233,6 +233,8 @@ export const useRequestQuotation = () => {
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
       queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["quotation-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["quotation-requests-pending"] });
       toast.success("Orçamento solicitado e email enviado com sucesso!");
     },
     onError: (error) => {
