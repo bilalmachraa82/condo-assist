@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { 
   Plus, 
   Search, 
@@ -15,9 +17,12 @@ import {
   AlertTriangle,
   Calendar,
   Building2,
-  User
+  User,
+  FileText,
+  Euro
 } from "lucide-react"
 import { useAssistances, useAssistanceStats, type Assistance } from "@/hooks/useAssistances"
+import { useRequestQuotation, useQuotationsByAssistance } from "@/hooks/useQuotations"
 import { formatDistanceToNow, format } from "date-fns"
 import { pt } from "date-fns/locale"
 import AssistanceDetail from "@/components/assistance/AssistanceDetail"
@@ -92,6 +97,82 @@ const getPriorityBadge = (priority: string) => {
       {icons[priority as keyof typeof icons]}
       {labels[priority as keyof typeof labels] || priority}
     </Badge>
+  )
+}
+
+// Quick quotation component
+function QuickQuotationAction({ assistance }: { assistance: Assistance }) {
+  const [deadline, setDeadline] = useState("")
+  const [isOpen, setIsOpen] = useState(false)
+  const requestQuotation = useRequestQuotation()
+  const { data: quotations } = useQuotationsByAssistance(assistance.id)
+
+  const canRequest = assistance.assigned_supplier_id && !assistance.requires_quotation
+  const hasQuotations = quotations && quotations.length > 0
+  const quotationCount = quotations?.length || 0
+
+  const handleRequest = async () => {
+    await requestQuotation.mutateAsync({
+      assistanceId: assistance.id,
+      deadline: deadline || undefined,
+    })
+    setIsOpen(false)
+    setDeadline("")
+  }
+
+  if (hasQuotations) {
+    return (
+      <Badge variant="outline" className="gap-1">
+        <FileText className="h-3 w-3" />
+        {quotationCount} Orçamento{quotationCount > 1 ? 's' : ''}
+      </Badge>
+    )
+  }
+
+  if (assistance.requires_quotation) {
+    return (
+      <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 gap-1">
+        <Clock className="h-3 w-3" />
+        Orçamento Solicitado
+      </Badge>
+    )
+  }
+
+  if (!canRequest) return null
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-1">
+          <FileText className="h-3 w-3" />
+          Solicitar Orçamento
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Solicitar Orçamento</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="deadline">Prazo para Resposta (opcional)</Label>
+            <Input
+              id="deadline"
+              type="datetime-local"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleRequest} disabled={requestQuotation.isPending}>
+              {requestQuotation.isPending ? "Solicitando..." : "Solicitar"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -296,6 +377,11 @@ export default function Assistencias() {
                           })}
                         </span>
                       </div>
+                    </div>
+                    
+                    {/* Quotation quick action */}
+                    <div className="mt-2">
+                      <QuickQuotationAction assistance={assistance} />
                     </div>
                   </div>
                   
