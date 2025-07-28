@@ -140,84 +140,153 @@ export type Database = {
           },
         ]
       }
+      assistance_progress: {
+        Row: {
+          assistance_id: string
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          photo_urls: string[] | null
+          progress_type: string
+          supplier_id: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          assistance_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          photo_urls?: string[] | null
+          progress_type: string
+          supplier_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assistance_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          photo_urls?: string[] | null
+          progress_type?: string
+          supplier_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assistances: {
         Row: {
+          actual_end_date: string | null
+          actual_start_date: string | null
           admin_notes: string | null
           assigned_supplier_id: string | null
           building_id: string
           completed_date: string | null
+          completion_photos_required: boolean | null
           created_at: string
           created_by: string | null
           deadline_response: string | null
           description: string | null
           estimated_cost: number | null
+          estimated_duration_hours: number | null
           final_cost: number | null
           follow_up_count: number | null
           id: string
           intervention_type_id: string
           last_follow_up_sent: string | null
           priority: Database["public"]["Enums"]["assistance_priority"]
+          progress_notes: string | null
           quotation_deadline: string | null
           quotation_requested_at: string | null
           requires_quotation: boolean | null
+          requires_validation: boolean | null
           response_deadline: string | null
           scheduled_date: string | null
+          scheduled_end_date: string | null
+          scheduled_start_date: string | null
           status: Database["public"]["Enums"]["assistance_status"]
           supplier_notes: string | null
           title: string
           updated_at: string
+          validated_at: string | null
+          validated_by: string | null
         }
         Insert: {
+          actual_end_date?: string | null
+          actual_start_date?: string | null
           admin_notes?: string | null
           assigned_supplier_id?: string | null
           building_id: string
           completed_date?: string | null
+          completion_photos_required?: boolean | null
           created_at?: string
           created_by?: string | null
           deadline_response?: string | null
           description?: string | null
           estimated_cost?: number | null
+          estimated_duration_hours?: number | null
           final_cost?: number | null
           follow_up_count?: number | null
           id?: string
           intervention_type_id: string
           last_follow_up_sent?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
+          progress_notes?: string | null
           quotation_deadline?: string | null
           quotation_requested_at?: string | null
           requires_quotation?: boolean | null
+          requires_validation?: boolean | null
           response_deadline?: string | null
           scheduled_date?: string | null
+          scheduled_end_date?: string | null
+          scheduled_start_date?: string | null
           status?: Database["public"]["Enums"]["assistance_status"]
           supplier_notes?: string | null
           title: string
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Update: {
+          actual_end_date?: string | null
+          actual_start_date?: string | null
           admin_notes?: string | null
           assigned_supplier_id?: string | null
           building_id?: string
           completed_date?: string | null
+          completion_photos_required?: boolean | null
           created_at?: string
           created_by?: string | null
           deadline_response?: string | null
           description?: string | null
           estimated_cost?: number | null
+          estimated_duration_hours?: number | null
           final_cost?: number | null
           follow_up_count?: number | null
           id?: string
           intervention_type_id?: string
           last_follow_up_sent?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
+          progress_notes?: string | null
           quotation_deadline?: string | null
           quotation_requested_at?: string | null
           requires_quotation?: boolean | null
+          requires_validation?: boolean | null
           response_deadline?: string | null
           scheduled_date?: string | null
+          scheduled_end_date?: string | null
+          scheduled_start_date?: string | null
           status?: Database["public"]["Enums"]["assistance_status"]
           supplier_notes?: string | null
           title?: string
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: [
           {
@@ -541,10 +610,14 @@ export type Database = {
           created_at: string
           decline_reason: string | null
           estimated_completion_date: string | null
+          estimated_duration_hours: number | null
           id: string
           notes: string | null
+          response_comments: string | null
           response_date: string | null
           response_type: string
+          scheduled_end_date: string | null
+          scheduled_start_date: string | null
           supplier_id: string
           updated_at: string
         }
@@ -553,10 +626,14 @@ export type Database = {
           created_at?: string
           decline_reason?: string | null
           estimated_completion_date?: string | null
+          estimated_duration_hours?: number | null
           id?: string
           notes?: string | null
+          response_comments?: string | null
           response_date?: string | null
           response_type: string
+          scheduled_end_date?: string | null
+          scheduled_start_date?: string | null
           supplier_id: string
           updated_at?: string
         }
@@ -565,10 +642,14 @@ export type Database = {
           created_at?: string
           decline_reason?: string | null
           estimated_completion_date?: string | null
+          estimated_duration_hours?: number | null
           id?: string
           notes?: string | null
+          response_comments?: string | null
           response_date?: string | null
           response_type?: string
+          scheduled_end_date?: string | null
+          scheduled_start_date?: string | null
           supplier_id?: string
           updated_at?: string
         }
@@ -667,6 +748,10 @@ export type Database = {
         Args: { assistance_id: string }
         Returns: boolean
       }
+      can_complete_assistance: {
+        Args: { assistance_id_param: string }
+        Returns: boolean
+      }
       generate_magic_code: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -700,6 +785,8 @@ export type Database = {
         | "quotation_received"
         | "quotation_approved"
         | "quotation_rejected"
+        | "accepted"
+        | "awaiting_validation"
       quotation_status:
         | "pending"
         | "submitted"
@@ -849,6 +936,8 @@ export const Constants = {
         "quotation_received",
         "quotation_approved",
         "quotation_rejected",
+        "accepted",
+        "awaiting_validation",
       ],
       quotation_status: [
         "pending",

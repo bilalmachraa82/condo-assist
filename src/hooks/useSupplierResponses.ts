@@ -33,37 +33,40 @@ export const useSupplierResponses = (assistanceId?: string) => {
   });
 };
 
+export interface CreateSupplierResponseData {
+  assistanceId: string;
+  supplierId: string;
+  responseType: "accepted" | "declined";
+  declineReason?: string;
+  estimatedCompletionDate?: string;
+  notes?: string;
+  scheduledStartDate?: string;
+  scheduledEndDate?: string;
+  estimatedDurationHours?: number;
+  responseComments?: string;
+}
+
 export const useCreateSupplierResponse = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      assistanceId,
-      supplierId,
-      responseType,
-      declineReason,
-      estimatedCompletionDate,
-      notes
-    }: {
-      assistanceId: string;
-      supplierId: string;
-      responseType: 'accepted' | 'declined';
-      declineReason?: string;
-      estimatedCompletionDate?: string;
-      notes?: string;
-    }) => {
-      // First, upsert the supplier response
+    mutationFn: async (data: CreateSupplierResponseData) => {
+      // Create supplier response
       const { data: responseData, error: responseError } = await supabase
         .from("supplier_responses")
-        .upsert({
-          assistance_id: assistanceId,
-          supplier_id: supplierId,
-          response_type: responseType,
+        .insert({
+          assistance_id: data.assistanceId,
+          supplier_id: data.supplierId,
+          response_type: data.responseType,
           response_date: new Date().toISOString(),
-          decline_reason: declineReason,
-          estimated_completion_date: estimatedCompletionDate,
-          notes
+          decline_reason: data.declineReason,
+          estimated_completion_date: data.estimatedCompletionDate,
+          notes: data.notes,
+          scheduled_start_date: data.scheduledStartDate,
+          scheduled_end_date: data.scheduledEndDate,
+          estimated_duration_hours: data.estimatedDurationHours,
+          response_comments: data.responseComments
         })
         .select()
         .single();
@@ -71,15 +74,31 @@ export const useCreateSupplierResponse = () => {
       if (responseError) throw responseError;
 
       // Update assistance status based on response
-      const newStatus = responseType === 'accepted' ? 'in_progress' : 'pending';
-      
+      let newStatus = "pending";
+      let updateData: any = { updated_at: new Date().toISOString() };
+
+      if (data.responseType === "accepted") {
+        newStatus = data.scheduledStartDate ? "scheduled" : "accepted";
+        updateData = {
+          ...updateData,
+          status: newStatus,
+          scheduled_start_date: data.scheduledStartDate,
+          scheduled_end_date: data.scheduledEndDate,
+          estimated_duration_hours: data.estimatedDurationHours
+        };
+      } else if (data.responseType === "declined") {
+        newStatus = "pending"; // Reset to pending so admin can reassign
+        updateData = { 
+          ...updateData,
+          status: newStatus, 
+          assigned_supplier_id: null 
+        };
+      }
+
       const { error: assistanceError } = await supabase
         .from("assistances")
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", assistanceId);
+        .update(updateData)
+        .eq("id", data.assistanceId);
 
       if (assistanceError) throw assistanceError;
 
@@ -87,10 +106,10 @@ export const useCreateSupplierResponse = () => {
       try {
         await supabase.functions.invoke('send-supplier-response-notification', {
           body: {
-            assistanceId,
-            supplierId,
-            responseType,
-            responseData
+            assistanceId: data.assistanceId,
+            supplierId: data.supplierId,
+            responseType: data.responseType,
+            responseData: data
           }
         });
       } catch (emailError) {
@@ -103,8 +122,10 @@ export const useCreateSupplierResponse = () => {
     onSuccess: (data) => {
       const responseTypeLabel = data.response_type === 'accepted' ? 'aceite' : 'recusada';
       toast({
-        title: "Resposta registada",
-        description: `Assistência ${responseTypeLabel} com sucesso!`,
+        title: "Resposta enviada",
+        description: data.response_type === "accepted" 
+          ? "Assistência aceita com sucesso!" 
+          : "Assistência recusada. Obrigado pela resposta.",
       });
 
       queryClient.invalidateQueries({ queryKey: ["supplier-responses"] });

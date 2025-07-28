@@ -17,9 +17,9 @@ export const generateAndSendMagicCode = async (
 
     if (magicError) throw magicError;
 
-    // Set expiration to 24 hours from now
+    // Set expiration to 7 days from now
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24);
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
     // Store magic code in database
     const { error: insertError } = await supabase

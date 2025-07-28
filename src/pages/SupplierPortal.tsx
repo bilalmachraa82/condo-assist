@@ -12,8 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useUpdateAssistanceStatus } from "@/hooks/useAssistances";
 import { useCreateSupplierResponse } from "@/hooks/useSupplierResponses";
 import { useQuotationsByAssistance } from "@/hooks/useQuotations";
-import { Building, CheckCircle, Clock, AlertCircle, FileText, Euro } from "lucide-react";
+import { Building, CheckCircle, Clock, AlertCircle, FileText, Euro, Calendar, Play, Pause } from "lucide-react";
 import SubmitQuotationForm from "@/components/quotations/SubmitQuotationForm";
+import ScheduleForm from "@/components/supplier/ScheduleForm";
+import ProgressTracker from "@/components/supplier/ProgressTracker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Supplier {
@@ -34,6 +36,12 @@ interface Assistance {
   building_name?: string;
   building_address?: string;
   intervention_type_name?: string;
+  scheduled_start_date?: string;
+  scheduled_end_date?: string;
+  actual_start_date?: string;
+  actual_end_date?: string;
+  completion_photos_required?: boolean;
+  requires_validation?: boolean;
 }
 
 export default function SupplierPortal() {
@@ -86,7 +94,11 @@ export default function SupplierPortal() {
       try {
         const { data: assistanceData, error } = await (supabase as any)
           .from("assistances")
-          .select("id, description, status, supplier_notes, created_at, building_id, intervention_type_id")
+          .select(`
+            id, description, status, supplier_notes, created_at, building_id, intervention_type_id,
+            scheduled_start_date, scheduled_end_date, actual_start_date, actual_end_date,
+            completion_photos_required, requires_validation
+          `)
           .eq("assigned_supplier_id", supplier.id)
           .order("created_at", { ascending: false });
 
@@ -109,7 +121,13 @@ export default function SupplierPortal() {
             created_at: assistance.created_at,
             building_name: buildingRes.data?.name || "N/A",
             building_address: buildingRes.data?.address || "N/A",
-            intervention_type_name: typeRes.data?.name || "N/A"
+            intervention_type_name: typeRes.data?.name || "N/A",
+            scheduled_start_date: assistance.scheduled_start_date,
+            scheduled_end_date: assistance.scheduled_end_date,
+            actual_start_date: assistance.actual_start_date,
+            actual_end_date: assistance.actual_end_date,
+            completion_photos_required: assistance.completion_photos_required,
+            requires_validation: assistance.requires_validation
           });
         }
         
@@ -143,7 +161,10 @@ export default function SupplierPortal() {
   const getStatusBadge = (status: string) => {
     const variants = {
       pending: { variant: "secondary" as const, icon: Clock, text: "Pendente" },
-      in_progress: { variant: "default" as const, icon: AlertCircle, text: "Em Progresso" },
+      accepted: { variant: "default" as const, icon: CheckCircle, text: "Aceite" },
+      scheduled: { variant: "outline" as const, icon: Calendar, text: "Agendado" },
+      in_progress: { variant: "default" as const, icon: Play, text: "Em Progresso" },
+      awaiting_validation: { variant: "secondary" as const, icon: Pause, text: "Aguardando Validação" },
       completed: { variant: "default" as const, icon: CheckCircle, text: "Concluída" },
       cancelled: { variant: "destructive" as const, icon: AlertCircle, text: "Cancelada" },
     };
@@ -324,9 +345,11 @@ export default function SupplierPortal() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <Tabs defaultValue="details" className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
+                        <TabsList className="grid w-full grid-cols-5">
                           <TabsTrigger value="details">Detalhes</TabsTrigger>
                           <TabsTrigger value="quotation">Orçamento</TabsTrigger>
+                          <TabsTrigger value="progress">Progresso</TabsTrigger>
+                          <TabsTrigger value="schedule">Agendamento</TabsTrigger>
                           <TabsTrigger value="actions">Ações</TabsTrigger>
                         </TabsList>
                         
@@ -363,48 +386,98 @@ export default function SupplierPortal() {
                           )}
                         </TabsContent>
 
+                        <TabsContent value="progress" className="mt-4">
+                          {supplier && (assistance.status === "in_progress" || assistance.status === "scheduled") && (
+                            <ProgressTracker
+                              assistanceId={assistance.id}
+                              supplierId={supplier.id}
+                              currentStatus={assistance.status}
+                            />
+                          )}
+                          {assistance.status === "pending" && (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <p>O progresso só pode ser registado após aceitar a assistência.</p>
+                            </div>
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="schedule" className="mt-4">
+                          {assistance.status === "pending" && (
+                            <ScheduleForm
+                              onSubmit={(scheduleData) => {
+                                if (supplier) {
+                                  createResponseMutation.mutate({
+                                    assistanceId: assistance.id,
+                                    supplierId: supplier.id,
+                                    responseType: "accepted",
+                                    ...scheduleData
+                                  });
+                                }
+                              }}
+                              isLoading={createResponseMutation.isPending}
+                            />
+                          )}
+                          {assistance.status !== "pending" && assistance.scheduled_start_date && (
+                            <Card>
+                              <CardContent className="p-6">
+                                <div className="space-y-4">
+                                  <h4 className="font-medium">Informações de Agendamento</h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                      <Label className="text-sm font-medium text-muted-foreground">Início Agendado</Label>
+                                      <p className="text-sm">
+                                        {assistance.scheduled_start_date ? 
+                                          new Date(assistance.scheduled_start_date).toLocaleString("pt-PT") 
+                                          : "Não agendado"
+                                        }
+                                      </p>
+                                    </div>
+                                    {assistance.scheduled_end_date && (
+                                      <div>
+                                        <Label className="text-sm font-medium text-muted-foreground">Fim Agendado</Label>
+                                        <p className="text-sm">
+                                          {new Date(assistance.scheduled_end_date).toLocaleString("pt-PT")}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+                          {assistance.status !== "pending" && !assistance.scheduled_start_date && (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <p>Não há informações de agendamento para esta assistência.</p>
+                            </div>
+                          )}
+                        </TabsContent>
+
                         <TabsContent value="actions" className="mt-4">
                           <div className="space-y-4">
                             {assistance.status === "pending" && (
                               <div className="space-y-3">
                                 <h4 className="font-medium">Responder à Assistência</h4>
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="default"
-                                    onClick={() => {
-                                      if (supplier) {
-                                        createResponseMutation.mutate({
-                                          assistanceId: assistance.id,
-                                          supplierId: supplier.id,
-                                          responseType: "accepted"
-                                        });
-                                      }
-                                    }}
-                                    disabled={createResponseMutation.isPending}
-                                    className="bg-green-600 hover:bg-green-700"
-                                  >
-                                    ✅ Aceitar Assistência
-                                  </Button>
-                                  
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                      const reason = prompt("Motivo da recusa (opcional):");
-                                      if (supplier) {
-                                        createResponseMutation.mutate({
-                                          assistanceId: assistance.id,
-                                          supplierId: supplier.id,
-                                          responseType: "declined",
-                                          declineReason: reason || undefined
-                                        });
-                                      }
-                                    }}
-                                    disabled={createResponseMutation.isPending}
-                                    className="border-red-200 text-red-600 hover:bg-red-50"
-                                  >
-                                    ❌ Recusar Assistência
-                                  </Button>
-                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Use o separador "Agendamento" para aceitar e agendar, ou recuse aqui.
+                                </p>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    const reason = prompt("Motivo da recusa (opcional):");
+                                    if (supplier) {
+                                      createResponseMutation.mutate({
+                                        assistanceId: assistance.id,
+                                        supplierId: supplier.id,
+                                        responseType: "declined",
+                                        declineReason: reason || undefined
+                                      });
+                                    }
+                                  }}
+                                  disabled={createResponseMutation.isPending}
+                                  className="border-red-200 text-red-600 hover:bg-red-50"
+                                >
+                                  ❌ Recusar Assistência
+                                </Button>
                                 
                                 {(createResponseMutation.isPending || updateAssistanceMutation.isPending) && (
                                   <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded border">
@@ -413,31 +486,81 @@ export default function SupplierPortal() {
                                 )}
                               </div>
                             )}
-                            
-                            {assistance.status === "in_progress" && (
+
+                            {assistance.status === "accepted" && (
                               <div className="space-y-3">
-                                <h4 className="font-medium">Marcar Progresso</h4>
+                                <h4 className="font-medium">Iniciar Assistência</h4>
                                 <Button
-                                  size="sm"
                                   onClick={() => updateAssistanceMutation.mutate({
                                     assistanceId: assistance.id,
-                                    newStatus: "completed"
+                                    newStatus: "in_progress"
                                   })}
                                   disabled={updateAssistanceMutation.isPending}
                                   className="bg-blue-600 hover:bg-blue-700"
                                 >
-                                  ✅ Marcar como Concluída
+                                  ▶️ Iniciar Trabalho
                                 </Button>
                               </div>
                             )}
 
-                            {assistance.status === "completed" && (
-                              <div className="bg-green-50 border border-green-200 p-3 rounded">
-                                <p className="text-green-800 text-sm">
-                                  ✅ <strong>Assistência Concluída</strong> - Obrigado pelo seu trabalho!
+                            {assistance.status === "scheduled" && (
+                              <div className="space-y-3">
+                                <h4 className="font-medium">Iniciar Assistência</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Pode iniciar o trabalho a qualquer momento.
                                 </p>
+                                <Button
+                                  onClick={() => updateAssistanceMutation.mutate({
+                                    assistanceId: assistance.id,
+                                    newStatus: "in_progress"
+                                  })}
+                                  disabled={updateAssistanceMutation.isPending}
+                                  className="bg-blue-600 hover:bg-blue-700"
+                                >
+                                  ▶️ Iniciar Trabalho
+                                </Button>
                               </div>
                             )}
+                            
+                            {assistance.status === "in_progress" && (
+                              <div className="space-y-3">
+                                <h4 className="font-medium">Concluir Assistência</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {assistance.completion_photos_required && "Certifique-se de que adicionou fotos de conclusão no separador 'Progresso'."}
+                                </p>
+                                 <Button
+                                   onClick={() => updateAssistanceMutation.mutate({
+                                     assistanceId: assistance.id,
+                                     newStatus: assistance.requires_validation ? "awaiting_validation" : "completed"
+                                   })}
+                                   disabled={updateAssistanceMutation.isPending}
+                                   className="bg-green-600 hover:bg-green-700"
+                                 >
+                                   ✅ {assistance.requires_validation ? "Enviar para Validação" : "Marcar como Concluída"}
+                                 </Button>
+                               </div>
+                             )}
+
+                             {assistance.status === "awaiting_validation" && (
+                               <div className="space-y-3 text-center">
+                                 <h4 className="font-medium">Aguardando Validação</h4>
+                                 <p className="text-sm text-muted-foreground">
+                                   A assistência foi enviada para validação pelo administrador.
+                                 </p>
+                                 <Badge variant="secondary" className="inline-flex">
+                                   <Clock className="h-3 w-3 mr-1" />
+                                   Pendente de Aprovação
+                                 </Badge>
+                               </div>
+                             )}
+
+                             {(assistance.status === "completed" || assistance.status === "cancelled") && (
+                               <div className="text-center py-4">
+                                 <p className="text-sm text-muted-foreground">
+                                   Esta assistência foi {assistance.status === "completed" ? "concluída" : "cancelada"}.
+                                 </p>
+                               </div>
+                             )}
                           </div>
                         </TabsContent>
                       </Tabs>
