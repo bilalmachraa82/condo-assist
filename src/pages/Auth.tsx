@@ -132,13 +132,15 @@ export default function Auth() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="bg-primary/10 p-3 rounded-full">
-              <Building className="h-8 w-8 text-primary" />
-            </div>
+            <img 
+              src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
+              alt="Luvimg" 
+              className="h-20 w-auto"
+            />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Sistema de Assistências</h1>
-            <p className="text-muted-foreground">Gestão técnica de edifícios</p>
+            <h1 className="text-2xl font-bold">Sistema de Assistências Luvimg</h1>
+            <p className="text-muted-foreground">Administração de Condomínios</p>
           </div>
         </div>
 
@@ -247,6 +249,7 @@ export default function Auth() {
               <span>Assistências Técnicas</span>
             </div>
           </div>
+          <p className="mt-2 text-xs">Luvimg - Administração de Condomínios</p>
         </div>
       </div>
     </div>
