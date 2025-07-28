@@ -74,7 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw insertError;
     }
 
-    const portalUrl = `${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'lovable.app')}/portal-fornecedor?code=${magicCode}`;
+    const portalUrl = `${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'lovable.app')}/supplier-portal?code=${magicCode}`;
 
     const deadlineText = deadline 
       ? `<p style="color: #d97706; font-weight: bold;">⏰ Prazo para submissão: ${new Date(deadline).toLocaleDateString('pt-PT')}</p>`
