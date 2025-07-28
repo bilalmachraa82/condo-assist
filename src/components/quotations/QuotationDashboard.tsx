@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   FileText, 
   Euro, 
@@ -12,12 +13,14 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Calendar
+  Calendar,
+  Mail
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tables } from "@/integrations/supabase/types";
+import QuotationRequestsList from "./QuotationRequestsList";
 
 type Quotation = Tables<"quotations"> & {
   suppliers?: Tables<"suppliers">;
@@ -160,78 +163,97 @@ export default function QuotationDashboard() {
         </Card>
       </div>
 
-      {/* Recent Quotations */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Orçamentos Recentes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {quotations && quotations.length > 0 ? (
-            <div className="space-y-4">
-              {quotations.slice(0, 10).map((quotation) => (
-                <div 
-                  key={quotation.id} 
-                  className="border rounded-lg p-4 hover:bg-muted/30 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{quotation.suppliers?.name}</span>
-                      </div>
-                      <Badge className={statusVariants[quotation.status as keyof typeof statusVariants]}>
-                        {statusLabels[quotation.status as keyof typeof statusLabels]}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-1 text-lg font-bold text-primary">
-                      <Euro className="h-4 w-4" />
-                      {Number(quotation.amount).toFixed(2)}
-                    </div>
-                  </div>
+      {/* Quotations Tabs */}
+      <Tabs defaultValue="received" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="received" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Orçamentos Recebidos
+          </TabsTrigger>
+          <TabsTrigger value="requests" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Solicitações
+          </TabsTrigger>
+        </TabsList>
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">
-                        {quotation.assistances?.title || `Assistência #${quotation.assistance_id}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {quotation.assistances?.buildings?.name}
-                      </p>
-                    </div>
-                    
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {format(new Date(quotation.created_at), "dd/MM/yyyy", { locale: ptBR })}
+        <TabsContent value="received">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Orçamentos Recentes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {quotations && quotations.length > 0 ? (
+                <div className="space-y-4">
+                  {quotations.slice(0, 10).map((quotation) => (
+                    <div 
+                      key={quotation.id} 
+                      className="border rounded-lg p-4 hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{quotation.suppliers?.name}</span>
+                          </div>
+                          <Badge className={statusVariants[quotation.status as keyof typeof statusVariants]}>
+                            {statusLabels[quotation.status as keyof typeof statusLabels]}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-1 text-lg font-bold text-primary">
+                          <Euro className="h-4 w-4" />
+                          {Number(quotation.amount).toFixed(2)}
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Válido por {quotation.validity_days} dias
-                      </p>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">
+                            {quotation.assistances?.title || `Assistência #${quotation.assistance_id}`}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {quotation.assistances?.buildings?.name}
+                          </p>
+                        </div>
+                        
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            {format(new Date(quotation.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Válido por {quotation.validity_days} dias
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
+                  
+                  {quotations.length > 10 && (
+                    <div className="text-center pt-4">
+                      <Button variant="outline">
+                        Ver Todos os Orçamentos ({quotations.length - 10} mais)
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              ))}
-              
-              {quotations.length > 10 && (
-                <div className="text-center pt-4">
-                  <Button variant="outline">
-                    Ver Todos os Orçamentos ({quotations.length - 10} mais)
-                  </Button>
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Nenhum orçamento ainda</h3>
+                  <p>Os orçamentos submetidos pelos fornecedores aparecerão aqui.</p>
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="text-center text-muted-foreground py-8">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum orçamento ainda</h3>
-              <p>Os orçamentos submetidos pelos fornecedores aparecerão aqui.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="requests">
+          <QuotationRequestsList />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

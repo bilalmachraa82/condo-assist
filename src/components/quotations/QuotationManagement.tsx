@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, XCircle, Eye, Clock } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle, XCircle, Eye, Clock, Mail } from "lucide-react";
 import { toast } from "sonner";
+import QuotationRequestsList from "./QuotationRequestsList";
 
 interface QuotationDetails {
   id: string;
@@ -149,6 +151,20 @@ export default function QuotationManagement() {
         </div>
       </div>
 
+      <Tabs defaultValue="received" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="received" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Orçamentos Recebidos
+          </TabsTrigger>
+          <TabsTrigger value="requests" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Solicitações Pendentes
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="received" className="space-y-6">
+
       {quotations.length === 0 ? (
         <Card>
           <CardContent className="text-center py-8">
@@ -278,6 +294,12 @@ export default function QuotationManagement() {
           ))}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="requests">
+          <QuotationRequestsList />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

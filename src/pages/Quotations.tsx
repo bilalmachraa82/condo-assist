@@ -2,8 +2,12 @@ import { useState } from "react";
 import QuotationDashboard from "@/components/quotations/QuotationDashboard";
 import QuotationManagement from "@/components/quotations/QuotationManagement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQuotationNotifications } from "@/hooks/useQuotationNotifications";
 
 export default function Quotations() {
+  // Enable real-time quotation notifications
+  useQuotationNotifications();
+
   return (
     <div className="space-y-6">
       {/* Header */}

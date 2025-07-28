@@ -177,6 +177,7 @@ export const useRequestQuotation = () => {
       assistanceId: string;
       deadline?: string;
     }) => {
+      // First update the assistance
       const { data, error } = await supabase
         .from("assistances")
         .update({
@@ -186,16 +187,53 @@ export const useRequestQuotation = () => {
           status: "awaiting_quotation",
         })
         .eq("id", assistanceId)
-        .select()
+        .select(`
+          *,
+          suppliers:assigned_supplier_id(*),
+          buildings(*)
+        `)
         .single();
 
       if (error) throw error;
+
+      // Send email to supplier if one is assigned
+      if (data.assigned_supplier_id && data.suppliers) {
+        try {
+          await supabase.functions.invoke('request-quotation-email', {
+            body: {
+              assistance_id: assistanceId,
+              supplier_id: data.assigned_supplier_id,
+              supplier_email: data.suppliers.email,
+              supplier_name: data.suppliers.name,
+              assistance_title: data.title,
+              assistance_description: data.description,
+              building_name: data.buildings?.name || "N/A",
+              deadline: deadline
+            }
+          });
+
+          // Log the email
+          await supabase.from("email_logs").insert({
+            recipient_email: data.suppliers.email,
+            subject: `Solicitação de Orçamento - ${data.title}`,
+            status: "sent",
+            assistance_id: assistanceId,
+            supplier_id: data.assigned_supplier_id,
+            template_used: "quotation_request"
+          });
+        } catch (emailError) {
+          console.error("Error sending quotation request email:", emailError);
+          // Don't fail the whole operation if email fails
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
       queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
-      toast.success("Orçamento solicitado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      toast.success("Orçamento solicitado e email enviado com sucesso!");
     },
     onError: (error) => {
       console.error("Error requesting quotation:", error);

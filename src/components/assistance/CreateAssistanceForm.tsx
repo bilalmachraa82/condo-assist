@@ -26,6 +26,8 @@ const assistanceSchema = z.object({
   assigned_supplier_id: z.string().optional().or(z.literal("")),
   deadline_response: z.string().optional(),
   response_deadline: z.string().optional(),
+  requires_quotation: z.boolean().optional(),
+  quotation_deadline: z.string().optional(),
 });
 
 type AssistanceFormValues = z.infer<typeof assistanceSchema>;
@@ -67,6 +69,8 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
       assigned_supplier_id: "",
       deadline_response: "",
       response_deadline: "",
+      requires_quotation: false,
+      quotation_deadline: "",
     },
   });
 
@@ -107,7 +111,10 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
           assigned_supplier_id: values.assigned_supplier_id || null,
           deadline_response: values.deadline_response ? new Date(values.deadline_response).toISOString() : null,
           response_deadline: responseDeadline ? responseDeadline.toISOString() : null,
-          status: "pending",
+          requires_quotation: values.requires_quotation || false,
+          quotation_requested_at: values.requires_quotation && values.assigned_supplier_id ? new Date().toISOString() : null,
+          quotation_deadline: values.quotation_deadline ? new Date(values.quotation_deadline).toISOString() : null,
+          status: values.requires_quotation && values.assigned_supplier_id ? "awaiting_quotation" : "pending",
         })
         .select()
         .single();
@@ -126,23 +133,50 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
           const interventionType = interventionTypes.find(i => i.id === assistance.intervention_type_id);
           
           if (supplier?.email && supplier?.name) {
-            await sendMagicCodeToSupplier(
-              supplier.id,
-              supplier.email,
-              supplier.name,
-              {
-                title: assistance.title,
-                priority: assistance.priority,
-                buildingName: building?.name || 'N/A',
-                interventionType: interventionType?.name || 'N/A',
-                description: assistance.description || undefined
-              }
-            );
+            if (assistance.requires_quotation) {
+              // Send quotation request email
+              const emailResponse = await supabase.functions.invoke('request-quotation-email', {
+                body: {
+                  assistance_id: assistance.id,
+                  supplier_id: assistance.assigned_supplier_id,
+                  supplier_email: supplier.email,
+                  supplier_name: supplier.name,
+                  assistance_title: assistance.title,
+                  assistance_description: assistance.description,
+                  building_name: building?.name || "N/A",
+                  deadline: assistance.quotation_deadline
+                }
+              });
 
-            // Log email sending
-            await supabase
-              .from("email_logs")
-              .insert({
+              await supabase.from("email_logs").insert({
+                recipient_email: supplier.email,
+                subject: `Solicitação de Orçamento - ${assistance.title}`,
+                status: emailResponse.error ? "failed" : "sent",
+                assistance_id: assistance.id,
+                supplier_id: assistance.assigned_supplier_id,
+                template_used: "quotation_request"
+              });
+
+              toast({
+                title: "Sucesso",
+                description: "Assistência criada e solicitação de orçamento enviada!",
+              });
+            } else {
+              // Send regular assignment notification
+              await sendMagicCodeToSupplier(
+                supplier.id,
+                supplier.email,
+                supplier.name,
+                {
+                  title: assistance.title,
+                  priority: assistance.priority,
+                  buildingName: building?.name || 'N/A',
+                  interventionType: interventionType?.name || 'N/A',
+                  description: assistance.description || undefined
+                }
+              );
+
+              await supabase.from("email_logs").insert({
                 assistance_id: assistance.id,
                 supplier_id: supplier.id,
                 recipient_email: supplier.email,
@@ -157,10 +191,11 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                 }
               });
 
-            toast({
-              title: "Sucesso",
-              description: "Assistência criada e fornecedor notificado por email!",
-            });
+              toast({
+                title: "Sucesso",
+                description: "Assistência criada e fornecedor notificado por email!",
+              });
+            }
           } else {
             toast({
               title: "Sucesso",
@@ -411,6 +446,58 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="requires_quotation"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">
+                      Solicitar Orçamento
+                    </FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Marque esta opção se a assistência requer um orçamento do fornecedor antes da execução.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={field.value || false}
+                      onChange={field.onChange}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {form.watch("requires_quotation") && (
+              <FormField
+                control={form.control}
+                name="quotation_deadline"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Prazo para Orçamento</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="datetime-local"
+                          {...field}
+                          value={field.value || ""}
+                          className="pl-10"
+                        />
+                      </div>
+                    </FormControl>
+                    <p className="text-sm text-muted-foreground">
+                      Defina um prazo para o fornecedor submeter o orçamento
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
