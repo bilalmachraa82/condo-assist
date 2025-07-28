@@ -12,23 +12,17 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Settings, Building2, Bell, Cog, Edit2, Save, X, Plus, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppSettings, useUpdateAppSetting } from "@/hooks/useAppSettings";
-import { useInterventionTypes, useDeleteInterventionType } from "@/hooks/useInterventionTypes";
-import { InterventionTypeForm } from "@/components/settings/InterventionTypeForm";
 
 export default function Configuracoes() {
-  const [isEditing, setIsEditing] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingType, setEditingType] = useState(null);
   const { toast } = useToast();
 
   // Fetch data
-  const { data: companySettings, isLoading: isLoadingCompany } = useAppSettings("company");
-  const { data: systemSettings, isLoading: isLoadingSystem } = useAppSettings("system");
-  const { data: notificationSettings, isLoading: isLoadingNotifications } = useAppSettings("notifications");
-  const { data: interventionTypes, isLoading: isLoadingTypes } = useInterventionTypes();
+  const { data: companySettings, isLoading: isLoadingCompany } = useAppSettings("empresa");
+  const { data: systemSettings, isLoading: isLoadingSystem } = useAppSettings("sistema");
+  const { data: notificationSettings, isLoading: isLoadingNotifications } = useAppSettings("notificacoes");
+  const { data: integrationSettings, isLoading: isLoadingIntegrations } = useAppSettings("integracao");
   
   const updateSetting = useUpdateAppSetting();
-  const deleteType = useDeleteInterventionType();
 
   const handleSettingChange = async (key: string, value: any) => {
     try {
@@ -46,43 +40,12 @@ export default function Configuracoes() {
     }
   };
 
-  const handleDeleteType = async (id: string) => {
-    try {
-      await deleteType.mutateAsync(id);
-      toast({
-        title: "Tipo removido",
-        description: "Tipo de intervenção removido com sucesso.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao remover tipo de intervenção.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const getSettingValue = (settings: any[], key: string, defaultValue: any = "") => {
     const setting = settings?.find(s => s.key === key);
     return setting ? setting.value : defaultValue;
   };
 
-  const getUrgencyLabel = (level: string) => {
-    switch (level) {
-      case 'normal': return 'Normal';
-      case 'urgent': return 'Urgente';
-      case 'critical': return 'Crítico';
-      default: return level;
-    }
-  };
-
-  const getUrgencyVariant = (level: string) => {
-    switch (level) {
-      case 'urgent': return 'destructive';
-      case 'critical': return 'destructive';
-      default: return 'secondary';
-    }
-  };
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
@@ -91,27 +54,27 @@ export default function Configuracoes() {
         <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">Configurações</h1>
       </div>
 
-      <Tabs defaultValue="geral" className="space-y-6">
+      <Tabs defaultValue="empresa" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="geral" className="flex items-center gap-2">
+          <TabsTrigger value="empresa" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
-            Geral
+            Empresa
           </TabsTrigger>
-          <TabsTrigger value="tipos" className="flex items-center gap-2">
+          <TabsTrigger value="sistema" className="flex items-center gap-2">
             <Cog className="h-4 w-4" />
-            Tipos de Intervenção
+            Sistema
           </TabsTrigger>
           <TabsTrigger value="notificacoes" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
             Notificações
           </TabsTrigger>
-          <TabsTrigger value="sistema" className="flex items-center gap-2">
+          <TabsTrigger value="integracao" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            Sistema
+            Integração
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="geral">
+        <TabsContent value="empresa">
           <Card>
             <CardHeader>
               <CardTitle>Informações da Empresa</CardTitle>
@@ -128,26 +91,29 @@ export default function Configuracoes() {
                       <Label htmlFor="empresa-nome">Nome da Empresa</Label>
                       <Input
                         id="empresa-nome"
-                        defaultValue={getSettingValue(companySettings, "company_name")}
-                        onBlur={(e) => handleSettingChange("company_name", e.target.value)}
+                        placeholder="Nome da empresa"
+                        defaultValue={getSettingValue(companySettings, "nome_empresa")}
+                        onBlur={(e) => handleSettingChange("nome_empresa", e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="empresa-nif">NIF</Label>
                       <Input
                         id="empresa-nif"
-                        defaultValue={getSettingValue(companySettings, "company_nif")}
-                        onBlur={(e) => handleSettingChange("company_nif", e.target.value)}
+                        placeholder="123456789"
+                        defaultValue={getSettingValue(companySettings, "nif_empresa")}
+                        onBlur={(e) => handleSettingChange("nif_empresa", e.target.value)}
                       />
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="empresa-endereco">Endereço</Label>
+                    <Label htmlFor="empresa-endereco">Morada</Label>
                     <Input
                       id="empresa-endereco"
-                      defaultValue={getSettingValue(companySettings, "company_address")}
-                      onBlur={(e) => handleSettingChange("company_address", e.target.value)}
+                      placeholder="Rua, Cidade, Código Postal"
+                      defaultValue={getSettingValue(companySettings, "morada_empresa")}
+                      onBlur={(e) => handleSettingChange("morada_empresa", e.target.value)}
                     />
                   </div>
                   
@@ -156,8 +122,9 @@ export default function Configuracoes() {
                       <Label htmlFor="empresa-telefone">Telefone</Label>
                       <Input
                         id="empresa-telefone"
-                        defaultValue={getSettingValue(companySettings, "company_phone")}
-                        onBlur={(e) => handleSettingChange("company_phone", e.target.value)}
+                        placeholder="+351 123 456 789"
+                        defaultValue={getSettingValue(companySettings, "telefone_empresa")}
+                        onBlur={(e) => handleSettingChange("telefone_empresa", e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
@@ -165,164 +132,22 @@ export default function Configuracoes() {
                       <Input
                         id="empresa-email"
                         type="email"
-                        defaultValue={getSettingValue(companySettings, "company_email")}
-                        onBlur={(e) => handleSettingChange("company_email", e.target.value)}
+                        placeholder="contacto@empresa.pt"
+                        defaultValue={getSettingValue(companySettings, "email_empresa")}
+                        onBlur={(e) => handleSettingChange("email_empresa", e.target.value)}
                       />
                     </div>
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="tipos">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Tipos de Assistência</CardTitle>
-              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" onClick={() => setEditingType(null)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Tipo
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingType ? "Editar Tipo de Intervenção" : "Novo Tipo de Intervenção"}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <InterventionTypeForm
-                    interventionType={editingType}
-                    onSuccess={() => {
-                      setIsFormOpen(false);
-                      setEditingType(null);
-                    }}
-                    onCancel={() => {
-                      setIsFormOpen(false);
-                      setEditingType(null);
-                    }}
-                  />
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              {isLoadingTypes ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {interventionTypes?.map((type) => (
-                    <div key={type.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <h4 className="font-medium">{type.name}</h4>
-                          <Badge variant={getUrgencyVariant(type.urgency_level)}>
-                            {getUrgencyLabel(type.urgency_level)}
-                          </Badge>
-                        </div>
-                        {type.description && (
-                          <p className="text-sm text-muted-foreground mt-1">{type.description}</p>
-                        )}
-                        {type.category && (
-                          <p className="text-sm text-muted-foreground">Categoria: {type.category}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            setEditingType(type);
-                            setIsFormOpen(true);
-                          }}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remover Tipo de Intervenção</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja remover "{type.name}"? Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteType(type.id)}>
-                                Remover
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notificacoes">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações de Notificações</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {isLoadingNotifications ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Notificações por Email</Label>
-                      <div className="text-sm text-muted-foreground">
-                        Enviar notificações por email para eventos importantes
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={getSettingValue(notificationSettings, "email_notifications_enabled", false)}
-                      onCheckedChange={(checked) => handleSettingChange("email_notifications_enabled", checked)}
-                    />
-                  </div>
-                  
                   <Separator />
                   
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Notificar Fornecedores Automaticamente</Label>
-                      <div className="text-sm text-muted-foreground">
-                        Enviar notificações automáticas para fornecedores quando são atribuídas assistências
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={getSettingValue(notificationSettings, "auto_notify_suppliers", false)}
-                      onCheckedChange={(checked) => handleSettingChange("auto_notify_suppliers", checked)}
-                    />
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Lembretes de Prazo</Label>
-                      <div className="text-sm text-muted-foreground">
-                        Enviar lembretes quando os prazos estão próximos do vencimento
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={getSettingValue(notificationSettings, "deadline_reminders_enabled", false)}
-                      onCheckedChange={(checked) => handleSettingChange("deadline_reminders_enabled", checked)}
+                  <div className="space-y-2">
+                    <Label htmlFor="empresa-website">Website</Label>
+                    <Input
+                      id="empresa-website"
+                      placeholder="https://www.empresa.pt"
+                      defaultValue={getSettingValue(companySettings, "website_empresa")}
+                      onBlur={(e) => handleSettingChange("website_empresa", e.target.value)}
                     />
                   </div>
                 </>
@@ -343,55 +168,365 @@ export default function Configuracoes() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="prazo-resposta">Prazo Padrão de Resposta (horas)</Label>
-                      <Input 
-                        id="prazo-resposta" 
-                        type="number" 
-                        defaultValue={getSettingValue(systemSettings, "default_response_deadline_hours", 24)}
-                        onBlur={(e) => handleSettingChange("default_response_deadline_hours", parseInt(e.target.value))}
-                      />
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">Prazos e SLA</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="prazo-resposta-normal">Prazo Resposta Normal (horas)</Label>
+                        <Input 
+                          id="prazo-resposta-normal" 
+                          type="number" 
+                          placeholder="48"
+                          defaultValue={getSettingValue(systemSettings, "prazo_resposta_normal", 48)}
+                          onBlur={(e) => handleSettingChange("prazo_resposta_normal", parseInt(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="prazo-resposta-urgente">Prazo Resposta Urgente (horas)</Label>
+                        <Input 
+                          id="prazo-resposta-urgente" 
+                          type="number" 
+                          placeholder="24"
+                          defaultValue={getSettingValue(systemSettings, "prazo_resposta_urgente", 24)}
+                          onBlur={(e) => handleSettingChange("prazo_resposta_urgente", parseInt(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="prazo-resposta-critico">Prazo Resposta Crítico (horas)</Label>
+                        <Input 
+                          id="prazo-resposta-critico" 
+                          type="number" 
+                          placeholder="4"
+                          defaultValue={getSettingValue(systemSettings, "prazo_resposta_critico", 4)}
+                          onBlur={(e) => handleSettingChange("prazo_resposta_critico", parseInt(e.target.value))}
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="validade-cotacao">Validade das Cotações (dias)</Label>
-                      <Input 
-                        id="validade-cotacao" 
-                        type="number" 
-                        defaultValue={getSettingValue(systemSettings, "quotation_validity_days", 30)}
-                        onBlur={(e) => handleSettingChange("quotation_validity_days", parseInt(e.target.value))}
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">Orçamentos e Aprovações</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="validade-cotacao">Validade das Cotações (dias)</Label>
+                        <Input 
+                          id="validade-cotacao" 
+                          type="number" 
+                          placeholder="30"
+                          defaultValue={getSettingValue(systemSettings, "validade_cotacoes", 30)}
+                          onBlur={(e) => handleSettingChange("validade_cotacoes", parseInt(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="limite-aprovacao-auto">Limite Aprovação Automática (€)</Label>
+                        <Input 
+                          id="limite-aprovacao-auto" 
+                          type="number" 
+                          placeholder="500"
+                          defaultValue={getSettingValue(systemSettings, "limite_aprovacao_automatica", 500)}
+                          onBlur={(e) => handleSettingChange("limite_aprovacao_automatica", parseFloat(e.target.value))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">Automatizações</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Aprovação Automática de Orçamentos</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Aprovar automaticamente orçamentos dentro do limite definido
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={getSettingValue(systemSettings, "aprovacao_automatica_ativa", false)}
+                          onCheckedChange={(checked) => handleSettingChange("aprovacao_automatica_ativa", checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Escalamento Automático</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Escalar automaticamente assistências sem resposta
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={getSettingValue(systemSettings, "escalamento_automatico", false)}
+                          onCheckedChange={(checked) => handleSettingChange("escalamento_automatico", checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Atribuição Automática de Fornecedores</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Atribuir automaticamente fornecedores com base na especialização
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={getSettingValue(systemSettings, "atribuicao_automatica", false)}
+                          onCheckedChange={(checked) => handleSettingChange("atribuicao_automatica", checked)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">Sistema</h4>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Modo de Manutenção</Label>
+                        <div className="text-sm text-muted-foreground">
+                          Ativar modo de manutenção para o sistema
+                        </div>
+                      </div>
+                      <Switch 
+                        checked={getSettingValue(systemSettings, "modo_manutencao", false)}
+                        onCheckedChange={(checked) => handleSettingChange("modo_manutencao", checked)}
                       />
                     </div>
                   </div>
-                  
-                  <Separator />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Aprovação Automática</Label>
-                      <div className="text-sm text-muted-foreground">
-                        Aprovar automaticamente cotações que estejam dentro do orçamento predefinido
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notificacoes">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configurações de Notificações</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {isLoadingNotifications ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">Notificações por Email</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Ativar Notificações por Email</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Enviar notificações por email para eventos importantes
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={getSettingValue(notificationSettings, "email_ativo", false)}
+                          onCheckedChange={(checked) => handleSettingChange("email_ativo", checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Notificar Criação de Assistências</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Enviar email quando uma nova assistência é criada
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={getSettingValue(notificationSettings, "email_nova_assistencia", false)}
+                          onCheckedChange={(checked) => handleSettingChange("email_nova_assistencia", checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Notificar Atribuição de Fornecedores</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Enviar email automático para fornecedores atribuídos
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={getSettingValue(notificationSettings, "email_atribuicao_fornecedor", false)}
+                          onCheckedChange={(checked) => handleSettingChange("email_atribuicao_fornecedor", checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Lembretes de Prazo</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Enviar lembretes quando os prazos estão próximos
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={getSettingValue(notificationSettings, "email_lembretes_prazo", false)}
+                          onCheckedChange={(checked) => handleSettingChange("email_lembretes_prazo", checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Notificar Mudanças de Estado</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Enviar email quando o estado de uma assistência muda
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={getSettingValue(notificationSettings, "email_mudanca_estado", false)}
+                          onCheckedChange={(checked) => handleSettingChange("email_mudanca_estado", checked)}
+                        />
                       </div>
                     </div>
-                    <Switch 
-                      checked={getSettingValue(systemSettings, "auto_approve_quotations", false)}
-                      onCheckedChange={(checked) => handleSettingChange("auto_approve_quotations", checked)}
-                    />
                   </div>
-                  
+
                   <Separator />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Modo de Manutenção</Label>
-                      <div className="text-sm text-muted-foreground">
-                        Ativar modo de manutenção para o sistema
+
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">Frequência de Notificações</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="freq-lembretes">Frequência Lembretes (horas)</Label>
+                        <Input 
+                          id="freq-lembretes" 
+                          type="number" 
+                          placeholder="24"
+                          defaultValue={getSettingValue(notificationSettings, "frequencia_lembretes", 24)}
+                          onBlur={(e) => handleSettingChange("frequencia_lembretes", parseInt(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="max-lembretes">Máximo de Lembretes</Label>
+                        <Input 
+                          id="max-lembretes" 
+                          type="number" 
+                          placeholder="3"
+                          defaultValue={getSettingValue(notificationSettings, "maximo_lembretes", 3)}
+                          onBlur={(e) => handleSettingChange("maximo_lembretes", parseInt(e.target.value))}
+                        />
                       </div>
                     </div>
-                    <Switch 
-                      checked={getSettingValue(systemSettings, "maintenance_mode", false)}
-                      onCheckedChange={(checked) => handleSettingChange("maintenance_mode", checked)}
-                    />
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="integracao">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configurações de Integração</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {isLoadingIntegrations ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">APIs Externas</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Integração com ERP</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Sincronizar dados com sistema ERP externo
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={getSettingValue(integrationSettings, "erp_ativo", false)}
+                          onCheckedChange={(checked) => handleSettingChange("erp_ativo", checked)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="erp-url">URL do ERP</Label>
+                        <Input 
+                          id="erp-url" 
+                          placeholder="https://api.erp.empresa.pt"
+                          defaultValue={getSettingValue(integrationSettings, "erp_url", "")}
+                          onBlur={(e) => handleSettingChange("erp_url", e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">Webhooks</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Webhooks Ativos</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Enviar notificações para sistemas externos
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={getSettingValue(integrationSettings, "webhooks_ativo", false)}
+                          onCheckedChange={(checked) => handleSettingChange("webhooks_ativo", checked)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="webhook-url">URL do Webhook</Label>
+                        <Input 
+                          id="webhook-url" 
+                          placeholder="https://api.empresa.pt/webhook"
+                          defaultValue={getSettingValue(integrationSettings, "webhook_url", "")}
+                          onBlur={(e) => handleSettingChange("webhook_url", e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">Backup e Sincronização</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Backup Automático</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Criar backups automáticos dos dados
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={getSettingValue(integrationSettings, "backup_automatico", false)}
+                          onCheckedChange={(checked) => handleSettingChange("backup_automatico", checked)}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="freq-backup">Frequência Backup (dias)</Label>
+                          <Input 
+                            id="freq-backup" 
+                            type="number" 
+                            placeholder="7"
+                            defaultValue={getSettingValue(integrationSettings, "frequencia_backup", 7)}
+                            onBlur={(e) => handleSettingChange("frequencia_backup", parseInt(e.target.value))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="retencao-backup">Retenção Backup (dias)</Label>
+                          <Input 
+                            id="retencao-backup" 
+                            type="number" 
+                            placeholder="30"
+                            defaultValue={getSettingValue(integrationSettings, "retencao_backup", 30)}
+                            onBlur={(e) => handleSettingChange("retencao_backup", parseInt(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
