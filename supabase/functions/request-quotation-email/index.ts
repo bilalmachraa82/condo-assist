@@ -74,7 +74,8 @@ const handler = async (req: Request): Promise<Response> => {
       throw insertError;
     }
 
-    const portalUrl = `https://zmpitnpmplemfozvtbam.lovable.app/supplier-portal?code=${magicCode}`;
+    const portalUrl = `https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.lovableproject.com/supplier-portal?code=${magicCode}`;
+    console.log(`Generated portal URL: ${portalUrl}`);
 
     const deadlineText = deadline 
       ? `<p style="color: #d97706; font-weight: bold;">⏰ Prazo para submissão: ${new Date(deadline).toLocaleDateString('pt-PT')}</p>`
@@ -89,7 +90,7 @@ const handler = async (req: Request): Promise<Response> => {
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <img src="https://zmpitnpmplemfozvtbam.supabase.co/storage/v1/object/public/logo-luvimg.png" alt="Luvimg Logo" style="width: 64px; height: 64px; margin-bottom: 20px; border-radius: 8px;">
+          <img src="https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.lovableproject.com/logo-luvimg.png" alt="Luvimg Logo" style="width: 64px; height: 64px; margin-bottom: 20px; border-radius: 8px;">
           <h1 style="color: white; margin: 0; font-size: 28px;">Solicitação de Orçamento</h1>
           <p style="color: #f0f0f0; margin: 10px 0 0 0; font-size: 16px;">Luvimg - Gestão de Assistências</p>
         </div>

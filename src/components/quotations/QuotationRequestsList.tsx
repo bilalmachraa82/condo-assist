@@ -28,7 +28,7 @@ export default function QuotationRequestsList() {
           intervention_types (name)
         `)
         .eq("requires_quotation", true)
-        .is("quotation_requested_at", false) // Has not been requested yet
+        .is("quotation_requested_at", null) // Has not been requested yet
         .order("created_at", { ascending: false });
 
       if (error) {
