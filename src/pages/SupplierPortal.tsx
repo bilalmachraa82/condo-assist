@@ -599,6 +599,7 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
 
   const [showQuotationForm, setShowQuotationForm] = useState(false);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [activeTab, setActiveTab] = useState("details");
 
   const handleAcceptAssistance = async (notes?: string) => {
     try {
@@ -706,7 +707,7 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
       </CardHeader>
 
       <CardContent>
-        <Tabs defaultValue="details" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="details">Detalhes</TabsTrigger>
             <TabsTrigger value="actions">Ações</TabsTrigger>
@@ -775,8 +776,8 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
               onAccept={handleAcceptAssistance}
               onDecline={handleDeclineAssistance}
               onQuote={() => {
-                console.log("🎯 Orçamentar Diretamente clicked!");
                 setShowQuotationForm(true);
+                setActiveTab("quotation");
               }}
               isLoading={createResponseMutation.isPending || updateAssistanceMutation.isPending}
             />
