@@ -21,6 +21,8 @@ import EnhancedQuotationForm from "@/components/supplier/EnhancedQuotationForm";
 import ResponseActions from "@/components/supplier/ResponseActions";
 import { WorkflowDashboard } from "@/components/supplier/WorkflowDashboard";
 import { NotificationCenter } from "@/components/supplier/NotificationCenter";
+import { QuickActions } from "@/components/supplier/QuickActions";
+import { SupplierAnalytics } from "@/components/supplier/SupplierAnalytics";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Supplier {
@@ -495,6 +497,19 @@ export default function SupplierPortal() {
             </CardContent>
           </Card>
 
+          {/* Analytics Dashboard */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Análise de Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SupplierAnalytics
+                supplierId={supplier?.id || ''}
+                assistances={assistances || []}
+              />
+            </CardContent>
+          </Card>
+
           {/* Assistances */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Suas Assistências</h2>
@@ -710,8 +725,9 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="workflow">Dashboard</TabsTrigger>
+            <TabsTrigger value="quick">Rápido</TabsTrigger>
             <TabsTrigger value="details">Detalhes</TabsTrigger>
             <TabsTrigger value="actions">Ações</TabsTrigger>
             <TabsTrigger value="quotation">Orçamento</TabsTrigger>
@@ -788,6 +804,28 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
                 }}
               />
             </div>
+          </TabsContent>
+
+          <TabsContent value="quick" className="space-y-4">
+            <QuickActions
+              assistance={assistance}
+              supplierResponse={supplierResponse}
+              supplierId={supplier.id}
+              onAction={(action) => {
+                switch (action) {
+                  case 'take_photo':
+                    setActiveTab('files');
+                    break;
+                  case 'view_map':
+                    if (assistance.building_address) {
+                      window.open(`https://maps.google.com/?q=${encodeURIComponent(assistance.building_address)}`, '_blank');
+                    }
+                    break;
+                  default:
+                    break;
+                }
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="details" className="space-y-4">
