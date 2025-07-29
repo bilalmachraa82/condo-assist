@@ -74,7 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw insertError;
     }
 
-    const portalUrl = `${Deno.env.get('SITE_URL') || 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.lovableproject.com'}/supplier-portal?code=${magicCode}`;
+    const portalUrl = `${Deno.env.get('SITE_URL') || 'https://preview--condo-assist.lovable.app'}/supplier-portal?code=${magicCode}`;
     console.log(`Generated portal URL: ${portalUrl}`);
 
     const deadlineText = deadline 
