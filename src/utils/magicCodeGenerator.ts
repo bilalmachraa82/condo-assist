@@ -17,9 +17,9 @@ export const generateAndSendMagicCode = async (
 
     if (magicError) throw magicError;
 
-    // Set expiration to 7 days from now
+    // Set expiration to 30 days from now
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + 30);
 
     // Store magic code in database
     const { error: insertError } = await supabase
@@ -72,41 +72,73 @@ export const generateAndSendMagicCode = async (
   }
 };
 
+// Types for session validation response
+interface SessionValidationResponse {
+  valid: boolean;
+  supplier?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    specialization: string;
+  };
+  assistance_id?: string;
+  last_used_at?: string;
+  access_count?: number;
+  error?: string;
+}
+
 /**
- * Validates a magic code and returns supplier information if valid
+ * Validates a magic code and creates/refreshes a supplier session
  * @param code - The magic code to validate
- * @returns Promise<{isValid: boolean, supplier?: any, assistance?: any}>
+ * @returns Promise<{isValid: boolean, supplier?: any, assistanceId?: string, sessionInfo?: any}>
  */
 export const validateMagicCode = async (code: string) => {
   try {
-    // Check if code exists and is not expired
-    const { data: magicCodeData, error } = await supabase
-      .from("supplier_magic_codes")
-      .select(`
-        supplier_id,
-        assistance_id,
-        expires_at,
-        suppliers (id, name, email, phone, address, specialization)
-      `)
-      .eq("magic_code", code.toUpperCase())
-      .gt("expires_at", new Date().toISOString())
-      .eq("is_used", false)
-      .single();
+    // Use the new session validation function
+    const { data: sessionData, error } = await supabase
+      .rpc('validate_supplier_session', { p_magic_code: code.toUpperCase() });
 
-    if (error || !magicCodeData) {
+    if (error) {
+      console.error('Error validating magic code:', error);
       return { isValid: false };
     }
 
-    // Mark code as used (optional - depends on business logic)
-    // await supabase
-    //   .from("supplier_magic_codes")
-    //   .update({ is_used: true })
-    //   .eq("magic_code", code.toUpperCase());
+    // Cast the response to our expected type
+    const typedSessionData = sessionData as unknown as SessionValidationResponse;
+
+    if (!typedSessionData.valid) {
+      return { 
+        isValid: false, 
+        error: typedSessionData.error 
+      };
+    }
+
+    // Log successful access
+    try {
+      await supabase.rpc('log_supplier_access', {
+        p_supplier_id: typedSessionData.supplier!.id,
+        p_magic_code: code.toUpperCase(),
+        p_action: 'login',
+        p_success: true,
+        p_metadata: {
+          access_count: typedSessionData.access_count,
+          last_used_at: typedSessionData.last_used_at
+        }
+      });
+    } catch (logError) {
+      console.warn('Failed to log access:', logError);
+    }
 
     return {
       isValid: true,
-      supplier: magicCodeData.suppliers,
-      assistanceId: magicCodeData.assistance_id
+      supplier: typedSessionData.supplier,
+      assistanceId: typedSessionData.assistance_id,
+      sessionInfo: {
+        accessCount: typedSessionData.access_count,
+        lastUsedAt: typedSessionData.last_used_at
+      }
     };
   } catch (error) {
     console.error('Error validating magic code:', error);

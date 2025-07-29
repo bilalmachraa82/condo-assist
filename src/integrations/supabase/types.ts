@@ -574,32 +574,77 @@ export type Database = {
           },
         ]
       }
+      supplier_access_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          magic_code: string
+          metadata: Json | null
+          success: boolean | null
+          supplier_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          magic_code: string
+          metadata?: Json | null
+          success?: boolean | null
+          supplier_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          magic_code?: string
+          metadata?: Json | null
+          success?: boolean | null
+          supplier_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       supplier_magic_codes: {
         Row: {
+          access_count: number | null
           assistance_id: string | null
           created_at: string
           expires_at: string
           id: string
           is_used: boolean
+          last_used_at: string | null
           magic_code: string
+          session_expires_at: string | null
           supplier_id: string
         }
         Insert: {
+          access_count?: number | null
           assistance_id?: string | null
           created_at?: string
           expires_at: string
           id?: string
           is_used?: boolean
+          last_used_at?: string | null
           magic_code: string
+          session_expires_at?: string | null
           supplier_id: string
         }
         Update: {
+          access_count?: number | null
           assistance_id?: string | null
           created_at?: string
           expires_at?: string
           id?: string
           is_used?: boolean
+          last_used_at?: string | null
           magic_code?: string
+          session_expires_at?: string | null
           supplier_id?: string
         }
         Relationships: [
@@ -767,6 +812,10 @@ export type Database = {
         Args: { assistance_id_param: string }
         Returns: boolean
       }
+      create_supplier_session: {
+        Args: { p_supplier_id: string; p_magic_code: string }
+        Returns: Json
+      }
       generate_magic_code: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -781,6 +830,20 @@ export type Database = {
       is_admin: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      log_supplier_access: {
+        Args: {
+          p_supplier_id: string
+          p_magic_code: string
+          p_action: string
+          p_success?: boolean
+          p_metadata?: Json
+        }
+        Returns: undefined
+      }
+      validate_supplier_session: {
+        Args: { p_magic_code: string }
+        Returns: Json
       }
     }
     Enums: {

@@ -21,7 +21,7 @@ export async function sendMagicCodeToSupplier(
 
     const magicCode = magicCodeData;
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24); // 24 hours expiry
+    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry
 
     // Store magic code in database
     const { error: insertError } = await supabase
@@ -92,7 +92,7 @@ export async function sendMagicCodeToSupplier(
               <div style="background: linear-gradient(135deg, #f1f5f9, #e2e8f0); padding: 25px; text-align: center; margin: 25px 0; border-radius: 12px; border: 2px dashed #cbd5e1;">
                 <p style="color: #64748b; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">CÓDIGO DE ACESSO</p>
                 <h2 style="color: #2563eb; font-size: 32px; margin: 10px 0; letter-spacing: 0.3em; font-weight: bold;">${magicCode}</h2>
-                <p style="color: #64748b; margin: 10px 0 0 0; font-size: 12px;">Válido por 24 horas</p>
+                <p style="color: #64748b; margin: 10px 0 0 0; font-size: 12px;">Válido por 30 dias</p>
               </div>
               
                <div style="text-align: center; margin: 30px 0;">
@@ -115,7 +115,7 @@ export async function sendMagicCodeToSupplier(
                   <strong>Luvimg - Administração de Condomínios</strong><br>
                   Praceta Pedro Manuel Pereira nº 1 – 1º esq, 2620-158 Póvoa Santo Adrião<br>
                   Tel: +351 219 379 248 | Email: arquivo@luvimg.com<br>
-                  Este código expira automaticamente em 24 horas por motivos de segurança.
+                  Este código expira automaticamente em 30 dias por motivos de segurança.
                 </p>
               </div>
             </div>
