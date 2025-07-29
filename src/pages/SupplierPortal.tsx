@@ -19,6 +19,8 @@ import FileUpload from "@/components/supplier/FileUpload";
 import AdminCommunication from "@/components/supplier/AdminCommunication";
 import EnhancedQuotationForm from "@/components/supplier/EnhancedQuotationForm";
 import ResponseActions from "@/components/supplier/ResponseActions";
+import { WorkflowDashboard } from "@/components/supplier/WorkflowDashboard";
+import { NotificationCenter } from "@/components/supplier/NotificationCenter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Supplier {
@@ -708,7 +710,8 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="workflow">Dashboard</TabsTrigger>
             <TabsTrigger value="details">Detalhes</TabsTrigger>
             <TabsTrigger value="actions">Ações</TabsTrigger>
             <TabsTrigger value="quotation">Orçamento</TabsTrigger>
@@ -716,6 +719,76 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
             <TabsTrigger value="communication">Comunicação</TabsTrigger>
             <TabsTrigger value="progress">Progresso</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="workflow" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <WorkflowDashboard
+                assistance={assistance}
+                supplierResponse={supplierResponse}
+                quotations={quotations}
+                onAction={(action) => {
+                  switch (action) {
+                    case 'respond':
+                      setActiveTab('actions');
+                      break;
+                    case 'quotation':
+                      setShowQuotationForm(true);
+                      setActiveTab('quotation');
+                      break;
+                    case 'schedule':
+                      setShowScheduleForm(true);
+                      setActiveTab('actions');
+                      break;
+                    case 'start_work':
+                      handleStartWork();
+                      break;
+                    case 'update_progress':
+                      setActiveTab('progress');
+                      break;
+                    case 'contact_admin':
+                      setActiveTab('communication');
+                      break;
+                    default:
+                      break;
+                  }
+                }}
+              />
+              <NotificationCenter
+                assistance={assistance}
+                supplierResponse={supplierResponse}
+                quotations={quotations}
+                onAction={(action) => {
+                  switch (action) {
+                    case 'respond':
+                      setActiveTab('actions');
+                      break;
+                    case 'quotation':
+                      setShowQuotationForm(true);
+                      setActiveTab('quotation');
+                      break;
+                    case 'schedule':
+                      setShowScheduleForm(true);
+                      setActiveTab('actions');
+                      break;
+                    case 'start_work':
+                      handleStartWork();
+                      break;
+                    case 'update_progress':
+                      setActiveTab('progress');
+                      break;
+                    case 'contact_admin':
+                      setActiveTab('communication');
+                      break;
+                    case 'view_schedule':
+                      setActiveTab('details');
+                      break;
+                    default:
+                      break;
+                  }
+                }}
+              />
+            </div>
+          </TabsContent>
 
           <TabsContent value="details" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
