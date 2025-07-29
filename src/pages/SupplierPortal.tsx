@@ -806,11 +806,13 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
             {actions.showScheduling && (
               showScheduleForm ? (
                 <ScheduleForm
-                  assistanceId={assistance.id}
-                  onScheduleSubmitted={() => {
+                  onSubmit={(data) => {
+                    // Here you would typically call an API to schedule the assistance
+                    console.log("Schedule data:", data);
                     setShowScheduleForm(false);
                     queryClient.invalidateQueries({ queryKey: ["supplier-assistances"] });
                   }}
+                  isLoading={false}
                 />
               ) : (
                 <Button 
