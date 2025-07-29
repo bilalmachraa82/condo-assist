@@ -774,7 +774,10 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
               quotations={quotations}
               onAccept={handleAcceptAssistance}
               onDecline={handleDeclineAssistance}
-              onQuote={() => setShowQuotationForm(true)}
+              onQuote={() => {
+                console.log("🎯 Orçamentar Diretamente clicked!");
+                setShowQuotationForm(true);
+              }}
               isLoading={createResponseMutation.isPending || updateAssistanceMutation.isPending}
             />
 
@@ -830,14 +833,21 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
 
           <TabsContent value="quotation" className="space-y-4">
             {showQuotationForm ? (
-              <EnhancedQuotationForm
-                assistanceId={assistance.id}
-                supplierId={supplier.id}
-                onQuotationSubmitted={() => {
-                  setShowQuotationForm(false);
-                  queryClient.invalidateQueries({ queryKey: ["quotations"] });
-                }}
-              />
+              <div>
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    ✅ Formulário de orçamento ativo
+                  </p>
+                </div>
+                <EnhancedQuotationForm
+                  assistanceId={assistance.id}
+                  supplierId={supplier.id}
+                  onQuotationSubmitted={() => {
+                    setShowQuotationForm(false);
+                    queryClient.invalidateQueries({ queryKey: ["quotations"] });
+                  }}
+                />
+              </div>
             ) : quotations.length > 0 ? (
               <div className="space-y-4">
                 {quotations.map((quotation) => (
