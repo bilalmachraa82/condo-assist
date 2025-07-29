@@ -197,38 +197,75 @@ export default function SupplierPortal() {
   const [searchParams] = useSearchParams();
   const magicCode = searchParams.get("code");
   const [enteredCode, setEnteredCode] = useState(magicCode || "");
-  const [authenticated, setAuthenticated] = useState(!!magicCode);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Verify magic code
-  const { data: supplier, isLoading: verifyingCode } = useQuery({
+  // Verify magic code - always attempt validation if code exists
+  const { data: supplier, isLoading: verifyingCode, error: verificationError } = useQuery({
     queryKey: ["supplier-verify", enteredCode],
     queryFn: async (): Promise<Supplier | null> => {
       if (!enteredCode) return null;
       
       console.log("Verifying magic code:", enteredCode.toUpperCase());
       
-      const { data: magicCodeData, error } = await supabase
-        .from("supplier_magic_codes")
-        .select("supplier_id, expires_at")
-        .eq("magic_code", enteredCode.toUpperCase())
-        .gt("expires_at", new Date().toISOString())
-        .single();
+      try {
+        const { data: magicCodeData, error } = await supabase
+          .from("supplier_magic_codes")
+          .select("supplier_id, expires_at, is_used")
+          .eq("magic_code", enteredCode.toUpperCase())
+          .gt("expires_at", new Date().toISOString())
+          .eq("is_used", false)
+          .single();
 
-      if (error) throw error;
-      if (!magicCodeData) return null;
+        if (error) {
+          console.log("Magic code validation error:", error);
+          if (error.code === 'PGRST116') {
+            throw new Error("INVALID_OR_EXPIRED");
+          }
+          throw error;
+        }
 
-      const { data: supplierData, error: supplierError } = await supabase
-        .from("suppliers")
-        .select("id, name, email, phone, address, specialization")
-        .eq("id", magicCodeData.supplier_id)
-        .single();
+        if (!magicCodeData) {
+          throw new Error("INVALID_OR_EXPIRED");
+        }
 
-      if (supplierError) throw supplierError;
-      return supplierData;
+        const { data: supplierData, error: supplierError } = await supabase
+          .from("suppliers")
+          .select("id, name, email, phone, address, specialization")
+          .eq("id", magicCodeData.supplier_id)
+          .single();
+
+        if (supplierError) {
+          console.log("Supplier fetch error:", supplierError);
+          throw new Error("SUPPLIER_NOT_FOUND");
+        }
+
+        // Mark code as used after successful validation
+        await supabase
+          .from("supplier_magic_codes")
+          .update({ is_used: true })
+          .eq("magic_code", enteredCode.toUpperCase());
+
+        setAuthenticated(true);
+        setValidationError(null);
+        return supplierData;
+      } catch (error: any) {
+        console.error("Verification error:", error);
+        setAuthenticated(false);
+        if (error.message === "INVALID_OR_EXPIRED") {
+          setValidationError("Código inválido ou expirado");
+        } else if (error.message === "SUPPLIER_NOT_FOUND") {
+          setValidationError("Fornecedor não encontrado");
+        } else {
+          setValidationError("Erro ao validar código");
+        }
+        throw error;
+      }
     },
-    enabled: !!enteredCode && authenticated,
+    enabled: !!enteredCode,
+    retry: false, // Don't retry on validation errors
   });
 
   // Get supplier's assistances with all required fields using optimized query
@@ -336,7 +373,10 @@ export default function SupplierPortal() {
       });
       return;
     }
-    setAuthenticated(true);
+    
+    setValidationError(null);
+    // The validation will be triggered automatically by the query
+    queryClient.invalidateQueries({ queryKey: ["supplier-verify", enteredCode] });
   };
 
   const getStatusBadge = (status: string) => {
@@ -363,35 +403,8 @@ export default function SupplierPortal() {
     );
   };
 
-  // If code is invalid or expired
-  if (authenticated && !verifyingCode && !supplier) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-destructive">Código Inválido</CardTitle>
-            <CardDescription>
-              O código de acesso é inválido ou expirou. Por favor, solicite um novo código.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={() => {
-                setAuthenticated(false);
-                setEnteredCode("");
-              }}
-              className="w-full"
-            >
-              Tentar Novamente
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Show login form if not authenticated
-  if (!authenticated) {
+  // Show login form if not authenticated or if there's an error
+  if (!authenticated || (enteredCode && verificationError && !verifyingCode)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <Card className="w-full max-w-md">
@@ -417,14 +430,39 @@ export default function SupplierPortal() {
                   type="text"
                   placeholder="Digite o código"
                   value={enteredCode}
-                  onChange={(e) => setEnteredCode(e.target.value.toUpperCase())}
+                  onChange={(e) => {
+                    setEnteredCode(e.target.value.toUpperCase());
+                    setValidationError(null); // Clear error when user types
+                  }}
                   className="text-center text-lg tracking-wider"
                   maxLength={6}
                 />
+                {validationError && (
+                  <p className="text-sm text-destructive text-center">{validationError}</p>
+                )}
               </div>
-              <Button type="submit" className="w-full">
-                Acessar Portal
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={verifyingCode}
+              >
+                {verifyingCode ? "Verificando..." : "Acessar Portal"}
               </Button>
+              {verificationError && !verifyingCode && (
+                <div className="text-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEnteredCode("");
+                      setValidationError(null);
+                      queryClient.removeQueries({ queryKey: ["supplier-verify"] });
+                    }}
+                    className="w-full"
+                  >
+                    Tentar Outro Código
+                  </Button>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>
