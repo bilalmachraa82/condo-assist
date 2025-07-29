@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Euro, Calendar, FileText, Plus, X } from "lucide-react";
+import { Euro, Calendar, FileText, Plus, X, Upload } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 interface EnhancedQuotationFormProps {
@@ -38,6 +39,9 @@ export default function EnhancedQuotationForm({
   const [validityDays, setValidityDays] = useState(30);
   const [laborCost, setLaborCost] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quotationFile, setQuotationFile] = useState<File | null>(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string>("");
+  const [pdfAmount, setPdfAmount] = useState(0);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -73,7 +77,38 @@ export default function EnhancedQuotationForm({
   };
 
   const materialTotal = items.reduce((sum, item) => sum + item.total, 0);
-  const totalAmount = materialTotal + laborCost;
+  const totalAmount = uploadedFileUrl ? pdfAmount : materialTotal + laborCost;
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `quotation_${assistanceId}_${supplierId}_${Date.now()}.${fileExt}`;
+      const filePath = `quotations/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('assistance-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('assistance-photos')
+        .getPublicUrl(filePath);
+
+      setUploadedFileUrl(publicUrl);
+      toast({
+        title: "Ficheiro carregado",
+        description: "O ficheiro PDF foi carregado com sucesso.",
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Erro no upload",
+        description: "Erro ao carregar o ficheiro. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -81,8 +116,8 @@ export default function EnhancedQuotationForm({
         assistance_id: assistanceId,
         supplier_id: supplierId,
         amount: totalAmount,
-        description: description,
-        notes: notes,
+        description: uploadedFileUrl ? `Orçamento PDF: ${description}` : description,
+        notes: uploadedFileUrl ? `${notes}\n\nDocumento anexo: ${uploadedFileUrl}` : notes,
         validity_days: validityDays,
         submitted_at: new Date().toISOString()
       };
@@ -173,159 +208,285 @@ export default function EnhancedQuotationForm({
           <Euro className="h-5 w-5" />
           Submeter Orçamento
         </CardTitle>
+        <CardDescription>
+          Crie um orçamento detalhado manualmente ou envie um documento PDF
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição Geral do Trabalho *</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descreva o trabalho a realizar..."
-              rows={3}
-              required
-            />
-          </div>
+        <Tabs defaultValue="manual" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="manual">Orçamento Manual</TabsTrigger>
+            <TabsTrigger value="upload">Upload PDF</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="manual">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Descrição Geral do Trabalho *</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Descreva o trabalho a realizar..."
+                  rows={3}
+                  required
+                />
+              </div>
 
-          {/* Items */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">Materiais e Serviços</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="h-4 w-4 mr-1" />
-                Adicionar Item
-              </Button>
-            </div>
-
-            {items.map((item, index) => (
-              <div key={item.id} className="border rounded-lg p-4 space-y-3">
+              {/* Items */}
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Item {index + 1}</span>
-                  {items.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeItem(item.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Label className="text-base font-medium">Materiais e Serviços</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Adicionar Item
+                  </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <div className="md:col-span-2">
-                    <Label>Descrição</Label>
-                    <Input
-                      value={item.description}
-                      onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                      placeholder="Ex: Tinta branca 15L"
-                    />
-                  </div>
-                  <div>
-                    <Label>Quantidade</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
-                    />
-                  </div>
-                  <div>
-                    <Label>Preço Unitário (€)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={item.unitPrice}
-                      onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                </div>
+                {items.map((item, index) => (
+                  <div key={item.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Item {index + 1}</span>
+                      {items.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeItem(item.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
 
-                <div className="text-right">
-                  <span className="font-medium">
-                    Subtotal: €{item.total.toFixed(2)}
-                  </span>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div className="md:col-span-2">
+                        <Label>Descrição</Label>
+                        <Input
+                          value={item.description}
+                          onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                          placeholder="Ex: Tinta branca 15L"
+                        />
+                      </div>
+                      <div>
+                        <Label>Quantidade</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Preço Unitário (€)</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.unitPrice}
+                          onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="font-medium">
+                        Subtotal: €{item.total.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Labor Cost */}
+              <div className="space-y-2">
+                <Label htmlFor="laborCost">Custo de Mão de Obra (€)</Label>
+                <Input
+                  id="laborCost"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={laborCost}
+                  onChange={(e) => setLaborCost(parseFloat(e.target.value) || 0)}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <Separator />
+
+              {/* Totals */}
+              <div className="space-y-2 bg-muted/50 p-4 rounded-lg">
+                <div className="flex justify-between">
+                  <span>Materiais:</span>
+                  <span>€{materialTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Mão de Obra:</span>
+                  <span>€{laborCost.toFixed(2)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-bold text-lg">
+                  <span>Total:</span>
+                  <span>€{totalAmount.toFixed(2)}</span>
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* Labor Cost */}
-          <div className="space-y-2">
-            <Label htmlFor="laborCost">Custo de Mão de Obra (€)</Label>
-            <Input
-              id="laborCost"
-              type="number"
-              min="0"
-              step="0.01"
-              value={laborCost}
-              onChange={(e) => setLaborCost(parseFloat(e.target.value) || 0)}
-              placeholder="0.00"
-            />
-          </div>
+              {/* Validity */}
+              <div className="space-y-2">
+                <Label htmlFor="validity">Validade do Orçamento</Label>
+                <Select value={validityDays.toString()} onValueChange={(value) => setValidityDays(parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="15">15 dias</SelectItem>
+                    <SelectItem value="30">30 dias</SelectItem>
+                    <SelectItem value="45">45 dias</SelectItem>
+                    <SelectItem value="60">60 dias</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <Separator />
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes">Observações Adicionais</Label>
+                <Textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Condições especiais, garantias, prazos de execução..."
+                  rows={3}
+                />
+              </div>
 
-          {/* Totals */}
-          <div className="space-y-2 bg-muted/50 p-4 rounded-lg">
-            <div className="flex justify-between">
-              <span>Materiais:</span>
-              <span>€{materialTotal.toFixed(2)}</span>
+              {/* Submit Button */}
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || totalAmount <= 0}
+                className="w-full"
+                size="lg"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                {isSubmitting ? "A submeter..." : `Submeter Orçamento (€${totalAmount.toFixed(2)})`}
+              </Button>
+            </form>
+          </TabsContent>
+          
+          <TabsContent value="upload" className="space-y-6">
+            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+              <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">Upload do Orçamento PDF</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Envie um ficheiro PDF com o seu orçamento detalhado
+              </p>
+              
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setQuotationFile(file);
+                    handleFileUpload(file);
+                  }
+                }}
+                className="hidden"
+                id="quotation-upload"
+              />
+              
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('quotation-upload')?.click()}
+                className="mb-4"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Selecionar Ficheiro PDF
+              </Button>
+              
+              {quotationFile && (
+                <div className="text-sm text-green-600 mt-2">
+                  ✓ {quotationFile.name}
+                </div>
+              )}
             </div>
-            <div className="flex justify-between">
-              <span>Mão de Obra:</span>
-              <span>€{laborCost.toFixed(2)}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between font-bold text-lg">
-              <span>Total:</span>
-              <span>€{totalAmount.toFixed(2)}</span>
-            </div>
-          </div>
 
-          {/* Validity */}
-          <div className="space-y-2">
-            <Label htmlFor="validity">Validade do Orçamento</Label>
-            <Select value={validityDays.toString()} onValueChange={(value) => setValidityDays(parseInt(value))}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="15">15 dias</SelectItem>
-                <SelectItem value="30">30 dias</SelectItem>
-                <SelectItem value="45">45 dias</SelectItem>
-                <SelectItem value="60">60 dias</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            {uploadedFileUrl && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="pdf-amount">Valor Total do Orçamento (€) *</Label>
+                  <Input
+                    id="pdf-amount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={pdfAmount}
+                    onChange={(e) => setPdfAmount(parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Observações Adicionais</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Condições especiais, garantias, prazos de execução..."
-              rows={3}
-            />
-          </div>
+                <div>
+                  <Label htmlFor="pdf-description">Descrição do Trabalho *</Label>
+                  <Textarea
+                    id="pdf-description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Descreva resumidamente o trabalho a realizar..."
+                    rows={3}
+                    required
+                  />
+                </div>
 
-          {/* Submit Button */}
-          <Button 
-            type="submit" 
-            disabled={isSubmitting || totalAmount <= 0}
-            className="w-full"
-            size="lg"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            {isSubmitting ? "A submeter..." : `Submeter Orçamento (€${totalAmount.toFixed(2)})`}
-          </Button>
-        </form>
+                <div>
+                  <Label htmlFor="pdf-validity">Validade do Orçamento</Label>
+                  <Select value={validityDays.toString()} onValueChange={(value) => setValidityDays(parseInt(value))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="15">15 dias</SelectItem>
+                      <SelectItem value="30">30 dias</SelectItem>
+                      <SelectItem value="45">45 dias</SelectItem>
+                      <SelectItem value="60">60 dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="pdf-notes">Observações Adicionais</Label>
+                  <Textarea
+                    id="pdf-notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Condições especiais, garantias, prazos de execução..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center font-bold text-lg">
+                    <span>Valor Total:</span>
+                    <span>€{pdfAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <Button 
+                  type="button" 
+                  onClick={handleSubmit} 
+                  disabled={isSubmitting || !uploadedFileUrl || pdfAmount <= 0 || !description.trim()}
+                  className="w-full"
+                  size="lg"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  {isSubmitting ? "A submeter..." : `Submeter Orçamento PDF (€${pdfAmount.toFixed(2)})`}
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
