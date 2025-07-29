@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUpdateAssistanceStatus } from "@/hooks/useAssistances";
 import { useCreateSupplierResponse } from "@/hooks/useSupplierResponses";
 import { useQuotationsByAssistance } from "@/hooks/useQuotations";
+import { validateMagicCode } from "@/utils/magicCodeGenerator";
 import { Building, CheckCircle, Clock, AlertCircle, FileText, Euro, Calendar, Play, Pause, Eye, XCircle } from "lucide-react";
 import ScheduleForm from "@/components/supplier/ScheduleForm";
 import ProgressTracker from "@/components/supplier/ProgressTracker";
@@ -202,7 +203,7 @@ export default function SupplierPortal() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Verify magic code - always attempt validation if code exists
+  // Verify magic code using new session-based validation
   const { data: supplier, isLoading: verifyingCode, error: verificationError } = useQuery({
     queryKey: ["supplier-verify", enteredCode],
     queryFn: async (): Promise<Supplier | null> => {
@@ -211,46 +212,25 @@ export default function SupplierPortal() {
       console.log("Verifying magic code:", enteredCode.toUpperCase());
       
       try {
-        const { data: magicCodeData, error } = await supabase
-          .from("supplier_magic_codes")
-          .select("supplier_id, expires_at, is_used")
-          .eq("magic_code", enteredCode.toUpperCase())
-          .gt("expires_at", new Date().toISOString())
-          .eq("is_used", false)
-          .single();
-
-        if (error) {
-          console.log("Magic code validation error:", error);
-          if (error.code === 'PGRST116') {
-            throw new Error("INVALID_OR_EXPIRED");
-          }
-          throw error;
-        }
-
-        if (!magicCodeData) {
+        const validation = await validateMagicCode(enteredCode);
+        
+        if (!validation.isValid) {
           throw new Error("INVALID_OR_EXPIRED");
         }
 
-        const { data: supplierData, error: supplierError } = await supabase
-          .from("suppliers")
-          .select("id, name, email, phone, address, specialization")
-          .eq("id", magicCodeData.supplier_id)
-          .single();
-
-        if (supplierError) {
-          console.log("Supplier fetch error:", supplierError);
+        if (!validation.supplier) {
           throw new Error("SUPPLIER_NOT_FOUND");
         }
 
-        // Mark code as used after successful validation
-        await supabase
-          .from("supplier_magic_codes")
-          .update({ is_used: true })
-          .eq("magic_code", enteredCode.toUpperCase());
-
         setAuthenticated(true);
         setValidationError(null);
-        return supplierData;
+        
+        toast({
+          title: "Acesso autorizado",
+          description: `Bem-vindo, ${validation.supplier.name}!`,
+        });
+
+        return validation.supplier;
       } catch (error: any) {
         console.error("Verification error:", error);
         setAuthenticated(false);
@@ -460,7 +440,7 @@ export default function SupplierPortal() {
                     setValidationError(null); // Clear error when user types
                   }}
                   className="text-center text-lg tracking-wider"
-                  maxLength={6}
+                  maxLength={8}
                 />
                 {validationError && (
                   <p className="text-sm text-destructive text-center">{validationError}</p>
