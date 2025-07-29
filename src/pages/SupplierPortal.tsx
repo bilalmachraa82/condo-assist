@@ -13,9 +13,12 @@ import { useUpdateAssistanceStatus } from "@/hooks/useAssistances";
 import { useCreateSupplierResponse } from "@/hooks/useSupplierResponses";
 import { useQuotationsByAssistance } from "@/hooks/useQuotations";
 import { Building, CheckCircle, Clock, AlertCircle, FileText, Euro, Calendar, Play, Pause, Eye, XCircle } from "lucide-react";
-import SubmitQuotationForm from "@/components/quotations/SubmitQuotationForm";
 import ScheduleForm from "@/components/supplier/ScheduleForm";
 import ProgressTracker from "@/components/supplier/ProgressTracker";
+import FileUpload from "@/components/supplier/FileUpload";
+import AdminCommunication from "@/components/supplier/AdminCommunication";
+import EnhancedQuotationForm from "@/components/supplier/EnhancedQuotationForm";
+import ResponseActions from "@/components/supplier/ResponseActions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Supplier {
@@ -78,6 +81,8 @@ function getAvailableActions(assistance: Assistance, supplierResponse: SupplierR
     canCompleteWork: false,
     showScheduling: false,
     showProgress: false,
+    showCommunication: true, // Always show communication
+    showFileUpload: true,    // Always show file upload
     message: ""
   };
 
@@ -115,7 +120,12 @@ function getAvailableActions(assistance: Assistance, supplierResponse: SupplierR
       break;
 
     case "awaiting_quotation":
-      if (hasAccepted) {
+      // For awaiting_quotation, allow response AND quotation actions
+      if (!hasResponded) {
+        actions.canRespond = true;
+        actions.canSubmitQuotation = true;
+        actions.message = "Pode aceitar e orçamentar, orçamentar diretamente, ou recusar esta assistência.";
+      } else if (hasAccepted) {
         if (!hasQuotations) {
           actions.canSubmitQuotation = true;
           actions.message = "Por favor, submeta um orçamento para esta assistência.";
@@ -123,6 +133,8 @@ function getAvailableActions(assistance: Assistance, supplierResponse: SupplierR
           actions.canViewQuotation = true;
           actions.message = "Orçamento submetido. Aguardando aprovação.";
         }
+      } else if (hasDeclined) {
+        actions.message = "Assistência recusada.";
       }
       break;
 
@@ -514,28 +526,17 @@ export default function SupplierPortal() {
                   <p className="text-muted-foreground">
                     Não há assistências atribuídas no momento.
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Código: {enteredCode} | Fornecedor: {supplier?.name}
-                  </p>
                 </CardContent>
               </Card>
             ) : (
               <div className="grid gap-4">
-                {assistances?.map((assistance) => {
-                  const supplierResponse = supplierResponses.find(r => r.assistance_id === assistance.id);
-                  
-                  return (
-                    <AssistanceCard 
-                      key={assistance.id}
-                      assistance={assistance}
-                      supplier={supplier!}
-                      supplierResponse={supplierResponse}
-                      onResponseSubmit={createResponseMutation.mutate}
-                      onStatusUpdate={updateAssistanceMutation.mutate}
-                      isLoading={createResponseMutation.isPending || updateAssistanceMutation.isPending}
-                    />
-                  );
-                })}
+                {assistances?.map((assistance) => (
+                  <AssistanceCard 
+                    key={assistance.id}
+                    assistance={assistance}
+                    supplier={supplier!}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -545,34 +546,7 @@ export default function SupplierPortal() {
   );
 }
 
-// Separate component for each assistance card
-function AssistanceCard({ 
-  assistance, 
-  supplier, 
-  supplierResponse, 
-  onResponseSubmit, 
-  onStatusUpdate, 
-  isLoading 
-}: {
-  assistance: Assistance;
-  supplier: Supplier;
-  supplierResponse: SupplierResponse | null;
-  onResponseSubmit: any;
-  onStatusUpdate: any;
-  isLoading: boolean;
-}) {
-  const { data: quotations = [] } = useQuotationsByAssistance(assistance.id);
-  const actions = getAvailableActions(assistance, supplierResponse, quotations);
-  
-  // Determine which tabs to show
-  const tabs = [
-    { id: "details", label: "Detalhes", show: true },
-    { id: "quotation", label: "Orçamento", show: assistance.requires_quotation },
-    { id: "progress", label: "Progresso", show: actions.showProgress },
-    { id: "schedule", label: "Agendamento", show: actions.showScheduling },
-    { id: "actions", label: "Ações", show: true }
-  ].filter(tab => tab.show);
-
+function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supplier: Supplier }) {
   const getStatusBadge = (status: string) => {
     const variants = {
       pending: { variant: "secondary" as const, icon: Clock, text: "Pendente" },
@@ -596,243 +570,372 @@ function AssistanceCard({
       </Badge>
     );
   };
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const updateAssistanceMutation = useUpdateAssistanceStatus();
+  const createResponseMutation = useCreateSupplierResponse();
+
+  // Get quotations for this assistance
+  const { data: quotations = [] } = useQuotationsByAssistance(assistance.id);
+
+  // Get supplier response for this assistance
+  const { data: supplierResponses = [] } = useQuery({
+    queryKey: ["supplier-responses", supplier.id, assistance.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("supplier_responses")
+        .select("*")
+        .eq("supplier_id", supplier.id)
+        .eq("assistance_id", assistance.id);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!supplier.id && !!assistance.id,
+  });
+
+  const supplierResponse = supplierResponses[0] || null;
+  const actions = getAvailableActions(assistance, supplierResponse, quotations);
+
+  const [showQuotationForm, setShowQuotationForm] = useState(false);
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+
+  const handleAcceptAssistance = async (notes?: string) => {
+    try {
+      await createResponseMutation.mutateAsync({
+        assistanceId: assistance.id,
+        supplierId: supplier.id,
+        responseType: "accepted",
+        notes: notes,
+      });
+      
+      toast({
+        title: "Assistência aceite",
+        description: "A assistência foi aceite com sucesso.",
+      });
+    } catch (error) {
+      console.error("Accept assistance error:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao aceitar assistência. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeclineAssistance = async (reason: string) => {
+    try {
+      await createResponseMutation.mutateAsync({
+        assistanceId: assistance.id,
+        supplierId: supplier.id,
+        responseType: "declined",
+        declineReason: reason,
+      });
+      
+      toast({
+        title: "Assistência recusada",
+        description: "A assistência foi recusada.",
+      });
+    } catch (error) {
+      console.error("Decline assistance error:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao recusar assistência. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStartWork = async () => {
+    try {
+      await updateAssistanceMutation.mutateAsync({
+        assistanceId: assistance.id,
+        newStatus: "in_progress",
+      });
+      
+      toast({
+        title: "Trabalho iniciado",
+        description: "O trabalho foi marcado como iniciado.",
+      });
+    } catch (error) {
+      console.error("Start work error:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao iniciar trabalho. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCompleteWork = async () => {
+    try {
+      await updateAssistanceMutation.mutateAsync({
+        assistanceId: assistance.id,
+        newStatus: "completed",
+      });
+      
+      toast({
+        title: "Trabalho concluído",
+        description: "O trabalho foi marcado como concluído.",
+      });
+    } catch (error) {
+      console.error("Complete work error:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao concluir trabalho. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <Card>
+    <Card className="mb-6">
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-base">
-              {assistance.intervention_type_name}
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              {assistance.title}
             </CardTitle>
             <CardDescription>
-              {assistance.building_name} - {assistance.building_address}
+              {assistance.building_name} - {assistance.intervention_type_name}
             </CardDescription>
           </div>
           {getStatusBadge(assistance.status)}
         </div>
-        {actions.message && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
-            <p className="text-sm text-blue-800">{actions.message}</p>
-          </div>
-        )}
       </CardHeader>
-      <CardContent className="space-y-4">
+
+      <CardContent>
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className={`grid w-full grid-cols-${tabs.length}`}>
-            {tabs.map(tab => (
-              <TabsTrigger key={tab.id} value={tab.id}>{tab.label}</TabsTrigger>
-            ))}
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="details">Detalhes</TabsTrigger>
+            <TabsTrigger value="actions">Ações</TabsTrigger>
+            <TabsTrigger value="quotation">Orçamento</TabsTrigger>
+            <TabsTrigger value="files">Ficheiros</TabsTrigger>
+            <TabsTrigger value="communication">Comunicação</TabsTrigger>
+            <TabsTrigger value="progress">Progresso</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="details" className="mt-4 space-y-4">
-            <div>
-              <Label className="text-sm font-medium">Descrição</Label>
-              <p className="text-sm text-muted-foreground">
-                {assistance.description}
-              </p>
+
+          <TabsContent value="details" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Edifício</Label>
+                <p className="text-sm">{assistance.building_name}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Morada</Label>
+                <p className="text-sm">{assistance.building_address}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Tipo de Intervenção</Label>
+                <p className="text-sm">{assistance.intervention_type_name}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Data de Criação</Label>
+                <p className="text-sm">{new Date(assistance.created_at).toLocaleDateString("pt-PT")}</p>
+              </div>
+              {assistance.requires_quotation && (
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Orçamento</Label>
+                  <p className="text-sm">Necessário</p>
+                </div>
+              )}
+              {assistance.quotation_deadline && (
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Prazo para Orçamento</Label>
+                  <p className="text-sm">{new Date(assistance.quotation_deadline).toLocaleDateString("pt-PT")}</p>
+                </div>
+              )}
             </div>
             
-            {assistance.supplier_notes && (
+            {assistance.description && (
               <div>
-                <Label className="text-sm font-medium">Suas Notas</Label>
-                <p className="text-sm text-muted-foreground">
-                  {assistance.supplier_notes}
-                </p>
+                <Label className="text-sm font-medium text-muted-foreground">Descrição</Label>
+                <p className="text-sm">{assistance.description}</p>
               </div>
             )}
 
-            {assistance.quotation_deadline && (
+            {assistance.supplier_notes && (
               <div>
-                <Label className="text-sm font-medium">Prazo para Orçamento</Label>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(assistance.quotation_deadline).toLocaleDateString("pt-PT")}
-                </p>
+                <Label className="text-sm font-medium text-muted-foreground">Notas do Fornecedor</Label>
+                <p className="text-sm">{assistance.supplier_notes}</p>
+              </div>
+            )}
+
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm font-medium">{actions.message}</p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="actions" className="space-y-4">
+            <ResponseActions
+              assistance={assistance}
+              supplierResponse={supplierResponse}
+              quotations={quotations}
+              onAccept={handleAcceptAssistance}
+              onDecline={handleDeclineAssistance}
+              onQuote={() => setShowQuotationForm(true)}
+              isLoading={createResponseMutation.isPending || updateAssistanceMutation.isPending}
+            />
+
+            {/* Work Management Actions */}
+            {actions.canStartWork && (
+              <Button 
+                onClick={handleStartWork}
+                className="w-full" 
+                size="lg"
+                disabled={updateAssistanceMutation.isPending}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Iniciar Trabalho
+              </Button>
+            )}
+
+            {actions.canCompleteWork && (
+              <Button 
+                onClick={handleCompleteWork}
+                className="w-full" 
+                size="lg"
+                disabled={updateAssistanceMutation.isPending}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Concluir Trabalho
+              </Button>
+            )}
+
+            {actions.showScheduling && (
+              showScheduleForm ? (
+                <ScheduleForm
+                  assistanceId={assistance.id}
+                  onScheduleSubmitted={() => {
+                    setShowScheduleForm(false);
+                    queryClient.invalidateQueries({ queryKey: ["supplier-assistances"] });
+                  }}
+                />
+              ) : (
+                <Button 
+                  onClick={() => setShowScheduleForm(true)}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Agendar Trabalho
+                </Button>
+              )
+            )}
+          </TabsContent>
+
+          <TabsContent value="quotation" className="space-y-4">
+            {showQuotationForm ? (
+              <EnhancedQuotationForm
+                assistanceId={assistance.id}
+                supplierId={supplier.id}
+                onQuotationSubmitted={() => {
+                  setShowQuotationForm(false);
+                  queryClient.invalidateQueries({ queryKey: ["quotations"] });
+                }}
+              />
+            ) : quotations.length > 0 ? (
+              <div className="space-y-4">
+                {quotations.map((quotation) => (
+                  <Card key={quotation.id}>
+                    <CardHeader>
+                      <CardTitle className="text-base">Orçamento Submetido</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Valor</Label>
+                          <p className="text-lg font-semibold">€{quotation.amount}</p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Estado</Label>
+                          <Badge variant={quotation.status === "approved" ? "default" : quotation.status === "rejected" ? "destructive" : "secondary"}>
+                            {quotation.status === "pending" ? "Pendente" : 
+                             quotation.status === "approved" ? "Aprovado" : "Rejeitado"}
+                          </Badge>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Data de Submissão</Label>
+                          <p className="text-sm">{new Date(quotation.submitted_at).toLocaleDateString("pt-PT")}</p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Validade</Label>
+                          <p className="text-sm">{quotation.validity_days} dias</p>
+                        </div>
+                      </div>
+                      {quotation.description && (
+                        <div className="mt-4">
+                          <Label className="text-sm font-medium text-muted-foreground">Descrição</Label>
+                          <p className="text-sm">{quotation.description}</p>
+                        </div>
+                      )}
+                      {quotation.notes && (
+                        <div className="mt-2">
+                          <Label className="text-sm font-medium text-muted-foreground">Observações</Label>
+                          <p className="text-sm">{quotation.notes}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+                
+                {(actions.canSubmitQuotation || (quotations[0]?.status === "rejected")) && (
+                  <Button 
+                    onClick={() => setShowQuotationForm(true)}
+                    className="w-full"
+                    size="lg"
+                  >
+                    <Euro className="h-4 w-4 mr-2" />
+                    {quotations[0]?.status === "rejected" ? "Submeter Novo Orçamento" : "Submeter Orçamento"}
+                  </Button>
+                )}
+              </div>
+            ) : actions.canSubmitQuotation ? (
+              <Button 
+                onClick={() => setShowQuotationForm(true)}
+                className="w-full"
+                size="lg"
+              >
+                <Euro className="h-4 w-4 mr-2" />
+                Submeter Orçamento
+              </Button>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Euro className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhum orçamento necessário ou disponível</p>
               </div>
             )}
           </TabsContent>
 
-          {assistance.requires_quotation && (
-            <TabsContent value="quotation" className="mt-4">
-              {actions.canSubmitQuotation ? (
-                <SubmitQuotationForm
-                  assistanceId={assistance.id}
-                  supplierId={supplier.id}
-                  onQuotationSubmitted={() => {
-                    // Refresh data after quotation submission
-                  }}
-                />
-              ) : actions.canViewQuotation && quotations.length > 0 ? (
-                <div className="space-y-4">
-                  <h4 className="font-medium">Orçamento Submetido</h4>
-                  {quotations.map(quotation => (
-                    <Card key={quotation.id}>
-                      <CardContent className="p-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label className="text-sm font-medium text-muted-foreground">Valor</Label>
-                            <p className="text-lg font-semibold">€{quotation.amount}</p>
-                          </div>
-                          <div>
-                            <Label className="text-sm font-medium text-muted-foreground">Estado</Label>
-                            <Badge variant={quotation.status === "approved" ? "default" : quotation.status === "rejected" ? "destructive" : "secondary"}>
-                              {quotation.status === "approved" ? "Aprovado" : quotation.status === "rejected" ? "Rejeitado" : "Pendente"}
-                            </Badge>
-                          </div>
-                          {quotation.description && (
-                            <div className="col-span-2">
-                              <Label className="text-sm font-medium text-muted-foreground">Descrição</Label>
-                              <p className="text-sm">{quotation.description}</p>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Não é necessário orçamento para esta assistência.</p>
-                </div>
-              )}
-            </TabsContent>
-          )}
+          <TabsContent value="files" className="space-y-4">
+            <FileUpload
+              assistanceId={assistance.id}
+              supplierId={supplier.id}
+            />
+          </TabsContent>
 
-          {actions.showProgress && (
-            <TabsContent value="progress" className="mt-4">
-              <ProgressTracker
-                assistanceId={assistance.id}
+          <TabsContent value="communication" className="space-y-4">
+            <AdminCommunication
+              assistanceId={assistance.id}
+              supplierId={supplier.id}
+            />
+          </TabsContent>
+
+          <TabsContent value="progress" className="space-y-4">
+            {actions.showProgress ? (
+              <ProgressTracker 
+                assistanceId={assistance.id} 
                 supplierId={supplier.id}
                 currentStatus={assistance.status}
               />
-            </TabsContent>
-          )}
-
-          {actions.showScheduling && (
-            <TabsContent value="schedule" className="mt-4">
-              {assistance.status === "pending" && actions.canRespond ? (
-                <ScheduleForm
-                  onSubmit={(scheduleData) => {
-                    onResponseSubmit({
-                      assistanceId: assistance.id,
-                      supplierId: supplier.id,
-                      responseType: "accepted",
-                      ...scheduleData
-                    });
-                  }}
-                  isLoading={isLoading}
-                />
-              ) : (
-                <div className="space-y-4">
-                  {assistance.scheduled_start_date ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Início Agendado</Label>
-                        <p className="text-sm">
-                          {new Date(assistance.scheduled_start_date).toLocaleString("pt-PT")}
-                        </p>
-                      </div>
-                      {assistance.scheduled_end_date && (
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Fim Agendado</Label>
-                          <p className="text-sm">
-                            {new Date(assistance.scheduled_end_date).toLocaleString("pt-PT")}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-center py-8 text-muted-foreground">
-                      Não há informações de agendamento para esta assistência.
-                    </p>
-                  )}
-                </div>
-              )}
-            </TabsContent>
-          )}
-
-          <TabsContent value="actions" className="mt-4">
-            <div className="space-y-4">
-              {actions.canRespond && (
-                <div className="space-y-3">
-                  <h4 className="font-medium">Responder à Assistência</h4>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => {
-                        onResponseSubmit({
-                          assistanceId: assistance.id,
-                          supplierId: supplier.id,
-                          responseType: "accepted"
-                        });
-                      }}
-                      disabled={isLoading}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      ✅ Aceitar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        const reason = prompt("Motivo da recusa (opcional):");
-                        onResponseSubmit({
-                          assistanceId: assistance.id,
-                          supplierId: supplier.id,
-                          responseType: "declined",
-                          declineReason: reason || undefined
-                        });
-                      }}
-                      disabled={isLoading}
-                      className="border-red-200 text-red-600 hover:bg-red-50"
-                    >
-                      ❌ Recusar
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {actions.canStartWork && (
-                <div className="space-y-3">
-                  <h4 className="font-medium">Iniciar Trabalho</h4>
-                  <Button
-                    onClick={() => onStatusUpdate({
-                      assistanceId: assistance.id,
-                      newStatus: "in_progress"
-                    })}
-                    disabled={isLoading}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    ▶️ Iniciar Assistência
-                  </Button>
-                </div>
-              )}
-              
-              {actions.canCompleteWork && (
-                <div className="space-y-3">
-                  <h4 className="font-medium">Concluir Assistência</h4>
-                  {assistance.completion_photos_required && (
-                    <p className="text-sm text-muted-foreground">
-                      Certifique-se de que adicionou fotos de conclusão no separador 'Progresso'.
-                    </p>
-                  )}
-                  <Button
-                    onClick={() => onStatusUpdate({
-                      assistanceId: assistance.id,
-                      newStatus: assistance.requires_validation ? "awaiting_validation" : "completed"
-                    })}
-                    disabled={isLoading}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    ✅ {assistance.requires_validation ? "Enviar para Validação" : "Marcar como Concluída"}
-                  </Button>
-                </div>
-              )}
-
-              {isLoading && (
-                <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded border">
-                  🔄 A processar...
-                </div>
-              )}
-            </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Registo de progresso não disponível neste momento</p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </CardContent>
