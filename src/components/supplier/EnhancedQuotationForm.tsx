@@ -213,10 +213,10 @@ export default function EnhancedQuotationForm({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="manual" className="w-full">
+        <Tabs defaultValue="upload" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="manual">Orçamento Manual</TabsTrigger>
-            <TabsTrigger value="upload">Upload PDF</TabsTrigger>
+            <TabsTrigger value="upload">📄 Upload PDF</TabsTrigger>
+            <TabsTrigger value="manual">✍️ Manual</TabsTrigger>
           </TabsList>
           
           <TabsContent value="manual">
@@ -374,11 +374,11 @@ export default function EnhancedQuotationForm({
           </TabsContent>
           
           <TabsContent value="upload" className="space-y-6">
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-              <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">Upload do Orçamento PDF</h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                Envie um ficheiro PDF com o seu orçamento detalhado
+            <div className="border-2 border-dashed border-primary/25 rounded-lg p-6 text-center bg-primary/5">
+              <FileText className="h-12 w-12 mx-auto mb-3 text-primary" />
+              <h3 className="text-lg font-medium mb-2 text-primary">📄 Opção Recomendada</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Upload rápido do seu orçamento PDF completo
               </p>
               
               <input
@@ -397,11 +397,11 @@ export default function EnhancedQuotationForm({
               
               <Button
                 type="button"
-                variant="outline"
+                size="lg"
                 onClick={() => document.getElementById('quotation-upload')?.click()}
-                className="mb-4"
+                className="mb-4 h-12 text-lg"
               >
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload className="h-5 w-5 mr-2" />
                 Selecionar Ficheiro PDF
               </Button>
               
