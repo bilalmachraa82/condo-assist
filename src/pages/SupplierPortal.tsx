@@ -280,7 +280,7 @@ export default function SupplierPortal() {
       console.log("🔍 Fetching assistances for supplier:", supplier.id);
       
       try {
-        // Use a single query with joins for better performance and reliability
+        // Use LEFT JOIN to handle potential missing data gracefully
         const { data: assistanceData, error } = await supabase
           .from("assistances")
           .select(`
@@ -299,18 +299,25 @@ export default function SupplierPortal() {
             requires_quotation,
             quotation_requested_at, 
             quotation_deadline,
-            buildings!inner (
+            building_id,
+            intervention_type_id,
+            buildings (
               name,
               address
             ),
-            intervention_types!inner (
+            intervention_types (
               name
             )
           `)
           .eq("assigned_supplier_id", supplier.id)
           .order("created_at", { ascending: false });
 
-        console.log("📊 Query result:", { data: assistanceData, error });
+        console.log("📊 Query result:", { 
+          data: assistanceData, 
+          error, 
+          count: assistanceData?.length || 0,
+          supplier_id: supplier.id 
+        });
 
         if (error) {
           console.error("❌ Database error:", error);
@@ -319,6 +326,15 @@ export default function SupplierPortal() {
         
         if (!assistanceData || assistanceData.length === 0) {
           console.log("⚠️ No assistances found for supplier", supplier.id);
+          console.log("📋 Debug: Checking if any assistances exist with this supplier_id");
+          
+          // Additional debug query to check raw data
+          const { data: debugData, error: debugError } = await supabase
+            .from("assistances")
+            .select("id, title, assigned_supplier_id")
+            .eq("assigned_supplier_id", supplier.id);
+          
+          console.log("🔍 Debug query result:", { debugData, debugError });
           return [];
         }
         
@@ -330,7 +346,16 @@ export default function SupplierPortal() {
           intervention_type_name: assistance.intervention_types?.name || "N/A",
         }));
         
-        console.log("✅ Successfully fetched assistances:", transformedData.length);
+        console.log("✅ Successfully fetched assistances:", {
+          count: transformedData.length,
+          samples: transformedData.slice(0, 2).map(a => ({ 
+            id: a.id, 
+            title: a.title, 
+            status: a.status,
+            building_name: a.building_name,
+            intervention_type_name: a.intervention_type_name
+          }))
+        });
         return transformedData;
         
       } catch (error) {
@@ -476,7 +501,14 @@ export default function SupplierPortal() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando...</p>
+          <p className="text-muted-foreground">
+            {verifyingCode ? "Verificando código..." : "Carregando assistências..."}
+          </p>
+          {supplier && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Fornecedor: {supplier.name}
+            </p>
+          )}
         </div>
       </div>
     );
