@@ -149,7 +149,7 @@ export default function Fornecedores() {
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -195,21 +195,6 @@ export default function Fornecedores() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-warning/10 to-warning/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">★</span>
-              <div>
-                {isLoadingStats ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold text-warning">{stats?.averageRating || 0}</p>
-                )}
-                <p className="text-xs text-muted-foreground">Avaliação Média</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Suppliers Grid */}
@@ -244,7 +229,7 @@ export default function Fornecedores() {
                         {supplier.specialization}
                       </Badge>
                     )}
-                    {renderStars(supplier.rating ? Number(supplier.rating) : undefined)}
+                    
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

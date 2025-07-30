@@ -3,14 +3,18 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useAssistanceStats } from "@/hooks/useAssistances";
 import { useBuildingStats } from "@/hooks/useBuildings";
 import { useSupplierStats } from "@/hooks/useSuppliers";
+import { useMonthlyAssistanceStats } from "@/hooks/useMonthlyAssistanceStats";
+import { useCategoryStats } from "@/hooks/useCategoryStats";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileBarChart, Building2, Users, Wrench } from "lucide-react";
+import { FileBarChart, Building2, Users, Wrench, FileText } from "lucide-react";
 
 
 export default function Relatorios() {
   const { data: assistanceStats, isLoading: assistanceLoading } = useAssistanceStats();
   const { data: buildingStats, isLoading: buildingLoading } = useBuildingStats();
   const { data: supplierStats, isLoading: supplierLoading } = useSupplierStats();
+  const { data: monthlyStats, isLoading: monthlyLoading } = useMonthlyAssistanceStats();
+  const { data: categoryStats, isLoading: categoryLoading } = useCategoryStats();
 
   const assistanceStatusData = assistanceStats ? [
     { name: 'Pendentes', value: assistanceStats.pending, color: '#f59e0b' },
@@ -141,16 +145,31 @@ export default function Relatorios() {
             <CardDescription>Assistências criadas vs concluídas</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="assistencias" stroke="hsl(var(--primary))" name="Criadas" />
-                <Line type="monotone" dataKey="concluidas" stroke="hsl(var(--chart-2))" name="Concluídas" />
-              </LineChart>
-            </ResponsiveContainer>
+            {monthlyLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-64 w-full" />
+              </div>
+            ) : monthlyStats && monthlyStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={monthlyStats}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="created" stroke="hsl(var(--primary))" name="Criadas" />
+                  <Line type="monotone" dataKey="completed" stroke="hsl(var(--chart-2))" name="Concluídas" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
+                <div className="text-center">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Sem dados históricos disponíveis</p>
+                  <p className="text-sm">Crie algumas assistências para ver a tendência</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -162,27 +181,31 @@ export default function Relatorios() {
           <CardDescription>Número de assistências por tipo de intervenção</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart
-              data={[
-                { categoria: 'Canalização', assistencias: 45, concluidas: 38 },
-                { categoria: 'Eletricidade', assistencias: 32, concluidas: 28 },
-                { categoria: 'Elevadores', assistencias: 28, concluidas: 25 },
-                { categoria: 'Limpeza', assistencias: 22, concluidas: 20 },
-                { categoria: 'Serralharia', assistencias: 18, concluidas: 15 },
-                { categoria: 'Pinturas', assistencias: 15, concluidas: 12 },
-                { categoria: 'Jardinagem', assistencias: 12, concluidas: 11 },
-                { categoria: 'Segurança', assistencias: 8, concluidas: 7 },
-              ]}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="categoria" angle={-45} textAnchor="end" height={100} />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="assistencias" fill="hsl(var(--primary))" name="Total" />
-              <Bar dataKey="concluidas" fill="hsl(var(--chart-2))" name="Concluídas" />
-            </BarChart>
-          </ResponsiveContainer>
+          {categoryLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          ) : categoryStats && categoryStats.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={categoryStats}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="category" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="total" fill="hsl(var(--primary))" name="Total" />
+                <Bar dataKey="completed" fill="hsl(var(--chart-2))" name="Concluídas" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-muted-foreground">
+              <div className="text-center">
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Sem dados de categorias disponíveis</p>
+                <p className="text-sm">Crie tipos de intervenção e assistências para ver o desempenho</p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

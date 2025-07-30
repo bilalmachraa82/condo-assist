@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 import { 
   Wrench, 
   Clock, 
@@ -15,18 +16,26 @@ import {
   Plus,
   AlertTriangle,
   TrendingUp,
-  Calendar
+  Calendar,
+  Building
 } from "lucide-react"
 import { useAssistanceStats } from "@/hooks/useAssistances"
 import { useBuildingStats } from "@/hooks/useBuildings"
 import { useSupplierStats } from "@/hooks/useSuppliers"
+import { useUrgentAlerts } from "@/hooks/useUrgentAlerts"
+import { usePerformanceMetrics } from "@/hooks/usePerformanceMetrics"
+import { useUpcomingSchedules } from "@/hooks/useUpcomingSchedules"
 import { useNavigate } from "react-router-dom"
+import { format } from "date-fns"
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { data: assistanceStats, isLoading: assistanceLoading } = useAssistanceStats();
   const { data: buildingStats, isLoading: buildingLoading } = useBuildingStats();
   const { data: supplierStats, isLoading: supplierLoading } = useSupplierStats();
+  const { data: urgentAlerts, isLoading: alertsLoading } = useUrgentAlerts();
+  const { data: performanceMetrics, isLoading: performanceLoading } = usePerformanceMetrics();
+  const { data: upcomingSchedules, isLoading: schedulesLoading } = useUpcomingSchedules();
 
   const isLoading = assistanceLoading || buildingLoading || supplierLoading;
   return (
@@ -141,18 +150,40 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="p-3 bg-background/50 rounded-lg">
-                      <h4 className="text-sm font-medium">Elevador Avariado</h4>
-                      <p className="text-xs text-muted-foreground">COND. R. ALEXANDRE HERCULANO - Edif. 003</p>
-                      <p className="text-xs text-destructive mt-1">Há 2 horas sem resposta</p>
+                  {alertsLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-16 w-full" />
                     </div>
-                    <div className="p-3 bg-background/50 rounded-lg">
-                      <h4 className="text-sm font-medium">Fuga de Água</h4>
-                      <p className="text-xs text-muted-foreground">COND. RUA D. AFONSO HENRIQUES - Edif. 101</p>
-                      <p className="text-xs text-destructive mt-1">Prioridade alta</p>
+                  ) : urgentAlerts && urgentAlerts.length > 0 ? (
+                    <div className="space-y-3">
+                      {urgentAlerts.slice(0, 2).map((alert) => (
+                        <div key={alert.id} className="p-3 bg-background/50 rounded-lg">
+                          <h4 className="text-sm font-medium">{alert.title}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Building className="h-3 w-3 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground">{alert.buildings?.name}</p>
+                            <Badge variant="destructive" className="text-xs">
+                              {alert.priority}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-destructive mt-1">
+                            Criado: {format(new Date(alert.created_at), "dd/MM HH:mm")}
+                          </p>
+                        </div>
+                      ))}
+                      {urgentAlerts.length > 2 && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          +{urgentAlerts.length - 2} alertas adicionais
+                        </p>
+                      )}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <AlertTriangle className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                      <p className="text-sm text-muted-foreground">Nenhum alerta urgente</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -165,20 +196,42 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Tempo médio resposta</span>
-                      <span className="text-sm font-medium text-success">2.3 horas</span>
+                  {performanceLoading ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Taxa resolução</span>
-                      <span className="text-sm font-medium text-success">94.5%</span>
+                  ) : performanceMetrics && performanceMetrics.totalAssistances > 0 ? (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Tempo médio resposta</span>
+                        <span className="text-sm font-medium text-success">
+                          {performanceMetrics.averageResponseTime.toFixed(1)} horas
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Taxa conclusão</span>
+                        <span className="text-sm font-medium text-success">
+                          {performanceMetrics.completionRate}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Total processadas</span>
+                        <span className="text-sm font-medium text-success">
+                          {performanceMetrics.totalAssistances}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Satisfação média</span>
-                      <span className="text-sm font-medium text-success">4.7/5</span>
+                  ) : (
+                    <div className="text-center py-4">
+                      <TrendingUp className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                      <p className="text-sm text-muted-foreground">Sem dados suficientes</p>
+                      <p className="text-xs text-muted-foreground">
+                        Crie assistências para ver métricas
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -191,20 +244,42 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="p-3 bg-background/50 rounded-lg">
-                      <h4 className="text-sm font-medium">Manutenção Elevador</h4>
-                      <p className="text-xs text-muted-foreground">TKE - Amanhã às 09:00</p>
+                  {schedulesLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-16 w-full" />
                     </div>
-                    <div className="p-3 bg-background/50 rounded-lg">
-                      <h4 className="text-sm font-medium">Limpeza Garagem</h4>
-                      <p className="text-xs text-muted-foreground">Limpeza Geral - 15:30</p>
+                  ) : upcomingSchedules && upcomingSchedules.length > 0 ? (
+                    <div className="space-y-3">
+                      {upcomingSchedules.slice(0, 3).map((schedule) => (
+                        <div key={schedule.id} className="p-3 bg-background/50 rounded-lg">
+                          <h4 className="text-sm font-medium">{schedule.title}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Users className="h-3 w-3 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground">
+                              {schedule.suppliers?.name}
+                            </p>
+                            <span className="text-xs text-primary">
+                              {format(new Date(schedule.scheduled_start_date!), "dd/MM HH:mm")}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {upcomingSchedules.length > 3 && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          +{upcomingSchedules.length - 3} agendamentos adicionais
+                        </p>
+                      )}
                     </div>
-                    <div className="p-3 bg-background/50 rounded-lg">
-                      <h4 className="text-sm font-medium">Controlo Pragas</h4>
-                      <p className="text-xs text-muted-foreground">Desinfest Lar - Quinta-feira</p>
+                  ) : (
+                    <div className="text-center py-4">
+                      <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                      <p className="text-sm text-muted-foreground">Nenhum agendamento</p>
+                      <p className="text-xs text-muted-foreground">
+                        Agende assistências para ver aqui
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

@@ -66,24 +66,10 @@ export const useSupplierStats = () => {
         specializationData?.map(s => s.specialization).filter(Boolean)
       ).size;
 
-      // Calculate average rating
-      const { data: ratingData, error: ratingError } = await supabase
-        .from("suppliers")
-        .select("rating")
-        .not("rating", "is", null);
-
-      if (ratingError) throw ratingError;
-
-      const ratings = ratingData?.map(s => Number(s.rating)).filter(r => r > 0) || [];
-      const averageRating = ratings.length > 0 
-        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
-        : 0;
-
       return {
         total: totalCount || 0,
         active: activeCount || 0,
         specializations: uniqueSpecializations,
-        averageRating: Math.round(averageRating * 10) / 10,
       };
     },
   });
