@@ -1,9 +1,46 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
+import { useToast } from "@/hooks/use-toast";
 
 export type AppSetting = Tables<"app_settings">;
 
+// Optimized hook to get all settings at once
+export const useAllAppSettings = () => {
+  return useQuery({
+    queryKey: ["app-settings-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("*")
+        .order("category, key");
+      
+      if (error) throw error;
+      
+      // Group by category for easier access
+      const grouped = data.reduce((acc, setting) => {
+        if (!acc[setting.category]) {
+          acc[setting.category] = {};
+        }
+        // Parse JSON values safely
+        let value = setting.value;
+        if (typeof value === 'string') {
+          try {
+            value = JSON.parse(value);
+          } catch {
+            // Keep as string if parsing fails
+          }
+        }
+        acc[setting.category][setting.key] = value;
+        return acc;
+      }, {} as Record<string, Record<string, any>>);
+      
+      return { raw: data, grouped };
+    },
+  });
+};
+
+// Legacy hook for category-specific queries (kept for backward compatibility)
 export const useAppSettings = (category?: string) => {
   return useQuery({
     queryKey: ["app-settings", category],
@@ -22,14 +59,22 @@ export const useAppSettings = (category?: string) => {
   });
 };
 
+// Optimized update mutation with better error handling
 export const useUpdateAppSetting = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   return useMutation({
     mutationFn: async ({ key, value }: { key: string; value: any }) => {
+      // Ensure value is properly stringified
+      const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+      
       const { data, error } = await supabase
         .from("app_settings")
-        .update({ value: JSON.stringify(value) })
+        .update({ 
+          value: stringValue,
+          updated_at: new Date().toISOString()
+        })
         .eq("key", key)
         .select()
         .single();
@@ -37,8 +82,21 @@ export const useUpdateAppSetting = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["app-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["app-settings-all"] });
+      toast({
+        title: "Configuração atualizada",
+        description: "A configuração foi guardada com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error updating setting:', error);
+      toast({
+        title: "Erro ao guardar",
+        description: error.message || "Não foi possível guardar a configuração.",
+        variant: "destructive",
+      });
     },
   });
 };
