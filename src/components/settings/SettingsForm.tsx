@@ -136,7 +136,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {fields.map((field, index) => (
-              <React.Fragment key={field.key}>
+              <div key={field.key}>
                 <FormField
                   control={form.control}
                   name={field.key}
@@ -194,7 +194,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   )}
                 />
                 {index < fields.length - 1 && <Separator className="my-4" />}
-              </React.Fragment>
+              </div>
             ))}
             
             {hasChanges && (
