@@ -18,7 +18,8 @@ import {
   Edit,
   Eye,
   MoreHorizontal,
-  Trash2
+  Trash2,
+  Send
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -30,17 +31,57 @@ import { useAllSuppliers, useSupplierStats, useDeleteSupplier, type Supplier } f
 import { SupplierForm } from "@/components/suppliers/SupplierForm"
 import { useToast } from "@/hooks/use-toast"
 import TestPortalButton from "@/components/supplier/TestPortalButton"
+import { SupplierEmailSummary } from "@/components/supplier/SupplierEmailSummary"
+import { BulkEmailDialog } from "@/components/supplier/BulkEmailDialog"
+import { useSupplierAssistances } from "@/hooks/useSupplierAssistances"
+import { supabase } from "@/integrations/supabase/client"
+import { useQuery } from "@tanstack/react-query"
 
 export default function Fornecedores() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null)
+  const [emailSummarySupplier, setEmailSummarySupplier] = useState<Supplier | null>(null)
+  const [isBulkEmailOpen, setIsBulkEmailOpen] = useState(false)
   
   const { data: suppliers = [], isLoading } = useAllSuppliers()
   const { data: stats, isLoading: isLoadingStats } = useSupplierStats()
   const deleteSupplier = useDeleteSupplier()
   const { toast } = useToast()
+
+  // Fetch suppliers with pending assistances for bulk email
+  const { data: suppliersWithAssistances = [] } = useQuery({
+    queryKey: ["suppliers-with-assistances"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("suppliers")
+        .select(`
+          id,
+          name,
+          email,
+          assistances!left(id, status)
+        `)
+        .eq("is_active", true)
+        .not("email", "is", null)
+        .order("name");
+
+      if (error) throw error;
+
+      return (data || [])
+        .map(supplier => ({
+          id: supplier.id,
+          name: supplier.name,
+          email: supplier.email || "",
+          pendingCount: supplier.assistances?.filter(a => 
+            ["pending", "awaiting_quotation", "quotation_received", "in_progress"].includes(a.status)
+          ).length || 0
+        }))
+        .filter(supplier => supplier.pendingCount > 0);
+    }
+  });
+
+  const { data: emailSummaryAssistances = [] } = useSupplierAssistances(emailSummarySupplier?.id || "")
 
   const filteredSuppliers = useMemo(() => {
     if (!searchTerm) return suppliers
@@ -114,6 +155,10 @@ export default function Fornecedores() {
     }
   }
 
+  const handleEmailSummary = (supplier: Supplier) => {
+    setEmailSummarySupplier(supplier)
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -143,10 +188,21 @@ export default function Fornecedores() {
             Filtros
           </Button>
         </div>
-        <Button onClick={handleCreate} className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Fornecedor
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setIsBulkEmailOpen(true)}
+            variant="outline"
+            disabled={suppliersWithAssistances.length === 0}
+            className="hover:bg-muted/50"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            Envio em Massa ({suppliersWithAssistances.length})
+          </Button>
+          <Button onClick={handleCreate} className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300">
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Fornecedor
+          </Button>
+        </div>
       </div>
 
       {/* Statistics */}
@@ -247,9 +303,9 @@ export default function Fornecedores() {
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEmailSummary(supplier)}>
                         <Mail className="h-4 w-4 mr-2" />
-                        Enviar Email
+                        Enviar Resumo
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => setSupplierToDelete(supplier)}
@@ -372,6 +428,25 @@ export default function Fornecedores() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Email Summary Dialog */}
+      {emailSummarySupplier && (
+        <SupplierEmailSummary
+          supplierId={emailSummarySupplier.id}
+          supplierName={emailSummarySupplier.name}
+          supplierEmail={emailSummarySupplier.email || ""}
+          pendingAssistances={emailSummaryAssistances}
+          isOpen={!!emailSummarySupplier}
+          onClose={() => setEmailSummarySupplier(null)}
+        />
+      )}
+
+      {/* Bulk Email Dialog */}
+      <BulkEmailDialog
+        suppliers={suppliersWithAssistances}
+        isOpen={isBulkEmailOpen}
+        onClose={() => setIsBulkEmailOpen(false)}
+      />
     </div>
   )
 }
