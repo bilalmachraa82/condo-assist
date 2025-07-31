@@ -1,94 +1,340 @@
-import { useState, useMemo } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
+  Building2, 
   Plus, 
   Search, 
-  Filter, 
-  Building2,
-  MapPin,
-  FileText,
-  Edit,
+  MapPin, 
+  FileText, 
   Eye,
+  Edit,
+  Trash2,
   MoreHorizontal,
-  Trash2
-} from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useBuildings, useBuildingStats, useDeleteBuilding, type Building } from "@/hooks/useBuildings"
-import { BuildingForm } from "@/components/buildings/BuildingForm"
-import { useToast } from "@/hooks/use-toast"
+  Wrench,
+  Clock,
+  CheckCircle,
+  AlertTriangle
+} from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useBuildings, useCreateBuilding, useUpdateBuilding, useDeleteBuilding, type Building } from "@/hooks/useBuildings";
+import { useAssistances } from "@/hooks/useAssistances";
+import { BuildingForm } from "@/components/buildings/BuildingForm";
+import { format } from "date-fns";
+import { pt } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
+import { PDFExportButton } from "@/components/assistance/PDFExportButton";
+import { AssistanceListPDFTemplate } from "@/components/assistance/AssistanceListPDFTemplate";
+import AssistanceDetail from "@/components/assistance/AssistanceDetail";
+
+// Building assistances view component
+function BuildingAssistancesView({ building, onBack }: { building: Building; onBack: () => void }) {
+  const [selectedAssistance, setSelectedAssistance] = useState(null);
+  const { data: allAssistances } = useAssistances();
+  
+  // Filter assistances for this building
+  const buildingAssistances = allAssistances?.filter(
+    assistance => assistance.building_id === building.id
+  ) || [];
+  
+  const openAssistances = buildingAssistances.filter(
+    assistance => !['completed', 'cancelled'].includes(assistance.status)
+  );
+  
+  const closedAssistances = buildingAssistances.filter(
+    assistance => ['completed', 'cancelled'].includes(assistance.status)
+  );
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      pending: "bg-warning/10 text-warning border-warning/20",
+      in_progress: "bg-primary/10 text-primary border-primary/20", 
+      completed: "bg-success/10 text-success border-success/20",
+      cancelled: "bg-destructive/10 text-destructive border-destructive/20"
+    };
+
+    const labels = {
+      pending: "Pendente",
+      in_progress: "Em Progresso",
+      completed: "Concluída", 
+      cancelled: "Cancelada"
+    };
+
+    return (
+      <Badge className={variants[status as keyof typeof variants] || variants.pending}>
+        {labels[status as keyof typeof labels] || status}
+      </Badge>
+    );
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Clock className="h-4 w-4 text-warning" />;
+      case "in_progress":
+        return <Wrench className="h-4 w-4 text-primary" />;
+      case "completed":
+        return <CheckCircle className="h-4 w-4 text-success" />;
+      case "cancelled":
+        return <AlertTriangle className="h-4 w-4 text-destructive" />;
+      default:
+        return <Clock className="h-4 w-4" />;
+    }
+  };
+
+  if (selectedAssistance) {
+    return (
+      <AssistanceDetail
+        assistance={selectedAssistance}
+        onBack={() => setSelectedAssistance(null)}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button variant="outline" onClick={onBack}>
+            ← Voltar
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{building.name}</h1>
+            <p className="text-muted-foreground">Assistências do edifício</p>
+          </div>
+        </div>
+        <PDFExportButton 
+          filename={`assistencias-${building.name.replace(/\s+/g, '-').toLowerCase()}`}
+          variant="outline"
+        >
+          <AssistanceListPDFTemplate 
+            assistances={buildingAssistances}
+            title={`Assistências - ${building.name}`}
+            filters={{ building: building.name }}
+          />
+        </PDFExportButton>
+      </div>
+
+      {/* Building Info */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">{buildingAssistances.length}</div>
+              <div className="text-sm text-muted-foreground">Total</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-warning">{openAssistances.length}</div>
+              <div className="text-sm text-muted-foreground">Abertas</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-success">{closedAssistances.length}</div>
+              <div className="text-sm text-muted-foreground">Fechadas</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">
+                {buildingAssistances.filter(a => a.status === 'in_progress').length}
+              </div>
+              <div className="text-sm text-muted-foreground">Em Progresso</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Assistances Tabs */}
+      <Tabs defaultValue="open" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="open">Assistências Abertas ({openAssistances.length})</TabsTrigger>
+          <TabsTrigger value="closed">Assistências Fechadas ({closedAssistances.length})</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="open" className="mt-6">
+          <div className="space-y-4">
+            {openAssistances.length === 0 ? (
+              <Card className="p-8">
+                <div className="text-center space-y-2">
+                  <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto" />
+                  <h3 className="text-lg font-semibold">Nenhuma assistência aberta</h3>
+                  <p className="text-muted-foreground">
+                    Todas as assistências deste edifício estão concluídas.
+                  </p>
+                </div>
+              </Card>
+            ) : (
+              openAssistances.map((assistance) => (
+                <Card key={assistance.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          {getStatusIcon(assistance.status)}
+                          {getStatusBadge(assistance.status)}
+                        </div>
+                        <h3 className="font-semibold text-lg mb-1">
+                          {assistance.intervention_types?.name || assistance.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {assistance.description || 'Sem descrição'}
+                        </p>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {format(new Date(assistance.created_at), "dd/MM/yyyy HH:mm", { locale: pt })}
+                          {assistance.suppliers && (
+                            <>
+                              <span className="mx-2">•</span>
+                              <span>{assistance.suppliers.name}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedAssistance(assistance)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalhes
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="closed" className="mt-6">
+          <div className="space-y-4">
+            {closedAssistances.length === 0 ? (
+              <Card className="p-8">
+                <div className="text-center space-y-2">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto" />
+                  <h3 className="text-lg font-semibold">Nenhuma assistência fechada</h3>
+                  <p className="text-muted-foreground">
+                    Ainda não há assistências concluídas ou canceladas neste edifício.
+                  </p>
+                </div>
+              </Card>
+            ) : (
+              closedAssistances.map((assistance) => (
+                <Card key={assistance.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          {getStatusIcon(assistance.status)}
+                          {getStatusBadge(assistance.status)}
+                        </div>
+                        <h3 className="font-semibold text-lg mb-1">
+                          {assistance.intervention_types?.name || assistance.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {assistance.description || 'Sem descrição'}
+                        </p>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {format(new Date(assistance.created_at), "dd/MM/yyyy HH:mm", { locale: pt })}
+                          {assistance.completed_date && (
+                            <>
+                              <span className="mx-2">•</span>
+                              <span>Concluído: {format(new Date(assistance.completed_date), "dd/MM/yyyy", { locale: pt })}</span>
+                            </>
+                          )}
+                          {assistance.suppliers && (
+                            <>
+                              <span className="mx-2">•</span>
+                              <span>{assistance.suppliers.name}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedAssistance(assistance)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalhes
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
 
 export default function Edificios() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null)
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [buildingToDelete, setBuildingToDelete] = useState<Building | null>(null)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
+  const [selectedBuildingForEdit, setSelectedBuildingForEdit] = useState<Building | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [buildingToDelete, setBuildingToDelete] = useState<Building | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'assistances'>('list');
   
-  const { data: buildings = [], isLoading } = useBuildings()
-  const { data: stats, isLoading: isLoadingStats } = useBuildingStats()
-  const deleteBuilding = useDeleteBuilding()
-  const { toast } = useToast()
-
-  const filteredBuildings = useMemo(() => {
-    if (!searchTerm) return buildings
-    return buildings.filter(building => 
-      building.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      building.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      building.address?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  }, [buildings, searchTerm])
-
-  const getStatusBadge = (isActive: boolean) => {
-    return isActive ? (
-      <Badge className="bg-success/10 text-success border-success/20">
-        Ativo
-      </Badge>
-    ) : (
-      <Badge className="bg-muted/50 text-muted-foreground">
-        Inativo
-      </Badge>
-    )
-  }
-
-  const handleEdit = (building: Building) => {
-    setSelectedBuilding(building)
-    setIsFormOpen(true)
-  }
-
-  const handleCreate = () => {
-    setSelectedBuilding(null)
-    setIsFormOpen(true)
-  }
-
-  const handleFormSuccess = () => {
-    setIsFormOpen(false)
-    setSelectedBuilding(null)
-  }
+  const { data: buildings, isLoading } = useBuildings();
+  const { data: assistances } = useAssistances();
+  const deleteBuilding = useDeleteBuilding();
+  const { toast } = useToast();
 
   const handleDelete = async () => {
-    if (!buildingToDelete) return
+    if (!buildingToDelete) return;
     
     try {
-      await deleteBuilding.mutateAsync(buildingToDelete.id)
-      toast({ title: "Edifício eliminado com sucesso!" })
-      setBuildingToDelete(null)
+      await deleteBuilding.mutateAsync(buildingToDelete.id);
+      toast({
+        title: "Edifício eliminado",
+        description: "O edifício foi eliminado com sucesso.",
+      });
+      setBuildingToDelete(null);
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Erro ao eliminar edifício",
+        description: "Erro ao eliminar edifício. Tente novamente.",
         variant: "destructive",
-      })
+      });
     }
+  };
+
+  const getBuildingAssistanceCount = (buildingId: string) => {
+    return assistances?.filter(assistance => assistance.building_id === buildingId).length || 0;
+  };
+
+  const getOpenAssistanceCount = (buildingId: string) => {
+    return assistances?.filter(
+      assistance => 
+        assistance.building_id === buildingId && 
+        !['completed', 'cancelled'].includes(assistance.status)
+    ).length || 0;
+  };
+
+  const filteredBuildings = buildings?.filter(building => 
+    building.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    building.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    building.address?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  // Show building assistances view
+  if (viewMode === 'assistances' && selectedBuilding) {
+    return (
+      <BuildingAssistancesView 
+        building={selectedBuilding}
+        onBack={() => {
+          setViewMode('list');
+          setSelectedBuilding(null);
+        }}
+      />
+    );
   }
 
   return (
@@ -99,7 +345,7 @@ export default function Edificios() {
           Gestão de Edifícios
         </h1>
         <p className="text-muted-foreground">
-          Gerir informações dos edifícios em condomínio
+          Gerir informações dos edifícios e condomínios
         </p>
       </div>
 
@@ -115,188 +361,117 @@ export default function Edificios() {
               className="pl-10 w-full sm:w-80"
             />
           </div>
-          <Button variant="outline" className="hover:bg-muted/50">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtros
-          </Button>
         </div>
-        <Button onClick={handleCreate} className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300">
+        <Button 
+          className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
+          onClick={() => setShowCreateForm(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Novo Edifício
         </Button>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              <div>
-                {isLoadingStats ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold text-primary">{stats?.total || 0}</p>
-                )}
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-success/10 to-success/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-success" />
-              <div>
-                {isLoadingStats ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold text-success">{stats?.active || 0}</p>
-                )}
-                <p className="text-xs text-muted-foreground">Ativos</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-muted/50 to-muted/30">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-              <div>
-                {isLoadingStats ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold text-muted-foreground">{stats?.inactive || 0}</p>
-                )}
-                <p className="text-xs text-muted-foreground">Inativos</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-accent/10 to-accent/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-accent" />
-              <div>
-                {isLoadingStats ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold text-accent">{stats?.totalAssistances || 0}</p>
-                )}
-                <p className="text-xs text-muted-foreground">Assistências</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Buildings Grid */}
-      {isLoading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {isLoading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="animate-pulse">
               <CardHeader>
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
+                <div className="h-4 bg-muted rounded w-3/4"></div>
+                <div className="h-3 bg-muted rounded w-1/2"></div>
               </CardHeader>
               <CardContent>
-                <Skeleton className="h-20 w-full" />
+                <div className="space-y-2">
+                  <div className="h-3 bg-muted rounded"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
+                </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredBuildings.map((building) => (
-            <Card key={building.id} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm bg-primary/10 text-primary px-2 py-1 rounded">
-                        {building.code}
-                      </span>
-                      {getStatusBadge(building.is_active)}
+          ))
+        ) : (
+          filteredBuildings.map((building) => {
+            const totalAssistances = getBuildingAssistanceCount(building.id);
+            const openAssistances = getOpenAssistanceCount(building.id);
+            
+            return (
+              <Card key={building.id} className="hover:shadow-lg transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{building.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Código: {building.code || 'N/A'}
+                      </p>
                     </div>
-                    <CardTitle className="text-lg leading-tight">{building.name}</CardTitle>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            setSelectedBuilding(building);
+                            setViewMode('assistances');
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Assistências
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setSelectedBuildingForEdit(building)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => setBuildingToDelete(building)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Ver Detalhes
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEdit(building)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <FileText className="h-4 w-4 mr-2" />
-                        Assistências
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => setBuildingToDelete(building)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {building.address && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-muted-foreground">{building.address}</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {building.address && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <p className="text-sm text-muted-foreground">{building.address}</p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-primary/5 rounded-lg">
+                      <div className="text-xl font-bold text-primary">{totalAssistances}</div>
+                      <div className="text-xs text-muted-foreground">Total Assistências</div>
+                    </div>
+                    <div className="text-center p-3 bg-warning/5 rounded-lg">
+                      <div className="text-xl font-bold text-warning">{openAssistances}</div>
+                      <div className="text-xs text-muted-foreground">Abertas</div>
+                    </div>
                   </div>
-                )}
 
-                {building.nif && (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">NIF:</span>
-                    <span className="ml-2 font-mono">{building.nif}</span>
-                  </div>
-                )}
-
-                {building.cadastral_code && (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Código Cadastral:</span>
-                    <span className="ml-2 font-mono">{building.cadastral_code}</span>
-                  </div>
-                )}
-
-                {building.admin_notes && (
-                  <div className="p-3 bg-warning/10 border border-warning/20 rounded-md">
-                    <p className="text-xs text-warning-foreground">
-                      <strong>Nota:</strong> {building.admin_notes}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
-                    <Eye className="h-3 w-3 mr-1" />
-                    Ver
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => {
+                      setSelectedBuilding(building);
+                      setViewMode('assistances');
+                    }}
+                  >
+                    <Wrench className="h-4 w-4 mr-2" />
+                    Ver Assistências
                   </Button>
-                  <Button onClick={() => handleEdit(building)} variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
-                    <Edit className="h-3 w-3 mr-1" />
-                    Editar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+      </div>
 
-      {filteredBuildings.length === 0 && (
+      {filteredBuildings.length === 0 && !isLoading && (
         <Card className="p-8">
           <div className="text-center space-y-2">
             <Building2 className="h-12 w-12 text-muted-foreground mx-auto" />
@@ -308,44 +483,55 @@ export default function Edificios() {
         </Card>
       )}
 
-      {/* Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-2xl">
+      {/* Create/Edit Form Dialog */}
+      <Dialog open={showCreateForm || !!selectedBuildingForEdit} onOpenChange={(open) => {
+        if (!open) {
+          setShowCreateForm(false);
+          setSelectedBuildingForEdit(null);
+        }
+      }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {selectedBuilding ? "Editar Edifício" : "Novo Edifício"}
+              {selectedBuildingForEdit ? 'Editar Edifício' : 'Novo Edifício'}
             </DialogTitle>
           </DialogHeader>
           <BuildingForm
-            building={selectedBuilding || undefined}
-            onSuccess={handleFormSuccess}
-            onCancel={() => setIsFormOpen(false)}
+            building={selectedBuildingForEdit}
+            onSuccess={() => {
+              setShowCreateForm(false);
+              setSelectedBuildingForEdit(null);
+            }}
+            onCancel={() => {
+              setShowCreateForm(false);
+              setSelectedBuildingForEdit(null);
+            }}
           />
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!buildingToDelete} onOpenChange={() => setBuildingToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar Edifício</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem a certeza que deseja eliminar o edifício "{buildingToDelete?.name}"? 
-              Esta ação não pode ser desfeita.
+              Tem certeza que deseja eliminar o edifício "{buildingToDelete?.name}"? 
+              Esta ação não pode ser desfeita e todas as assistências associadas também serão afetadas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90"
               disabled={deleteBuilding.isPending}
             >
-              Eliminar
+              {deleteBuilding.isPending ? "A eliminar..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }
