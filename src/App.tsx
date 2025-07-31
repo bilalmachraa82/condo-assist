@@ -12,6 +12,7 @@ import Quotations from "./pages/Quotations";
 import Configuracoes from "./pages/Configuracoes";
 import Relatorios from "./pages/Relatorios";
 import TiposAssistencia from "./pages/TiposAssistencia";
+import Comunicacoes from "./pages/Comunicacoes";
 import Notificacoes from "./pages/Notificacoes";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
@@ -92,6 +93,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DashboardLayout><TiposAssistencia /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/comunicacoes" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><Comunicacoes /></DashboardLayout>
                 </ProtectedRoute>
               } 
             />
