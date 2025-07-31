@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
-import { useNotifications } from './useNotifications';
+import { toast } from 'sonner';
 
 export function useNativePushNotifications() {
   const [registrationToken, setRegistrationToken] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
-  const webNotifications = useNotifications();
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -65,11 +64,10 @@ export function useNativePushNotifications() {
   }) => {
     if (Capacitor.isNativePlatform() && isRegistered) {
       // For native, notifications are handled by the backend
-      // This would typically send the notification via your backend
       console.log('Would send push notification:', options);
     } else {
-      // Fallback to web notifications
-      await webNotifications.showNotification(options);
+      // Fallback to toast notifications
+      toast(options.title, { description: options.body });
     }
   };
 
@@ -77,7 +75,6 @@ export function useNativePushNotifications() {
     isNative: Capacitor.isNativePlatform(),
     isRegistered,
     registrationToken,
-    showNotification,
-    webNotifications: !Capacitor.isNativePlatform() ? webNotifications : null
+    showNotification
   };
 }

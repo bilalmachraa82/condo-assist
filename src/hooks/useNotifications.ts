@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useNativePushNotifications } from './useNativePushNotifications';
 
 interface NotificationOptions {
   title: string;
@@ -13,7 +12,6 @@ interface NotificationOptions {
 export function useNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSupported, setIsSupported] = useState(false);
-  const nativePush = useNativePushNotifications();
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -31,13 +29,6 @@ export function useNotifications() {
   };
 
   const showNotification = async (options: NotificationOptions) => {
-    // Use native push notifications if available
-    if (nativePush.isNative) {
-      await nativePush.showNotification(options);
-      return;
-    }
-
-    // Fallback to web notifications
     if (!isSupported) {
       toast(options.title, { description: options.body });
       return;
@@ -67,8 +58,6 @@ export function useNotifications() {
     isSupported,
     permission,
     requestPermission,
-    showNotification,
-    isNative: nativePush.isNative,
-    registrationToken: nativePush.registrationToken
+    showNotification
   };
 }
