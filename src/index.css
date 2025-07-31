@@ -125,3 +125,73 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Print Styles for PDF Export */
+@media print {
+  .print-template {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  
+  .print-template * {
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  .print-template h1, .print-template h2, .print-template h3 {
+    color: black !important;
+    page-break-after: avoid !important;
+  }
+  
+  .print-template table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+  
+  .print-template th, .print-template td {
+    border: 1px solid #ccc !important;
+    padding: 6pt !important;
+    text-align: left !important;
+  }
+  
+  .print-template th {
+    background-color: #f5f5f5 !important;
+    font-weight: bold !important;
+  }
+  
+  .print-template .page-break {
+    page-break-before: always !important;
+  }
+  
+  .print-template .no-break {
+    page-break-inside: avoid !important;
+  }
+  
+  /* Hide elements that shouldn't be printed */
+  button, .no-print {
+    display: none !important;
+  }
+  
+  /* Ensure proper spacing for print */
+  .print-template p {
+    margin: 6pt 0 !important;
+  }
+  
+  .print-template .grid {
+    display: block !important;
+  }
+  
+  .print-template .grid > * {
+    margin-bottom: 12pt !important;
+  }
+}

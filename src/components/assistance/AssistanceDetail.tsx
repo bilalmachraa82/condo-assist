@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings, Trash2, Edit } from "lucide-react";
+import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings, Trash2, Edit, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import PhotoUpload from "./PhotoUpload";
@@ -14,6 +14,8 @@ import QuotationList from "@/components/quotations/QuotationList";
 import QuotationSection from "./QuotationSection";
 import EditAssistanceForm from "./EditAssistanceForm";
 import ProgressNotes from "./ProgressNotes";
+import { PDFExportButton } from "./PDFExportButton";
+import { AssistancePDFTemplate } from "./AssistancePDFTemplate";
 import { useUpdateAssistanceStatus, useDeleteAssistance } from "@/hooks/useAssistances";
 import type { Assistance } from "@/hooks/useAssistances";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -153,6 +155,14 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
         <div className="flex items-center gap-2">
           {getStatusBadge(assistance.status)}
           {getPriorityBadge(assistance.priority)}
+          
+          <PDFExportButton 
+            filename={`assistencia-${assistance.title.replace(/\s+/g, '-').toLowerCase()}`}
+            variant="outline"
+            size="sm"
+          >
+            <AssistancePDFTemplate assistance={assistance} />
+          </PDFExportButton>
           
           <Button
             variant="outline"

@@ -28,6 +28,8 @@ import { formatDistanceToNow, format } from "date-fns"
 import { pt } from "date-fns/locale"
 import AssistanceDetail from "@/components/assistance/AssistanceDetail"
 import CreateAssistanceForm from "@/components/assistance/CreateAssistanceForm"
+import { PDFExportButton } from "@/components/assistance/PDFExportButton"
+import { AssistanceListPDFTemplate } from "@/components/assistance/AssistanceListPDFTemplate"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 
@@ -294,6 +296,17 @@ export default function Assistencias() {
             <Filter className="h-4 w-4 mr-2" />
             Filtros
           </Button>
+          
+          <PDFExportButton 
+            filename="listagem-assistencias"
+            variant="outline"
+            size="default"
+          >
+            <AssistanceListPDFTemplate 
+              assistances={filteredAssistances}
+              title="Listagem de Assistências"
+            />
+          </PDFExportButton>
         </div>
         <Button 
           className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
