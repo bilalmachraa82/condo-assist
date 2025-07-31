@@ -3,9 +3,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useOfflineStorage } from '@/hooks/useOfflineStorage';
 import { WifiOff, Wifi, RefreshCw, Trash2 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 
 export function OfflineIndicator() {
   const { isOnline, hasCachedData, clearCache, syncPendingChanges } = useOfflineStorage();
+  const isNative = Capacitor.isNativePlatform();
 
   if (isOnline && !hasCachedData) return null;
 
@@ -35,7 +37,9 @@ export function OfflineIndicator() {
               <p className="text-xs text-muted-foreground">
                 {isOnline 
                   ? 'Dados em cache disponíveis'
-                  : 'Usando dados salvos localmente'
+                  : isNative 
+                    ? 'Usando dados salvos no dispositivo'
+                    : 'Usando dados salvos localmente'
                 }
               </p>
               

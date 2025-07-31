@@ -5,9 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Camera, Upload, X } from "lucide-react";
+import { Camera, Upload, X, CameraIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useNativeCamera } from "@/hooks/useNativeCamera";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PhotoUploadProps {
   assistanceId: string;
@@ -22,7 +24,10 @@ export default function PhotoUpload({ assistanceId, onPhotoUploaded }: PhotoUplo
   const [photoType, setPhotoType] = useState<PhotoType>('before');
   const [caption, setCaption] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [capturedImage, setCapturedImage] = useState<{base64: string, format: string} | null>(null);
   const { toast } = useToast();
+  const { takePicture, isLoading: cameraLoading, isNative } = useNativeCamera();
+  const isMobile = useIsMobile();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -67,13 +72,46 @@ export default function PhotoUpload({ assistanceId, onPhotoUploaded }: PhotoUplo
     });
   };
 
+  const handleCameraCapture = async () => {
+    try {
+      const image = await takePicture();
+      if (image && image.base64) {
+        setCapturedImage({ base64: image.base64, format: image.format });
+        setPreviewUrl(`data:image/${image.format};base64,${image.base64}`);
+        setSelectedFile(null); // Clear file input selection
+      }
+    } catch (error: any) {
+      console.error('Camera capture failed:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao capturar foto. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile && !capturedImage) return;
 
     setIsUploading(true);
     try {
-      // Convert file to base64
-      const base64Data = await convertFileToBase64(selectedFile);
+      let base64Data: string;
+      let fileName: string;
+      let fileType: string;
+
+      if (capturedImage) {
+        // Use captured image from camera
+        base64Data = `data:image/${capturedImage.format};base64,${capturedImage.base64}`;
+        fileName = `camera_${Date.now()}.${capturedImage.format}`;
+        fileType = `image/${capturedImage.format}`;
+      } else if (selectedFile) {
+        // Use selected file
+        base64Data = await convertFileToBase64(selectedFile);
+        fileName = selectedFile.name;
+        fileType = selectedFile.type;
+      } else {
+        return;
+      }
 
       // Call edge function
       const { data, error } = await supabase.functions.invoke('upload-assistance-photo', {
@@ -82,8 +120,8 @@ export default function PhotoUpload({ assistanceId, onPhotoUploaded }: PhotoUplo
           photoType,
           caption: caption.trim() || undefined,
           file: {
-            name: selectedFile.name,
-            type: selectedFile.type,
+            name: fileName,
+            type: fileType,
             data: base64Data,
           },
         },
@@ -106,6 +144,7 @@ export default function PhotoUpload({ assistanceId, onPhotoUploaded }: PhotoUplo
       // Reset form
       setSelectedFile(null);
       setPreviewUrl(null);
+      setCapturedImage(null);
       setCaption('');
       setPhotoType('before');
       
@@ -131,6 +170,7 @@ export default function PhotoUpload({ assistanceId, onPhotoUploaded }: PhotoUplo
   const clearSelection = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
+    setCapturedImage(null);
     const fileInput = document.getElementById('photo-upload') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
   };
@@ -144,7 +184,7 @@ export default function PhotoUpload({ assistanceId, onPhotoUploaded }: PhotoUplo
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="photo-type">Tipo de Foto</Label>
             <Select value={photoType} onValueChange={(value: PhotoType) => setPhotoType(value)}>
@@ -159,16 +199,40 @@ export default function PhotoUpload({ assistanceId, onPhotoUploaded }: PhotoUplo
               </SelectContent>
             </Select>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="photo-upload">Selecionar Foto</Label>
-            <Input
-              id="photo-upload"
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              disabled={isUploading}
-            />
+
+          {/* Camera and File Input Options */}
+          <div className="space-y-3">
+            {isMobile && isNative && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleCameraCapture}
+                disabled={isUploading || cameraLoading}
+              >
+                {cameraLoading ? (
+                  "A abrir câmara..."
+                ) : (
+                  <>
+                    <CameraIcon className="h-4 w-4 mr-2" />
+                    Tirar Foto
+                  </>
+                )}
+              </Button>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="photo-upload">
+                {isMobile && isNative ? "Ou selecionar da galeria" : "Selecionar Foto"}
+              </Label>
+              <Input
+                id="photo-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                disabled={isUploading}
+              />
+            </div>
           </div>
         </div>
 
@@ -207,7 +271,7 @@ export default function PhotoUpload({ assistanceId, onPhotoUploaded }: PhotoUplo
 
         <Button
           onClick={handleUpload}
-          disabled={!selectedFile || isUploading}
+          disabled={(!selectedFile && !capturedImage) || isUploading}
           className="w-full"
         >
           {isUploading ? (

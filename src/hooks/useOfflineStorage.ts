@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { Network } from '@capacitor/network';
+import { Capacitor } from '@capacitor/core';
 
 interface CachedData {
   timestamp: number;
@@ -27,17 +29,32 @@ export function useOfflineStorage() {
       }
     }
 
-    // Listen for online/offline events
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    // Initialize network status
+    const initializeNetwork = async () => {
+      if (Capacitor.isNativePlatform()) {
+        const status = await Network.getStatus();
+        setIsOnline(status.connected);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+        // Listen for network changes
+        Network.addListener('networkStatusChange', (status) => {
+          setIsOnline(status.connected);
+        });
+      } else {
+        // Web fallback
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
 
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+          window.removeEventListener('online', handleOnline);
+          window.removeEventListener('offline', handleOffline);
+        };
+      }
     };
+
+    initializeNetwork();
   }, []);
 
   const cacheData = (key: string, data: any) => {
