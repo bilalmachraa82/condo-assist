@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings, Trash2 } from "lucide-react";
+import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import PhotoUpload from "./PhotoUpload";
 import PhotoGallery from "./PhotoGallery";
 import QuotationList from "@/components/quotations/QuotationList";
 import QuotationSection from "./QuotationSection";
+import EditAssistanceForm from "./EditAssistanceForm";
+import ProgressNotes from "./ProgressNotes";
 import { useUpdateAssistanceStatus, useDeleteAssistance } from "@/hooks/useAssistances";
 import type { Assistance } from "@/hooks/useAssistances";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -82,6 +84,7 @@ const getPriorityBadge = (priority: string) => {
 
 export default function AssistanceDetail({ assistance, onBack, onDeleted }: AssistanceDetailProps) {
   const [refreshPhotos, setRefreshPhotos] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
   const updateStatusMutation = useUpdateAssistanceStatus();
   const deleteAssistanceMutation = useDeleteAssistance();
   const { toast } = useToast();
@@ -96,6 +99,11 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
       assistanceId: assistance.id,
       newStatus
     });
+  };
+
+  const handleEditSuccess = () => {
+    setIsEditing(false);
+    // No need to manually refresh - the mutation will invalidate queries
   };
 
   const handleDelete = () => {
@@ -118,6 +126,16 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
     });
   };
 
+  if (isEditing) {
+    return (
+      <EditAssistanceForm
+        assistance={assistance}
+        onClose={() => setIsEditing(false)}
+        onSuccess={handleEditSuccess}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -135,6 +153,15 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
         <div className="flex items-center gap-2">
           {getStatusBadge(assistance.status)}
           {getPriorityBadge(assistance.priority)}
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditing(true)}
+          >
+            <Edit className="h-4 w-4 mr-1" />
+            Editar
+          </Button>
           
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -242,10 +269,11 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
 
           {/* Photos and Quotations Section */}
           <Tabs defaultValue="gallery" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="gallery">Fotos</TabsTrigger>
               <TabsTrigger value="upload">Adicionar Foto</TabsTrigger>
               <TabsTrigger value="quotations">Orçamentos</TabsTrigger>
+              <TabsTrigger value="progress">Notas</TabsTrigger>
               <TabsTrigger value="details">Detalhes</TabsTrigger>
             </TabsList>
             
@@ -262,6 +290,10 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
 
             <TabsContent value="quotations" className="mt-4">
               <QuotationSection assistance={assistance} />
+            </TabsContent>
+
+            <TabsContent value="progress" className="mt-4">
+              <ProgressNotes assistanceId={assistance.id} />
             </TabsContent>
 
             <TabsContent value="details" className="mt-4">
