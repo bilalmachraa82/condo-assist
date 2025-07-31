@@ -200,6 +200,8 @@ export type Database = {
           created_by: string | null
           deadline_response: string | null
           description: string | null
+          escalated_at: string | null
+          escalation_level: number | null
           estimated_cost: number | null
           estimated_duration_hours: number | null
           final_cost: number | null
@@ -236,6 +238,8 @@ export type Database = {
           created_by?: string | null
           deadline_response?: string | null
           description?: string | null
+          escalated_at?: string | null
+          escalation_level?: number | null
           estimated_cost?: number | null
           estimated_duration_hours?: number | null
           final_cost?: number | null
@@ -272,6 +276,8 @@ export type Database = {
           created_by?: string | null
           deadline_response?: string | null
           description?: string | null
+          escalated_at?: string | null
+          escalation_level?: number | null
           estimated_cost?: number | null
           estimated_duration_hours?: number | null
           final_cost?: number | null
@@ -515,6 +521,7 @@ export type Database = {
         Row: {
           amount: number
           approved_at: string | null
+          approved_by: string | null
           assistance_id: string
           created_at: string
           description: string | null
@@ -530,6 +537,7 @@ export type Database = {
         Insert: {
           amount: number
           approved_at?: string | null
+          approved_by?: string | null
           assistance_id: string
           created_at?: string
           description?: string | null
@@ -545,6 +553,7 @@ export type Database = {
         Update: {
           amount?: number
           approved_at?: string | null
+          approved_by?: string | null
           assistance_id?: string
           created_at?: string
           description?: string | null

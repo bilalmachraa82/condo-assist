@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Assistencias from "./pages/Assistencias";
+import WorkflowIntelligent from "./pages/WorkflowIntelligent";
 import Edificios from "./pages/Edificios";
 import Fornecedores from "./pages/Fornecedores";
 import Quotations from "./pages/Quotations";
@@ -50,7 +51,15 @@ const App = () => (
               } 
             />
             <Route 
-              path="/edificios" 
+              path="/workflow" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><WorkflowIntelligent /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/edificios"
               element={
                 <ProtectedRoute>
                   <DashboardLayout><Edificios /></DashboardLayout>

@@ -9,7 +9,8 @@ import {
   FileText,
   Bell,
   HelpCircle,
-  Euro
+  Euro,
+  Zap
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -29,6 +30,7 @@ import {
 const menuItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Assistências", url: "/assistencias", icon: Wrench },
+  { title: "Workflow", url: "/workflow", icon: Zap },
   { title: "Orçamentos", url: "/orcamentos", icon: Euro },
   { title: "Edifícios", url: "/edificios", icon: Building2 },
   { title: "Fornecedores", url: "/fornecedores", icon: Users },
