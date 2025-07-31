@@ -2,8 +2,12 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./AppSidebar"
 import UserMenu from "@/components/auth/UserMenu"
 import RealtimeNotificationCenter from "./RealtimeNotificationCenter"
+import { InstallPrompt } from "@/components/mobile/InstallPrompt"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const isMobile = useIsMobile();
+  
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -14,20 +18,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex h-14 items-center gap-4 px-4">
               <SidebarTrigger className="h-8 w-8" />
               <div className="flex-1" />
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 md:gap-4">
                 <RealtimeNotificationCenter />
-                <div className="text-sm text-muted-foreground">
-                  Luvimg Portal
-                </div>
+                {!isMobile && (
+                  <div className="text-sm text-muted-foreground">
+                    Luvimg Portal
+                  </div>
+                )}
                 <UserMenu />
               </div>
             </div>
           </header>
           
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-3 md:p-6">
             {children}
           </main>
         </div>
+        
+        <InstallPrompt />
       </div>
     </SidebarProvider>
   )

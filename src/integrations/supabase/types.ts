@@ -201,7 +201,6 @@ export type Database = {
           deadline_response: string | null
           description: string | null
           escalated_at: string | null
-          escalation_level: number | null
           estimated_cost: number | null
           estimated_duration_hours: number | null
           final_cost: number | null
@@ -239,7 +238,6 @@ export type Database = {
           deadline_response?: string | null
           description?: string | null
           escalated_at?: string | null
-          escalation_level?: number | null
           estimated_cost?: number | null
           estimated_duration_hours?: number | null
           final_cost?: number | null
@@ -277,7 +275,6 @@ export type Database = {
           deadline_response?: string | null
           description?: string | null
           escalated_at?: string | null
-          escalation_level?: number | null
           estimated_cost?: number | null
           estimated_duration_hours?: number | null
           final_cost?: number | null

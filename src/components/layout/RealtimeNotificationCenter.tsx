@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, BellRing, Check, Trash2, Users, Circle } from "lucide-react";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,20 @@ export default function RealtimeNotificationCenter() {
   } = useRealtimeNotifications();
 
   const { onlineUsers, currentUser, updateStatus } = useUserPresence();
+  const { showNotification } = useNotifications();
+
+  // Show browser notifications for new notifications
+  useEffect(() => {
+    const latestNotification = notifications[0];
+    if (latestNotification && !latestNotification.read) {
+      showNotification({
+        title: latestNotification.title,
+        body: latestNotification.message,
+        tag: `notification-${latestNotification.id}`,
+        requireInteraction: true
+      });
+    }
+  }, [notifications, showNotification]);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {

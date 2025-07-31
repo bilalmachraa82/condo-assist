@@ -1,0 +1,27 @@
+{
+  "name": "Luvimg - Administração de Condomínios",
+  "short_name": "Luvimg",
+  "description": "Sistema de gestão de assistências e condomínios",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "categories": ["business", "utilities"],
+  "lang": "pt-PT",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
