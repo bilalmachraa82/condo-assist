@@ -282,9 +282,13 @@ export default function SupplierPortal() {
             <CardContent className="text-center py-12">
               <Building className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-medium mb-2">Nenhuma assistência atribuída</h3>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-4">
                 Não há assistências atribuídas a si no momento.
               </p>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>Se esperava ver assistências aqui, contacte a administração:</p>
+                <p className="font-medium">suporte@luvimg.com</p>
+              </div>
             </CardContent>
           </Card>
         ) : (

@@ -29,6 +29,7 @@ import {
 import { useAllSuppliers, useSupplierStats, useDeleteSupplier, type Supplier } from "@/hooks/useSuppliers"
 import { SupplierForm } from "@/components/suppliers/SupplierForm"
 import { useToast } from "@/hooks/use-toast"
+import TestPortalButton from "@/components/supplier/TestPortalButton"
 
 export default function Fornecedores() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -309,10 +310,11 @@ export default function Fornecedores() {
                     <Edit className="h-3 w-3 mr-1" />
                     Editar
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1 hover:bg-muted/50">
-                    <Mail className="h-3 w-3 mr-1" />
-                    Email
-                  </Button>
+                  <TestPortalButton 
+                    supplierId={supplier.id}
+                    supplierName={supplier.name}
+                    supplierEmail={supplier.email || ""}
+                  />
                 </div>
               </CardContent>
             </Card>
