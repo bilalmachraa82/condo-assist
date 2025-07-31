@@ -32,7 +32,8 @@ const menuItems = [
   { title: "Orçamentos", url: "/orcamentos", icon: Euro },
   { title: "Edifícios", url: "/edificios", icon: Building2 },
   { title: "Fornecedores", url: "/fornecedores", icon: Users },
-  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+  { title: "Relatórios", url: "/relatorios", icon: FileText },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
 ]
 
 const configItems = [

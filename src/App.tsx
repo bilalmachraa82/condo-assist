@@ -14,6 +14,7 @@ import Relatorios from "./pages/Relatorios";
 import TiposAssistencia from "./pages/TiposAssistencia";
 import Comunicacoes from "./pages/Comunicacoes";
 import Notificacoes from "./pages/Notificacoes";
+import Analytics from "./pages/Analytics";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
 import NotFound from "./pages/NotFound";
@@ -109,6 +110,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DashboardLayout><Notificacoes /></DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/analytics" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout><Analytics /></DashboardLayout>
                 </ProtectedRoute>
               } 
             />
