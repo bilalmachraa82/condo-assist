@@ -36,6 +36,7 @@ import { useToast } from "@/hooks/use-toast"
 import { SwipeableCard } from "@/components/mobile/SwipeableCard"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useQueryClient } from "@tanstack/react-query"
+import { FloatingActionButton } from "@/components/mobile/FloatingActionButton"
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -344,13 +345,17 @@ export default function Assistencias() {
             </>
           )}
         </div>
-        <Button 
-          className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300 w-full sm:w-auto"
-          onClick={() => setShowCreateForm(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Assistência
-        </Button>
+        {/* Desktop New Button - hide on mobile since we have FAB */}
+        {!isMobile && (
+          <Button 
+            className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
+            onClick={() => setShowCreateForm(true)}
+            size="default"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Assistência
+          </Button>
+        )}
       </div>
 
       {/* Statistics */}
@@ -581,6 +586,11 @@ export default function Assistencias() {
         </Card>
       )}
 
+      {/* Mobile FAB */}
+      <FloatingActionButton 
+        onClick={() => setShowCreateForm(true)}
+        label="Nova Assistência"
+      />
     </div>
   )
 }
