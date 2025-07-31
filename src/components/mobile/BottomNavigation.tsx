@@ -3,7 +3,10 @@ import { Home, Wrench, Euro, Building2, Users, FileText, BarChart3, Menu } from 
 import { NavLink, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNotificationBadge } from '@/hooks/useNotificationBadge';
+import { cn } from '@/lib/utils';
 
 const bottomNavItems = [
   { title: "Dashboard", url: "/", icon: Home },
@@ -23,6 +26,7 @@ export function BottomNavigation() {
   const [moreOpen, setMoreOpen] = useState(false);
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { getBadgeForRoute } = useNotificationBadge();
 
   if (!isMobile) return null;
 
@@ -31,7 +35,7 @@ export function BottomNavigation() {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t z-50 safe-area-pb">
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t z-50 safe-area-pb animate-fade-in">
         <nav className="flex items-center justify-around h-16 px-2">
           {bottomNavItems.map((item) => {
             if (item.url === "/more") {
@@ -74,17 +78,29 @@ export function BottomNavigation() {
               );
             }
 
+            const badgeCount = getBadgeForRoute(item.url);
+            
             return (
               <NavLink
                 key={item.title}
                 to={item.url}
-                className={`flex flex-col items-center gap-1 py-2 px-3 min-w-0 flex-1 rounded-lg transition-colors ${
+                className={`relative flex flex-col items-center gap-1 py-2 px-3 min-w-0 flex-1 rounded-lg transition-all duration-200 ${
                   isActive(item.url) 
-                    ? 'text-primary bg-primary/10' 
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'text-primary bg-primary/10 scale-105' 
+                    : 'text-muted-foreground hover:text-foreground hover:scale-105'
                 }`}
               >
-                <item.icon className="h-5 w-5" />
+                <div className="relative">
+                  <item.icon className="h-5 w-5" />
+                  {badgeCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-2 -right-2 h-4 w-4 p-0 text-xs flex items-center justify-center min-w-4"
+                    >
+                      {badgeCount > 9 ? '9+' : badgeCount}
+                    </Badge>
+                  )}
+                </div>
                 <span className="text-xs font-medium">{item.title}</span>
               </NavLink>
             );

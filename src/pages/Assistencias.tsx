@@ -37,6 +37,9 @@ import { SwipeableCard } from "@/components/mobile/SwipeableCard"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useQueryClient } from "@tanstack/react-query"
 import { FloatingActionButton } from "@/components/mobile/FloatingActionButton"
+import { SkeletonList } from "@/components/mobile/SkeletonList"
+import { PullToRefreshIndicator } from "@/components/mobile/PullToRefreshIndicator"
+import { usePullToRefresh } from "@/hooks/usePullToRefresh"
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -237,11 +240,18 @@ export default function Assistencias() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedAssistance, setSelectedAssistance] = useState<Assistance | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
   const { data: assistances, isLoading, refetch } = useAssistances();
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  
+  const pullToRefresh = usePullToRefresh({
+    refreshFunction: async () => {
+      await refetch();
+      await queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
+    },
+    disabled: showCreateForm || !!selectedAssistance
+  });
 
   // Filter assistances based on search term
   const filteredAssistances = assistances?.filter(assistance => 
@@ -253,15 +263,8 @@ export default function Assistencias() {
 
   // Pull to refresh functionality
   const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      await queryClient.invalidateQueries({ queryKey: ['assistances'] });
-      await queryClient.invalidateQueries({ queryKey: ['assistance-stats'] });
-    } catch (error) {
-      console.error('Refresh failed:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
+    await queryClient.invalidateQueries({ queryKey: ['assistances'] });
+    await queryClient.invalidateQueries({ queryKey: ['assistance-stats'] });
   }, [queryClient]);
 
   // Show detail view if assistance is selected
@@ -319,11 +322,11 @@ export default function Assistencias() {
             <Button 
               variant="outline" 
               onClick={handleRefresh}
-              disabled={isRefreshing}
+              disabled={pullToRefresh.isRefreshing}
               className="hover:bg-muted/50"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+              <RefreshCw className={`h-4 w-4 mr-2 ${pullToRefresh.isRefreshing ? 'animate-spin' : ''}`} />
+              {pullToRefresh.isRefreshing ? 'Atualizando...' : 'Atualizar'}
             </Button>
           ) : (
             <>
@@ -420,26 +423,7 @@ export default function Assistencias() {
       {/* Assistances List */}
       <div className="grid gap-4">
         {isLoading ? (
-          <>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-5 w-16" />
-                    <Skeleton className="h-5 w-16" />
-                  </div>
-                  <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-4 w-full" />
-                  <div className="flex gap-4">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-4 w-28" />
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </>
+          <SkeletonList count={5} />
         ) : (
           filteredAssistances.map((assistance) => {
             const handleEdit = () => {

@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useOfflineStorage } from '@/hooks/useOfflineStorage';
 import { useSwipeGestures } from '@/hooks/useSwipeGestures';
-import { ChevronLeft, ChevronRight, MoreVertical } from 'lucide-react';
+import { useHapticFeedback } from '@/hooks/useHapticFeedback';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { ChevronLeft, ChevronRight, WifiOff } from 'lucide-react';
 
 interface SwipeableCardProps {
   title: string;
@@ -37,19 +40,38 @@ export function SwipeableCard({
   onView,
   children
 }: SwipeableCardProps) {
+  const [isAnimating, setIsAnimating] = useState(false);
   const { isOnline } = useOfflineStorage();
+  const { vibrate } = useHapticFeedback();
+  const isMobile = useIsMobile();
   
   const swipeHandlers = useSwipeGestures({
-    onSwipeLeft: onEdit,
-    onSwipeRight: onView
-  });
+    onSwipeLeft: onEdit ? () => {
+      vibrate('light');
+      setIsAnimating(true);
+      setTimeout(() => {
+        onEdit();
+        setIsAnimating(false);
+      }, 150);
+    } : undefined,
+    onSwipeRight: onView ? () => {
+      vibrate('light');
+      setIsAnimating(true);
+      setTimeout(() => {
+        onView();
+        setIsAnimating(false);
+      }, 150);
+    } : undefined
+  }, { threshold: 60 });
 
   return (
     <div 
       className="relative overflow-hidden"
-      {...swipeHandlers}
+      {...(isMobile ? swipeHandlers : {})}
     >
-      <Card className="transition-transform duration-200 hover:shadow-md touch-action-pan-y">
+      <Card className={`transition-all duration-200 hover:shadow-md touch-action-pan-y ${
+        isAnimating ? 'scale-[0.98] opacity-80' : 'hover:scale-[1.02]'
+      }`}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -90,18 +112,24 @@ export function SwipeableCard({
           </CardContent>
         )}
         
-        {/* Mobile action buttons */}
-        <div className="flex items-center justify-between p-4 pt-0 md:hidden">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <ChevronLeft className="h-3 w-3" />
-            <span>Deslizar para editar</span>
+        {/* Mobile swipe instructions */}
+        {isMobile && (onEdit || onView) && (
+          <div className="flex items-center justify-between p-4 pt-0 text-xs text-muted-foreground">
+            {onEdit && (
+              <div className="flex items-center gap-2">
+                <ChevronLeft className="h-3 w-3" />
+                <span>Deslizar para editar</span>
+              </div>
+            )}
+            
+            {onView && (
+              <div className="flex items-center gap-2 ml-auto">
+                <span>Ver detalhes</span>
+                <ChevronRight className="h-3 w-3" />
+              </div>
+            )}
           </div>
-          
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Ver detalhes</span>
-            <ChevronRight className="h-3 w-3" />
-          </div>
-        </div>
+        )}
         
         {/* Desktop action buttons */}
         <div className="hidden md:flex items-center gap-2 p-4 pt-0">
@@ -118,8 +146,9 @@ export function SwipeableCard({
         </div>
         
         {!isOnline && (
-          <div className="absolute top-2 right-2">
-            <div className="h-2 w-2 rounded-full bg-orange-500"></div>
+          <div className="absolute top-2 right-2 flex items-center gap-1 bg-orange-500/10 px-2 py-1 rounded-full">
+            <WifiOff className="h-3 w-3 text-orange-600" />
+            <span className="text-xs text-orange-600 font-medium">Offline</span>
           </div>
         )}
       </Card>

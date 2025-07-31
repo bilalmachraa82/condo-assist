@@ -5,14 +5,20 @@ import RealtimeNotificationCenter from "./RealtimeNotificationCenter"
 import { InstallPrompt } from "@/components/mobile/InstallPrompt"
 import { BottomNavigation } from "@/components/mobile/BottomNavigation"
 import { OfflineIndicator } from "@/components/mobile/OfflineIndicator"
+import { MobileBreadcrumbs } from "@/components/mobile/MobileBreadcrumbs"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useNavigationGestures } from "@/hooks/useNavigationGestures"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
+  const navigationGestures = useNavigationGestures();
   
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div 
+        className="min-h-screen flex w-full bg-background"
+        {...(navigationGestures.isNavigationEnabled ? navigationGestures : {})}
+      >
         {!isMobile && <AppSidebar />}
         
         <div className="flex-1 flex flex-col">
@@ -32,7 +38,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </header>
           
-          <main className={`flex-1 p-3 md:p-6 ${isMobile ? 'pb-20' : ''}`}>
+          {isMobile && <MobileBreadcrumbs />}
+          
+          <main className={`flex-1 p-3 md:p-6 ${isMobile ? 'pb-20' : ''} transition-all duration-300`}>
             {children}
           </main>
         </div>
