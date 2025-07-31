@@ -75,6 +75,30 @@ All colors MUST be HSL.
     --sidebar-ring: 180 35% 53%;
   }
 
+  /* Mobile-specific styles */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .touch-action-none {
+    touch-action: none;
+  }
+
+  /* Button touch targets for mobile */
+  @media (max-width: 768px) {
+    .btn-touch {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* Smooth scrolling for mobile */
+  @media (max-width: 768px) {
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
   .dark {
     /* Dark mode baseado no tema da Luvimg */
     --background: 222.2 84% 4.9%;
