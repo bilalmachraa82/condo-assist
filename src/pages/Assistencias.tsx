@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,7 +20,8 @@ import {
   User,
   FileText,
   Euro,
-  Trash2
+  Trash2,
+  RefreshCw
 } from "lucide-react"
 import { useAssistances, useAssistanceStats, useDeleteAssistance, type Assistance } from "@/hooks/useAssistances"
 import { useRequestQuotation, useQuotationsByAssistance } from "@/hooks/useQuotations"
@@ -32,6 +33,9 @@ import { PDFExportButton } from "@/components/assistance/PDFExportButton"
 import { AssistanceListPDFTemplate } from "@/components/assistance/AssistanceListPDFTemplate"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { SwipeableCard } from "@/components/mobile/SwipeableCard"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { useQueryClient } from "@tanstack/react-query"
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -232,8 +236,11 @@ export default function Assistencias() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedAssistance, setSelectedAssistance] = useState<Assistance | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
-  const { data: assistances, isLoading } = useAssistances();
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const { data: assistances, isLoading, refetch } = useAssistances();
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
+  const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
 
   // Filter assistances based on search term
   const filteredAssistances = assistances?.filter(assistance => 
@@ -242,6 +249,19 @@ export default function Assistencias() {
     assistance.buildings?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     assistance.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+
+  // Pull to refresh functionality
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ['assistances'] });
+      await queryClient.invalidateQueries({ queryKey: ['assistance-stats'] });
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [queryClient]);
 
   // Show detail view if assistance is selected
   if (selectedAssistance) {
@@ -292,24 +312,40 @@ export default function Assistencias() {
               className="pl-10 w-full sm:w-80"
             />
           </div>
-          <Button variant="outline" className="hover:bg-muted/50">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtros
-          </Button>
           
-          <PDFExportButton 
-            filename="listagem-assistencias"
-            variant="outline"
-            size="default"
-          >
-            <AssistanceListPDFTemplate 
-              assistances={filteredAssistances}
-              title="Listagem de Assistências"
-            />
-          </PDFExportButton>
+          {/* Mobile: Only show refresh button */}
+          {isMobile ? (
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="hover:bg-muted/50"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" className="hover:bg-muted/50">
+                <Filter className="h-4 w-4 mr-2" />
+                Filtros
+              </Button>
+              
+              <PDFExportButton 
+                filename="listagem-assistencias"
+                variant="outline"
+                size="default"
+              >
+                <AssistanceListPDFTemplate 
+                  assistances={filteredAssistances}
+                  title="Listagem de Assistências"
+                />
+              </PDFExportButton>
+            </>
+          )}
         </div>
         <Button 
-          className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
+          className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300 w-full sm:w-auto"
           onClick={() => setShowCreateForm(true)}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -400,39 +436,53 @@ export default function Assistencias() {
             ))}
           </>
         ) : (
-          filteredAssistances.map((assistance) => (
-            <Card key={assistance.id} className="hover:shadow-md transition-all duration-300 cursor-pointer">
-              <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-sm text-muted-foreground">{assistance.id}</span>
+          filteredAssistances.map((assistance) => {
+            const handleEdit = () => {
+              // TODO: Navigate to edit form
+              console.log('Edit assistance:', assistance.id);
+            };
+
+            const handleView = () => {
+              setSelectedAssistance(assistance);
+            };
+
+            const assistanceTitle = assistance.intervention_types?.name || assistance.title || 'Assistência';
+            const assistanceDescription = assistance.description || 'Sem descrição';
+
+            // Mobile: Use SwipeableCard, Desktop: Use regular Card
+            if (isMobile) {
+              return (
+                <SwipeableCard
+                  key={assistance.id}
+                  title={assistanceTitle}
+                  description={assistanceDescription}
+                  status={assistance.status as "pending" | "in_progress" | "completed"}
+                  priority={assistance.priority as "low" | "normal" | "high" | "urgent"}
+                  onEdit={handleEdit}
+                  onView={handleView}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="font-mono text-xs text-muted-foreground">{assistance.id}</span>
                       {getStatusBadge(assistance.status)}
                       {getPriorityBadge(assistance.priority)}
                     </div>
                     
-                    <h3 className="font-semibold text-lg">
-                      {assistance.intervention_types?.name || assistance.title || 'Assistência'}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {assistance.description || 'Sem descrição'}
-                    </p>
-                    
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <Building2 className="h-4 w-4" />
-                        <span className="truncate max-w-xs">
-                          {assistance.buildings?.name || 'Edifício não especificado'}
+                        <Building2 className="h-3 w-3" />
+                        <span className="truncate max-w-[120px]">
+                          {assistance.buildings?.name || 'Sem edifício'}
                         </span>
                       </div>
                       {assistance.suppliers && (
                         <div className="flex items-center gap-1">
-                          <User className="h-4 w-4" />
-                          <span>{assistance.suppliers.name}</span>
+                          <User className="h-3 w-3" />
+                          <span className="truncate max-w-[100px]">{assistance.suppliers.name}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
+                        <Clock className="h-3 w-3" />
                         <span>
                           {formatDistanceToNow(new Date(assistance.created_at), { 
                             addSuffix: true, 
@@ -442,28 +492,80 @@ export default function Assistencias() {
                       </div>
                     </div>
                     
-                    {/* Quotation quick action */}
                     <div className="mt-2">
                       <QuickQuotationAction assistance={assistance} />
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(assistance.status)}
-                    <DeleteAssistanceAction assistance={assistance} />
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="hover:bg-muted/50"
-                      onClick={() => setSelectedAssistance(assistance)}
-                    >
-                      Ver Detalhes
-                    </Button>
+                </SwipeableCard>
+              );
+            }
+
+            // Desktop: Regular card layout
+            return (
+              <Card key={assistance.id} className="hover:shadow-md transition-all duration-300 cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-sm text-muted-foreground">{assistance.id}</span>
+                        {getStatusBadge(assistance.status)}
+                        {getPriorityBadge(assistance.priority)}
+                      </div>
+                      
+                      <h3 className="font-semibold text-lg">
+                        {assistanceTitle}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {assistanceDescription}
+                      </p>
+                      
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Building2 className="h-4 w-4" />
+                          <span className="truncate max-w-xs">
+                            {assistance.buildings?.name || 'Edifício não especificado'}
+                          </span>
+                        </div>
+                        {assistance.suppliers && (
+                          <div className="flex items-center gap-1">
+                            <User className="h-4 w-4" />
+                            <span>{assistance.suppliers.name}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          <span>
+                            {formatDistanceToNow(new Date(assistance.created_at), { 
+                              addSuffix: true, 
+                              locale: pt 
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Quotation quick action */}
+                      <div className="mt-2">
+                        <QuickQuotationAction assistance={assistance} />
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(assistance.status)}
+                      <DeleteAssistanceAction assistance={assistance} />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="hover:bg-muted/50"
+                        onClick={() => setSelectedAssistance(assistance)}
+                      >
+                        Ver Detalhes
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
 
