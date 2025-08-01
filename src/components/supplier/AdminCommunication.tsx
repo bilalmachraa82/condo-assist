@@ -56,7 +56,10 @@ export default function AdminCommunication({ assistanceId, supplierId }: AdminCo
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Send message error:", error);
+        throw new Error(error.message || "Erro ao enviar mensagem");
+      }
       return data;
     },
     onSuccess: () => {
@@ -69,9 +72,17 @@ export default function AdminCommunication({ assistanceId, supplierId }: AdminCo
     },
     onError: (error: any) => {
       console.error("Send message error:", error);
+      let errorMessage = "Erro ao enviar mensagem. Tente novamente.";
+      
+      if (error.message?.includes("row-level security")) {
+        errorMessage = "Erro de autenticação. Verifique se tem permissão para enviar mensagens.";
+      } else if (error.message?.includes("network")) {
+        errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
+      }
+      
       toast({
         title: "Erro",
-        description: "Erro ao enviar mensagem. Tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
