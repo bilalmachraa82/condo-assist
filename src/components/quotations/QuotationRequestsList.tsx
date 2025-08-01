@@ -96,7 +96,7 @@ export default function QuotationRequestsList() {
         template_used: "quotation_reminder"
       });
 
-      console.log("Quotation reminder sent successfully");
+      // Quotation reminder sent successfully
     } catch (error) {
       console.error("Error resending quotation request:", error);
     }

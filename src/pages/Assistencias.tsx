@@ -427,8 +427,11 @@ export default function Assistencias() {
         ) : (
           filteredAssistances.map((assistance) => {
             const handleEdit = () => {
-              // TODO: Navigate to edit form
-              console.log('Edit assistance:', assistance.id);
+              // Navigate to edit form - functionality to be implemented
+              toast({
+                title: "Em desenvolvimento",
+                description: "A funcionalidade de edição será implementada em breve.",
+              });
             };
 
             const handleView = () => {

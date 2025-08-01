@@ -72,7 +72,7 @@ export default function QuotationManagement() {
       status: "approved" | "rejected"; 
       notes?: string; 
     }) => {
-      console.log(`Updating quotation ${quotationId} to ${status}`);
+      // Updating quotation status
       
       const updateData: any = { 
         status,
@@ -98,7 +98,7 @@ export default function QuotationManagement() {
       });
     },
     onSuccess: (_, variables) => {
-      console.log(`Quotation ${variables.status} successfully`);
+      // Quotation status updated successfully
       toast.success(`Quotation ${variables.status} successfully`);
       queryClient.invalidateQueries({ queryKey: ["all-quotations"] });
       setSelectedQuotation(null);

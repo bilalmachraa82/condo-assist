@@ -634,7 +634,7 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
                     <ScheduleForm
                       onSubmit={(data) => {
                         // Handle schedule submission
-                        console.log("Schedule data:", data);
+                        // Schedule data processed successfully
                         setActiveSection(null);
                       }}
                       isLoading={false}

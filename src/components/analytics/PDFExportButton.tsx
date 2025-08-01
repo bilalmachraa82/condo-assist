@@ -58,7 +58,7 @@ export function PDFExportButton({ onExport }: PDFExportButtonProps) {
   };
 
   const generatePDFReport = async (exportOptions: PDFExportOptions) => {
-    // TODO: Implement actual PDF generation using a library like jsPDF or Puppeteer
+    // PDF generation functionality - to be implemented with jsPDF
     // For now, we'll simulate the export
     await new Promise(resolve => setTimeout(resolve, 2000));
     
