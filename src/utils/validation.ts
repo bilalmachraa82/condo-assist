@@ -122,14 +122,16 @@ export const createFormValidator = <T>(schema: z.ZodSchema<T>) => {
     
     validateField: (fieldName: keyof T, value: unknown): string | null => {
       try {
-        const fieldSchema = schema.shape[fieldName as keyof typeof schema.shape];
-        if (fieldSchema) {
-          fieldSchema.parse(value);
-        }
+        // Simple field validation by parsing with the full schema
+        // and only checking for errors related to this field
+        schema.parse({ [fieldName]: value } as Partial<T>);
         return null;
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return error.errors[0]?.message || 'Erro de validação';
+          const fieldError = error.errors.find(err => 
+            err.path.length > 0 && err.path[0] === fieldName
+          );
+          return fieldError?.message || 'Erro de validação';
         }
         return 'Erro de validação';
       }

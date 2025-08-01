@@ -28,6 +28,7 @@ import { useRequestQuotation, useQuotationsByAssistance } from "@/hooks/useQuota
 import { formatDistanceToNow, format } from "date-fns"
 import { pt } from "date-fns/locale"
 import AssistanceDetail from "@/components/assistance/AssistanceDetail"
+import { toast } from "@/hooks/use-toast"
 import CreateAssistanceForm from "@/components/assistance/CreateAssistanceForm"
 import { PDFExportButton } from "@/components/assistance/PDFExportButton"
 import { AssistanceListPDFTemplate } from "@/components/assistance/AssistanceListPDFTemplate"
