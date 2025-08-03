@@ -10,7 +10,7 @@ import Edificios from "./pages/Edificios";
 import Fornecedores from "./pages/Fornecedores";
 import Quotations from "./pages/Quotations";
 import Configuracoes from "./pages/Configuracoes";
-import Relatorios from "./pages/Relatorios";
+
 import TiposAssistencia from "./pages/TiposAssistencia";
 import Comunicacoes from "./pages/Comunicacoes";
 import Notificacoes from "./pages/Notificacoes";
@@ -108,7 +108,7 @@ const App = () => (
                 path="/relatorios" 
                 element={
                   <ProtectedRoute>
-                    <DashboardLayout><Relatorios /></DashboardLayout>
+                    <DashboardLayout><Analytics /></DashboardLayout>
                   </ProtectedRoute>
                 } 
               />

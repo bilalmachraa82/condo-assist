@@ -54,7 +54,7 @@ export default function Analytics() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Analytics & Reporting</h1>
+          <h1 className="text-3xl font-bold">Análise e Relatórios</h1>
           <p className="text-muted-foreground">
             Análise avançada de performance e relatórios executivos
           </p>
