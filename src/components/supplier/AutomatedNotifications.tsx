@@ -92,13 +92,30 @@ export function AutomatedNotifications() {
   const testNotification = async (ruleId: string) => {
     setLoading(true);
     try {
-      // For demo purposes, we'll send a test notification
+      // Get a real assistance for testing
+      const { data: assistances } = await supabase
+        .from('assistances')
+        .select('id, suppliers(id)')
+        .not('suppliers', 'is', null)
+        .limit(1);
+
+      if (!assistances || assistances.length === 0) {
+        toast({
+          title: "Teste não disponível",
+          description: "Não há assistências com fornecedores para testar. Crie uma assistência primeiro.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const testAssistance = assistances[0];
+      
       const { data, error } = await supabase.functions.invoke('automated-notifications', {
         body: {
           type: ruleId === "assignment" ? "assignment" : 
                 ruleId.includes("reminder") ? "reminder" : "escalation",
-          assistance_id: "test-assistance-id",
-          supplier_id: "test-supplier-id",
+          assistance_id: testAssistance.id,
+          supplier_id: testAssistance.suppliers?.id,
           delay_hours: automationRules.find(r => r.id === ruleId)?.delay || 0
         }
       });
