@@ -6,51 +6,55 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, LineChart, Line, Area, AreaChart 
-} from "recharts";
-import { 
-  TrendingUp, TrendingDown, Users, Clock, DollarSign, AlertTriangle,
-  FileDown, Mail, Calendar, Building, Target, Activity
-} from "lucide-react";
-import {
-  useExecutiveKPIs,
-  useSupplierPerformanceAnalytics,
-  useTrendAnalytics,
-  useInterventionAnalytics,
-  useBuildingAnalytics,
-  useIntelligentAlerts
-} from "@/hooks/useAnalytics";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from "recharts";
+import { TrendingUp, TrendingDown, Users, Clock, DollarSign, AlertTriangle, FileDown, Mail, Calendar, Building, Target, Activity } from "lucide-react";
+import { useExecutiveKPIs, useSupplierPerformanceAnalytics, useTrendAnalytics, useInterventionAnalytics, useBuildingAnalytics, useIntelligentAlerts } from "@/hooks/useAnalytics";
 import { formatCurrency } from "@/lib/utils";
 import { PDFExportButton } from "@/components/analytics/PDFExportButton";
 import { ScheduledReports } from "@/components/analytics/ScheduledReports";
-
 const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#8884d8', '#82ca9d', '#ffc658'];
-
 export default function Analytics() {
   const [period, setPeriod] = useState<number>(30);
   const [performancePeriod, setPerformancePeriod] = useState<number>(90);
-  
-  const { data: kpis, isLoading: kpisLoading } = useExecutiveKPIs(period);
-  const { data: supplierPerformance, isLoading: supplierLoading } = useSupplierPerformanceAnalytics(performancePeriod);
-  const { data: trends, isLoading: trendsLoading } = useTrendAnalytics(12);
-  const { data: interventions, isLoading: interventionsLoading } = useInterventionAnalytics(period);
-  const { data: buildings, isLoading: buildingsLoading } = useBuildingAnalytics(period);
-  const { data: alerts, isLoading: alertsLoading } = useIntelligentAlerts();
-
+  const {
+    data: kpis,
+    isLoading: kpisLoading
+  } = useExecutiveKPIs(period);
+  const {
+    data: supplierPerformance,
+    isLoading: supplierLoading
+  } = useSupplierPerformanceAnalytics(performancePeriod);
+  const {
+    data: trends,
+    isLoading: trendsLoading
+  } = useTrendAnalytics(12);
+  const {
+    data: interventions,
+    isLoading: interventionsLoading
+  } = useInterventionAnalytics(period);
+  const {
+    data: buildings,
+    isLoading: buildingsLoading
+  } = useBuildingAnalytics(period);
+  const {
+    data: alerts,
+    isLoading: alertsLoading
+  } = useIntelligentAlerts();
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'destructive';
-      case 'high': return 'destructive';
-      case 'medium': return 'default';
-      case 'low': return 'secondary';
-      default: return 'default';
+      case 'critical':
+        return 'destructive';
+      case 'high':
+        return 'destructive';
+      case 'medium':
+        return 'default';
+      case 'low':
+        return 'secondary';
+      default:
+        return 'default';
     }
   };
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -65,15 +69,13 @@ export default function Analytics() {
       </div>
 
       {/* Intelligent Alerts */}
-      {!alertsLoading && alerts && alerts.length > 0 && (
-        <div className="space-y-4">
+      {!alertsLoading && alerts && alerts.length > 0 && <div className="space-y-4">
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <AlertTriangle className="w-5 h-5" />
             Alertas Inteligentes
           </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {alerts.map((alert, index) => (
-              <Alert key={index} className="border-l-4 border-l-destructive">
+            {alerts.map((alert, index) => <Alert key={index} className="border-l-4 border-l-destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle className="flex items-center gap-2">
                   {alert.title}
@@ -82,16 +84,15 @@ export default function Analytics() {
                   </Badge>
                 </AlertTitle>
                 <AlertDescription>{alert.description}</AlertDescription>
-              </Alert>
-            ))}
+              </Alert>)}
           </div>
-        </div>
-      )}
+        </div>}
 
       <Tabs defaultValue="executive" className="space-y-4">
         <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="executive">Dashboard Executivo</TabsTrigger>
-          <TabsTrigger value="performance">Performance Fornecedores</TabsTrigger>
+          <TabsTrigger value="executive">Dashboard
+        </TabsTrigger>
+          <TabsTrigger value="performance">Fornecedores</TabsTrigger>
           <TabsTrigger value="trends">Tendências</TabsTrigger>
           <TabsTrigger value="operations">Operacional</TabsTrigger>
           <TabsTrigger value="buildings">Edifícios</TabsTrigger>
@@ -102,7 +103,7 @@ export default function Analytics() {
         <TabsContent value="executive" className="space-y-6">
           <div className="flex items-center gap-4">
             <h2 className="text-2xl font-semibold">Dashboard Executivo</h2>
-            <Select value={period.toString()} onValueChange={(value) => setPeriod(Number(value))}>
+            <Select value={period.toString()} onValueChange={value => setPeriod(Number(value))}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -117,9 +118,9 @@ export default function Analytics() {
 
           {/* KPIs Grid */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {kpisLoading ? (
-              Array.from({ length: 8 }).map((_, i) => (
-                <Card key={i}>
+            {kpisLoading ? Array.from({
+            length: 8
+          }).map((_, i) => <Card key={i}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <Skeleton className="h-4 w-[120px]" />
                     <Skeleton className="h-4 w-4" />
@@ -128,10 +129,7 @@ export default function Analytics() {
                     <Skeleton className="h-8 w-[80px] mb-2" />
                     <Skeleton className="h-3 w-[100px]" />
                   </CardContent>
-                </Card>
-              ))
-            ) : kpis ? (
-              <>
+                </Card>) : kpis ? <>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total de Assistências</CardTitle>
@@ -209,8 +207,7 @@ export default function Analytics() {
                     </p>
                   </CardContent>
                 </Card>
-              </>
-            ) : null}
+              </> : null}
           </div>
         </TabsContent>
 
@@ -218,7 +215,7 @@ export default function Analytics() {
         <TabsContent value="performance" className="space-y-6">
           <div className="flex items-center gap-4">
             <h2 className="text-2xl font-semibold">Performance dos Fornecedores</h2>
-            <Select value={performancePeriod.toString()} onValueChange={(value) => setPerformancePeriod(Number(value))}>
+            <Select value={performancePeriod.toString()} onValueChange={value => setPerformancePeriod(Number(value))}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -238,16 +235,12 @@ export default function Analytics() {
               <CardDescription>Fornecedores ordenados por taxa de conclusão</CardDescription>
             </CardHeader>
             <CardContent>
-              {supplierLoading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : supplierPerformance && supplierPerformance.length > 0 ? (
-                <div className="space-y-4">
-                  {supplierPerformance.map((supplier, index) => (
-                    <div key={supplier.supplierId} className="flex items-center justify-between p-4 border rounded-lg">
+              {supplierLoading ? <div className="space-y-3">
+                  {Array.from({
+                length: 5
+              }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+                </div> : supplierPerformance && supplierPerformance.length > 0 ? <div className="space-y-4">
+                  {supplierPerformance.map((supplier, index) => <div key={supplier.supplierId} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
                           {index + 1}
@@ -271,14 +264,10 @@ export default function Analytics() {
                         <p className="font-medium">{formatCurrency(supplier.totalCost)}</p>
                         <p className="text-sm text-muted-foreground">Custo total</p>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
+                    </div>)}
+                </div> : <p className="text-center text-muted-foreground py-8">
                   Nenhum dado de performance disponível
-                </p>
-              )}
+                </p>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -294,10 +283,7 @@ export default function Analytics() {
               <CardDescription>Evolução de assistências e custos ao longo do tempo</CardDescription>
             </CardHeader>
             <CardContent>
-              {trendsLoading ? (
-                <Skeleton className="h-[400px] w-full" />
-              ) : trends && trends.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
+              {trendsLoading ? <Skeleton className="h-[400px] w-full" /> : trends && trends.length > 0 ? <ResponsiveContainer width="100%" height={400}>
                   <AreaChart data={trends}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="period" />
@@ -308,10 +294,7 @@ export default function Analytics() {
                     <Area yAxisId="left" type="monotone" dataKey="completed" stackId="1" stroke={CHART_COLORS[1]} fill={CHART_COLORS[1]} />
                     <Line yAxisId="right" type="monotone" dataKey="cost" stroke={CHART_COLORS[2]} strokeWidth={2} />
                   </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">Sem dados disponíveis</p>
-              )}
+                </ResponsiveContainer> : <p className="text-center text-muted-foreground py-8">Sem dados disponíveis</p>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -328,31 +311,17 @@ export default function Analytics() {
                 <CardDescription>Distribuição dos tipos mais comuns</CardDescription>
               </CardHeader>
               <CardContent>
-                {interventionsLoading ? (
-                  <Skeleton className="h-[300px] w-full" />
-                ) : interventions && interventions.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
+                {interventionsLoading ? <Skeleton className="h-[300px] w-full" /> : interventions && interventions.length > 0 ? <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
-                      <Pie
-                        data={interventions}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({interventionType, count}) => `${interventionType}: ${count}`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="count"
-                      >
-                        {interventions.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
+                      <Pie data={interventions} cx="50%" cy="50%" labelLine={false} label={({
+                    interventionType,
+                    count
+                  }) => `${interventionType}: ${count}`} outerRadius={80} fill="#8884d8" dataKey="count">
+                        {interventions.map((entry, index) => <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
                       </Pie>
                       <Tooltip />
                     </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">Sem dados disponíveis</p>
-                )}
+                  </ResponsiveContainer> : <p className="text-center text-muted-foreground py-8">Sem dados disponíveis</p>}
               </CardContent>
             </Card>
           </div>
@@ -368,16 +337,12 @@ export default function Analytics() {
               <CardDescription>Assistências e custos por edifício</CardDescription>
             </CardHeader>
             <CardContent>
-              {buildingsLoading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
-                </div>
-              ) : buildings && buildings.length > 0 ? (
-                <div className="space-y-4">
-                  {buildings.map((building) => (
-                    <div key={building.buildingCode} className="flex items-center justify-between p-4 border rounded-lg">
+              {buildingsLoading ? <div className="space-y-3">
+                  {Array.from({
+                length: 5
+              }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+                </div> : buildings && buildings.length > 0 ? <div className="space-y-4">
+                  {buildings.map(building => <div key={building.buildingCode} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center gap-4">
                         <Building className="w-8 h-8 text-muted-foreground" />
                         <div>
@@ -397,14 +362,10 @@ export default function Analytics() {
                         <p className="font-medium">{formatCurrency(building.avgCostPerAssistance)}</p>
                         <p className="text-sm text-muted-foreground">Custo médio</p>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
+                    </div>)}
+                </div> : <p className="text-center text-muted-foreground py-8">
                   Nenhum dado disponível
-                </p>
-              )}
+                </p>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -414,6 +375,5 @@ export default function Analytics() {
           <ScheduledReports />
         </TabsContent>
       </Tabs>
-    </div>
-  );
+    </div>;
 }
