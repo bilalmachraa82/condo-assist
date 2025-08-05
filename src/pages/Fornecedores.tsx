@@ -33,6 +33,7 @@ import { useToast } from "@/hooks/use-toast"
 import TestPortalButton from "@/components/supplier/TestPortalButton"
 import { SupplierEmailSummary } from "@/components/supplier/SupplierEmailSummary"
 import { BulkEmailDialog } from "@/components/supplier/BulkEmailDialog"
+import { SupplierAssistancesList } from "@/components/supplier/SupplierAssistancesList"
 import { useSupplierAssistances } from "@/hooks/useSupplierAssistances"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery } from "@tanstack/react-query"
@@ -43,6 +44,7 @@ export default function Fornecedores() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null)
   const [emailSummarySupplier, setEmailSummarySupplier] = useState<Supplier | null>(null)
+  const [selectedSupplierForAssistances, setSelectedSupplierForAssistances] = useState<Supplier | null>(null)
   const [isBulkEmailOpen, setIsBulkEmailOpen] = useState(false)
   
   const { data: suppliers = [], isLoading } = useAllSuppliers()
@@ -295,9 +297,9 @@ export default function Fornecedores() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSelectedSupplierForAssistances(supplier)}>
                         <Eye className="h-4 w-4 mr-2" />
-                        Ver Detalhes
+                        Ver Assistências
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEdit(supplier)}>
                         <Edit className="h-4 w-4 mr-2" />
@@ -447,6 +449,16 @@ export default function Fornecedores() {
         isOpen={isBulkEmailOpen}
         onClose={() => setIsBulkEmailOpen(false)}
       />
+
+      {/* Supplier Assistances Dialog */}
+      {selectedSupplierForAssistances && (
+        <SupplierAssistancesList
+          supplierId={selectedSupplierForAssistances.id}
+          supplierName={selectedSupplierForAssistances.name}
+          isOpen={!!selectedSupplierForAssistances}
+          onClose={() => setSelectedSupplierForAssistances(null)}
+        />
+      )}
     </div>
   )
 }

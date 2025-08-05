@@ -32,6 +32,7 @@ import { toast } from "@/hooks/use-toast"
 import CreateAssistanceForm from "@/components/assistance/CreateAssistanceForm"
 import { PDFExportButton } from "@/components/assistance/PDFExportButton"
 import { AssistanceListPDFTemplate } from "@/components/assistance/AssistanceListPDFTemplate"
+import { AssistanceFiltersComponent, type AssistanceFilters } from "@/components/assistance/AssistanceFilters"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { SwipeableCard } from "@/components/mobile/SwipeableCard"
@@ -241,6 +242,7 @@ export default function Assistencias() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedAssistance, setSelectedAssistance] = useState<Assistance | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [filters, setFilters] = useState<AssistanceFilters>({})
   const { data: assistances, isLoading, refetch } = useAssistances();
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
   const isMobile = useIsMobile();
@@ -254,13 +256,34 @@ export default function Assistencias() {
     disabled: showCreateForm || !!selectedAssistance
   });
 
-  // Filter assistances based on search term
-  const filteredAssistances = assistances?.filter(assistance => 
-    assistance.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    assistance.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    assistance.buildings?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    assistance.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  // Filter assistances based on search term and filters
+  const filteredAssistances = assistances?.filter(assistance => {
+    // Search term filter
+    const matchesSearch = !searchTerm || 
+      assistance.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      assistance.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      assistance.buildings?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      assistance.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Status filter
+    const matchesStatus = !filters.status || assistance.status === filters.status;
+
+    // Priority filter  
+    const matchesPriority = !filters.priority || assistance.priority === filters.priority;
+
+    // Building filter
+    const matchesBuilding = !filters.buildingId || assistance.building_id === filters.buildingId;
+
+    // Supplier filter
+    const matchesSupplier = !filters.supplierId || assistance.assigned_supplier_id === filters.supplierId;
+
+    // Date filters
+    const createdDate = new Date(assistance.created_at);
+    const matchesDateFrom = !filters.dateFrom || createdDate >= new Date(filters.dateFrom);
+    const matchesDateTo = !filters.dateTo || createdDate <= new Date(filters.dateTo + 'T23:59:59');
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesBuilding && matchesSupplier && matchesDateFrom && matchesDateTo;
+  }) || [];
 
   // Pull to refresh functionality
   const handleRefresh = useCallback(async () => {
@@ -331,10 +354,10 @@ export default function Assistencias() {
             </Button>
           ) : (
             <>
-              <Button variant="outline" className="hover:bg-muted/50">
-                <Filter className="h-4 w-4 mr-2" />
-                Filtros
-              </Button>
+              <AssistanceFiltersComponent 
+                filters={filters}
+                onFiltersChange={setFilters}
+              />
               
               <PDFExportButton 
                 filename="listagem-assistencias"
@@ -344,6 +367,7 @@ export default function Assistencias() {
                 <AssistanceListPDFTemplate 
                   assistances={filteredAssistances}
                   title="Listagem de Assistências"
+                  filters={filters}
                 />
               </PDFExportButton>
             </>

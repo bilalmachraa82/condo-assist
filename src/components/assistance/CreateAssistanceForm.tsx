@@ -171,6 +171,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                   title: assistance.title,
                   priority: assistance.priority,
                   buildingName: building?.name || 'N/A',
+                  buildingNif: building?.nif || undefined,
                   interventionType: interventionType?.name || 'N/A',
                   description: assistance.description || undefined
                 }

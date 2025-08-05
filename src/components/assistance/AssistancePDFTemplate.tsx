@@ -100,13 +100,6 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
         </div>
       )}
 
-      {/* Admin Notes */}
-      {assistance.admin_notes && (
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-3 text-gray-800">Notas Administrativas</h2>
-          <p className="text-gray-700 leading-relaxed">{assistance.admin_notes}</p>
-        </div>
-      )}
 
       {/* Supplier Notes */}
       {assistance.supplier_notes && (

@@ -146,7 +146,7 @@ const createOutlookCompatibleTemplate = (data: any) => {
                           </table>
                           
                           <p style="color: #6b7280; margin: 10px 0 5px 0; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-                            <strong>🏢 Edifício:</strong> ${assistanceDetails.buildingName}
+                            <strong>🏢 Edifício:</strong> ${assistanceDetails.buildingName}${assistanceDetails.buildingNif ? ` (NIF: ${assistanceDetails.buildingNif})` : ''}
                           </p>
                           <p style="color: #6b7280; margin: 5px 0; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
                             <strong>🔧 Tipo:</strong> ${assistanceDetails.interventionType}
@@ -292,7 +292,7 @@ const createPlainTextVersion = (data: any) => {
     text += `NOVA ASSISTÊNCIA ATRIBUÍDA\n\n`;
     text += `📋 ${assistanceDetails.title}\n`;
     text += `🚨 Prioridade: ${assistanceDetails.priority === 'critical' ? 'CRÍTICO' : assistanceDetails.priority === 'urgent' ? 'URGENTE' : 'NORMAL'}\n`;
-    text += `🏢 Edifício: ${assistanceDetails.buildingName}\n`;
+    text += `🏢 Edifício: ${assistanceDetails.buildingName}${assistanceDetails.buildingNif ? ` (NIF: ${assistanceDetails.buildingNif})` : ''}\n`;
     text += `🔧 Tipo: ${assistanceDetails.interventionType}\n`;
     if (assistanceDetails.description) {
       text += `📝 Descrição: ${assistanceDetails.description}\n`;
