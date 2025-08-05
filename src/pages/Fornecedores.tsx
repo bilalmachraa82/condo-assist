@@ -37,6 +37,8 @@ import { SupplierAssistancesList } from "@/components/supplier/SupplierAssistanc
 import { useSupplierAssistances } from "@/hooks/useSupplierAssistances"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery } from "@tanstack/react-query"
+import { SupplierFiltersComponent, SupplierFilters } from "@/components/suppliers/SupplierFilters"
+import { PDFExportButton } from "@/components/suppliers/PDFExportButton"
 
 export default function Fornecedores() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -46,6 +48,7 @@ export default function Fornecedores() {
   const [emailSummarySupplier, setEmailSummarySupplier] = useState<Supplier | null>(null)
   const [selectedSupplierForAssistances, setSelectedSupplierForAssistances] = useState<Supplier | null>(null)
   const [isBulkEmailOpen, setIsBulkEmailOpen] = useState(false)
+  const [filters, setFilters] = useState<SupplierFilters>({})
   
   const { data: suppliers = [], isLoading } = useAllSuppliers()
   const { data: stats, isLoading: isLoadingStats } = useSupplierStats()
@@ -86,13 +89,65 @@ export default function Fornecedores() {
   const { data: emailSummaryAssistances = [] } = useSupplierAssistances(emailSummarySupplier?.id || "")
 
   const filteredSuppliers = useMemo(() => {
-    if (!searchTerm) return suppliers
-    return suppliers.filter(supplier => 
-      supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier.specialization?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  }, [suppliers, searchTerm])
+    let filtered = suppliers;
+
+    // Apply search term filter
+    if (searchTerm) {
+      filtered = filtered.filter(supplier => 
+        supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        supplier.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        supplier.specialization?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    // Apply other filters
+    filtered = filtered.filter(supplier => {
+      // Status filter
+      if (filters.status) {
+        const isActive = filters.status === 'active';
+        if (supplier.is_active !== isActive) return false;
+      }
+
+      // Specialization filter
+      if (filters.specialization && supplier.specialization !== filters.specialization) {
+        return false;
+      }
+
+      // Location filter
+      if (filters.location && supplier.address && 
+          !supplier.address.toLowerCase().includes(filters.location.toLowerCase())) {
+        return false;
+      }
+
+      // Rating filter
+      if (filters.minRating && (!supplier.rating || supplier.rating < Number(filters.minRating))) {
+        return false;
+      }
+
+      // Email filter
+      if (filters.hasEmail !== undefined) {
+        const hasEmail = !!supplier.email;
+        if (hasEmail !== filters.hasEmail) return false;
+      }
+
+      // Phone filter
+      if (filters.hasPhone !== undefined) {
+        const hasPhone = !!supplier.phone;
+        if (hasPhone !== filters.hasPhone) return false;
+      }
+
+      return true;
+    });
+
+    return filtered;
+  }, [suppliers, searchTerm, filters])
+
+  // Get unique specializations for filter
+  const uniqueSpecializations = useMemo(() => {
+    return Array.from(new Set(
+      suppliers.map(s => s.specialization).filter(Boolean)
+    )).sort();
+  }, [suppliers]);
 
   const getStatusBadge = (isActive: boolean) => {
     return isActive ? (
@@ -185,12 +240,18 @@ export default function Fornecedores() {
               className="pl-10 w-full sm:w-80"
             />
           </div>
-          <Button variant="outline" className="hover:bg-muted/50">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtros
-          </Button>
+          <SupplierFiltersComponent 
+            filters={filters} 
+            onFiltersChange={setFilters}
+            specializations={uniqueSpecializations}
+          />
         </div>
         <div className="flex gap-2">
+          <PDFExportButton 
+            suppliers={filteredSuppliers}
+            filters={filters}
+            title="Lista de Fornecedores"
+          />
           <Button 
             onClick={() => setIsBulkEmailOpen(true)}
             variant="outline"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, XCircle, Eye, Clock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import QuotationRequestsList from "./QuotationRequestsList";
+import { QuotationFiltersComponent, QuotationFilters } from "./QuotationFilters";
+import { PDFExportButton } from "./PDFExportButton";
 
 interface QuotationDetails {
   id: string;
@@ -37,9 +39,10 @@ interface QuotationDetails {
 export default function QuotationManagement() {
   const [selectedQuotation, setSelectedQuotation] = useState<QuotationDetails | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
+  const [filters, setFilters] = useState<QuotationFilters>({});
   const queryClient = useQueryClient();
 
-  const { data: quotations = [], isLoading } = useQuery({
+  const { data: allQuotations = [], isLoading } = useQuery({
     queryKey: ["all-quotations"],
     queryFn: async () => {
       console.log("Fetching all quotations for management...");
@@ -61,6 +64,46 @@ export default function QuotationManagement() {
       return data as QuotationDetails[];
     },
   });
+
+  const quotations = useMemo(() => {
+    if (!allQuotations.length) return [];
+    
+    return allQuotations.filter(quotation => {
+      // Status filter
+      if (filters.status && quotation.status !== filters.status) {
+        return false;
+      }
+      
+      // Supplier filter
+      if (filters.supplierId && quotation.supplier_id !== filters.supplierId) {
+        return false;
+      }
+      
+      // Amount filters
+      if (filters.minAmount && quotation.amount < Number(filters.minAmount)) {
+        return false;
+      }
+      if (filters.maxAmount && quotation.amount > Number(filters.maxAmount)) {
+        return false;
+      }
+      
+      // Date filters
+      if (filters.dateFrom) {
+        const quotationDate = new Date(quotation.created_at).toISOString().split('T')[0];
+        if (quotationDate < filters.dateFrom) {
+          return false;
+        }
+      }
+      if (filters.dateTo) {
+        const quotationDate = new Date(quotation.created_at).toISOString().split('T')[0];
+        if (quotationDate > filters.dateTo) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [allQuotations, filters]);
 
   const updateQuotationMutation = useMutation({
     mutationFn: async ({ 
@@ -148,6 +191,17 @@ export default function QuotationManagement() {
         <div>
           <h2 className="text-2xl font-bold">Gestão de Orçamentos</h2>
           <p className="text-muted-foreground">Analisar e gerir orçamentos de fornecedores</p>
+        </div>
+        <div className="flex gap-2">
+          <QuotationFiltersComponent 
+            filters={filters} 
+            onFiltersChange={setFilters} 
+          />
+          <PDFExportButton 
+            quotations={quotations}
+            filters={filters}
+            title="Lista de Orçamentos"
+          />
         </div>
       </div>
 
