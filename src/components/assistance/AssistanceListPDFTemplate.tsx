@@ -106,6 +106,7 @@ export const AssistanceListPDFTemplate = ({
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
             <tr className="bg-gray-100">
+              <th className="border border-gray-300 p-2 text-left">Nº</th>
               <th className="border border-gray-300 p-2 text-left">Título</th>
               <th className="border border-gray-300 p-2 text-left">Edifício</th>
               <th className="border border-gray-300 p-2 text-left">Estado</th>
@@ -118,6 +119,9 @@ export const AssistanceListPDFTemplate = ({
           <tbody>
             {assistances.map((assistance) => (
               <tr key={assistance.id} className="hover:bg-gray-50">
+                <td className="border border-gray-300 p-2 font-mono text-sm font-bold">
+                  #{assistance.assistance_number || 'N/A'}
+                </td>
                 <td className="border border-gray-300 p-2 font-medium">
                   {assistance.title}
                 </td>

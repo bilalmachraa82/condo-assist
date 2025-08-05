@@ -55,7 +55,7 @@ export default function TestPortalButton({ supplierId, supplierName, supplierEma
             assigned_supplier_id: supplierId,
             status: "pending",
             priority: "normal"
-          })
+          } as any)
           .select("id")
           .single();
 

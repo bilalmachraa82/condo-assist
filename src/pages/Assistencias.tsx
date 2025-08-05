@@ -277,12 +277,16 @@ export default function Assistencias() {
     // Supplier filter
     const matchesSupplier = !filters.supplierId || assistance.assigned_supplier_id === filters.supplierId;
 
+    // Assistance number filter
+    const matchesAssistanceNumber = !filters.assistanceNumber || 
+      assistance.assistance_number?.toString().includes(filters.assistanceNumber);
+
     // Date filters
     const createdDate = new Date(assistance.created_at);
     const matchesDateFrom = !filters.dateFrom || createdDate >= new Date(filters.dateFrom);
     const matchesDateTo = !filters.dateTo || createdDate <= new Date(filters.dateTo + 'T23:59:59');
 
-    return matchesSearch && matchesStatus && matchesPriority && matchesBuilding && matchesSupplier && matchesDateFrom && matchesDateTo;
+    return matchesSearch && matchesStatus && matchesPriority && matchesBuilding && matchesSupplier && matchesAssistanceNumber && matchesDateFrom && matchesDateTo;
   }) || [];
 
   // Pull to refresh functionality
@@ -480,7 +484,9 @@ export default function Assistencias() {
                 >
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <span className="font-mono text-xs text-muted-foreground">{assistance.id}</span>
+                      <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">
+                        #{assistance.assistance_number || 'N/A'}
+                      </span>
                       {getStatusBadge(assistance.status)}
                       {getPriorityBadge(assistance.priority)}
                     </div>
@@ -524,7 +530,9 @@ export default function Assistencias() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-3">
-                        <span className="font-mono text-sm text-muted-foreground">{assistance.id}</span>
+                        <span className="font-mono text-sm font-bold text-primary bg-primary/10 px-2 py-1 rounded">
+                          #{assistance.assistance_number || 'N/A'}
+                        </span>
                         {getStatusBadge(assistance.status)}
                         {getPriorityBadge(assistance.priority)}
                       </div>

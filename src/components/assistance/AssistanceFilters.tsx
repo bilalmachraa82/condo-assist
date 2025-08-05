@@ -16,6 +16,7 @@ export interface AssistanceFilters {
   supplierId?: string;
   dateFrom?: string;
   dateTo?: string;
+  assistanceNumber?: string;
 }
 
 interface AssistanceFiltersProps {
@@ -86,6 +87,17 @@ export const AssistanceFiltersComponent = ({ filters, onFiltersChange }: Assista
         </DialogHeader>
         
         <div className="grid grid-cols-2 gap-4">
+          {/* Assistance Number Filter */}
+          <div className="space-y-2">
+            <Label>Número da Assistência</Label>
+            <Input
+              type="number"
+              placeholder="Ex: 1234"
+              value={localFilters.assistanceNumber || ""}
+              onChange={(e) => updateFilter("assistanceNumber", e.target.value)}
+            />
+          </div>
+
           {/* Status Filter */}
           <div className="space-y-2">
             <Label>Estado</Label>

@@ -115,7 +115,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
           quotation_requested_at: values.requires_quotation && values.assigned_supplier_id ? new Date().toISOString() : null,
           quotation_deadline: values.quotation_deadline ? new Date(values.quotation_deadline).toISOString() : null,
           status: values.requires_quotation && values.assigned_supplier_id ? "awaiting_quotation" : "pending",
-        })
+        } as any)
         .select()
         .single();
 

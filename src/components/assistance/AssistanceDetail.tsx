@@ -153,7 +153,9 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
           <h1 className="text-2xl font-bold">
             {assistance.intervention_types?.name || assistance.title || 'Assistência'}
           </h1>
-          <p className="text-muted-foreground">#{assistance.id}</p>
+          <p className="text-muted-foreground font-mono">
+            Assistência #{assistance.assistance_number || 'N/A'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {getStatusBadge(assistance.status)}
