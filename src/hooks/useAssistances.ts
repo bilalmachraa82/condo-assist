@@ -178,21 +178,7 @@ export const useUpdateAssistanceStatus = () => {
       newStatus: string; 
       supplierNotes?: string;
     }) => {
-      // First get the current assistance data
-      const { data: currentAssistance, error: fetchError } = await supabase
-        .from("assistances")
-        .select(`
-          *,
-          buildings (id, name, code),
-          suppliers (id, name, email),
-          intervention_types (id, name, category)
-        `)
-        .eq("id", assistanceId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Update the assistance status
+      // Update the assistance status directly
       const updateData: any = { 
         status: newStatus,
         updated_at: new Date().toISOString()
@@ -210,30 +196,15 @@ export const useUpdateAssistanceStatus = () => {
         .from("assistances")
         .update(updateData)
         .eq("id", assistanceId)
-        .select()
+        .select(`
+          *,
+          buildings (id, name, code),
+          suppliers (id, name, email),
+          intervention_types (id, name, category)
+        `)
         .single();
 
       if (error) throw error;
-
-      // Send status change notifications
-      try {
-        await supabase.functions.invoke('send-status-notification', {
-          body: {
-            assistanceId,
-            oldStatus: currentAssistance.status,
-            newStatus,
-            assistance: {
-              ...currentAssistance,
-              status: newStatus,
-              supplier_notes: supplierNotes || currentAssistance.supplier_notes
-            }
-          }
-        });
-      } catch (emailError) {
-        console.error('Status notification email error:', emailError);
-        // Don't fail the whole operation if email fails
-      }
-
       return data;
     },
     onSuccess: (data) => {
@@ -242,8 +213,10 @@ export const useUpdateAssistanceStatus = () => {
         description: `Assistência marcada como ${getStatusLabel(data.status)}`,
       });
 
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
       queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["assistance", data.id] });
     },
     onError: (error: any) => {
       console.error("Update status error:", error);

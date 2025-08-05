@@ -13,7 +13,7 @@ import PhotoGallery from "./PhotoGallery";
 import QuotationList from "@/components/quotations/QuotationList";
 import QuotationSection from "./QuotationSection";
 import EditAssistanceForm from "./EditAssistanceForm";
-import ProgressNotes from "./ProgressNotes";
+
 import InternalNotes from "./InternalNotes";
 import CommunicationLog from "./CommunicationLog";
 import ProgressTimeline from "./ProgressTimeline";
@@ -274,13 +274,12 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
 
           {/* Photos and Quotations Section */}
           <Tabs defaultValue="gallery" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="gallery">Fotos</TabsTrigger>
               <TabsTrigger value="upload">Adicionar Foto</TabsTrigger>
               <TabsTrigger value="quotations">Orçamentos</TabsTrigger>
               <TabsTrigger value="internal">Notas Internas</TabsTrigger>
               <TabsTrigger value="communication">Comunicação</TabsTrigger>
-              <TabsTrigger value="timeline">Timeline</TabsTrigger>
             </TabsList>
             
             <TabsContent value="gallery" className="mt-4">
@@ -303,11 +302,10 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
             </TabsContent>
 
             <TabsContent value="communication" className="mt-4">
-              <CommunicationLog assistanceId={assistance.id} userRole="admin" />
-            </TabsContent>
-
-            <TabsContent value="timeline" className="mt-4">
-              <ProgressTimeline assistanceId={assistance.id} />
+              <div className="space-y-6">
+                <CommunicationLog assistanceId={assistance.id} userRole="admin" />
+                <ProgressTimeline assistanceId={assistance.id} />
+              </div>
             </TabsContent>
           </Tabs>
         </div>
