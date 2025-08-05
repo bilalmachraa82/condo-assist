@@ -11,6 +11,8 @@ interface AuthContextType {
   authError: string | null;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
+  forceReauth: () => Promise<void>;
+  validateSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -21,6 +23,8 @@ const AuthContext = createContext<AuthContextType>({
   authError: null,
   signOut: async () => {},
   refreshSession: async () => {},
+  forceReauth: async () => {},
+  validateSession: async () => false,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -28,30 +32,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [sessionValidated, setSessionValidated] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log("🔐 Auth state change:", event, session?.user?.id || "no user");
         
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
         setAuthError(null);
+        setSessionValidated(false);
 
-        // Debug token expiration
+        // Debug token expiration and session
         if (session) {
           const expiresAt = session.expires_at;
           const now = Math.floor(Date.now() / 1000);
           const timeToExpiry = expiresAt ? expiresAt - now : 0;
           
           console.log("🔐 Token expires in:", timeToExpiry, "seconds");
+          console.log("🔐 Access token length:", session.access_token?.length || 0);
+          console.log("🔐 User ID:", session.user?.id);
           
-          if (timeToExpiry < 60) {
+          // Validate session with a simple query
+          setTimeout(async () => {
+            const isValid = await validateSessionInternal(session);
+            setSessionValidated(isValid);
+            
+            if (!isValid) {
+              console.log("⚠️ Session validation failed, forcing refresh");
+              await refreshSession();
+            }
+          }, 100);
+          
+          if (timeToExpiry < 300) { // 5 minutes
             console.log("⚠️ Token expires soon, triggering refresh");
             setTimeout(() => refreshSession(), 1000);
           }
+        } else {
+          setSessionValidated(false);
         }
 
         // Handle specific auth events
@@ -60,6 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else if (event === 'SIGNED_OUT') {
           console.log("🚪 User signed out");
           setAuthError(null);
+          setSessionValidated(false);
         }
       }
     );
@@ -90,24 +112,66 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    // Set up periodic session validation
+    // Set up periodic session validation - check every 30 seconds
     const sessionCheckInterval = setInterval(async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      
       if (!session && user) {
         console.log("⚠️ Session lost, attempting refresh...");
         await refreshSession();
+      } else if (session && user && !sessionValidated) {
+        console.log("🔍 Re-validating session...");
+        const isValid = await validateSessionInternal(session);
+        setSessionValidated(isValid);
+        
+        if (!isValid) {
+          console.log("⚠️ Periodic validation failed, forcing refresh");
+          await refreshSession();
+        }
       }
-    }, 60000); // Check every minute
+    }, 30000); // Check every 30 seconds
 
     return () => {
       subscription.unsubscribe();
       clearInterval(sessionCheckInterval);
     };
-  }, []);
+  }, [user, sessionValidated]);
+
+  // Function to validate session by making a test query
+  const validateSessionInternal = async (session: Session | null): Promise<boolean> => {
+    if (!session) return false;
+    
+    try {
+      console.log("🔍 Validating session with test query...");
+      
+      // Test auth with a simple query
+      const { data, error } = await supabase
+        .from('assistances')
+        .select('id')
+        .limit(1);
+      
+      if (error) {
+        console.error("❌ Session validation failed:", error.message);
+        return false;
+      }
+      
+      console.log("✅ Session validation successful");
+      return true;
+    } catch (error) {
+      console.error("❌ Session validation error:", error);
+      return false;
+    }
+  };
+
+  const validateSession = async (): Promise<boolean> => {
+    return validateSessionInternal(session);
+  };
 
   const refreshSession = async () => {
     try {
       console.log("🔄 Refreshing session...");
+      setLoading(true);
+      
       const { data, error } = await supabase.auth.refreshSession();
       
       if (error) {
@@ -127,10 +191,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(data.session);
         setUser(data.session.user);
         setAuthError(null);
+        
+        // Validate the new session
+        const isValid = await validateSessionInternal(data.session);
+        setSessionValidated(isValid);
       }
     } catch (error) {
       console.error("❌ Session refresh error:", error);
       setAuthError("Erro ao atualizar sessão");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const forceReauth = async () => {
+    try {
+      console.log("🔄 Forcing complete re-authentication...");
+      setLoading(true);
+      setAuthError(null);
+      
+      // Sign out completely first
+      await supabase.auth.signOut();
+      
+      // Clear all states
+      setSession(null);
+      setUser(null);
+      setSessionValidated(false);
+      
+      // Force redirect to login
+      window.location.href = '/auth';
+    } catch (error) {
+      console.error("❌ Force reauth error:", error);
+      setAuthError("Erro ao reautenticar");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -144,10 +238,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     user,
     session,
     loading,
-    isAuthenticated: !!user && !!session,
+    isAuthenticated: !!user && !!session && sessionValidated,
     authError,
     signOut,
     refreshSession,
+    forceReauth,
+    validateSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
