@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bell, BellRing, Check, Trash2, Users, Circle } from "lucide-react";
-import { useNotifications } from "@/hooks/useNotifications";
+// import { useNotifications } from "@/hooks/useNotifications"; // Removed to avoid DB query conflicts
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +25,7 @@ export default function RealtimeNotificationCenter() {
   } = useRealtimeNotifications();
 
   const { onlineUsers, currentUser, updateStatus } = useUserPresence();
-  const browserNotifications = useNotifications();
+  // const browserNotifications = useNotifications(); // Removed to avoid DB query conflicts
 
   // Show browser notifications for new notifications
   useEffect(() => {

@@ -61,7 +61,7 @@ export const AssistanceFiltersComponent = ({ filters, onFiltersChange }: Assista
   const updateFilter = (key: keyof AssistanceFilters, value: string | undefined) => {
     setLocalFilters(prev => ({
       ...prev,
-      [key]: value || undefined
+      [key]: (value === "all" || !value) ? undefined : value
     }));
   };
 
@@ -94,7 +94,7 @@ export const AssistanceFiltersComponent = ({ filters, onFiltersChange }: Assista
                 <SelectValue placeholder="Todos os estados" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os estados</SelectItem>
+                <SelectItem value="all">Todos os estados</SelectItem>
                 {statusOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -112,7 +112,7 @@ export const AssistanceFiltersComponent = ({ filters, onFiltersChange }: Assista
                 <SelectValue placeholder="Todas as prioridades" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as prioridades</SelectItem>
+                <SelectItem value="all">Todas as prioridades</SelectItem>
                 {priorityOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -130,7 +130,7 @@ export const AssistanceFiltersComponent = ({ filters, onFiltersChange }: Assista
                 <SelectValue placeholder="Todos os edifícios" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os edifícios</SelectItem>
+                <SelectItem value="all">Todos os edifícios</SelectItem>
                 {buildings.map(building => (
                   <SelectItem key={building.id} value={building.id}>
                     {building.name}
@@ -148,7 +148,7 @@ export const AssistanceFiltersComponent = ({ filters, onFiltersChange }: Assista
                 <SelectValue placeholder="Todos os fornecedores" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os fornecedores</SelectItem>
+                <SelectItem value="all">Todos os fornecedores</SelectItem>
                 {suppliers.map(supplier => (
                   <SelectItem key={supplier.id} value={supplier.id}>
                     {supplier.name}
