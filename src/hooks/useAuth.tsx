@@ -56,16 +56,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log("🔐 Access token length:", session.access_token?.length || 0);
           console.log("🔐 User ID:", session.user?.id);
           
-          // Validate session with a simple query
-          setTimeout(async () => {
-            const isValid = await validateSessionInternal(session);
-            setSessionValidated(isValid);
-            
-            if (!isValid) {
-              console.log("⚠️ Session validation failed, forcing refresh");
-              await refreshSession();
-            }
-          }, 100);
+          // Validate session with a simple query - debounced
+          if (!sessionValidated) {
+            setTimeout(async () => {
+              console.log("🔍 Starting session validation...");
+              const isValid = await validateSessionInternal(session);
+              console.log("🔍 Session validation result:", isValid);
+              setSessionValidated(isValid);
+              
+              if (!isValid) {
+                console.log("⚠️ Session validation failed, forcing refresh");
+                await refreshSession();
+              }
+            }, 500);
+          }
           
           if (timeToExpiry < 300) { // 5 minutes
             console.log("⚠️ Token expires soon, triggering refresh");
@@ -135,7 +139,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
       clearInterval(sessionCheckInterval);
     };
-  }, [user, sessionValidated]);
+  }, []);  // Remove dependencies to prevent loop
 
   // Function to validate session by making a test query
   const validateSessionInternal = async (session: Session | null): Promise<boolean> => {
