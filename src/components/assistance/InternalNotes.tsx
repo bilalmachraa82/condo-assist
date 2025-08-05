@@ -8,7 +8,7 @@ import { Shield, Plus, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import { useUpdateAssistance } from "@/hooks/useAssistances";
+import { useUpdateAssistance, useAssistances } from "@/hooks/useAssistances";
 import type { Assistance } from "@/hooks/useAssistances";
 
 interface InternalNotesProps {
@@ -21,6 +21,7 @@ export default function InternalNotes({ assistance, canEdit = false }: InternalN
   const [noteText, setNoteText] = useState(assistance.admin_notes || "");
   const { toast } = useToast();
   const updateMutation = useUpdateAssistance();
+  const { refetch } = useAssistances();
 
   const handleSave = async () => {
     try {
@@ -30,8 +31,10 @@ export default function InternalNotes({ assistance, canEdit = false }: InternalN
       });
 
       setIsEditing(false);
+      // Force refresh to show updated note immediately
+      await refetch();
       toast({
-        title: "Sucesso",
+        title: "Sucesso", 
         description: "Nota interna atualizada com sucesso!",
       });
     } catch (error) {

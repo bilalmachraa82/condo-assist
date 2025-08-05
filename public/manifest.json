@@ -1,6 +1,7 @@
 {
   "name": "Luvimg - Administração de Condomínios",
   "short_name": "Luvimg",
+  "version": "3.1.0",
   "description": "Sistema de gestão de assistências e condomínios",
   "start_url": "/",
   "display": "standalone",
