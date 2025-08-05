@@ -281,7 +281,7 @@ export default function Assistencias() {
       assistance.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assistance.buildings?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assistance.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assistance.assistance_number?.toString().includes(searchTerm);
+      assistance.assistance_number?.toString().includes(searchTerm.toString());
 
     // Date filters
     const createdDate = new Date(assistance.created_at);
