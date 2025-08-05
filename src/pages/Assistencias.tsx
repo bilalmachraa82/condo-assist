@@ -275,13 +275,16 @@ export default function Assistencias() {
     const matchesAssistanceNumber = !filters.assistanceNumber || 
       assistance.assistance_number?.toString().includes(filters.assistanceNumber);
 
-    // Search also includes assistance number
+    // Search also includes assistance number (support both "#4" and "4" formats)
+    const cleanedSearchTerm = searchTerm.toString().replace('#', '');
+    const assistanceNumberStr = assistance.assistance_number?.toString();
     const matchesSearchWithNumber = !searchTerm || 
       assistance.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assistance.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assistance.buildings?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assistance.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assistance.assistance_number?.toString().includes(searchTerm.toString());
+      assistanceNumberStr?.includes(cleanedSearchTerm) ||
+      (`#${assistanceNumberStr}`).includes(searchTerm.toString());
 
     // Date filters
     const createdDate = new Date(assistance.created_at);
