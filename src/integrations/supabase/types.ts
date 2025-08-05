@@ -193,6 +193,7 @@ export type Database = {
           actual_start_date: string | null
           admin_notes: string | null
           assigned_supplier_id: string | null
+          assistance_number: number
           building_id: string
           completed_date: string | null
           completion_photos_required: boolean | null
@@ -230,6 +231,7 @@ export type Database = {
           actual_start_date?: string | null
           admin_notes?: string | null
           assigned_supplier_id?: string | null
+          assistance_number: number
           building_id: string
           completed_date?: string | null
           completion_photos_required?: boolean | null
@@ -267,6 +269,7 @@ export type Database = {
           actual_start_date?: string | null
           admin_notes?: string | null
           assigned_supplier_id?: string | null
+          assistance_number?: number
           building_id?: string
           completed_date?: string | null
           completion_photos_required?: boolean | null
@@ -872,6 +875,10 @@ export type Database = {
       create_supplier_session: {
         Args: { p_supplier_id: string; p_magic_code: string }
         Returns: Json
+      }
+      generate_assistance_number: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       generate_magic_code: {
         Args: Record<PropertyKey, never>
