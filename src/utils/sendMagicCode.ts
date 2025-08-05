@@ -72,18 +72,18 @@ export async function sendMagicCodeToSupplier(
               <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">Olá ${supplierName},</p>
               
               ${isNewAssistance ? `
-                <div style="background-color: #f8fafc; border-left: 4px solid ${getPriorityColor(assistanceDetails.priority)}; padding: 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
-                  <h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">📋 ${assistanceDetails.title}</h3>
-                  <div style="display: flex; flex-wrap: wrap; gap: 15px; margin: 15px 0;">
-                    <div style="background-color: ${getPriorityColor(assistanceDetails.priority)}; color: white; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold;">
-                      🚨 ${getPriorityLabel(assistanceDetails.priority)}
-                    </div>
-                  </div>
-                  <p style="color: #6b7280; margin: 10px 0 5px 0; font-size: 14px;"><strong>🏢 Edifício:</strong> ${assistanceDetails.buildingName}</p>
-                  <p style="color: #6b7280; margin: 5px 0; font-size: 14px;"><strong>🔧 Tipo:</strong> ${assistanceDetails.interventionType}</p>
-                  ${assistanceDetails.description ? `<p style="color: #6b7280; margin: 15px 0 5px 0; font-size: 14px;"><strong>📝 Descrição:</strong></p>
-                  <p style="color: #4b5563; margin: 5px 0; font-size: 14px; font-style: italic;">${assistanceDetails.description}</p>` : ''}
-                </div>
+               <div style="background-color: #f8fafc; border-left: 4px solid ${getPriorityColor(assistanceDetails.priority)}; padding: 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+                 <h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">📋 ${assistanceDetails.title}</h3>
+                 <div style="display: flex; flex-wrap: wrap; gap: 15px; margin: 15px 0;">
+                   <div style="background-color: ${getPriorityColor(assistanceDetails.priority)}; color: white; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold;">
+                     🚨 ${getPriorityLabel(assistanceDetails.priority)}
+                   </div>
+                 </div>
+                 <p style="color: #6b7280; margin: 10px 0 5px 0; font-size: 14px;"><strong>🏢 Edifício:</strong> ${assistanceDetails.buildingName}</p>
+                 <p style="color: #6b7280; margin: 5px 0; font-size: 14px;"><strong>🔧 Tipo:</strong> ${assistanceDetails.interventionType}</p>
+                 ${assistanceDetails.description ? `<p style="color: #6b7280; margin: 15px 0 5px 0; font-size: 14px;"><strong>📝 Descrição:</strong></p>
+                 <p style="color: #4b5563; margin: 5px 0; font-size: 14px; font-style: italic;">${assistanceDetails.description}</p>` : ''}
+               </div>
                 <p style="color: #374151; font-size: 16px; margin: 25px 0 15px 0;">Para aceitar e gerir esta assistência, aceda ao portal do fornecedor:</p>
               ` : `
                 <p style="color: #374151; font-size: 16px; margin: 25px 0 15px 0;">Utilize o código abaixo para aceder ao portal do fornecedor:</p>
@@ -95,12 +95,12 @@ export async function sendMagicCodeToSupplier(
                 <p style="color: #64748b; margin: 10px 0 0 0; font-size: 12px;">Válido por 30 dias</p>
               </div>
               
-               <div style="text-align: center; margin: 30px 0;">
-                 <a href="https://preview--condo-assist.lovable.app/supplier-portal?code=${magicCode}" 
-                    style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
-                   🚀 Aceder ao Portal
-                 </a>
-               </div>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${window.location.origin}/supplier-portal?code=${magicCode}" 
+                     style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+                    🚀 Aceder ao Portal
+                  </a>
+                </div>
               
               ${isNewAssistance ? `
                 <div style="background-color: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 8px; margin: 25px 0;">

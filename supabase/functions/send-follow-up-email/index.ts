@@ -125,11 +125,11 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="https://preview--condo-assist.lovable.app/supplier-portal?code=${magicCode}" 
+            <a href="https://zmpitnpmplemfozvtbam.supabase.co/supplier-portal?code=${magicCode}" 
                style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); margin-right: 10px;">
               ✅ Aceitar Assistência
             </a>
-            <a href="https://preview--condo-assist.lovable.app/supplier-portal?code=${magicCode}" 
+            <a href="https://zmpitnpmplemfozvtbam.supabase.co/supplier-portal?code=${magicCode}" 
                style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">
               ❌ Recusar Assistência
             </a>

@@ -129,6 +129,8 @@ export default function SupplierPortal() {
     queryFn: async () => {
       if (!supplier?.id) return [];
       
+      console.log(`Fetching assistances for supplier: ${supplier.id}`);
+      
       const { data: assistanceData, error } = await supabase
         .from("assistances")
         .select(`
@@ -158,9 +160,15 @@ export default function SupplierPortal() {
           )
         `)
         .eq("assigned_supplier_id", supplier.id)
+        .in("status", ["pending", "awaiting_quotation", "quotation_received", "accepted", "scheduled", "in_progress", "awaiting_validation"])
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching assistances:", error);
+        throw error;
+      }
+      
+      console.log(`Found ${assistanceData?.length || 0} assistances for supplier ${supplier.id}`);
       
       return assistanceData.map(assistance => ({
         ...assistance,
@@ -287,7 +295,8 @@ export default function SupplierPortal() {
               </p>
               <div className="text-sm text-muted-foreground space-y-1">
                 <p>Se esperava ver assistências aqui, contacte a administração:</p>
-                <p className="font-medium">suporte@luvimg.com</p>
+                <p className="font-medium">arquivo@luvimg.com</p>
+                <p className="text-xs mt-2">Código usado: <span className="font-mono bg-muted px-1 rounded">{enteredCode}</span></p>
               </div>
             </CardContent>
           </Card>
