@@ -484,6 +484,51 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          assistance_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          notification_type: string
+          priority: string
+          reminder_count: number | null
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          supplier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assistance_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          notification_type: string
+          priority: string
+          reminder_count?: number | null
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assistance_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          notification_type?: string
+          priority?: string
+          reminder_count?: number | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -814,6 +859,12 @@ export type Database = {
         Args: { assistance_id: string }
         Returns: boolean
       }
+      calculate_reminder_schedule: {
+        Args: {
+          assistance_priority: Database["public"]["Enums"]["assistance_priority"]
+        }
+        Returns: Json
+      }
       can_complete_assistance: {
         Args: { assistance_id_param: string }
         Returns: boolean
@@ -845,6 +896,10 @@ export type Database = {
           p_success?: boolean
           p_metadata?: Json
         }
+        Returns: undefined
+      }
+      schedule_assistance_reminders: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       validate_supplier_session: {
