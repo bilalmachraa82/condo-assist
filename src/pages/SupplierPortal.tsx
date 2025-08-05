@@ -336,17 +336,18 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
   const supplierResponse = supplierResponses[0] || null;
   const updateAssistanceMutation = useUpdateAssistanceStatus();
   const createResponseMutation = useCreateSupplierResponse();
+  const queryClient = useQueryClient();
 
   const getStatusInfo = (status: string) => {
     const configs = {
-      pending: { color: "bg-yellow-500", icon: Clock, text: "Pendente" },
-      accepted: { color: "bg-green-500", icon: CheckCircle, text: "Aceite" },
+      pending: { color: "bg-yellow-500", icon: Clock, text: "Aguardando Resposta" },
+      accepted: { color: "bg-green-500", icon: CheckCircle, text: "Aceite - Pronto para Iniciar" },
       scheduled: { color: "bg-blue-500", icon: Calendar, text: "Agendado" },
-      in_progress: { color: "bg-blue-500", icon: Clock, text: "Em Progresso" },
-      awaiting_validation: { color: "bg-yellow-500", icon: Clock, text: "Aguardando Validação" },
-      awaiting_quotation: { color: "bg-orange-500", icon: FileText, text: "Aguardando Orçamento" },
+      in_progress: { color: "bg-blue-600", icon: Clock, text: "Trabalho em Progresso" },
+      awaiting_validation: { color: "bg-yellow-600", icon: Clock, text: "Aguardando Validação" },
+      awaiting_quotation: { color: "bg-orange-500", icon: FileText, text: "Necessita Orçamento" },
       quotation_received: { color: "bg-purple-500", icon: FileText, text: "Orçamento Recebido" },
-      completed: { color: "bg-green-500", icon: CheckCircle, text: "Concluída" },
+      completed: { color: "bg-green-600", icon: CheckCircle, text: "Trabalho Concluído" },
       cancelled: { color: "bg-red-500", icon: AlertCircle, text: "Cancelada" },
     };
     return configs[status as keyof typeof configs] || configs.pending;
@@ -358,52 +359,108 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
   const getPriorityColor = () => {
     if (assistance.requires_quotation) return "border-l-orange-500";
     if (assistance.status === "pending") return "border-l-red-500";
-    return "border-l-green-500";
+    if (assistance.status === "in_progress") return "border-l-blue-500";
+    if (assistance.status === "completed") return "border-l-green-500";
+    return "border-l-gray-300";
   };
 
   const getMainAction = () => {
+    // No response yet - need to respond
     if (!supplierResponse && (assistance.status === "pending" || assistance.status === "awaiting_quotation")) {
       return "respond";
     }
+    
+    // Accepted and needs quotation but no quotation submitted
     if (assistance.requires_quotation && !quotations.length && supplierResponse?.response_type === "accepted") {
       return "quote";
     }
-    if (assistance.status === "in_progress") {
-      return "progress";
+    
+    // Accepted but not started
+    if (assistance.status === "accepted" && !assistance.requires_quotation) {
+      return "start";
     }
+    
+    // Work in progress - can complete
+    if (assistance.status === "in_progress") {
+      return "complete";
+    }
+    
+    // Awaiting validation - show status
+    if (assistance.status === "awaiting_validation") {
+      return "validation";
+    }
+    
+    // Completed
+    if (assistance.status === "completed") {
+      return "completed";
+    }
+    
     return null;
   };
 
-  const handleAccept = (notes?: string) => {
-    createResponseMutation.mutate({
-      assistanceId: assistance.id,
-      supplierId: supplier.id,
-      responseType: "accepted",
-      notes
-    });
+  const handleAccept = async (notes?: string) => {
+    try {
+      // Create response and update status in one action
+      await createResponseMutation.mutateAsync({
+        assistanceId: assistance.id,
+        supplierId: supplier.id,
+        responseType: "accepted",
+        notes
+      });
+      
+      // Immediately update local state to avoid UI lag
+      queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
+      queryClient.invalidateQueries({ queryKey: ["assistances"] });
+    } catch (error) {
+      console.error("Error accepting assistance:", error);
+    }
   };
 
-  const handleDecline = (reason: string) => {
-    createResponseMutation.mutate({
-      assistanceId: assistance.id,
-      supplierId: supplier.id,
-      responseType: "declined",
-      declineReason: reason
-    });
+  const handleDecline = async (reason: string) => {
+    try {
+      await createResponseMutation.mutateAsync({
+        assistanceId: assistance.id,
+        supplierId: supplier.id,
+        responseType: "declined",
+        declineReason: reason
+      });
+      
+      // Update queries
+      queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
+      queryClient.invalidateQueries({ queryKey: ["assistances"] });
+    } catch (error) {
+      console.error("Error declining assistance:", error);
+    }
   };
 
-  const handleStartWork = () => {
-    updateAssistanceMutation.mutate({
-      assistanceId: assistance.id,
-      newStatus: "in_progress"
-    });
+  const handleStartWork = async () => {
+    try {
+      await updateAssistanceMutation.mutateAsync({
+        assistanceId: assistance.id,
+        newStatus: "in_progress"
+      });
+      
+      // Force refresh
+      queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
+      queryClient.invalidateQueries({ queryKey: ["assistances"] });
+    } catch (error) {
+      console.error("Error starting work:", error);
+    }
   };
 
-  const handleCompleteWork = () => {
-    updateAssistanceMutation.mutate({
-      assistanceId: assistance.id,
-      newStatus: "awaiting_validation"
-    });
+  const handleCompleteWork = async () => {
+    try {
+      await updateAssistanceMutation.mutateAsync({
+        assistanceId: assistance.id,
+        newStatus: assistance.requires_validation ? "awaiting_validation" : "completed"
+      });
+      
+      // Force refresh
+      queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
+      queryClient.invalidateQueries({ queryKey: ["assistances"] });
+    } catch (error) {
+      console.error("Error completing work:", error);
+    }
   };
 
   const mainAction = getMainAction();
@@ -475,24 +532,42 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
           </Button>
         )}
 
-        {assistance.status === "accepted" && !assistance.requires_quotation && (
+        {mainAction === "start" && (
           <Button 
             onClick={handleStartWork}
-            className="w-full h-12"
+            className="w-full h-12 bg-blue-600 hover:bg-blue-700"
             size="lg"
+            disabled={updateAssistanceMutation.isPending}
           >
-            Iniciar Trabalho
+            {updateAssistanceMutation.isPending ? "A iniciar..." : "Iniciar Trabalho"}
           </Button>
         )}
 
-        {mainAction === "progress" && (
+        {mainAction === "complete" && (
           <Button 
             onClick={handleCompleteWork}
-            className="w-full h-12"
+            className="w-full h-12 bg-green-600 hover:bg-green-700"
             size="lg"
+            disabled={updateAssistanceMutation.isPending}
           >
-            Completar Trabalho
+            {updateAssistanceMutation.isPending ? "A completar..." : "Completar Trabalho"}
           </Button>
+        )}
+
+        {mainAction === "validation" && (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800 font-medium">
+              ✓ Trabalho marcado como concluído. Aguardando validação da administração.
+            </p>
+          </div>
+        )}
+
+        {mainAction === "completed" && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-800 font-medium">
+              ✅ Trabalho concluído e validado com sucesso!
+            </p>
+          </div>
         )}
 
         {/* Quick Actions */}

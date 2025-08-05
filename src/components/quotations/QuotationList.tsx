@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { FileText, Euro, Calendar, User, CheckCircle, XCircle, Clock } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { FileText, Euro, Calendar, User, CheckCircle, XCircle, Clock, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -111,8 +112,39 @@ export default function QuotationList({ assistanceId }: QuotationListProps) {
     },
   });
 
+  const deleteQuotationMutation = useMutation({
+    mutationFn: async (quotationId: string) => {
+      const { error } = await supabase
+        .from("quotations")
+        .delete()
+        .eq("id", quotationId);
+
+      if (error) throw error;
+      return quotationId;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso",
+        description: "Orçamento eliminado com sucesso!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["assistance-quotations", assistanceId] });
+    },
+    onError: (error: any) => {
+      console.error("Delete quotation error:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao eliminar orçamento. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleStatusUpdate = (quotationId: string, status: "approved" | "rejected") => {
     updateQuotationMutation.mutate({ quotationId, status });
+  };
+
+  const handleDelete = (quotationId: string) => {
+    deleteQuotationMutation.mutate(quotationId);
   };
 
   if (isLoading) {
@@ -271,23 +303,55 @@ export default function QuotationList({ assistanceId }: QuotationListProps) {
                         </div>
 
                         {quotation.status === "pending" && (
-                          <div className="flex justify-end gap-2 pt-4">
-                            <Button
-                              variant="outline"
-                              onClick={() => handleStatusUpdate(quotation.id, "rejected")}
-                              disabled={updateQuotationMutation.isPending}
-                            >
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Rejeitar
-                            </Button>
-                            <Button
-                              onClick={() => handleStatusUpdate(quotation.id, "approved")}
-                              disabled={updateQuotationMutation.isPending}
-                              className="bg-success hover:bg-success/90"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Aprovar
-                            </Button>
+                          <div className="flex justify-between items-center pt-4">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Eliminar
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmar Eliminação</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja eliminar este orçamento? Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(quotation.id)}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                  >
+                                    Eliminar
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => handleStatusUpdate(quotation.id, "rejected")}
+                                disabled={updateQuotationMutation.isPending}
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Rejeitar
+                              </Button>
+                              <Button
+                                onClick={() => handleStatusUpdate(quotation.id, "approved")}
+                                disabled={updateQuotationMutation.isPending}
+                                className="bg-success hover:bg-success/90"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Aprovar
+                              </Button>
+                            </div>
                           </div>
                         )}
                       </div>

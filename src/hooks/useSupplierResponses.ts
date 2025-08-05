@@ -75,7 +75,10 @@ export const useCreateSupplierResponse = () => {
 
       // Update assistance status based on response
       let newStatus = "pending";
-      let updateData: any = { updated_at: new Date().toISOString() };
+      let updateData: any = { 
+        updated_at: new Date().toISOString(),
+        supplier_notes: data.notes 
+      };
 
       if (data.responseType === "accepted") {
         newStatus = data.scheduledStartDate ? "scheduled" : "accepted";

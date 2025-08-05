@@ -213,10 +213,15 @@ export const useUpdateAssistanceStatus = () => {
         description: `Assistência marcada como ${getStatusLabel(data.status)}`,
       });
 
-      // Invalidate queries to refresh data
+      // Force immediate refresh of all related queries
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
       queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
       queryClient.invalidateQueries({ queryKey: ["assistance", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["supplier-assistances"] });
+      
+      // Refetch immediately for real-time updates
+      queryClient.refetchQueries({ queryKey: ["assistances"] });
+      queryClient.refetchQueries({ queryKey: ["supplier-assistances"] });
     },
     onError: (error: any) => {
       console.error("Update status error:", error);

@@ -165,6 +165,32 @@ export const useUpdateQuotationStatus = () => {
   });
 };
 
+// Delete quotation
+export const useDeleteQuotation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (quotationId: string) => {
+      const { error } = await supabase
+        .from("quotations")
+        .delete()
+        .eq("id", quotationId);
+
+      if (error) throw error;
+      return quotationId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["quotation-stats"] });
+      toast.success("Orçamento eliminado com sucesso!");
+    },
+    onError: (error) => {
+      console.error("Error deleting quotation:", error);
+      toast.error("Erro ao eliminar orçamento");
+    },
+  });
+};
+
 // Request quotation for assistance
 export const useRequestQuotation = () => {
   const queryClient = useQueryClient();
