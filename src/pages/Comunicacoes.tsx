@@ -13,6 +13,7 @@ import { pt } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { AutomatedNotifications } from "@/components/supplier/AutomatedNotifications";
+import NotificationsDashboard from "@/components/communications/NotificationsDashboard";
 
 interface EmailLog {
   id: string;
@@ -222,12 +223,17 @@ export default function Comunicacoes() {
       </div>
 
       {/* Email Logs */}
-      <Tabs defaultValue="logs" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="logs">Histórico de Emails</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="automation">Automação</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="notifications" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="notifications">Dashboard de Notificações</TabsTrigger>
+            <TabsTrigger value="logs">Histórico de Emails</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="automation">Automação</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="notifications" className="space-y-4">
+            <NotificationsDashboard />
+          </TabsContent>
 
         <TabsContent value="logs">
           <Card>

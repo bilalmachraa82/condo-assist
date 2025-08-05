@@ -28,44 +28,34 @@ export function AutomatedNotifications() {
   
   const [automationRules, setAutomationRules] = useState<AutomationRule[]>([
     {
-      id: "assignment",
-      name: "Nova Assistência Atribuída",
-      description: "Enviar email automaticamente quando uma assistência for atribuída a um fornecedor",
+      id: "critical",
+      name: "Lembretes para Assistências CRÍTICAS",
+      description: "1º lembrete: 6h | 2º lembrete: 12h | Escalação: 24h",
       enabled: true,
-      trigger: "assistance_assigned",
-      delay: 0,
-      icon: <Send className="h-4 w-4" />,
-      color: "bg-blue-100 text-blue-800"
+      trigger: "critical_priority",
+      delay: 6,
+      icon: <AlertTriangle className="h-4 w-4" />,
+      color: "bg-red-100 text-red-800"
     },
     {
-      id: "reminder_24h",
-      name: "Lembrete 24h",
-      description: "Lembrar fornecedor após 24 horas sem resposta",
+      id: "urgent", 
+      name: "Lembretes para Assistências URGENTES",
+      description: "1º lembrete: 24h | 2º lembrete: 48h | Escalação: 72h",
       enabled: true,
-      trigger: "no_response",
+      trigger: "urgent_priority",
       delay: 24,
       icon: <Clock className="h-4 w-4" />,
-      color: "bg-yellow-100 text-yellow-800"
-    },
-    {
-      id: "reminder_48h",
-      name: "Lembrete 48h",
-      description: "Segundo lembrete após 48 horas sem resposta",
-      enabled: true,
-      trigger: "no_response",
-      delay: 48,
-      icon: <AlertTriangle className="h-4 w-4" />,
       color: "bg-orange-100 text-orange-800"
     },
     {
-      id: "escalation",
-      name: "Escalação Crítica",
-      description: "Escalar para administrador após 72h sem resposta em assistências críticas",
+      id: "normal",
+      name: "Lembretes para Assistências NORMAIS", 
+      description: "1º lembrete: 48h | 2º lembrete: 96h | Escalação: 120h",
       enabled: true,
-      trigger: "critical_no_response",
-      delay: 72,
-      icon: <AlertTriangle className="h-4 w-4" />,
-      color: "bg-red-100 text-red-800"
+      trigger: "normal_priority",
+      delay: 48,
+      icon: <Send className="h-4 w-4" />,
+      color: "bg-blue-100 text-blue-800"
     }
   ]);
 

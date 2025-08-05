@@ -25,20 +25,21 @@ export default function RealtimeNotificationCenter() {
   } = useRealtimeNotifications();
 
   const { onlineUsers, currentUser, updateStatus } = useUserPresence();
-  const { showNotification } = useNotifications();
+  const browserNotifications = useNotifications();
 
   // Show browser notifications for new notifications
   useEffect(() => {
     const latestNotification = notifications[0];
     if (latestNotification && !latestNotification.read) {
-      showNotification({
-        title: latestNotification.title,
-        body: latestNotification.message,
-        tag: `notification-${latestNotification.id}`,
-        requireInteraction: true
-      });
+      // Browser notification - simplified for now
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(latestNotification.title, {
+          body: latestNotification.message,
+          tag: `notification-${latestNotification.id}`
+        });
+      }
     }
-  }, [notifications, showNotification]);
+  }, [notifications]);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
