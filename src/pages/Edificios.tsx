@@ -321,6 +321,7 @@ export default function Edificios() {
   const filteredBuildings = buildings?.filter(building => 
     building.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     building.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    building.nif?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     building.address?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
@@ -402,6 +403,11 @@ export default function Edificios() {
                       <p className="text-sm text-muted-foreground mt-1">
                         Código: {building.code || 'N/A'}
                       </p>
+                      {building.nif && (
+                        <p className="text-sm text-muted-foreground">
+                          NIF: {building.nif}
+                        </p>
+                      )}
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

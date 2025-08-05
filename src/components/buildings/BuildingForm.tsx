@@ -13,7 +13,9 @@ const buildingSchema = z.object({
   code: z.string().min(1, "Código é obrigatório"),
   name: z.string().min(1, "Nome é obrigatório"),
   address: z.string().optional(),
-  nif: z.string().optional(),
+  nif: z.string().optional().refine((val) => !val || /^\d{9}$/.test(val), {
+    message: "NIF deve ter exatamente 9 dígitos"
+  }),
   cadastral_code: z.string().optional(),
   admin_notes: z.string().optional(),
   is_active: z.boolean().default(true),
