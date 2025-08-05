@@ -154,12 +154,31 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    // Send follow-up email to supplier
-    await resend.emails.send({
-      from: "Luvimg - Administração de Condomínios <arquivo@luvimg.com>",
-      to: [assistance.suppliers.email],
-      subject: emailSubject,
-      html: emailHtml,
+    // Send follow-up email to supplier using enhanced send-email function
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    await supabaseClient.functions.invoke('send-email', {
+      body: {
+        to: assistance.suppliers.email,
+        subject: emailSubject,
+        template: 'magic_code',
+        data: {
+          supplierName: assistance.suppliers.name,
+          magicCode,
+          assistanceDetails: {
+            title: assistance.title,
+            priority: assistance.priority,
+            buildingName: assistance.buildings.name,
+            interventionType: assistance.intervention_types.name,
+            description: assistance.description
+          },
+          portalUrl: `https://zmpitnpmplemfozvtbam.supabase.co/supplier-portal?code=${magicCode}`
+        },
+        from: 'Luvimg - Administração de Condomínios <arquivo@luvimg.com>'
+      }
     });
 
     console.log(`Follow-up email sent to supplier: ${assistance.suppliers.email}`);

@@ -42,7 +42,7 @@ export const generateAndSendMagicCode = async (
 
     if (supplierError) throw supplierError;
 
-    // Send email with magic code
+    // Send email with magic code using enhanced template
     try {
       await supabase.functions.invoke('send-email', {
         body: {
@@ -54,7 +54,8 @@ export const generateAndSendMagicCode = async (
             magicCode,
             expiresAt: expiresAt.toISOString(),
             portalUrl: `${window.location.origin}/supplier-portal?code=${magicCode}`
-          }
+          },
+          from: 'Luvimg - Administração de Condomínios <arquivo@luvimg.com>'
         }
       });
     } catch (emailError) {

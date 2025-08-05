@@ -133,11 +133,31 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    const emailResponse = await resend.emails.send({
-      from: "Luvimg - Administração de Condomínios <arquivo@luvimg.com>",
-      to: [supplier_email],
-      subject: `Solicitação de Orçamento - ${assistance_title}`,
-      html: emailHTML,
+    // Send email using enhanced send-email function
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const emailResponse = await supabaseClient.functions.invoke('send-email', {
+      body: {
+        to: supplier_email,
+        subject: `Solicitação de Orçamento - ${assistance_title}`,
+        template: 'magic_code',
+        data: {
+          supplierName: supplier_name,
+          magicCode,
+          assistanceDetails: {
+            title: assistance_title,
+            priority: 'normal',
+            buildingName: building_name,
+            interventionType: 'Orçamento Solicitado',
+            description: assistance_description
+          },
+          portalUrl: `https://zmpitnpmplemfozvtbam.supabase.co/supplier-portal?code=${magicCode}`
+        },
+        from: 'Luvimg - Administração de Condomínios <arquivo@luvimg.com>'
+      }
     });
 
     console.log("Quotation request email sent successfully:", emailResponse);
