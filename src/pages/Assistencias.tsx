@@ -258,12 +258,6 @@ export default function Assistencias() {
 
   // Filter assistances based on search term and filters
   const filteredAssistances = assistances?.filter(assistance => {
-    // Search term filter
-    const matchesSearch = !searchTerm || 
-      assistance.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assistance.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assistance.buildings?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assistance.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Status filter
     const matchesStatus = !filters.status || assistance.status === filters.status;
@@ -281,12 +275,20 @@ export default function Assistencias() {
     const matchesAssistanceNumber = !filters.assistanceNumber || 
       assistance.assistance_number?.toString().includes(filters.assistanceNumber);
 
+    // Search also includes assistance number
+    const matchesSearchWithNumber = !searchTerm || 
+      assistance.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      assistance.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      assistance.buildings?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      assistance.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      assistance.assistance_number?.toString().includes(searchTerm);
+
     // Date filters
     const createdDate = new Date(assistance.created_at);
     const matchesDateFrom = !filters.dateFrom || createdDate >= new Date(filters.dateFrom);
     const matchesDateTo = !filters.dateTo || createdDate <= new Date(filters.dateTo + 'T23:59:59');
 
-    return matchesSearch && matchesStatus && matchesPriority && matchesBuilding && matchesSupplier && matchesAssistanceNumber && matchesDateFrom && matchesDateTo;
+    return matchesSearchWithNumber && matchesStatus && matchesPriority && matchesBuilding && matchesSupplier && matchesAssistanceNumber && matchesDateFrom && matchesDateTo;
   }) || [];
 
   // Pull to refresh functionality
@@ -594,14 +596,50 @@ export default function Assistencias() {
         )}
       </div>
 
-      {filteredAssistances.length === 0 && (
+      {filteredAssistances.length === 0 && !isLoading && (
         <Card className="p-8">
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-4">
             <Wrench className="h-12 w-12 text-muted-foreground mx-auto" />
-            <h3 className="text-lg font-semibold">Nenhuma assistência encontrada</h3>
-            <p className="text-muted-foreground">
-              Não existem assistências que correspondam aos critérios de pesquisa.
-            </p>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">
+                {(searchTerm || Object.values(filters).some(Boolean)) ? 
+                  'Nenhuma assistência encontrada' : 
+                  'Nenhuma assistência criada ainda'
+                }
+              </h3>
+              <p className="text-muted-foreground">
+                {(searchTerm || Object.values(filters).some(Boolean)) ? (
+                  <>
+                    Não foram encontradas assistências que correspondam aos critérios:
+                    {searchTerm && <><br />• Termo de pesquisa: "{searchTerm}"</>}
+                    {filters.status && <><br />• Status: {filters.status}</>}
+                    {filters.priority && <><br />• Prioridade: {filters.priority}</>}
+                  </>
+                ) : (
+                  'Comece por criar uma nova assistência técnica para gerir os pedidos dos condomínios.'
+                )}
+              </p>
+            </div>
+            {(searchTerm || Object.values(filters).some(Boolean)) ? (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilters({});
+                }}
+                className="mt-4"
+              >
+                Limpar Pesquisa e Filtros
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => setShowCreateForm(true)}
+                className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300 mt-4"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeira Assistência
+              </Button>
+            )}
           </div>
         </Card>
       )}
