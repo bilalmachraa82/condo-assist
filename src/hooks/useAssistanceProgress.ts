@@ -18,10 +18,7 @@ export const useAssistanceProgress = (assistanceId: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("assistance_progress")
-        .select(`
-          *,
-          suppliers (name)
-        `)
+        .select("*")
         .eq("assistance_id", assistanceId)
         .order("created_at", { ascending: false });
 

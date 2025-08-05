@@ -43,20 +43,9 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get admin emails for notifications
-    const { data: adminProfiles, error: adminError } = await supabase
-      .from('profiles')
-      .select('user_id')
-      .in('user_id', 
-        supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('role', 'admin')
-      );
-
-    if (adminError) {
-      console.error('Error fetching admin profiles:', adminError);
-    }
+    // Note: Admin notification functionality simplified for now
+    // We can implement admin emails later if needed
+    console.log('Status notification processing for assistance:', assistanceId);
 
     const getStatusInfo = (status: string) => {
       const statusMap = {
