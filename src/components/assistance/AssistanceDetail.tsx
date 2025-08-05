@@ -14,6 +14,9 @@ import QuotationList from "@/components/quotations/QuotationList";
 import QuotationSection from "./QuotationSection";
 import EditAssistanceForm from "./EditAssistanceForm";
 import ProgressNotes from "./ProgressNotes";
+import InternalNotes from "./InternalNotes";
+import CommunicationLog from "./CommunicationLog";
+import ProgressTimeline from "./ProgressTimeline";
 import { PDFExportButton } from "./PDFExportButton";
 import { AssistancePDFTemplate } from "./AssistancePDFTemplate";
 import { useUpdateAssistanceStatus, useDeleteAssistance } from "@/hooks/useAssistances";
@@ -257,21 +260,13 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
                 </>
               )}
 
-              {(assistance.supplier_notes || assistance.admin_notes) && (
+              {assistance.supplier_notes && (
                 <>
                   <Separator />
-                  {assistance.supplier_notes && (
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">Notas do Fornecedor</p>
-                      <p className="text-sm text-muted-foreground">{assistance.supplier_notes}</p>
-                    </div>
-                  )}
-                  {assistance.admin_notes && (
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">Notas da Administração</p>
-                      <p className="text-sm text-muted-foreground">{assistance.admin_notes}</p>
-                    </div>
-                  )}
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Notas do Fornecedor</p>
+                    <p className="text-sm text-muted-foreground">{assistance.supplier_notes}</p>
+                  </div>
                 </>
               )}
             </CardContent>
@@ -279,12 +274,13 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
 
           {/* Photos and Quotations Section */}
           <Tabs defaultValue="gallery" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="gallery">Fotos</TabsTrigger>
               <TabsTrigger value="upload">Adicionar Foto</TabsTrigger>
               <TabsTrigger value="quotations">Orçamentos</TabsTrigger>
-              <TabsTrigger value="progress">Notas</TabsTrigger>
-              <TabsTrigger value="details">Detalhes</TabsTrigger>
+              <TabsTrigger value="internal">Notas Internas</TabsTrigger>
+              <TabsTrigger value="communication">Comunicação</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
             </TabsList>
             
             <TabsContent value="gallery" className="mt-4">
@@ -302,30 +298,16 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
               <QuotationSection assistance={assistance} />
             </TabsContent>
 
-            <TabsContent value="progress" className="mt-4">
-              <ProgressNotes assistanceId={assistance.id} />
+            <TabsContent value="internal" className="mt-4">
+              <InternalNotes assistance={assistance} canEdit={true} />
             </TabsContent>
 
-            <TabsContent value="details" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Detalhes Técnicos</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">ID da Assistência</p>
-                      <p className="text-sm text-muted-foreground font-mono">{assistance.id}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">Última Atualização</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(assistance.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <TabsContent value="communication" className="mt-4">
+              <CommunicationLog assistanceId={assistance.id} userRole="admin" />
+            </TabsContent>
+
+            <TabsContent value="timeline" className="mt-4">
+              <ProgressTimeline assistanceId={assistance.id} />
             </TabsContent>
           </Tabs>
         </div>
