@@ -8,8 +8,6 @@ import { OfflineIndicator } from "@/components/mobile/OfflineIndicator"
 import { MobileBreadcrumbs } from "@/components/mobile/MobileBreadcrumbs"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useNavigationGestures } from "@/hooks/useNavigationGestures"
-import { AuthStatusIndicator } from "@/components/auth/AuthStatusIndicator"
-import { SessionDebugger } from "@/components/auth/SessionDebugger"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
@@ -43,8 +41,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {isMobile && <MobileBreadcrumbs />}
           
           <main className={`flex-1 p-3 md:p-6 ${isMobile ? 'pb-20' : ''} transition-all duration-300`}>
-            <AuthStatusIndicator />
-            <SessionDebugger />
             {children}
           </main>
         </div>

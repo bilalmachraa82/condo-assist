@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, AlertTriangle, Calendar } from "lucide-react";
+import { X, Plus, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
@@ -24,10 +24,7 @@ const assistanceSchema = z.object({
   intervention_type_id: z.string().min(1, "Tipo de intervenção é obrigatório"),
   priority: z.enum(["normal", "urgent", "critical"]),
   assigned_supplier_id: z.string().optional().or(z.literal("")),
-  deadline_response: z.string().optional(),
-  response_deadline: z.string().optional(),
   requires_quotation: z.boolean().optional(),
-  quotation_deadline: z.string().optional(),
 });
 
 type AssistanceFormValues = z.infer<typeof assistanceSchema>;
@@ -67,10 +64,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
       intervention_type_id: "",
       priority: "normal",
       assigned_supplier_id: "",
-      deadline_response: "",
-      response_deadline: "",
       requires_quotation: false,
-      quotation_deadline: "",
     },
   });
 
@@ -83,23 +77,6 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
 
   const createAssistanceMutation = useMutation({
     mutationFn: async (values: AssistanceFormValues) => {
-      // Calculate response deadline based on priority if not set
-      let responseDeadline = values.response_deadline ? new Date(values.response_deadline) : null;
-      
-      if (!responseDeadline && values.assigned_supplier_id) {
-        const now = new Date();
-        switch (values.priority) {
-          case 'critical':
-            responseDeadline = new Date(now.getTime() + 4 * 60 * 60 * 1000); // 4 hours
-            break;
-          case 'urgent':
-            responseDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
-            break;
-          default:
-            responseDeadline = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours
-        }
-      }
-
       const { data, error } = await supabase
         .from("assistances")
         .insert({
@@ -109,11 +86,8 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
           intervention_type_id: values.intervention_type_id,
           priority: values.priority as any,
           assigned_supplier_id: values.assigned_supplier_id || null,
-          deadline_response: values.deadline_response ? new Date(values.deadline_response).toISOString() : null,
-          response_deadline: responseDeadline ? responseDeadline.toISOString() : null,
           requires_quotation: values.requires_quotation || false,
           quotation_requested_at: values.requires_quotation && values.assigned_supplier_id ? new Date().toISOString() : null,
-          quotation_deadline: values.quotation_deadline ? new Date(values.quotation_deadline).toISOString() : null,
           status: values.requires_quotation && values.assigned_supplier_id ? "awaiting_quotation" : "pending",
         } as any)
         .select()
@@ -144,7 +118,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                   assistance_title: assistance.title,
                   assistance_description: assistance.description,
                   building_name: building?.name || "N/A",
-                  deadline: assistance.quotation_deadline
+                  deadline: null
                 }
               });
 
@@ -473,77 +447,6 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
               )}
             />
 
-            {form.watch("requires_quotation") && (
-              <FormField
-                control={form.control}
-                name="quotation_deadline"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Prazo para Orçamento</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="datetime-local"
-                          {...field}
-                          value={field.value || ""}
-                          className="pl-10"
-                        />
-                      </div>
-                    </FormControl>
-                    <p className="text-sm text-muted-foreground">
-                      Defina um prazo para o fornecedor submeter o orçamento
-                    </p>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            <FormField
-              control={form.control}
-              name="deadline_response"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prazo de Resposta (opcional)</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        {...field} 
-                        type="datetime-local"
-                        className="pl-10"
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="response_deadline"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prazo para Resposta do Fornecedor (opcional)</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        {...field} 
-                        type="datetime-local"
-                        className="pl-10"
-                      />
-                    </div>
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    Se não definido, será calculado automaticamente baseado na prioridade
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={onClose}>
