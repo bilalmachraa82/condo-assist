@@ -420,6 +420,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
   };
 
   const handleStartWork = async () => {
+    setIsUpdatingStatus(true);
     try {
       const { error } = await supabase.rpc('atualizar_estado_assistencia_por_codigo', {
         p_magic_code: magicCode,
@@ -431,10 +432,13 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
     } catch (error) {
       console.error("Error starting work:", error);
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
   const handleCompleteWork = async () => {
+    setIsUpdatingStatus(true);
     try {
       const nextStatus = assistance.requires_validation ? 'awaiting_validation' : 'completed';
       const { error } = await supabase.rpc('atualizar_estado_assistencia_por_codigo', {
@@ -447,6 +451,8 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
     } catch (error) {
       console.error("Error completing work:", error);
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -524,9 +530,9 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
             onClick={handleStartWork}
             className="w-full h-12 bg-blue-600 hover:bg-blue-700"
             size="lg"
-            disabled={updateAssistanceMutation.isPending}
+            disabled={isUpdatingStatus}
           >
-            {updateAssistanceMutation.isPending ? "A iniciar..." : "Iniciar Trabalho"}
+            {isUpdatingStatus ? "A iniciar..." : "Iniciar Trabalho"}
           </Button>
         )}
 
@@ -535,9 +541,9 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
             onClick={handleCompleteWork}
             className="w-full h-12 bg-green-600 hover:bg-green-700"
             size="lg"
-            disabled={updateAssistanceMutation.isPending}
+            disabled={isUpdatingStatus}
           >
-            {updateAssistanceMutation.isPending ? "A completar..." : "Completar Trabalho"}
+            {isUpdatingStatus ? "A completar..." : "Completar Trabalho"}
           </Button>
         )}
 
