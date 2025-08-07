@@ -862,6 +862,14 @@ export type Database = {
         Args: { assistance_id: string }
         Returns: boolean
       }
+      atualizar_estado_assistencia_por_codigo: {
+        Args: {
+          p_magic_code: string
+          p_new_status: Database["public"]["Enums"]["assistance_status"]
+          p_supplier_notes?: string
+        }
+        Returns: Json
+      }
       calculate_reminder_schedule: {
         Args: {
           assistance_priority: Database["public"]["Enums"]["assistance_priority"]
@@ -874,6 +882,18 @@ export type Database = {
       }
       create_supplier_session: {
         Args: { p_supplier_id: string; p_magic_code: string }
+        Returns: Json
+      }
+      criar_resposta_fornecedor_por_codigo: {
+        Args: {
+          p_magic_code: string
+          p_response_type: string
+          p_notes?: string
+          p_estimated_completion_date?: string
+          p_estimated_duration_hours?: number
+          p_scheduled_start_date?: string
+          p_scheduled_end_date?: string
+        }
         Returns: Json
       }
       generate_assistance_number: {
