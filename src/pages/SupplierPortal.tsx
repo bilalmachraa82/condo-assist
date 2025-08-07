@@ -18,8 +18,6 @@ import AdminCommunication from "@/components/supplier/AdminCommunication";
 import FileUpload from "@/components/supplier/FileUpload";
 import ProgressTracker from "@/components/supplier/ProgressTracker";
 import ScheduleForm from "@/components/supplier/ScheduleForm";
-import { useUpdateAssistanceStatus } from "@/hooks/useAssistances";
-import { useCreateSupplierResponse } from "@/hooks/useSupplierResponses";
 import { useQuotationsByAssistance } from "@/hooks/useQuotations";
 
 interface Supplier {
@@ -306,6 +304,7 @@ export default function SupplierPortal() {
               key={assistance.id} 
               assistance={assistance} 
               supplier={supplier!}
+              magicCode={enteredCode}
             />
           ))
         )}
@@ -315,28 +314,15 @@ export default function SupplierPortal() {
 }
 
 // Separate component for each assistance card
-function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supplier: Supplier }) {
+function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assistance; supplier: Supplier; magicCode: string }) {
   const [showDetails, setShowDetails] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   
   const { data: quotations = [] } = useQuotationsByAssistance(assistance.id);
-  const { data: supplierResponses = [] } = useQuery({
-    queryKey: ["supplier-responses", supplier.id, assistance.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("supplier_responses")
-        .select("*")
-        .eq("supplier_id", supplier.id)
-        .eq("assistance_id", assistance.id);
-      if (error) throw error;
-      return data;
-    },
-  });
 
-  const supplierResponse = supplierResponses[0] || null;
-  const updateAssistanceMutation = useUpdateAssistanceStatus();
-  const createResponseMutation = useCreateSupplierResponse();
   const queryClient = useQueryClient();
+  const supplierResponse: any = null;
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const getStatusInfo = (status: string) => {
     const configs = {
@@ -365,50 +351,44 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
   };
 
   const getMainAction = () => {
-    // No response yet - need to respond
-    if (!supplierResponse && (assistance.status === "pending" || assistance.status === "awaiting_quotation")) {
+    if (assistance.status === "pending" || assistance.status === "awaiting_quotation") {
       return "respond";
     }
-    
-    // Accepted and needs quotation but no quotation submitted
-    if (assistance.requires_quotation && !quotations.length && supplierResponse?.response_type === "accepted") {
+    if (assistance.requires_quotation && !quotations.length && assistance.status === "accepted") {
       return "quote";
     }
-    
-    // Accepted but not started
     if (assistance.status === "accepted" && !assistance.requires_quotation) {
       return "start";
     }
-    
-    // Work in progress - can complete
     if (assistance.status === "in_progress") {
       return "complete";
     }
-    
-    // Awaiting validation - show status
     if (assistance.status === "awaiting_validation") {
       return "validation";
     }
-    
-    // Completed
     if (assistance.status === "completed") {
       return "completed";
     }
-    
     return null;
   };
 
   const handleAccept = async (notes?: string) => {
     try {
-      // Create response and update status in one action
-      await createResponseMutation.mutateAsync({
-        assistanceId: assistance.id,
-        supplierId: supplier.id,
-        responseType: "accepted",
-        notes
+      // Create response via RPC and update status to accepted
+      const { error: respError } = await supabase.rpc('criar_resposta_fornecedor_por_codigo', {
+        p_magic_code: magicCode,
+        p_response_type: 'accepted',
+        p_notes: notes ?? null
       });
-      
-      // Immediately update local state to avoid UI lag
+      if (respError) throw respError;
+
+      const { error: statusError } = await supabase.rpc('atualizar_estado_assistencia_por_codigo', {
+        p_magic_code: magicCode,
+        p_new_status: 'accepted',
+        p_supplier_notes: notes ?? null
+      });
+      if (statusError) throw statusError;
+
       queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
     } catch (error) {
@@ -418,14 +398,20 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
 
   const handleDecline = async (reason: string) => {
     try {
-      await createResponseMutation.mutateAsync({
-        assistanceId: assistance.id,
-        supplierId: supplier.id,
-        responseType: "declined",
-        declineReason: reason
+      const { error: respError } = await supabase.rpc('criar_resposta_fornecedor_por_codigo', {
+        p_magic_code: magicCode,
+        p_response_type: 'declined',
+        p_notes: reason
       });
-      
-      // Update queries
+      if (respError) throw respError;
+
+      const { error: statusError } = await supabase.rpc('atualizar_estado_assistencia_por_codigo', {
+        p_magic_code: magicCode,
+        p_new_status: 'cancelled',
+        p_supplier_notes: reason
+      });
+      if (statusError) throw statusError;
+
       queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
     } catch (error) {
@@ -435,12 +421,12 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
 
   const handleStartWork = async () => {
     try {
-      await updateAssistanceMutation.mutateAsync({
-        assistanceId: assistance.id,
-        newStatus: "in_progress"
+      const { error } = await supabase.rpc('atualizar_estado_assistencia_por_codigo', {
+        p_magic_code: magicCode,
+        p_new_status: 'in_progress'
       });
-      
-      // Force refresh
+      if (error) throw error;
+
       queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
     } catch (error) {
@@ -450,12 +436,13 @@ function AssistanceCard({ assistance, supplier }: { assistance: Assistance; supp
 
   const handleCompleteWork = async () => {
     try {
-      await updateAssistanceMutation.mutateAsync({
-        assistanceId: assistance.id,
-        newStatus: assistance.requires_validation ? "awaiting_validation" : "completed"
+      const nextStatus = assistance.requires_validation ? 'awaiting_validation' : 'completed';
+      const { error } = await supabase.rpc('atualizar_estado_assistencia_por_codigo', {
+        p_magic_code: magicCode,
+        p_new_status: nextStatus
       });
-      
-      // Force refresh
+      if (error) throw error;
+
       queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
     } catch (error) {

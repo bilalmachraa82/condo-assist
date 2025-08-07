@@ -91,20 +91,24 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    // Generate a short-lived signed URL for immediate preview
+    const { data: signedData, error: signedError } = await supabase.storage
       .from('assistance-photos')
-      .getPublicUrl(fileName);
+      .createSignedUrl(fileName, 60 * 60); // 1 hour
 
-    console.log('File uploaded successfully:', publicUrl);
+    if (signedError) {
+      console.error('Signed URL error:', signedError);
+    }
 
-    // Save photo record to database
+    console.log('File uploaded successfully at path:', fileName);
+
+    // Save photo record to database (store path instead of public URL)
     const { data: photoRecord, error: dbError } = await supabase
       .from('assistance_photos')
       .insert({
         assistance_id: assistanceId,
         photo_type: photoType,
-        file_url: publicUrl,
+        file_url: fileName, // store path; UI will request signed URL
         caption: caption || null,
         uploaded_by: user.id,
       })
@@ -149,7 +153,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({
         success: true,
         photo: photoRecord,
-        url: publicUrl
+        signedUrl: signedData?.signedUrl ?? null
       }),
       {
         status: 200,

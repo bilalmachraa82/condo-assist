@@ -32,7 +32,7 @@ const photoTypeBadgeVariants = {
 export default function PhotoGallery({ assistanceId }: PhotoGalleryProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<AssistancePhoto | null>(null);
 
-  const { data: photos, isLoading, refetch } = useQuery({
+  const { data: photos, isLoading } = useQuery({
     queryKey: ["assistance-photos", assistanceId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -42,7 +42,22 @@ export default function PhotoGallery({ assistanceId }: PhotoGalleryProps) {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as AssistancePhoto[];
+
+      // Map to include display_url (signed URL if needed)
+      const mapped = await Promise.all(
+        (data || []).map(async (p) => {
+          const isHttp = typeof p.file_url === 'string' && /^https?:\/\//i.test(p.file_url);
+          if (isHttp) {
+            return { ...p, display_url: p.file_url } as AssistancePhoto & { display_url: string };
+          }
+          const { data: signed } = await supabase.storage
+            .from('assistance-photos')
+            .createSignedUrl(p.file_url as unknown as string, 60 * 60);
+          return { ...p, display_url: signed?.signedUrl || '' } as AssistancePhoto & { display_url: string };
+        })
+      );
+
+      return mapped as (AssistancePhoto & { display_url: string })[];
     },
   });
 
@@ -117,7 +132,7 @@ export default function PhotoGallery({ assistanceId }: PhotoGalleryProps) {
                       <div className="group cursor-pointer">
                         <div className="relative overflow-hidden rounded-lg border bg-muted">
                           <img
-                            src={photo.file_url}
+                            src={(photo as any).display_url || photo.file_url}
                             alt={photo.caption || `Foto ${photoTypeLabels[type as keyof typeof photoTypeLabels]}`}
                             className="aspect-square object-cover transition-transform group-hover:scale-105"
                             loading="lazy"
@@ -150,7 +165,7 @@ export default function PhotoGallery({ assistanceId }: PhotoGalleryProps) {
                       <div className="space-y-4">
                         <div className="relative">
                           <img
-                            src={photo.file_url}
+                            src={(photo as any).display_url || photo.file_url}
                             alt={photo.caption || `Foto ${photoTypeLabels[type as keyof typeof photoTypeLabels]}`}
                             className="w-full max-h-[70vh] object-contain rounded-lg"
                           />
@@ -167,7 +182,7 @@ export default function PhotoGallery({ assistanceId }: PhotoGalleryProps) {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(photo.file_url, '_blank')}
+                            onClick={() => window.open(((photo as any).display_url || photo.file_url) as string, '_blank')}
                           >
                             <ExternalLink className="h-4 w-4 mr-2" />
                             Ver Original
