@@ -43,19 +43,25 @@ export default function PhotoGallery({ assistanceId }: PhotoGalleryProps) {
 
       if (error) throw error;
 
-      // Map to include display_url (signed URL if needed)
-      const mapped = await Promise.all(
-        (data || []).map(async (p) => {
-          const isHttp = typeof p.file_url === 'string' && /^https?:\/\//i.test(p.file_url);
-          if (isHttp) {
-            return { ...p, display_url: p.file_url } as AssistancePhoto & { display_url: string };
-          }
-          const { data: signed } = await supabase.storage
-            .from('assistance-photos')
-            .createSignedUrl(p.file_url as unknown as string, 60 * 60);
-          return { ...p, display_url: signed?.signedUrl || '' } as AssistancePhoto & { display_url: string };
-        })
-      );
+      // Build signed URLs via edge function for non-HTTP paths
+      const nonHttpPaths = (data || [])
+        .filter((p) => !(typeof p.file_url === 'string' && /^https?:\/\//i.test(p.file_url)))
+        .map((p) => p.file_url as unknown as string);
+
+      let signedMap: Record<string, string> = {};
+      if (nonHttpPaths.length) {
+        const { data: signData, error: signError } = await supabase.functions.invoke('sign-assistance-photos', {
+          body: { paths: nonHttpPaths, expiresIn: 60 * 60 },
+        });
+        if (signError) throw signError;
+        signedMap = (signData?.urls || {}) as Record<string, string>;
+      }
+
+      const mapped = (data || []).map((p) => {
+        const isHttp = typeof p.file_url === 'string' && /^https?:\/\//i.test(p.file_url);
+        const display = isHttp ? (p.file_url as string) : (signedMap[p.file_url as unknown as string] || '');
+        return { ...p, display_url: display } as AssistancePhoto & { display_url: string };
+      });
 
       return mapped as (AssistancePhoto & { display_url: string })[];
     },

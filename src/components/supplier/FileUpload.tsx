@@ -25,36 +25,31 @@ export default function FileUpload({ assistanceId, supplierId }: FileUploadProps
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${assistanceId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('assistance-photos')
-        .upload(fileName, file);
+      // Read file as base64
+      const toBase64 = (f: File) => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(f);
+      });
 
-      if (uploadError) throw uploadError;
+      const dataUrl = await toBase64(file);
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('assistance-photos')
-        .getPublicUrl(fileName);
+      const { data, error } = await supabase.functions.invoke('upload-assistance-photo', {
+        body: {
+          assistanceId,
+          photoType,
+          caption,
+          file: {
+            name: file.name,
+            type: file.type,
+            data: dataUrl,
+          },
+        },
+      });
 
-      // Save to database
-      const { data: photoData, error: photoError } = await supabase
-        .from('assistance_photos')
-        .insert({
-          assistance_id: assistanceId,
-          file_url: publicUrl,
-          photo_type: photoType,
-          caption: caption,
-          uploaded_by_supplier: supplierId
-        })
-        .select()
-        .single();
-
-      if (photoError) throw photoError;
-      return photoData;
+      if (error) throw error;
+      return data?.photo;
     },
     onSuccess: () => {
       toast({
@@ -63,7 +58,7 @@ export default function FileUpload({ assistanceId, supplierId }: FileUploadProps
       });
       setSelectedFile(null);
       setCaption("");
-      queryClient.invalidateQueries({ queryKey: ["assistance-photos"] });
+      queryClient.invalidateQueries({ queryKey: ["assistance-photos", assistanceId] });
     },
     onError: (error: any) => {
       console.error("Upload error:", error);
