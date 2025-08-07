@@ -16,7 +16,7 @@ export const useCommunicationLog = (assistanceId: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("communications_log")
-        .select("*")
+        .select("id, assistance_id, sender_type, sender_id, message_type, message, created_at")
         .eq("assistance_id", assistanceId)
         .order("created_at", { ascending: true });
 
