@@ -100,6 +100,18 @@ export default function SupplierPortal() {
         setAuthenticated(true);
         setValidationError(null);
         setLinkedAssistanceId(validation.assistanceId ?? null);
+
+        // Auto-associate code to latest assistance if not linked
+        if (!validation.assistanceId) {
+          try {
+            const { data: linkData } = await supabase.rpc('link_code_to_latest_assistance', { p_magic_code: enteredCode });
+            if ((linkData as any)?.success && (linkData as any)?.assistance_id) {
+              setLinkedAssistanceId((linkData as any).assistance_id);
+            }
+          } catch (e) {
+            console.warn("Falha ao associar automaticamente o código à assistência mais recente.", e);
+          }
+        }
         
         toast({
           title: "Acesso autorizado",
@@ -123,70 +135,31 @@ export default function SupplierPortal() {
     retry: false,
   });
 
-  // Get supplier's assistances
+  // Get supplier's assistances via RPC (bypasses RLS for anonymous access)
   const { data: assistances = [], isLoading: loadingAssistances } = useQuery({
-    queryKey: ["supplier-assistances", supplier?.id, linkedAssistanceId],
+    queryKey: ["supplier-assistances", enteredCode, linkedAssistanceId],
     queryFn: async () => {
-      if (!supplier?.id && !linkedAssistanceId) return [];
+      if (!enteredCode) return [];
       
-      console.log(`Fetching assistances for supplier: ${supplier?.id || 'n/a'} with linked assistance: ${linkedAssistanceId || 'none'}`);
+      console.log(`Fetching assistances via RPC for code: ${enteredCode}`);
+      const { data, error } = await supabase.rpc('get_assistances_for_code', { p_magic_code: enteredCode });
       
-      let query = supabase
-        .from("assistances")
-        .select(`
-          id, 
-          title,
-          description, 
-          status, 
-          supplier_notes, 
-          created_at,
-          scheduled_start_date, 
-          scheduled_end_date, 
-          actual_start_date, 
-          actual_end_date,
-          completion_photos_required, 
-          requires_validation, 
-          requires_quotation,
-          quotation_requested_at, 
-          quotation_deadline,
-          building_id,
-          intervention_type_id,
-          buildings (
-            name,
-            address
-          ),
-          intervention_types (
-            name
-          )
-        `);
-
-      if (supplier?.id && linkedAssistanceId) {
-        query = query.or(`assigned_supplier_id.eq.${supplier.id},id.eq.${linkedAssistanceId}`);
-      } else if (supplier?.id) {
-        query = query.eq("assigned_supplier_id", supplier.id);
-      } else if (linkedAssistanceId) {
-        query = query.eq("id", linkedAssistanceId);
-      }
-
-      const { data: assistanceData, error } = await query
-        .in("status", ["pending", "awaiting_quotation", "quotation_received", "accepted", "scheduled", "in_progress", "awaiting_validation"])
-        .order("created_at", { ascending: false });
-
       if (error) {
-        console.error("Error fetching assistances:", error);
+        console.error("Error fetching assistances via RPC:", error);
         throw error;
       }
       
-      console.log(`Found ${assistanceData?.length || 0} assistances`);
+      const assistanceData = (data as any[]) || [];
+      console.log(`Found ${assistanceData.length} assistances via RPC`);
       
-      return (assistanceData || []).map(assistance => ({
-        ...assistance,
-        building_name: assistance.buildings?.name || "N/A",
-        building_address: assistance.buildings?.address || "N/A", 
-        intervention_type_name: assistance.intervention_types?.name || "N/A",
+      return assistanceData.map((a: any) => ({
+        ...a,
+        building_name: a.building_name || "N/A",
+        building_address: a.building_address || "N/A",
+        intervention_type_name: a.intervention_type_name || "N/A",
       }));
     },
-    enabled: !!supplier?.id || !!linkedAssistanceId,
+    enabled: !!enteredCode && authenticated,
   });
 
   const handleCodeSubmit = (e: React.FormEvent) => {

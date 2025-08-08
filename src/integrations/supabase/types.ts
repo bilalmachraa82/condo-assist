@@ -904,6 +904,31 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_assistances_for_code: {
+        Args: { p_magic_code: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          status: Database["public"]["Enums"]["assistance_status"]
+          supplier_notes: string
+          created_at: string
+          scheduled_start_date: string
+          scheduled_end_date: string
+          actual_start_date: string
+          actual_end_date: string
+          completion_photos_required: boolean
+          requires_validation: boolean
+          requires_quotation: boolean
+          quotation_requested_at: string
+          quotation_deadline: string
+          building_id: string
+          intervention_type_id: string
+          building_name: string
+          building_address: string
+          intervention_type_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -914,6 +939,10 @@ export type Database = {
       is_admin: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      link_code_to_latest_assistance: {
+        Args: { p_magic_code: string }
+        Returns: Json
       }
       log_supplier_access: {
         Args: {
