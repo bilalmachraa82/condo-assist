@@ -12,7 +12,8 @@ import { validateMagicCode } from "@/utils/magicCodeGenerator";
 import { Building, CheckCircle, Clock, AlertCircle, MapPin, Calendar, Phone, Mail, MessageCircle, Upload, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import ResponseActions from "@/components/supplier/ResponseActions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import EnhancedQuotationForm from "@/components/supplier/EnhancedQuotationForm";
 import AdminCommunication from "@/components/supplier/AdminCommunication";
 import FileUpload from "@/components/supplier/FileUpload";
@@ -307,6 +308,9 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
   const queryClient = useQueryClient();
   const supplierResponse: any = null;
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [showDeclineDialog, setShowDeclineDialog] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
+  const { toast } = useToast();
 
   const getStatusInfo = (status: string) => {
     const configs = {
@@ -357,6 +361,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
   };
 
   const handleAccept = async (notes?: string) => {
+    setIsUpdatingStatus(true);
     try {
       // Create response via RPC and update status to accepted
       const { error: respError } = await supabase.rpc('criar_resposta_fornecedor_por_codigo', {
@@ -373,14 +378,19 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
       });
       if (statusError) throw statusError;
 
-      queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
-      queryClient.invalidateQueries({ queryKey: ["assistances"] });
+      toast({ title: "Assistência aceite", description: "Pode iniciar ou orçamentar conforme necessário." });
+      await queryClient.invalidateQueries({ queryKey: ["supplier-assistances"] });
+      await queryClient.invalidateQueries({ queryKey: ["assistances"] });
     } catch (error) {
       console.error("Error accepting assistance:", error);
+      toast({ title: "Erro ao aceitar", description: "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
   const handleDecline = async (reason: string) => {
+    setIsUpdatingStatus(true);
     try {
       const { error: respError } = await supabase.rpc('criar_resposta_fornecedor_por_codigo', {
         p_magic_code: magicCode,
@@ -396,10 +406,16 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
       });
       if (statusError) throw statusError;
 
-      queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
-      queryClient.invalidateQueries({ queryKey: ["assistances"] });
+      toast({ title: "Assistência recusada", description: "Informámos a administração do motivo." });
+      await queryClient.invalidateQueries({ queryKey: ["supplier-assistances"] });
+      await queryClient.invalidateQueries({ queryKey: ["assistances"] });
+      setShowDeclineDialog(false);
+      setDeclineReason("");
     } catch (error) {
       console.error("Error declining assistance:", error);
+      toast({ title: "Erro ao recusar", description: "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -412,7 +428,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
       });
       if (error) throw error;
 
-      queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
+      queryClient.invalidateQueries({ queryKey: ["supplier-assistances"] });
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
     } catch (error) {
       console.error("Error starting work:", error);
@@ -431,7 +447,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
       });
       if (error) throw error;
 
-      queryClient.invalidateQueries({ queryKey: ["supplier-assistances", supplier.id] });
+      queryClient.invalidateQueries({ queryKey: ["supplier-assistances"] });
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
     } catch (error) {
       console.error("Error completing work:", error);
@@ -482,19 +498,56 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
               onClick={() => handleAccept()}
               className="h-12"
               size="lg"
+              disabled={isUpdatingStatus}
             >
               <CheckCircle className="h-5 w-5 mr-2" />
-              Aceitar
+              {isUpdatingStatus ? "A aceitar..." : "Aceitar"}
             </Button>
-            <Button 
-              onClick={() => setActiveSection("decline")}
-              variant="destructive"
-              className="h-12"
-              size="lg"
-            >
-              <AlertCircle className="h-5 w-5 mr-2" />
-              Recusar
-            </Button>
+            <Dialog open={showDeclineDialog} onOpenChange={setShowDeclineDialog}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="destructive"
+                  className="h-12"
+                  size="lg"
+                  disabled={isUpdatingStatus}
+                >
+                  <AlertCircle className="h-5 w-5 mr-2" />
+                  Recusar
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Recusar Assistência</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <Label htmlFor="decline-reason">Motivo da recusa</Label>
+                  <Textarea
+                    id="decline-reason"
+                    value={declineReason}
+                    onChange={(e) => setDeclineReason(e.target.value)}
+                    rows={3}
+                    placeholder="Explique o motivo..."
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleDecline(declineReason)}
+                      disabled={isUpdatingStatus || !declineReason.trim()}
+                      className="flex-1"
+                    >
+                      Confirmar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDeclineDialog(false)}
+                      className="flex-1"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
 
@@ -512,7 +565,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
         {mainAction === "start" && (
           <Button 
             onClick={handleStartWork}
-            className="w-full h-12 bg-blue-600 hover:bg-blue-700"
+            className="w-full h-12"
             size="lg"
             disabled={isUpdatingStatus}
           >
@@ -523,7 +576,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
         {mainAction === "complete" && (
           <Button 
             onClick={handleCompleteWork}
-            className="w-full h-12 bg-green-600 hover:bg-green-700"
+            className="w-full h-12"
             size="lg"
             disabled={isUpdatingStatus}
           >
@@ -568,31 +621,6 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
         </div>
 
         {/* Active Sections */}
-        {activeSection === "accept" && (
-          <div className="border rounded-lg p-4 bg-green-50">
-            <ResponseActions
-              assistance={assistance}
-              supplierResponse={supplierResponse}
-              quotations={quotations}
-              onAccept={handleAccept}
-              onDecline={() => {}}
-              onQuote={() => setActiveSection("quote")}
-            />
-          </div>
-        )}
-
-        {activeSection === "decline" && (
-          <div className="border rounded-lg p-4 bg-red-50">
-            <ResponseActions
-              assistance={assistance}
-              supplierResponse={supplierResponse}
-              quotations={quotations}
-              onAccept={() => {}}
-              onDecline={handleDecline}
-              onQuote={() => {}}
-            />
-          </div>
-        )}
 
         {activeSection === "quote" && (
           <div className="border rounded-lg p-4">
