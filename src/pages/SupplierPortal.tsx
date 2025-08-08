@@ -479,7 +479,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
         {mainAction === "respond" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Button 
-              onClick={() => setActiveSection("accept")}
+              onClick={() => handleAccept()}
               className="h-12"
               size="lg"
             >
