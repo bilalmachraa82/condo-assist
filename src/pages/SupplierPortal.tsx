@@ -76,6 +76,7 @@ export default function SupplierPortal() {
   const [enteredCode, setEnteredCode] = useState(magicCode || "");
   const [authenticated, setAuthenticated] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [linkedAssistanceId, setLinkedAssistanceId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -98,6 +99,7 @@ export default function SupplierPortal() {
 
         setAuthenticated(true);
         setValidationError(null);
+        setLinkedAssistanceId(validation.assistanceId ?? null);
         
         toast({
           title: "Acesso autorizado",
@@ -123,13 +125,13 @@ export default function SupplierPortal() {
 
   // Get supplier's assistances
   const { data: assistances = [], isLoading: loadingAssistances } = useQuery({
-    queryKey: ["supplier-assistances", supplier?.id],
+    queryKey: ["supplier-assistances", supplier?.id, linkedAssistanceId],
     queryFn: async () => {
-      if (!supplier?.id) return [];
+      if (!supplier?.id && !linkedAssistanceId) return [];
       
-      console.log(`Fetching assistances for supplier: ${supplier.id}`);
+      console.log(`Fetching assistances for supplier: ${supplier?.id || 'n/a'} with linked assistance: ${linkedAssistanceId || 'none'}`);
       
-      const { data: assistanceData, error } = await supabase
+      let query = supabase
         .from("assistances")
         .select(`
           id, 
@@ -156,8 +158,17 @@ export default function SupplierPortal() {
           intervention_types (
             name
           )
-        `)
-        .eq("assigned_supplier_id", supplier.id)
+        `);
+
+      if (supplier?.id && linkedAssistanceId) {
+        query = query.or(`assigned_supplier_id.eq.${supplier.id},id.eq.${linkedAssistanceId}`);
+      } else if (supplier?.id) {
+        query = query.eq("assigned_supplier_id", supplier.id);
+      } else if (linkedAssistanceId) {
+        query = query.eq("id", linkedAssistanceId);
+      }
+
+      const { data: assistanceData, error } = await query
         .in("status", ["pending", "awaiting_quotation", "quotation_received", "accepted", "scheduled", "in_progress", "awaiting_validation"])
         .order("created_at", { ascending: false });
 
@@ -166,16 +177,16 @@ export default function SupplierPortal() {
         throw error;
       }
       
-      console.log(`Found ${assistanceData?.length || 0} assistances for supplier ${supplier.id}`);
+      console.log(`Found ${assistanceData?.length || 0} assistances`);
       
-      return assistanceData.map(assistance => ({
+      return (assistanceData || []).map(assistance => ({
         ...assistance,
         building_name: assistance.buildings?.name || "N/A",
         building_address: assistance.buildings?.address || "N/A", 
         intervention_type_name: assistance.intervention_types?.name || "N/A",
       }));
     },
-    enabled: !!supplier?.id,
+    enabled: !!supplier?.id || !!linkedAssistanceId,
   });
 
   const handleCodeSubmit = (e: React.FormEvent) => {
