@@ -14,6 +14,7 @@ import Configuracoes from "./pages/Configuracoes";
 import TiposAssistencia from "./pages/TiposAssistencia";
 import Comunicacoes from "./pages/Comunicacoes";
 import Analytics from "./pages/Analytics";
+import EmailTesting from "./pages/EmailTesting";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
 import NotFound from "./pages/NotFound";
@@ -132,6 +133,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <DashboardLayout><Analytics /></DashboardLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/email-testing" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout><EmailTesting /></DashboardLayout>
                   </ProtectedRoute>
                 } 
               />
