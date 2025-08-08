@@ -880,6 +880,15 @@ export type Database = {
         Args: { assistance_id_param: string }
         Returns: boolean
       }
+      create_communication_via_code: {
+        Args: {
+          p_magic_code: string
+          p_assistance_id: string
+          p_message: string
+          p_message_type?: string
+        }
+        Returns: Json
+      }
       create_supplier_session: {
         Args: { p_supplier_id: string; p_magic_code: string }
         Returns: Json
@@ -927,6 +936,18 @@ export type Database = {
           building_name: string
           building_address: string
           intervention_type_name: string
+        }[]
+      }
+      get_communications_for_code: {
+        Args: { p_magic_code: string; p_assistance_id: string }
+        Returns: {
+          id: string
+          assistance_id: string
+          sender_type: string
+          sender_id: string
+          message_type: string
+          message: string
+          created_at: string
         }[]
       }
       has_role: {

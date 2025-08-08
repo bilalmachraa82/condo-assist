@@ -609,6 +609,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
             <AdminCommunication
               assistanceId={assistance.id}
               supplierId={supplier.id}
+              magicCode={magicCode}
             />
           </div>
         )}

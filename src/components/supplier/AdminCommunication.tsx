@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface AdminCommunicationProps {
   assistanceId: string;
   supplierId: string;
+  magicCode?: string; // Novo: suporte a código mágico no portal do fornecedor
 }
 
 interface CommunicationMessage {
@@ -20,17 +22,34 @@ interface CommunicationMessage {
   sender_type: "admin" | "supplier";
   sender_id: string;
   created_at: string;
+  assistance_id?: string;
+  message_type?: string;
 }
 
-export default function AdminCommunication({ assistanceId, supplierId }: AdminCommunicationProps) {
+export default function AdminCommunication({ assistanceId, supplierId, magicCode }: AdminCommunicationProps) {
   const [newMessage, setNewMessage] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch communications for this assistance
+  // Fetch communications para esta assistência (via RPC quando magicCode estiver presente)
   const { data: communications = [], isLoading } = useQuery({
-    queryKey: ["communications", assistanceId],
+    queryKey: ["communications", assistanceId, magicCode || "admin"],
     queryFn: async () => {
+      if (magicCode) {
+        console.log("[AdminCommunication] Fetch via RPC get_communications_for_code", { assistanceId });
+        const { data, error } = await supabase.rpc("get_communications_for_code", {
+          p_magic_code: magicCode,
+          p_assistance_id: assistanceId,
+        });
+
+        if (error) {
+          console.error("RPC get_communications_for_code error:", error);
+          throw error;
+        }
+        return (data as any[]) as CommunicationMessage[];
+      }
+
+      // Caminho admin autenticado (RLS permite SELECT)
       const { data, error } = await supabase
         .from("communications_log")
         .select("*")
@@ -39,11 +58,34 @@ export default function AdminCommunication({ assistanceId, supplierId }: AdminCo
 
       if (error) throw error;
       return data as CommunicationMessage[];
-    }
+    },
   });
 
   const sendMessageMutation = useMutation({
     mutationFn: async (message: string) => {
+      if (magicCode) {
+        console.log("[AdminCommunication] Create via RPC create_communication_via_code");
+        const { data, error } = await supabase.rpc("create_communication_via_code", {
+          p_magic_code: magicCode,
+          p_assistance_id: assistanceId,
+          p_message: message,
+          p_message_type: "general",
+        });
+
+        if (error) {
+          console.error("RPC create_communication_via_code error:", error);
+          throw error;
+        }
+
+        const result = data as any;
+        if (!result?.success) {
+          const err = result?.error || "unknown_error";
+          throw new Error(err);
+        }
+        return result.communication;
+      }
+
+      // Caminho admin autenticado (RLS permite INSERT)
       const { data, error } = await supabase
         .from("communications_log")
         .insert({
@@ -51,7 +93,7 @@ export default function AdminCommunication({ assistanceId, supplierId }: AdminCo
           sender_id: supplierId,
           sender_type: "supplier",
           message: message,
-          message_type: "general"
+          message_type: "general",
         })
         .select()
         .single();
@@ -65,27 +107,36 @@ export default function AdminCommunication({ assistanceId, supplierId }: AdminCo
     onSuccess: () => {
       toast({
         title: "Mensagem enviada",
-        description: "A sua mensagem foi enviada para o administrador.",
+        description: "A sua mensagem foi enviada.",
       });
       setNewMessage("");
-      queryClient.invalidateQueries({ queryKey: ["communications", assistanceId] });
+      queryClient.invalidateQueries({ queryKey: ["communications", assistanceId, magicCode || "admin"] });
     },
     onError: (error: any) => {
       console.error("Send message error:", error);
       let errorMessage = "Erro ao enviar mensagem. Tente novamente.";
-      
-      if (error.message?.includes("row-level security")) {
+
+      const msg = (error?.message || "").toLowerCase();
+      if (msg.includes("invalid_magic_code")) {
+        errorMessage = "Código inválido.";
+      } else if (msg.includes("expired_magic_code")) {
+        errorMessage = "Código expirado.";
+      } else if (msg.includes("not_allowed")) {
+        errorMessage = "Não tem permissão para comunicar nesta assistência.";
+      } else if (msg.includes("empty_message")) {
+        errorMessage = "A mensagem não pode estar vazia.";
+      } else if (msg.includes("row-level security")) {
         errorMessage = "Erro de autenticação. Verifique se tem permissão para enviar mensagens.";
-      } else if (error.message?.includes("network")) {
-        errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
+      } else if (msg.includes("network")) {
+        errorMessage = "Erro de conexão. Verifique a sua internet e tente novamente.";
       }
-      
+
       toast({
         title: "Erro",
         description: errorMessage,
         variant: "destructive",
       });
-    }
+    },
   });
 
   const handleSendMessage = () => {
@@ -99,7 +150,7 @@ export default function AdminCommunication({ assistanceId, supplierId }: AdminCo
       month: "2-digit",
       year: "numeric",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
   };
 
@@ -115,9 +166,7 @@ export default function AdminCommunication({ assistanceId, supplierId }: AdminCo
         {/* Messages */}
         <ScrollArea className="h-64 border rounded-lg p-4">
           {isLoading ? (
-            <div className="text-center text-muted-foreground">
-              Carregando mensagens...
-            </div>
+            <div className="text-center text-muted-foreground">Carregando mensagens...</div>
           ) : communications.length === 0 ? (
             <div className="text-center text-muted-foreground">
               Nenhuma mensagem ainda. Inicie uma conversa com o administrador.
@@ -125,31 +174,23 @@ export default function AdminCommunication({ assistanceId, supplierId }: AdminCo
           ) : (
             <div className="space-y-3">
               {communications.map((comm) => (
-                <div
-                  key={comm.id}
-                  className={`flex ${comm.sender_type === "supplier" ? "justify-end" : "justify-start"}`}
-                >
+                <div key={comm.id} className={`flex ${comm.sender_type === "supplier" ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[80%] rounded-lg p-3 ${
-                      comm.sender_type === "supplier"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                      comm.sender_type === "supplier" ? "bg-primary text-primary-foreground" : "bg-muted"
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      {comm.sender_type === "supplier" ? (
-                        <User className="h-3 w-3" />
-                      ) : (
-                        <UserCheck className="h-3 w-3" />
-                      )}
-                      <Badge variant={comm.sender_type === "supplier" ? "secondary" : "outline"} className="text-xs">
+                      {comm.sender_type === "supplier" ? <User className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
+                      <Badge
+                        variant={comm.sender_type === "supplier" ? "secondary" : "outline"}
+                        className="text-xs"
+                      >
                         {comm.sender_type === "supplier" ? "Você" : "Admin"}
                       </Badge>
                     </div>
                     <p className="text-sm">{comm.message}</p>
-                    <p className="text-xs opacity-70 mt-1">
-                      {formatDate(comm.created_at)}
-                    </p>
+                    <p className="text-xs opacity-70 mt-1">{formatDate(comm.created_at)}</p>
                   </div>
                 </div>
               ))}
