@@ -36,6 +36,7 @@ export default function ProgressTracker({
   const [description, setDescription] = useState("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const { toast } = useToast();
+  const magicCode = new URLSearchParams(window.location.search).get('code');
 
   const { data: progressData = [], isLoading } = useAssistanceProgress(assistanceId);
   const createProgress = useCreateAssistanceProgress();
@@ -84,14 +85,26 @@ export default function ProgressTracker({
         }
       }
 
-      await createProgress.mutateAsync({
-        assistanceId,
-        supplierId,
-        progressType,
-        title: title || undefined,
-        description,
-        photoUrls: photoUrls.length > 0 ? photoUrls : undefined
-      });
+      if (magicCode) {
+        const { error } = await (supabase as any).rpc('create_assistance_progress_via_code', {
+          p_magic_code: magicCode,
+          p_assistance_id: assistanceId,
+          p_progress_type: progressType,
+          p_title: title || null,
+          p_description: description,
+          p_photo_urls: photoUrls.length > 0 ? photoUrls : null,
+        });
+        if (error) throw error;
+      } else {
+        await createProgress.mutateAsync({
+          assistanceId,
+          supplierId,
+          progressType,
+          title: title || undefined,
+          description,
+          photoUrls: photoUrls.length > 0 ? photoUrls : undefined
+        });
+      }
 
       // Reset form
       setTitle("");

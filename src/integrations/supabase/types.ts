@@ -889,6 +889,17 @@ export type Database = {
         }
         Returns: Json
       }
+      create_quotation_via_code: {
+        Args: {
+          p_magic_code: string
+          p_amount: number
+          p_description?: string
+          p_notes?: string
+          p_validity_days?: number
+          p_assistance_id?: string
+        }
+        Returns: Json
+      }
       create_supplier_session: {
         Args: { p_supplier_id: string; p_magic_code: string }
         Returns: Json

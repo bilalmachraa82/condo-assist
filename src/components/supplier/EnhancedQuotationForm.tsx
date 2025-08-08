@@ -45,6 +45,7 @@ export default function EnhancedQuotationForm({
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const magicCode = new URLSearchParams(window.location.search).get('code');
 
   const addItem = () => {
     const newItem: QuotationItem = {
@@ -112,46 +113,60 @@ export default function EnhancedQuotationForm({
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const quotationData = {
-        assistance_id: assistanceId,
-        supplier_id: supplierId,
-        amount: totalAmount,
-        description: uploadedFileUrl ? `Orçamento PDF: ${description}` : description,
-        notes: uploadedFileUrl ? `${notes}\n\nDocumento anexo: ${uploadedFileUrl}` : notes,
-        validity_days: validityDays,
-        submitted_at: new Date().toISOString()
-      };
+      const finalDescription = uploadedFileUrl ? `Orçamento PDF: ${description}` : description;
+      const finalNotes = uploadedFileUrl ? `${notes}\n\nDocumento anexo: ${uploadedFileUrl}` : notes;
 
-      const { data, error } = await supabase
-        .from("quotations")
-        .insert(quotationData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Log activity
-      await supabase
-        .from("activity_log")
-        .insert({
-          assistance_id: assistanceId,
-          supplier_id: supplierId,
-          action: "quotation_submitted",
-          details: `Orçamento submetido no valor de €${totalAmount.toFixed(2)}`,
-          metadata: {
-            amount: totalAmount,
-            items: items.map(item => ({
-              description: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              total: item.total
-            })),
-            labor_cost: laborCost,
-            validity_days: validityDays
-          }
+      if (magicCode) {
+        const { data, error } = await (supabase as any).rpc('create_quotation_via_code', {
+          p_magic_code: magicCode,
+          p_amount: totalAmount,
+          p_description: finalDescription,
+          p_notes: finalNotes,
+          p_validity_days: validityDays,
+          p_assistance_id: assistanceId,
         });
+        if (error) throw error;
+        return data;
+      } else {
+        const { data, error } = await supabase
+          .from("quotations")
+          .insert({
+            assistance_id: assistanceId,
+            supplier_id: supplierId,
+            amount: totalAmount,
+            description: finalDescription,
+            notes: finalNotes,
+            validity_days: validityDays,
+            submitted_at: new Date().toISOString()
+          })
+          .select()
+          .single();
 
-      return data;
+        if (error) throw error;
+
+        // Log activity (handled inside RPC path already)
+        await supabase
+          .from("activity_log")
+          .insert({
+            assistance_id: assistanceId,
+            supplier_id: supplierId,
+            action: "quotation_submitted",
+            details: `Orçamento submetido no valor de €${totalAmount.toFixed(2)}`,
+            metadata: {
+              amount: totalAmount,
+              items: items.map(item => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                total: item.total
+              })),
+              labor_cost: laborCost,
+              validity_days: validityDays
+            }
+          });
+
+        return data;
+      }
     },
     onSuccess: () => {
       toast({
