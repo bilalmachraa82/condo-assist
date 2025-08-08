@@ -1,27 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useRealtimeNotifications } from './useRealtimeNotifications';
 import { useUrgentAlerts } from './useUrgentAlerts';
 import { useUpcomingSchedules } from './useUpcomingSchedules';
 
 export function useNotificationBadge() {
-  const [totalCount, setTotalCount] = useState(0);
-  const [counts, setCounts] = useState({
-    assistance: 0,
-    quotation: 0,
-    urgent: 0,
-    schedule: 0
-  });
-
   const { notifications } = useRealtimeNotifications();
   const { data: urgentAlerts = [] } = useUrgentAlerts();
   const { data: upcomingSchedules = [] } = useUpcomingSchedules();
 
-  useEffect(() => {
-    // Count unread notifications by type
+  const { counts, totalCount } = useMemo(() => {
     const assistanceCount = notifications.filter(n => 
       n.type.includes('assistance') && !n.read
     ).length;
-    
+
     const quotationCount = notifications.filter(n => 
       n.type.includes('quotation') && !n.read
     ).length;
@@ -29,15 +20,15 @@ export function useNotificationBadge() {
     const urgentCount = urgentAlerts.length;
     const scheduleCount = upcomingSchedules.length;
 
-    const newCounts = {
+    const counts = {
       assistance: assistanceCount,
       quotation: quotationCount,
       urgent: urgentCount,
-      schedule: scheduleCount
-    };
+      schedule: scheduleCount,
+    } as const;
 
-    setCounts(newCounts);
-    setTotalCount(assistanceCount + quotationCount + urgentCount + scheduleCount);
+    const totalCount = assistanceCount + quotationCount + urgentCount + scheduleCount;
+    return { counts, totalCount };
   }, [notifications, urgentAlerts, upcomingSchedules]);
 
   const getBadgeForRoute = (route: string): number => {
@@ -57,6 +48,6 @@ export function useNotificationBadge() {
     totalCount,
     counts,
     getBadgeForRoute,
-    hasNotifications: totalCount > 0
+    hasNotifications: totalCount > 0,
   };
 }
