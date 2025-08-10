@@ -205,7 +205,7 @@ function generateReminderEmail(assistance: any, supplier: any, notification: any
           <div style="text-align: center; margin: 24px 0;">
             <a href="${getSupplierPortalUrl()}" 
                style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-              Acessar Portal do Fornecedor
+              Aceder ao Portal do Fornecedor
             </a>
           </div>
 
@@ -286,8 +286,8 @@ function getPriorityText(priority: string): string {
 }
 
 function getSupplierPortalUrl(): string {
-  const baseUrl = Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'lovable.app') || '';
-  return `${baseUrl}/portal-fornecedor`;
+  const baseUrl = Deno.env.get('APP_BASE_URL') || 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.lovableproject.com';
+  return `${baseUrl}/supplier-portal`;
 }
 
 serve(handler);

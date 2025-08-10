@@ -115,9 +115,9 @@ export function SupplierEmailSummary({
           subject: `Resumo de Assistências Pendentes - ${pendingAssistances.length} assistência${pendingAssistances.length > 1 ? 's' : ''}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-              <div style="background: linear-gradient(135deg, #5FB3B3, #7BC4C4); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-                <img src="https://zmpitnpmplemfozvtbam.supabase.co/storage/v1/object/public/assistance-photos/9e67bd21-c565-405a-918d-e9aac10336e8.png" alt="Luvimg" style="height: 40px; width: auto; margin-bottom: 15px;" />
-                <h1 style="color: white; margin: 0; font-size: 24px;">📋 Resumo de Assistências Pendentes</h1>
+                <div style="background: linear-gradient(135deg, #5FB3B3, #7BC4C4); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+                  <img src="${window.location.origin}/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" alt="Luvimg" style="height: 40px; width: auto; margin-bottom: 15px;" />
+                  <h1 style="color: white; margin: 0; font-size: 24px;">📋 Resumo de Assistências Pendentes</h1>
               </div>
               
               <div style="padding: 30px; background-color: #ffffff;">
@@ -136,7 +136,7 @@ export function SupplierEmailSummary({
                 </div>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="https://preview--condo-assist.lovable.app/supplier-portal?code=${magicCode}" 
+                  <a href="${window.location.origin}/supplier-portal?code=${magicCode}" 
                      style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
                     🚀 Aceder ao Portal do Fornecedor
                   </a>

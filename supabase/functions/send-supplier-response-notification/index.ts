@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
+const APP_BASE_URL = Deno.env.get('APP_BASE_URL') || 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.lovableproject.com';
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -77,7 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
         <div style="background: linear-gradient(135deg, #5FB3B3, #7BC4C4); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-          <img src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" alt="Luvimg" style="height: 40px; width: auto; margin-bottom: 15px;" />
+          <img src="${APP_BASE_URL}/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" alt="Luvimg" style="height: 40px; width: auto; margin-bottom: 15px;" />
           <h1 style="color: white; margin: 0; font-size: 24px;">${statusEmoji} Resposta do Fornecedor</h1>
         </div>
         
@@ -129,7 +129,7 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${Deno.env.get('SUPABASE_URL')?.replace('https://zmpitnpmplemfozvtbam.supabase.co', 'https://lovable.dev/projects/zmpitnpmplemfozvtbam') || 'https://lovable.dev'}" 
+            <a href="${APP_BASE_URL}/assistencias/${assistanceId}" 
                style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">
               🔍 Ver Assistência
             </a>

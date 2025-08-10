@@ -10,6 +10,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const APP_BASE_URL = Deno.env.get('APP_BASE_URL') || 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.lovableproject.com';
+
 interface EmailRequest {
   to: string;
   subject: string;
@@ -100,7 +102,7 @@ const createOutlookCompatibleTemplate = (data: any) => {
               <table role="presentation" style="width: 100%; border-collapse: collapse;">
                 <tr>
                   <td align="center">
-                    <img src="https://zmpitnpmplemfozvtbam.supabase.co/storage/v1/object/public/assistance-photos/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
+                    <img src="${APP_BASE_URL}/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
                          alt="Luvimg" 
                          style="height: 50px; width: auto; margin-bottom: 15px; display: block;" />
                     <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 600; line-height: 1.2;">
