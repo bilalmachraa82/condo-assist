@@ -160,6 +160,56 @@ export function EmailSystemTester() {
     }
   };
 
+  const testQuotationRequest = async (): Promise<TestResult> => {
+    try {
+      // Find a recent assistance that requires quotation and has an assigned supplier
+      const { data, error } = await supabase
+        .from('assistances')
+        .select('id, title, description, assigned_supplier_id, requires_quotation, buildings(name), suppliers(name, email)')
+        .eq('requires_quotation', true)
+        .not('assigned_supplier_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+      if (!data) {
+        return { success: false, message: 'Nenhuma assistência elegível encontrada (requer orçamento e fornecedor atribuído).' };
+      }
+
+      const buildingName = (data as any).buildings?.name || 'N/A';
+      const supplierName = (data as any).suppliers?.name || 'Fornecedor';
+      const supplierEmail = testEmail || (data as any).suppliers?.email;
+
+      if (!supplierEmail) {
+        return { success: false, message: 'Sem email de fornecedor e nenhum email de teste fornecido.' };
+        }
+
+      const deadline = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('request-quotation-email', {
+        body: {
+          assistance_id: (data as any).id,
+          supplier_id: (data as any).assigned_supplier_id,
+          supplier_email: supplierEmail,
+          supplier_name: supplierName,
+          assistance_title: (data as any).title,
+          assistance_description: (data as any).description,
+          building_name: buildingName,
+          deadline
+        }
+      });
+
+      if (fnError) {
+        return { success: false, message: `Falha no envio: ${fnError.message}`, details: fnError };
+      }
+
+      return { success: true, message: `Pedido enviado para ${supplierEmail}`, details: fnData };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
+  };
+
   const getResultIcon = (result?: TestResult) => {
     if (!result) return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
     return result.success 
@@ -287,6 +337,40 @@ export function EmailSystemTester() {
             >
               <Send className="h-4 w-4 mr-2" />
               Enviar Email de Teste
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Pedido de Orçamento (Edge Function) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {getResultIcon(results.quotationRequest)}
+              Pedido de Orçamento
+            </CardTitle>
+            <CardDescription>
+              Envia um pedido de orçamento de teste via request-quotation-email
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span>Status:</span>
+              {getResultBadge(results.quotationRequest)}
+            </div>
+            {results.quotationRequest && (
+              <Alert>
+                <AlertDescription>
+                  {results.quotationRequest.message}
+                </AlertDescription>
+              </Alert>
+            )}
+            <Button 
+              onClick={() => runTest('quotationRequest', testQuotationRequest)}
+              disabled={loading}
+              className="w-full"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Enviar Pedido de Orçamento de Teste
             </Button>
           </CardContent>
         </Card>
