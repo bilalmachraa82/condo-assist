@@ -80,19 +80,22 @@ export default function QuotationList({ assistanceId }: QuotationListProps) {
       return data;
     },
     onSuccess: async (quotation, { status }) => {
-      // Log activity
-      await supabase
-        .from("activity_log")
-        .insert({
-          assistance_id: assistanceId,
-          action: `quotation_${status}`,
-          details: `Orçamento ${status === "approved" ? "aprovado" : "rejeitado"} - €${quotation.amount}`,
-          metadata: {
-            quotation_id: quotation.id,
-            amount: quotation.amount,
-            status
-          }
-        });
+      try {
+        await supabase
+          .from("activity_log")
+          .insert({
+            assistance_id: assistanceId,
+            action: `quotation_${status}`,
+            details: `Orçamento ${status === "approved" ? "aprovado" : "rejeitado"} - €${quotation.amount}`,
+            metadata: {
+              quotation_id: quotation.id,
+              amount: quotation.amount,
+              status
+            }
+          });
+      } catch (e) {
+        console.warn("Ignorando erro ao registar activity_log (provável RLS)", e);
+      }
 
       toast({
         title: "Sucesso",

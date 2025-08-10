@@ -136,14 +136,17 @@ export default function QuotationManagement() {
 
       if (error) throw error;
       
-      // Log activity
-      await supabase.from("activity_log").insert({
-        action: `quotation_${status}`,
-        details: `Quotation ${status} for amount €${selectedQuotation?.amount}`,
-        assistance_id: selectedQuotation?.assistance_id,
-        supplier_id: selectedQuotation?.supplier_id,
-        metadata: { quotation_id: quotationId, amount: selectedQuotation?.amount }
-      });
+      try {
+        await supabase.from("activity_log").insert({
+          action: `quotation_${status}`,
+          details: `Quotation ${status} for amount €${selectedQuotation?.amount}`,
+          assistance_id: selectedQuotation?.assistance_id,
+          supplier_id: selectedQuotation?.supplier_id,
+          metadata: { quotation_id: quotationId, amount: selectedQuotation?.amount }
+        });
+      } catch (e) {
+        console.warn("Ignorando erro ao registar activity_log (provável RLS)", e);
+      }
     },
     onSuccess: (_, variables) => {
       // Quotation status updated successfully

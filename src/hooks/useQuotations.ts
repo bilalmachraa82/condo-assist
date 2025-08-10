@@ -141,12 +141,15 @@ export const useUpdateQuotationStatus = () => {
 
       if (error) throw error;
 
-      // Log activity
-      await supabase.from("activity_log").insert({
-        action: "quotation_status_updated",
-        details: `Orçamento ${status === "approved" ? "aprovado" : "rejeitado"}`,
-        metadata: { quotation_id: id, status, notes },
-      });
+      try {
+        await supabase.from("activity_log").insert({
+          action: "quotation_status_updated",
+          details: `Orçamento ${status === "approved" ? "aprovado" : "rejeitado"}`,
+          metadata: { quotation_id: id, status, notes },
+        });
+      } catch (e) {
+        console.warn("Ignorando erro ao registar activity_log (provável RLS)", e);
+      }
 
       return data;
     },

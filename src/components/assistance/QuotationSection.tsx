@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import EnhancedQuotationForm from "@/components/supplier/EnhancedQuotationForm";
 
 interface QuotationSectionProps {
   assistance: Assistance;
@@ -42,6 +43,7 @@ export default function QuotationSection({ assistance }: QuotationSectionProps) 
   const [isRequestOpen, setIsRequestOpen] = useState(false);
   const [isApprovalOpen, setIsApprovalOpen] = useState(false);
   const [selectedQuotationId, setSelectedQuotationId] = useState<string>("");
+  const [isAddQuotationOpen, setIsAddQuotationOpen] = useState(false);
 
   const { data: quotations, isLoading } = useQuotationsByAssistance(assistance.id);
   const updateStatus = useUpdateQuotationStatus();
@@ -134,6 +136,28 @@ export default function QuotationSection({ assistance }: QuotationSectionProps) 
                   </Button>
                 </div>
               </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Add Manual/PDF Quotation */}
+        {assistance.assigned_supplier_id && (
+          <Dialog open={isAddQuotationOpen} onOpenChange={setIsAddQuotationOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full gap-2">
+                <Plus className="h-4 w-4" />
+                Adicionar Orçamento (Manual/PDF)
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Adicionar Orçamento</DialogTitle>
+              </DialogHeader>
+              <EnhancedQuotationForm
+                assistanceId={assistance.id}
+                supplierId={assistance.assigned_supplier_id!}
+                onQuotationSubmitted={() => setIsAddQuotationOpen(false)}
+              />
             </DialogContent>
           </Dialog>
         )}
