@@ -20,7 +20,7 @@ interface TestResult {
 
 export function EmailSystemTester() {
   const [testEmail, setTestEmail] = useState('');
-  const [testCode, setTestCode] = useState('59D6793D');
+  const [testCode, setTestCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Record<string, TestResult>>({});
 
@@ -204,7 +204,28 @@ export function EmailSystemTester() {
         return { success: false, message: `Falha no envio: ${fnError.message}`, details: fnError };
       }
 
-      return { success: true, message: `Pedido enviado para ${supplierEmail}`, details: fnData };
+      // Tentar obter o último código mágico válido deste fornecedor e preencher automaticamente
+      let codeData: { magic_code: string; expires_at: string } | null = null;
+      {
+        const { data: mc, error: mcErr } = await supabase
+          .from('supplier_magic_codes')
+          .select('magic_code, expires_at')
+          .eq('supplier_id', (data as any).assigned_supplier_id)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        if (!mcErr && mc?.magic_code) {
+          codeData = mc as any;
+          setTestCode(mc.magic_code);
+        }
+      }
+
+      return { 
+        success: true, 
+        message: `Pedido enviado para ${supplierEmail}${codeData?.magic_code ? ` | Código: ${codeData.magic_code}` : ''}`,
+        details: { edgeFunction: fnData, magicCode: codeData }
+      };
     } catch (error: any) {
       return { success: false, message: error.message };
     }
@@ -262,7 +283,7 @@ export function EmailSystemTester() {
             <Label htmlFor="testCode">Código Mágico para Teste</Label>
             <Input
               id="testCode"
-              placeholder="59D6793D"
+              placeholder="Introduza um código ou gere via pedido de orçamento"
               value={testCode}
               onChange={(e) => setTestCode(e.target.value.toUpperCase())}
             />

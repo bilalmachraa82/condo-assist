@@ -38,9 +38,11 @@ export const AssistanceListPDFTemplate = ({
     return labels[priority as keyof typeof labels] || priority;
   };
 
-  const totalCost = assistances.reduce((sum, assistance) => {
-    return sum + (Number(assistance.final_cost) || Number(assistance.estimated_cost) || 0);
-  }, 0);
+  const truncate = (text?: string, max = 120) => {
+    if (!text) return "—";
+    const t = String(text).trim();
+    return t.length > max ? t.slice(0, max - 1) + "…" : t;
+  };
 
   return (
     <div className="print-template max-w-6xl mx-auto p-8 bg-white text-black">
@@ -94,12 +96,6 @@ export const AssistanceListPDFTemplate = ({
         </div>
       </div>
 
-      {/* Total Cost */}
-      {totalCost > 0 && (
-        <div className="mb-6 p-4 bg-blue-50 rounded text-center">
-          <div className="text-lg font-semibold">Custo Total: €{totalCost.toFixed(2)}</div>
-        </div>
-      )}
 
       {/* Assistances Table */}
       <div className="overflow-hidden">
@@ -108,12 +104,12 @@ export const AssistanceListPDFTemplate = ({
             <tr className="bg-gray-100">
               <th className="border border-gray-300 p-2 text-left">Nº</th>
               <th className="border border-gray-300 p-2 text-left">Título</th>
+              <th className="border border-gray-300 p-2 text-left">Descrição</th>
               <th className="border border-gray-300 p-2 text-left">Edifício</th>
               <th className="border border-gray-300 p-2 text-left">Estado</th>
               <th className="border border-gray-300 p-2 text-left">Prioridade</th>
               <th className="border border-gray-300 p-2 text-left">Fornecedor</th>
               <th className="border border-gray-300 p-2 text-left">Data Criação</th>
-              <th className="border border-gray-300 p-2 text-left">Custo</th>
             </tr>
           </thead>
           <tbody>
@@ -124,6 +120,9 @@ export const AssistanceListPDFTemplate = ({
                 </td>
                 <td className="border border-gray-300 p-2 font-medium">
                   {assistance.title}
+                </td>
+                <td className="border border-gray-300 p-2 text-gray-700">
+                  {truncate(assistance.description)}
                 </td>
                 <td className="border border-gray-300 p-2">
                   {assistance.buildings?.name || "N/A"}
@@ -146,10 +145,6 @@ export const AssistanceListPDFTemplate = ({
                 </td>
                 <td className="border border-gray-300 p-2">
                   {format(new Date(assistance.created_at), "dd/MM/yyyy", { locale: pt })}
-                </td>
-                <td className="border border-gray-300 p-2">
-                  {assistance.final_cost ? `€${assistance.final_cost}` : 
-                   assistance.estimated_cost ? `€${assistance.estimated_cost} (est.)` : "N/A"}
                 </td>
               </tr>
             ))}
