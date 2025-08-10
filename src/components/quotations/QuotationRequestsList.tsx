@@ -7,6 +7,7 @@ import { Clock, Building, Calendar, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tables } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 type AssistanceWithQuotationRequest = Tables<"assistances"> & {
   buildings?: Tables<"buildings">;
@@ -69,37 +70,62 @@ export default function QuotationRequestsList() {
   });
 
   const resendQuotationRequest = async (assistanceId: string) => {
-    try {
-      const assistance = pendingRequests.find(a => a.id === assistanceId);
-      if (!assistance || !assistance.suppliers) return;
-
-      await supabase.functions.invoke('request-quotation-email', {
-        body: {
-          assistance_id: assistanceId,
-          supplier_id: assistance.assigned_supplier_id,
-          supplier_email: assistance.suppliers.email,
-          supplier_name: assistance.suppliers.name,
-          assistance_title: assistance.title,
-          assistance_description: assistance.description,
-          building_name: assistance.buildings?.name || "N/A",
-          deadline: assistance.quotation_deadline
-        }
-      });
-
-      // Log the email
-      await supabase.from("email_logs").insert({
-        recipient_email: assistance.suppliers.email,
-        subject: `Lembrete: Solicitação de Orçamento - ${assistance.title}`,
-        status: "sent",
-        assistance_id: assistanceId,
-        supplier_id: assistance.assigned_supplier_id,
-        template_used: "quotation_reminder"
-      });
-
-      // Quotation reminder sent successfully
-    } catch (error) {
-      console.error("Error resending quotation request:", error);
+    const assistance = pendingRequests.find((a) => a.id === assistanceId);
+    if (!assistance) {
+      toast.error("Assistência não encontrada.");
+      return;
     }
+    if (!assistance.assigned_supplier_id || !assistance.suppliers?.email) {
+      toast.error("Fornecedor ou email em falta para reenviar.");
+      return;
+    }
+
+    await toast.promise(
+      (async () => {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke(
+          "request-quotation-email",
+          {
+            body: {
+              assistance_id: assistanceId,
+              supplier_id: assistance.assigned_supplier_id,
+              supplier_email: assistance.suppliers.email,
+              supplier_name: assistance.suppliers.name,
+              assistance_title: assistance.title,
+              assistance_description: assistance.description,
+              building_name: assistance.buildings?.name || "N/A",
+              deadline: assistance.quotation_deadline,
+            },
+          }
+        );
+
+        if (fnError) {
+          throw new Error(fnError.message || "Falha no envio do email");
+        }
+
+        try {
+          await supabase.from("email_logs").insert({
+            recipient_email: assistance.suppliers.email,
+            subject: `Lembrete: Solicitação de Orçamento - ${assistance.title}`,
+            status: "sent",
+            assistance_id: assistanceId,
+            supplier_id: assistance.assigned_supplier_id,
+            template_used: "quotation_reminder",
+          });
+        } catch (e) {
+          console.warn(
+            "Ignorando erro ao registar em email_logs (provável RLS)",
+            e
+          );
+        }
+
+        return fnData;
+      })(),
+      {
+        loading: "A reenviar solicitação...",
+        success: "Solicitação reenviada ao fornecedor.",
+        error: "Falha ao reenviar solicitação.",
+      }
+    );
   };
 
   if (isLoading || loadingPending) {
