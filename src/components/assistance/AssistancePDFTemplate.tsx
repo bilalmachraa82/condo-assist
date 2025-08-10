@@ -25,6 +25,11 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
       urgent: "Urgente"
     };
     return labels[priority as keyof typeof labels] || priority;
+};
+
+  const extractPostalCode = (address?: string) => {
+    const match = address?.match(/\b\d{4}-\d{3}\b/);
+    return match ? match[0] : null;
   };
 
   return (
@@ -70,6 +75,17 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
             <div>
               <span className="font-medium">Edifício:</span> {assistance.buildings?.name || "N/A"}
             </div>
+            <div>
+              <span className="font-medium">NIF do Condomínio:</span> {assistance.buildings?.nif || "N/A"}
+            </div>
+            <div>
+              <span className="font-medium">Morada Completa:</span> {assistance.buildings?.address || "N/A"}
+            </div>
+            {assistance.buildings?.address && (
+              <div>
+                <span className="font-medium">Código Postal:</span> {extractPostalCode(assistance.buildings?.address) || "N/A"}
+              </div>
+            )}
             <div>
               <span className="font-medium">Tipo de Intervenção:</span>{" "}
               {assistance.intervention_types?.name || "N/A"}
@@ -119,7 +135,11 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
 
       {/* Footer */}
       <div className="mt-8 pt-4 border-t border-gray-300 text-center text-sm text-gray-500">
-        <p>Este documento foi gerado automaticamente pelo sistema de gestão de assistências.</p>
+        <div className="flex items-center justify-center gap-2">
+          <img src="/logo-luvimg.png" alt="Luvimg logotipo" className="h-6 w-auto" />
+          <span className="font-medium text-gray-700">Luvimg</span>
+        </div>
+        <p className="mt-2">Este documento foi gerado automaticamente pelo sistema de gestão de assistências.</p>
       </div>
     </div>
   );
