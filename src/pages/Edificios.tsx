@@ -319,10 +319,7 @@ export default function Edificios() {
   };
 
   const filteredBuildings = buildings?.filter(building => 
-    building.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    building.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    building.nif?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    building.address?.toLowerCase().includes(searchTerm.toLowerCase())
+    building.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
   // Show building assistances view

@@ -18,6 +18,7 @@ interface EmailRequest {
   from?: string;
   template?: string;
   data?: any;
+  bcc?: string | string[];
 }
 
 // Enhanced email template for maximum Outlook compatibility
@@ -327,7 +328,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const requestData: EmailRequest = await req.json();
-    const { to, subject, html, text, from, template, data } = requestData;
+    const { to, subject, html, text, from, template, data, bcc } = requestData;
 
     console.log(`Sending email to: ${to}, subject: ${subject}, template: ${template || 'custom'}`);
 
@@ -360,6 +361,11 @@ const handler = async (req: Request): Promise<Response> => {
         'X-Mailer': 'Luvimg Portal v3.1.0'
       }
     };
+
+    // Optional BCC
+    if (bcc) {
+      emailPayload.bcc = Array.isArray(bcc) ? bcc : [bcc];
+    }
 
     // Add HTML content if available
     if (finalHtml) {

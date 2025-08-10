@@ -43,7 +43,7 @@ export default function QuotationManagement() {
   const queryClient = useQueryClient();
 
   const { data: allQuotations = [], isLoading } = useQuery({
-    queryKey: ["all-quotations"],
+    queryKey: ["quotations"],
     queryFn: async () => {
       console.log("Fetching all quotations for management...");
       const { data, error } = await supabase
@@ -76,6 +76,11 @@ export default function QuotationManagement() {
       
       // Supplier filter
       if (filters.supplierId && quotation.supplier_id !== filters.supplierId) {
+        return false;
+      }
+      
+      // Assistance filter
+      if (filters.assistanceId && quotation.assistance_id !== filters.assistanceId) {
         return false;
       }
       
@@ -143,7 +148,7 @@ export default function QuotationManagement() {
     onSuccess: (_, variables) => {
       // Quotation status updated successfully
       toast.success(`Quotation ${variables.status} successfully`);
-      queryClient.invalidateQueries({ queryKey: ["all-quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
       setSelectedQuotation(null);
       setReviewNotes("");
     },

@@ -109,6 +109,16 @@ export const QuotationFiltersComponent = ({ filters, onFiltersChange }: Quotatio
             </Select>
           </div>
 
+          {/* Assistance ID Filter */}
+          <div className="space-y-2">
+            <Label>ID da Assistência</Label>
+            <Input
+              placeholder="UUID da assistência"
+              value={localFilters.assistanceId || ""}
+              onChange={(e) => updateFilter("assistanceId", e.target.value)}
+            />
+          </div>
+
           {/* Min Amount */}
           <div className="space-y-2">
             <Label>Valor Mínimo (€)</Label>

@@ -47,7 +47,7 @@ const statusVariants = {
 
 export default function QuotationDashboard() {
   const { data: quotations, isLoading } = useQuery({
-    queryKey: ["all-quotations"],
+    queryKey: ["quotations"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quotations")
