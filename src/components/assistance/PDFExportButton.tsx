@@ -184,7 +184,9 @@ export const PDFExportButton = ({
           </body>
         </html>
       `);
-
+      try {
+        printWindow.history.replaceState(null, '', `/pdf/${encodeURIComponent(filename)}`);
+      } catch {}
       printWindow.document.close();
       printWindow.focus();
       printWindow.print();

@@ -17,7 +17,7 @@ export const useAssistances = () => {
         .from("assistances")
         .select(`
           *,
-          buildings (id, name, code),
+          buildings (id, name, code, address, nif),
           suppliers (id, name),
           intervention_types (id, name, category)
         `)
@@ -150,9 +150,9 @@ export const useAssistance = (id: string) => {
         .from("assistances")
         .select(`
           *,
-          buildings(name, code),
-          suppliers(name),
-          intervention_types(name)
+          buildings(id, name, code, address, nif),
+          suppliers(id, name),
+          intervention_types(id, name)
         `)
         .eq("id", id)
         .maybeSingle();
