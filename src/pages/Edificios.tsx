@@ -319,7 +319,8 @@ export default function Edificios() {
   };
 
   const filteredBuildings = buildings?.filter(building => 
-    building.name.toLowerCase().includes(searchTerm.toLowerCase())
+    building.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (building.code || '').toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
   // Show building assistances view
@@ -353,7 +354,7 @@ export default function Edificios() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Pesquisar edifícios..."
+              placeholder="Pesquisar por nome ou código..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-full sm:w-80"
