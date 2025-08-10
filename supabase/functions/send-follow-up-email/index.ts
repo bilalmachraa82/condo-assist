@@ -75,6 +75,8 @@ const handler = async (req: Request): Promise<Response> => {
         assistance_id: assistanceId
       });
 
+    const APP_BASE_URL = Deno.env.get('APP_BASE_URL') || 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.lovableproject.com';
+    const portalUrl = `${APP_BASE_URL}/supplier-portal?code=${magicCode}`;
     const emailSubject = `Luvimg - LEMBRETE: Assistência Pendente ${followUpCount > 0 ? `(${followUpCount + 1}º Lembrete)` : ''} - ${assistance.title}`;
     
     const emailHtml = `
@@ -125,11 +127,11 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="https://zmpitnpmplemfozvtbam.supabase.co/supplier-portal?code=${magicCode}" 
+            <a href="${portalUrl}" 
                style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); margin-right: 10px;">
               ✅ Aceitar Assistência
             </a>
-            <a href="https://zmpitnpmplemfozvtbam.supabase.co/supplier-portal?code=${magicCode}" 
+            <a href="${portalUrl}" 
                style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">
               ❌ Recusar Assistência
             </a>
@@ -175,7 +177,7 @@ const handler = async (req: Request): Promise<Response> => {
             interventionType: assistance.intervention_types.name,
             description: assistance.description
           },
-          portalUrl: `https://zmpitnpmplemfozvtbam.supabase.co/supplier-portal?code=${magicCode}`
+          portalUrl: portalUrl
         },
         from: 'Luvimg - Administração de Condomínios <arquivo@luvimg.com>'
       }

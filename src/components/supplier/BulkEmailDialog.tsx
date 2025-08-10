@@ -155,7 +155,7 @@ export function BulkEmailDialog({ suppliers, isOpen, onClose }: BulkEmailDialogP
                   </div>
                   
                   <div style="text-align: center; margin: 30px 0;">
-                    <a href="https://preview--condo-assist.lovable.app/supplier-portal?code=${magicCode}" 
+                    <a href="${window.location.origin}/supplier-portal?code=${magicCode}" 
                        style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
                       🚀 Aceder ao Portal do Fornecedor
                     </a>

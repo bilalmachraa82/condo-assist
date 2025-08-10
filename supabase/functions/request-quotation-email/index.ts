@@ -74,7 +74,8 @@ const handler = async (req: Request): Promise<Response> => {
       throw insertError;
     }
 
-    const portalUrl = `https://zmpitnpmplemfozvtbam.supabase.co/supplier-portal?code=${magicCode}`;
+    const APP_BASE_URL = Deno.env.get('APP_BASE_URL') || 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.lovableproject.com';
+    const portalUrl = `${APP_BASE_URL}/supplier-portal?code=${magicCode}`;
     console.log(`Generated portal URL: ${portalUrl}`);
 
     const deadlineText = deadline 
@@ -155,7 +156,7 @@ const handler = async (req: Request): Promise<Response> => {
             interventionType: 'Orçamento Solicitado',
             description: assistance_description
           },
-          portalUrl: `https://zmpitnpmplemfozvtbam.supabase.co/supplier-portal?code=${magicCode}`
+          portalUrl: portalUrl
         },
         from: 'Luvimg - Administração de Condomínios <arquivo@luvimg.com>'
       }
