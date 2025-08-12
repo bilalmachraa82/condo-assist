@@ -19,7 +19,7 @@ import CommunicationLog from "./CommunicationLog";
 import ProgressTimeline from "./ProgressTimeline";
 import { PDFExportButton } from "./PDFExportButton";
 import { AssistancePDFTemplate } from "./AssistancePDFTemplate";
-import { useUpdateAssistanceStatus, useDeleteAssistance } from "@/hooks/useAssistances";
+import { useUpdateAssistanceStatus, useDeleteAssistance, useAssistance } from "@/hooks/useAssistances";
 import type { Assistance } from "@/hooks/useAssistances";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -93,6 +93,7 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
   const updateStatusMutation = useUpdateAssistanceStatus();
   const deleteAssistanceMutation = useDeleteAssistance();
   const { toast } = useToast();
+  const { data: assistanceData } = useAssistance(assistance.id);
 
   const handlePhotoUploaded = () => {
     // Trigger photo gallery refresh
@@ -158,7 +159,7 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {getStatusBadge(assistance.status)}
+          {getStatusBadge(assistanceData?.status ?? assistance.status)}
           {getPriorityBadge(assistance.priority)}
           
           <PDFExportButton 
@@ -405,13 +406,13 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <p className="text-sm font-medium">Estado Atual</p>
-                {getStatusBadge(assistance.status)}
+                {getStatusBadge(assistanceData?.status ?? assistance.status)}
               </div>
               
               <div className="space-y-2">
                 <p className="text-sm font-medium">Alterar Estado</p>
                 <Select 
-                  value={assistance.status} 
+                  value={assistanceData?.status ?? assistance.status} 
                   onValueChange={handleStatusChange}
                   disabled={updateStatusMutation.isPending}
                 >

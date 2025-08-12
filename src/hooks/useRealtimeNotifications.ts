@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface NotificationData {
   id: string;
@@ -25,6 +26,7 @@ interface UseRealtimeNotificationsReturn {
 export const useRealtimeNotifications = (): UseRealtimeNotificationsReturn => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const queryClient = useQueryClient();
 
   const addNotification = useCallback((notification: Omit<NotificationData, "id" | "created_at" | "read">) => {
     const newNotification: NotificationData = {
@@ -68,6 +70,12 @@ export const useRealtimeNotifications = (): UseRealtimeNotificationsReturn => {
             message: `Assistência "${payload.new.title}" foi criada`,
             assistance_id: payload.new.id,
           });
+          // Keep lists and stats fresh
+          queryClient.invalidateQueries({ queryKey: ["assistances"] });
+          queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
+          queryClient.invalidateQueries({ queryKey: ["assistance", payload.new.id] });
+          queryClient.invalidateQueries({ queryKey: ["supplier-assistances"] });
+          queryClient.refetchQueries({ queryKey: ["assistances"] });
         }
       )
       .on(
@@ -90,6 +98,12 @@ export const useRealtimeNotifications = (): UseRealtimeNotificationsReturn => {
               assistance_id: payload.new.id,
             });
           }
+          // Invalidate and refetch affected queries to reflect changes immediately
+          queryClient.invalidateQueries({ queryKey: ["assistances"] });
+          queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
+          queryClient.invalidateQueries({ queryKey: ["assistance", payload.new.id] });
+          queryClient.invalidateQueries({ queryKey: ["supplier-assistances"] });
+          queryClient.refetchQueries({ queryKey: ["assistances"] });
         }
       )
       .subscribe();
