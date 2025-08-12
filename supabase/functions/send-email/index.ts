@@ -379,23 +379,40 @@ const handler = async (req: Request): Promise<Response> => {
       emailPayload.text = finalText;
     }
 
-    // Attach inline logo for better compatibility (CID)
     try {
-      const logoRes = await fetch(`${APP_BASE_URL}/logo-luvimg.png`);
-      if (logoRes.ok) {
-        const arr = await logoRes.arrayBuffer();
-        const bytes = new Uint8Array(arr);
-        emailPayload.attachments = [
-          {
-            filename: 'logo-luvimg.png',
-            content: bytes,
-            contentType: 'image/png',
-            headers: { 'Content-ID': '<luvimg-logo>' },
-            disposition: 'inline'
+      const logoCandidates = [
+        'https://luvimg.com/assets/images/luvimg-logo.png',
+        `${APP_BASE_URL.replace(/\/$/, '')}/logo-luvimg.png`,
+        `${APP_BASE_URL.replace(/\/$/, '')}/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png`,
+      ];
+      let attached = false;
+      for (const url of logoCandidates) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            const arr = await res.arrayBuffer();
+            const bytes = new Uint8Array(arr);
+            emailPayload.attachments = [
+              {
+                filename: 'logo-luvimg.png',
+                content: bytes,
+                contentType: 'image/png',
+                headers: { 'Content-ID': '<luvimg-logo>' },
+                disposition: 'inline'
+              }
+            ];
+            console.log('Attached logo from', url);
+            attached = true;
+            break;
+          } else {
+            console.warn('Logo fetch failed', url, res.status);
           }
-        ];
-      } else {
-        console.warn('Logo fetch failed with status', logoRes.status);
+        } catch (inner) {
+          console.warn('Logo fetch error', url, inner);
+        }
+      }
+      if (!attached) {
+        console.warn('No logo could be attached. Proceeding without CID logo.');
       }
     } catch (e) {
       console.warn('Unable to attach inline logo:', e);
