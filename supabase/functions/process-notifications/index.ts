@@ -127,6 +127,7 @@ async function processNotification(supabaseClient: any, notification: Notificati
       to: supplier.email,
       subject: emailSubject,
       html: emailContent,
+      bcc: 'arquivo@luvimg.com',
       assistance_id: assistance.id,
       supplier_id: supplier.id,
       email_type: notification.notification_type

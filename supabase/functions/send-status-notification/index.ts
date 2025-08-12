@@ -147,6 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
         await resend.emails.send({
           from: "Luvimg - Administração de Condomínios <arquivo@luvimg.com>",
           to: [assistance.suppliers.email],
+          bcc: ["arquivo@luvimg.com"],
           subject: emailSubject,
           html: emailHtml,
         });

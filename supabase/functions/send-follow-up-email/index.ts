@@ -166,6 +166,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: {
         to: assistance.suppliers.email,
         subject: emailSubject,
+        bcc: 'arquivo@luvimg.com',
         template: 'magic_code',
         data: {
           supplierName: assistance.suppliers.name,

@@ -145,7 +145,7 @@ const handler = async (req: Request): Promise<Response> => {
         to: supplier_email,
         subject: `Solicitação de Orçamento - ${assistance_title}`,
         template: 'magic_code',
-        bcc: 'andre@luvimg.com',
+        bcc: 'arquivo@luvimg.com',
         data: {
           supplierName: supplier_name,
           magicCode,
