@@ -213,7 +213,8 @@ const handler = async (req: Request): Promise<Response> => {
         to: recipientEmail,
         subject: emailSubject,
         html: emailContent,
-        from: "Luvimg - Administração de Condomínios <arquivo@luvimg.com>"
+        from: "Luvimg - Administração de Condomínios <arquivo@luvimg.com>",
+        bcc: type === 'assignment' ? 'arquivo@luvimg.com' : undefined
       }
     });
 
