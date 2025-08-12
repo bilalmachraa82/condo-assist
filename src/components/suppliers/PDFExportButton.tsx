@@ -68,6 +68,7 @@ export const PDFExportButton = ({
         </head>
         <body>
           <div class="header">
+            <img src="${window.location.origin}/logo-luvimg.png" alt="Luvimg logotipo" style="height: 40px; display: block; margin: 0 auto 8px;" />
             <h1 class="title">${title}</h1>
             <p class="subtitle">Gerado em ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT')}</p>
           </div>

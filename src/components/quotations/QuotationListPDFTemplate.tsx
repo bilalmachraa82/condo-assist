@@ -33,7 +33,12 @@ export const QuotationListPDFTemplate = ({
   return (
     <div className="p-8 bg-white text-black">
       {/* Header */}
-      <div className="border-b-2 border-gray-300 pb-4 mb-6">
+      <div className="border-b-2 border-gray-300 pb-4 mb-6 text-center">
+        <img
+          src="/logo-luvimg.png"
+          alt="Luvimg logotipo"
+          className="h-10 w-auto mx-auto mb-3"
+        />
         <h1 className="text-2xl font-bold text-center">{title}</h1>
         <p className="text-center text-gray-600 mt-2">
           Gerado em {new Date().toLocaleDateString('pt-PT')} às {new Date().toLocaleTimeString('pt-PT')}

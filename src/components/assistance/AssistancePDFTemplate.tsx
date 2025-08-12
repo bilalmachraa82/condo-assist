@@ -36,6 +36,11 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
     <div className="print-template max-w-4xl mx-auto p-8 bg-white text-black">
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-gray-300 pb-4">
+        <img
+          src="/logo-luvimg.png"
+          alt="Luvimg logotipo"
+          className="h-10 w-auto mx-auto mb-3"
+        />
         <h1 className="text-2xl font-bold mb-2">Relatório de Assistência</h1>
         <p className="text-gray-600">
           Gerado em {format(new Date(), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: pt })}

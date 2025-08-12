@@ -102,7 +102,7 @@ const createOutlookCompatibleTemplate = (data: any) => {
               <table role="presentation" style="width: 100%; border-collapse: collapse;">
                 <tr>
                   <td align="center">
-                    <img src="${APP_BASE_URL}/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
+                    <img src="cid:luvimg-logo" 
                          alt="Luvimg" 
                          style="height: 50px; width: auto; margin-bottom: 15px; display: block;" />
                     <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 600; line-height: 1.2;">
@@ -200,7 +200,7 @@ const createOutlookCompatibleTemplate = (data: any) => {
                             ${magicCode}
                           </h2>
                           <p style="color: #64748b; margin: 10px 0 0 0; font-size: 12px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-                            Válido por 30 dias
+                            ${assistanceDetails ? 'Válido enquanto a assistência estiver ativa (mín. 30 dias)' : 'Válido por 30 dias'}
                           </p>
                         </td>
                       </tr>
@@ -260,7 +260,7 @@ const createOutlookCompatibleTemplate = (data: any) => {
                       <strong style="color: #374151;">Luvimg - Administração de Condomínios</strong><br>
                       Praceta Pedro Manuel Pereira nº 1 – 1º esq, 2620-158 Póvoa Santo Adrião<br>
                       Tel: +351 219 379 248 | Email: arquivo@luvimg.com<br>
-                      <span style="font-size: 11px;">Este código expira automaticamente em 30 dias por motivos de segurança.</span>
+                      <span style="font-size: 11px;">${assistanceDetails ? 'Este código permanece válido enquanto a assistência estiver ativa (mín. 30 dias).' : 'Este código expira automaticamente em 30 dias por motivos de segurança.'}</span>
                     </p>
                   </td>
                 </tr>
@@ -306,7 +306,7 @@ const createPlainTextVersion = (data: any) => {
   }
   
   text += `CÓDIGO DE ACESSO: ${magicCode}\n`;
-  text += `(Válido por 30 dias)\n\n`;
+  text += `${assistanceDetails ? '(Válido enquanto a assistência estiver ativa - mínimo 30 dias)' : '(Válido por 30 dias)'}\n\n`;
   text += `Link direto: ${portalUrl}\n\n`;
   
   if (assistanceDetails) {
@@ -317,7 +317,7 @@ const createPlainTextVersion = (data: any) => {
   text += `Luvimg - Administração de Condomínios\n`;
   text += `Praceta Pedro Manuel Pereira nº 1 – 1º esq, 2620-158 Póvoa Santo Adrião\n`;
   text += `Tel: +351 219 379 248 | Email: arquivo@luvimg.com\n`;
-  text += `Este código expira automaticamente em 30 dias por motivos de segurança.`;
+  text += assistanceDetails ? `Este código permanece válido enquanto a assistência estiver ativa (mín. 30 dias).` : `Este código expira automaticamente em 30 dias por motivos de segurança.`;
   
   return text;
 };
@@ -377,6 +377,28 @@ const handler = async (req: Request): Promise<Response> => {
     // Add plain text content if available (required for better deliverability)
     if (finalText) {
       emailPayload.text = finalText;
+    }
+
+    // Attach inline logo for better compatibility (CID)
+    try {
+      const logoRes = await fetch(`${APP_BASE_URL}/logo-luvimg.png`);
+      if (logoRes.ok) {
+        const arr = await logoRes.arrayBuffer();
+        const bytes = new Uint8Array(arr);
+        emailPayload.attachments = [
+          {
+            filename: 'logo-luvimg.png',
+            content: bytes,
+            contentType: 'image/png',
+            headers: { 'Content-ID': '<luvimg-logo>' },
+            disposition: 'inline'
+          }
+        ];
+      } else {
+        console.warn('Logo fetch failed with status', logoRes.status);
+      }
+    } catch (e) {
+      console.warn('Unable to attach inline logo:', e);
     }
 
     const emailResponse = await resend.emails.send(emailPayload);
