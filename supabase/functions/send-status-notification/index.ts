@@ -76,7 +76,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
         <div style="background: linear-gradient(135deg, #5FB3B3, #7BC4C4); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-          <img src="${APP_BASE_URL}/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" alt="Luvimg" style="height: 40px; width: auto; margin-bottom: 15px;" />
+          <img src="cid:luvimg-logo" alt="Luvimg" style="height: 40px; width: auto; margin-bottom: 15px;" />
           <h1 style="color: white; margin: 0; font-size: 24px;">${newStatusInfo.emoji} Status Atualizado</h1>
         </div>
         
@@ -144,13 +144,17 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email to supplier if exists and it's relevant to them
     if (assistance.suppliers?.email) {
       try {
-        await resend.emails.send({
-          from: "Luvimg - Administração de Condomínios <arquivo@luvimg.com>",
-          to: [assistance.suppliers.email],
-          bcc: ["arquivo@luvimg.com"],
-          subject: emailSubject,
-          html: emailHtml,
+        const { data: emailResponse, error: emailError } = await supabase.functions.invoke('send-email', {
+          body: {
+            to: assistance.suppliers.email,
+            subject: emailSubject,
+            html: emailHtml,
+            bcc: 'arquivo@luvimg.com',
+            from: 'Luvimg - Administração de Condomínios <arquivo@luvimg.com>'
+          }
         });
+
+        if (emailError) throw emailError;
 
         console.log(`Email sent to supplier: ${assistance.suppliers.email}`);
 
