@@ -66,7 +66,7 @@ export function AppSidebar() {
           {!isCollapsed && (
             <div className="flex items-center gap-2">
               <img 
-                src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
+                src="/logo-luvimg.png"
                 alt="Luvimg" 
                 className="w-8 h-8 object-contain"
               />
@@ -79,7 +79,7 @@ export function AppSidebar() {
           {isCollapsed && (
             <div className="flex justify-center">
               <img 
-                src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
+                src="/logo-luvimg.png" 
                 alt="Luvimg" 
                 className="w-8 h-8 object-contain"
               />
