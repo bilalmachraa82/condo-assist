@@ -986,6 +986,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      magic_code_valid_days: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       schedule_assistance_reminders: {
         Args: Record<PropertyKey, never>
         Returns: undefined
