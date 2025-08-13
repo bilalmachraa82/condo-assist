@@ -1,10 +1,12 @@
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { FileText, Clock, Euro } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FileText, Clock, Euro, AlertTriangle } from "lucide-react"
 import { useRequestQuotation, useQuotationsByAssistance } from "@/hooks/useQuotations"
 import type { Assistance } from "@/hooks/useAssistances"
 
@@ -21,8 +23,15 @@ export function QuotationQuickAction({ assistance }: QuotationQuickActionProps) 
   const canRequest = assistance.assigned_supplier_id && !assistance.requires_quotation
   const hasQuotations = quotations && quotations.length > 0
   const quotationCount = quotations?.length || 0
+  const hasSupplier = !!assistance.assigned_supplier_id
+  const hasSupplierEmail = assistance.suppliers?.email
 
   const handleRequest = async () => {
+    // Validação adicional no frontend
+    if (!hasSupplier) {
+      return; // Não deve chegar aqui, mas por segurança
+    }
+
     await requestQuotation.mutateAsync({
       assistanceId: assistance.id,
       deadline: deadline || undefined,
@@ -72,9 +81,17 @@ export function QuotationQuickAction({ assistance }: QuotationQuickActionProps) 
     )
   }
 
-  // Show request button if applicable
-  if (!canRequest) return null
+  // Show warning if no supplier assigned
+  if (!hasSupplier) {
+    return (
+      <Badge variant="secondary" className="gap-1 text-orange-600 border-orange-500/20">
+        <AlertTriangle className="h-3 w-3" />
+        Atribuir fornecedor para solicitar orçamento
+      </Badge>
+    )
+  }
 
+  // Show request button if supplier assigned
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -95,7 +112,22 @@ export function QuotationQuickAction({ assistance }: QuotationQuickActionProps) 
             <p className="text-sm text-muted-foreground">
               <strong>Fornecedor:</strong> {assistance.suppliers?.name}
             </p>
+            {assistance.suppliers?.email && (
+              <p className="text-sm text-muted-foreground">
+                <strong>Email:</strong> {assistance.suppliers.email}
+              </p>
+            )}
           </div>
+
+          {!hasSupplierEmail && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Atenção: O fornecedor não tem email configurado. O email de solicitação pode falhar.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div>
             <Label htmlFor="deadline">Prazo para Resposta (opcional)</Label>
             <Input

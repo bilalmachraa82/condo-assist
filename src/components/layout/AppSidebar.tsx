@@ -1,143 +1,133 @@
-import { useState } from "react"
-import { 
-  Home,
-  Wrench,
-  Building2,
-  Users,
+import {
+  LayoutDashboard,
   Settings,
-  BarChart3,
   FileText,
-  Bell,
-  HelpCircle,
-  Euro,
-  Zap
-} from "lucide-react"
-import { NavLink, useLocation } from "react-router-dom"
-
+  Users,
+  Building,
+  ShoppingCart,
+  Mail,
+  BarChart4,
+  Logout,
+} from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarItem,
   SidebarTrigger,
-  useSidebar,
-} from "@/components/ui/sidebar"
-
-const menuItems = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Assistências", url: "/assistencias", icon: Wrench },
-  { title: "Orçamentos", url: "/orcamentos", icon: Euro },
-  { title: "Edifícios", url: "/edificios", icon: Building2 },
-  { title: "Fornecedores", url: "/fornecedores", icon: Users },
-  { title: "Análise e Relatórios", url: "/analytics", icon: BarChart3 },
-]
-
-const configItems = [
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
-  { title: "Tipos Assistência", url: "/tipos-assistencia", icon: FileText },
-  { title: "Comunicações", url: "/comunicacoes", icon: Bell },
-]
+} from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/useAuth";
+import { useMobile } from "@/hooks/useMobile";
 
 export function AppSidebar() {
-  const { state } = useSidebar()
-  const location = useLocation()
-  const currentPath = location.pathname
-  const isCollapsed = state === "collapsed"
+  const location = useLocation();
+  const { user, logout } = useAuth();
+  const { isMobile } = useMobile();
 
-  const isActive = (path: string) => currentPath === path
-  const isMainExpanded = menuItems.some((i) => isActive(i.url))
-  const isConfigExpanded = configItems.some((i) => isActive(i.url))
+  const menuItems = [
+    {
+      href: "/",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      href: "/assistances",
+      label: "Assistências",
+      icon: FileText,
+    },
+    {
+      href: "/buildings",
+      label: "Edifícios",
+      icon: Building,
+    },
+    {
+      href: "/suppliers",
+      label: "Fornecedores",
+      icon: Users,
+    },
+    {
+      href: "/quotations",
+      label: "Orçamentos",
+      icon: Mail,
+    },
+    {
+      href: "/invoices",
+      label: "Faturas",
+      icon: ShoppingCart,
+    },
+    {
+      href: "/reports",
+      label: "Relatórios",
+      icon: BarChart4,
+    },
+    {
+      href: "/settings",
+      label: "Definições",
+      icon: Settings,
+    },
+  ];
 
-  const getNavCls = (path: string) =>
-    isActive(path) 
-      ? "bg-gradient-to-r from-primary/20 to-primary/10 text-primary font-medium border-r-2 border-primary" 
-      : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+  const handleLogout = async () => {
+    logout();
+  };
 
   return (
-    <Sidebar
-      collapsible="icon"
-    >
-      <SidebarContent className="bg-gradient-to-b from-card to-muted/30">
-        <div className="p-4 border-b">
-          {!isCollapsed && (
-            <div className="flex items-center gap-2">
-              <img 
-                src="/logo-luvimg.png"
-                alt="Luvimg" 
-                className="w-8 h-8 object-contain"
-              />
-              <div>
-                <h2 className="font-semibold text-sm">Luvimg</h2>
-                <p className="text-xs text-muted-foreground">Administração de Condomínios</p>
-              </div>
-            </div>
-          )}
-          {isCollapsed && (
-            <div className="flex justify-center">
-              <img 
-                src="/logo-luvimg.png" 
-                alt="Luvimg" 
-                className="w-8 h-8 object-contain"
-              />
-            </div>
-          )}
+    <Sidebar collapsible="icon" className="border-r bg-card">
+      <SidebarHeader className="border-b p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <img 
+              src="/logo-luvimg.png" 
+              alt="Luvimg" 
+              className="h-6 w-6 object-contain"
+              onError={(e) => {
+                console.error("Erro ao carregar logo:", e);
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold">Luvimg</span>
+            <span className="text-xs text-muted-foreground">Gestão de Assistências</span>
+          </div>
         </div>
-
-        <SidebarGroup className="px-2">
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2">
-            {!isCollapsed && "Principal"}
-          </SidebarGroupLabel>
-
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-10">
-                    <NavLink to={item.url} end className={getNavCls(item.url)}>
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {!isCollapsed && <span className="ml-3">{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup className="px-2">
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2">
-            {!isCollapsed && "Configuração"}
-          </SidebarGroupLabel>
-
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {configItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-10">
-                    <NavLink to={item.url} className={getNavCls(item.url)}>
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {!isCollapsed && <span className="ml-3">{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <div className="mt-auto p-4 border-t">
-          {!isCollapsed && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <HelpCircle className="h-4 w-4" />
-              <span>Versão 1.0</span>
-            </div>
-          )}
-        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        {menuItems.map((item) => (
+          <SidebarItem
+            key={item.href}
+            href={item.href}
+            label={item.label}
+            icon={item.icon}
+            isActive={location.pathname === item.href}
+          />
+        ))}
       </SidebarContent>
+      <SidebarFooter className="border-t p-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">{user?.email}</p>
+            <p className="text-xs text-muted-foreground">
+              {user?.role || "Administrador"}
+            </p>
+          </div>
+          <SidebarTrigger asChild>
+            <button
+              aria-label="Toggle sidebar"
+              className="peer inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-secondary focus:outline-none disabled:opacity-50 data-[state=open]:bg-secondary"
+            >
+              {isMobile ? (
+                <Logout className="h-4 w-4" onClick={handleLogout} />
+              ) : null}
+            </button>
+          </SidebarTrigger>
+          {!isMobile ? (
+            <Logout className="h-4 w-4" onClick={handleLogout} />
+          ) : null}
+        </div>
+      </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
