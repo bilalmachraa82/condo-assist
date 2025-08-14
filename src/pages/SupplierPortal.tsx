@@ -186,7 +186,7 @@ export default function SupplierPortal() {
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <img 
-                src="/logo-luvimg.png" 
+                src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
                 alt="Luvimg" 
                 className="h-16 w-auto"
               />

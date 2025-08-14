@@ -1,8 +1,6 @@
-
 import { useState } from "react";
 import QuotationDashboard from "@/components/quotations/QuotationDashboard";
 import QuotationManagement from "@/components/quotations/QuotationManagement";
-import ProblematicAssistancesList from "@/components/assistance/ProblematicAssistancesList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuotationNotifications } from "@/hooks/useQuotationNotifications";
 
@@ -26,7 +24,6 @@ export default function Quotations() {
         <TabsList>
           <TabsTrigger value="dashboard">Painel</TabsTrigger>
           <TabsTrigger value="management">Gerir Orçamentos</TabsTrigger>
-          <TabsTrigger value="problematic">Corrigir Problemas</TabsTrigger>
         </TabsList>
         
         <TabsContent value="dashboard">
@@ -35,10 +32,6 @@ export default function Quotations() {
         
         <TabsContent value="management">
           <QuotationManagement />
-        </TabsContent>
-
-        <TabsContent value="problematic">
-          <ProblematicAssistancesList />
         </TabsContent>
       </Tabs>
     </div>

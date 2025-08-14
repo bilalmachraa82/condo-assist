@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
+  // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -882,8 +882,8 @@ export type Database = {
       }
       create_communication_via_code: {
         Args: {
-          p_assistance_id: string
           p_magic_code: string
+          p_assistance_id: string
           p_message: string
           p_message_type?: string
         }
@@ -891,28 +891,28 @@ export type Database = {
       }
       create_quotation_via_code: {
         Args: {
-          p_amount: number
-          p_assistance_id?: string
-          p_description?: string
           p_magic_code: string
+          p_amount: number
+          p_description?: string
           p_notes?: string
           p_validity_days?: number
+          p_assistance_id?: string
         }
         Returns: Json
       }
       create_supplier_session: {
-        Args: { p_magic_code: string; p_supplier_id: string }
+        Args: { p_supplier_id: string; p_magic_code: string }
         Returns: Json
       }
       criar_resposta_fornecedor_por_codigo: {
         Args: {
+          p_magic_code: string
+          p_response_type: string
+          p_notes?: string
           p_estimated_completion_date?: string
           p_estimated_duration_hours?: number
-          p_magic_code: string
-          p_notes?: string
-          p_response_type: string
-          p_scheduled_end_date?: string
           p_scheduled_start_date?: string
+          p_scheduled_end_date?: string
         }
         Returns: Json
       }
@@ -927,44 +927,44 @@ export type Database = {
       get_assistances_for_code: {
         Args: { p_magic_code: string }
         Returns: {
-          actual_end_date: string
-          actual_start_date: string
-          building_address: string
-          building_id: string
-          building_name: string
-          completion_photos_required: boolean
-          created_at: string
-          description: string
           id: string
-          intervention_type_id: string
-          intervention_type_name: string
-          quotation_deadline: string
-          quotation_requested_at: string
-          requires_quotation: boolean
-          requires_validation: boolean
-          scheduled_end_date: string
-          scheduled_start_date: string
+          title: string
+          description: string
           status: Database["public"]["Enums"]["assistance_status"]
           supplier_notes: string
-          title: string
+          created_at: string
+          scheduled_start_date: string
+          scheduled_end_date: string
+          actual_start_date: string
+          actual_end_date: string
+          completion_photos_required: boolean
+          requires_validation: boolean
+          requires_quotation: boolean
+          quotation_requested_at: string
+          quotation_deadline: string
+          building_id: string
+          intervention_type_id: string
+          building_name: string
+          building_address: string
+          intervention_type_name: string
         }[]
       }
       get_communications_for_code: {
-        Args: { p_assistance_id: string; p_magic_code: string }
+        Args: { p_magic_code: string; p_assistance_id: string }
         Returns: {
-          assistance_id: string
-          created_at: string
           id: string
-          message: string
-          message_type: string
-          sender_id: string
+          assistance_id: string
           sender_type: string
+          sender_id: string
+          message_type: string
+          message: string
+          created_at: string
         }[]
       }
       has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
       }
@@ -978,17 +978,13 @@ export type Database = {
       }
       log_supplier_access: {
         Args: {
-          p_action: string
-          p_magic_code: string
-          p_metadata?: Json
-          p_success?: boolean
           p_supplier_id: string
+          p_magic_code: string
+          p_action: string
+          p_success?: boolean
+          p_metadata?: Json
         }
         Returns: undefined
-      }
-      magic_code_valid_days: {
-        Args: Record<PropertyKey, never>
-        Returns: number
       }
       schedule_assistance_reminders: {
         Args: Record<PropertyKey, never>

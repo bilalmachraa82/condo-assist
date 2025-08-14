@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -195,7 +194,7 @@ export const useDeleteQuotation = () => {
   });
 };
 
-// Request quotation for assistance - COM VALIDAÇÃO MELHORADA
+// Request quotation for assistance
 export const useRequestQuotation = () => {
   const queryClient = useQueryClient();
 
@@ -207,43 +206,8 @@ export const useRequestQuotation = () => {
       assistanceId: string;
       deadline?: string;
     }) => {
-      console.log("🔍 Iniciando solicitação de orçamento para assistência:", assistanceId);
-      
-      // Verificar primeiro se a assistência tem fornecedor atribuído
-      const { data: assistance, error: fetchError } = await supabase
-        .from("assistances")
-        .select(`
-          *,
-          suppliers:assigned_supplier_id(*),
-          buildings(*)
-        `)
-        .eq("id", assistanceId)
-        .single();
-
-      if (fetchError) {
-        console.error("❌ Erro ao buscar assistência:", fetchError);
-        throw new Error("Assistência não encontrada");
-      }
-
-      if (!assistance.assigned_supplier_id) {
-        console.error("❌ Tentativa de solicitar orçamento sem fornecedor atribuído");
-        throw new Error("É necessário atribuir um fornecedor antes de solicitar orçamento");
-      }
-
-      if (!assistance.suppliers) {
-        console.error("❌ Fornecedor não encontrado para ID:", assistance.assigned_supplier_id);
-        throw new Error("Fornecedor atribuído não foi encontrado");
-      }
-
-      if (!assistance.suppliers.email) {
-        console.error("❌ Fornecedor sem email:", assistance.suppliers);
-        throw new Error(`O fornecedor ${assistance.suppliers.name} não tem email configurado`);
-      }
-
-      console.log("✅ Validação passou - Fornecedor:", assistance.suppliers.name, "Email:", assistance.suppliers.email);
-
-      // Atualizar a assistência
-      const { data: updatedAssistance, error } = await supabase
+      // First update the assistance
+      const { data, error } = await supabase
         .from("assistances")
         .update({
           requires_quotation: true,
@@ -252,62 +216,47 @@ export const useRequestQuotation = () => {
           status: "awaiting_quotation",
         })
         .eq("id", assistanceId)
-        .select()
+        .select(`
+          *,
+          suppliers:assigned_supplier_id(*),
+          buildings(*)
+        `)
         .single();
 
-      if (error) {
-        console.error("❌ Erro ao atualizar assistência:", error);
-        throw new Error("Erro ao atualizar assistência");
-      }
+      if (error) throw error;
 
-      console.log("✅ Assistência atualizada com sucesso");
-
-      // Enviar email ao fornecedor
-      try {
-        console.log("📧 Enviando email de solicitação...");
-        
-        const { data: emailResponse, error: emailError } = await supabase.functions.invoke('request-quotation-email', {
-          body: {
-            assistance_id: assistanceId,
-            supplier_id: assistance.assigned_supplier_id,
-            supplier_email: assistance.suppliers.email,
-            supplier_name: assistance.suppliers.name,
-            assistance_title: assistance.title,
-            assistance_description: assistance.description,
-            building_name: assistance.buildings?.name || "N/A",
-            deadline: deadline
-          }
-        });
-
-        if (emailError) {
-          console.error("❌ Erro ao enviar email:", emailError);
-          // Não falhar a operação se o email falhar, mas registar o erro
-          console.warn("Email falhou mas orçamento foi marcado como solicitado");
-        } else {
-          console.log("✅ Email enviado com sucesso:", emailResponse);
-        }
-
-        // Registar no log de emails
+      // Send email to supplier if one is assigned
+      if (data.assigned_supplier_id && data.suppliers) {
         try {
-          await supabase.from("email_logs").insert({
-            recipient_email: assistance.suppliers.email,
-            subject: `Solicitação de Orçamento - ${assistance.title}`,
-            status: emailError ? "failed" : "sent",
-            assistance_id: assistanceId,
-            supplier_id: assistance.assigned_supplier_id,
-            template_used: "quotation_request",
-            metadata: emailError ? { error: emailError.message } : null
+          await supabase.functions.invoke('request-quotation-email', {
+            body: {
+              assistance_id: assistanceId,
+              supplier_id: data.assigned_supplier_id,
+              supplier_email: data.suppliers.email,
+              supplier_name: data.suppliers.name,
+              assistance_title: data.title,
+              assistance_description: data.description,
+              building_name: data.buildings?.name || "N/A",
+              deadline: deadline
+            }
           });
-        } catch (logError) {
-          console.warn("Erro ao registar email_log (ignorando):", logError);
-        }
 
-      } catch (emailError) {
-        console.error("❌ Falha crítica no envio de email:", emailError);
-        // Não falhar a operação principal
+          // Log the email
+          await supabase.from("email_logs").insert({
+            recipient_email: data.suppliers.email,
+            subject: `Solicitação de Orçamento - ${data.title}`,
+            status: "sent",
+            assistance_id: assistanceId,
+            supplier_id: data.assigned_supplier_id,
+            template_used: "quotation_request"
+          });
+        } catch (emailError) {
+          console.error("Error sending quotation request email:", emailError);
+          // Don't fail the whole operation if email fails
+        }
       }
 
-      return updatedAssistance;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
@@ -315,11 +264,11 @@ export const useRequestQuotation = () => {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       queryClient.invalidateQueries({ queryKey: ["quotation-requests"] });
       queryClient.invalidateQueries({ queryKey: ["quotation-requests-pending"] });
-      toast.success("Orçamento solicitado com sucesso!");
+      toast.success("Orçamento solicitado e email enviado com sucesso!");
     },
-    onError: (error: any) => {
-      console.error("❌ Erro final na solicitação de orçamento:", error);
-      toast.error(error.message || "Erro ao solicitar orçamento");
+    onError: (error) => {
+      console.error("Error requesting quotation:", error);
+      toast.error("Erro ao solicitar orçamento");
     },
   });
 };

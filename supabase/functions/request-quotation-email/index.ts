@@ -1,6 +1,8 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { Resend } from "npm:resend@2.0.0";
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,11 +28,6 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log("🚀 Iniciando processamento de solicitação de orçamento");
-    
-    const requestBody = await req.json();
-    console.log("📝 Dados recebidos:", JSON.stringify(requestBody, null, 2));
-
     const {
       assistance_id,
       supplier_id,
@@ -40,33 +37,9 @@ const handler = async (req: Request): Promise<Response> => {
       assistance_description,
       building_name,
       deadline
-    }: QuotationRequest = requestBody;
+    }: QuotationRequest = await req.json();
 
-    // Validações básicas
-    if (!assistance_id || !supplier_id || !supplier_email || !supplier_name) {
-      console.error("❌ Dados obrigatórios em falta:", {
-        assistance_id: !!assistance_id,
-        supplier_id: !!supplier_id,
-        supplier_email: !!supplier_email,
-        supplier_name: !!supplier_name
-      });
-      
-      return new Response(JSON.stringify({ 
-        error: "Dados obrigatórios em falta",
-        details: {
-          assistance_id: !assistance_id ? "em falta" : "ok",
-          supplier_id: !supplier_id ? "em falta" : "ok", 
-          supplier_email: !supplier_email ? "em falta" : "ok",
-          supplier_name: !supplier_name ? "em falta" : "ok"
-        }
-      }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-
-    console.log(`📧 Preparando envio de email para: ${supplier_email} (${supplier_name})`);
-    console.log(`🏢 Assistência: ${assistance_title} em ${building_name}`);
+    console.log(`Sending quotation request email to: ${supplier_email} for assistance: ${assistance_id}`);
 
     // Generate magic code for supplier portal access
     const supabase = createClient(
@@ -74,24 +47,19 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log("🔐 Gerando código mágico...");
-
     // Generate magic code
     const { data: magicCodeData, error: magicCodeError } = await supabase
       .rpc('generate_magic_code');
 
     if (magicCodeError) {
-      console.error('❌ Erro ao gerar código mágico:', magicCodeError);
-      throw new Error(`Erro ao gerar código mágico: ${magicCodeError.message}`);
+      console.error('Error generating magic code:', magicCodeError);
+      throw magicCodeError;
     }
 
     const magicCode = magicCodeData;
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
-    console.log(`✅ Código mágico gerado: ${magicCode}`);
-
     // Store magic code
-    console.log("💾 Armazenando código mágico...");
     const { error: insertError } = await supabase
       .from('supplier_magic_codes')
       .insert({
@@ -102,24 +70,77 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     if (insertError) {
-      console.error('❌ Erro ao armazenar código mágico:', insertError);
-      throw new Error(`Erro ao armazenar código mágico: ${insertError.message}`);
+      console.error('Error storing magic code:', insertError);
+      throw insertError;
     }
-
-    console.log("✅ Código mágico armazenado com sucesso");
 
     const APP_BASE_URL = Deno.env.get('APP_BASE_URL') || 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.lovableproject.com';
     const portalUrl = `${APP_BASE_URL}/supplier-portal?code=${magicCode}`;
-    console.log(`🔗 URL do portal gerado: ${portalUrl}`);
+    console.log(`Generated portal URL: ${portalUrl}`);
 
     const deadlineText = deadline 
       ? `<p style="color: #d97706; font-weight: bold;">⏰ Prazo para submissão: ${new Date(deadline).toLocaleDateString('pt-PT')}</p>`
       : '';
 
-    console.log("📧 Invocando função send-email...");
+    const emailHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Solicitação de Orçamento - Luvimg</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <img src="${APP_BASE_URL}/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" alt="Luvimg Logo" style="width: 64px; height: 64px; margin-bottom: 20px; border-radius: 8px;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">Solicitação de Orçamento</h1>
+          <p style="color: #f0f0f0; margin: 10px 0 0 0; font-size: 16px;">Luvimg - Gestão de Assistências</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
+          <p style="font-size: 18px; margin-bottom: 20px;">Olá <strong>${supplier_name}</strong>,</p>
+          
+          <p>Foi solicitado um orçamento para a seguinte assistência:</p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin: 20px 0;">
+            <h3 style="margin: 0 0 10px 0; color: #667eea;">${assistance_title}</h3>
+            <p style="margin: 5px 0;"><strong>Edifício:</strong> ${building_name}</p>
+            <p style="margin: 5px 0;"><strong>Descrição:</strong> ${assistance_description}</p>
+            ${deadlineText}
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${portalUrl}" 
+               style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+              Submeter Orçamento
+            </a>
+          </div>
+          
+          <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px;">
+              <strong>Código de Acesso:</strong> <span style="font-family: monospace; font-size: 18px; color: #1976d2;">${magicCode}</span><br>
+              <em>Este código é válido por 24 horas e permite acesso direto ao portal do fornecedor.</em>
+            </p>
+          </div>
+          
+          <p style="font-size: 14px; color: #666; margin-top: 30px;">
+            Se não conseguir aceder através do link, pode usar o código de acesso diretamente no portal do fornecedor.
+          </p>
+          
+          <p style="font-size: 14px; color: #666;">
+            Este email foi enviado automaticamente pelo sistema de gestão de assistências da Luvimg.
+          </p>
+        </div>
+      </body>
+      </html>
+    `;
 
     // Send email using enhanced send-email function
-    const emailResponse = await supabase.functions.invoke('send-email', {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const emailResponse = await supabaseClient.functions.invoke('send-email', {
       body: {
         to: supplier_email,
         subject: `Solicitação de Orçamento - ${assistance_title}`,
@@ -135,68 +156,29 @@ const handler = async (req: Request): Promise<Response> => {
             interventionType: 'Orçamento Solicitado',
             description: assistance_description
           },
-          portalUrl: portalUrl,
-          deadline: deadline ? new Date(deadline).toLocaleDateString('pt-PT') : null
+          portalUrl: portalUrl
         },
         from: 'Luvimg - Administração de Condomínios <arquivo@luvimg.com>'
       }
     });
 
-    if (emailResponse.error) {
-      console.error("❌ Erro na função send-email:", emailResponse.error);
-      throw new Error(`Erro ao enviar email: ${emailResponse.error.message || 'Erro desconhecido'}`);
-    }
+    console.log("Quotation request email sent successfully:", emailResponse);
 
-    console.log("✅ Email enviado com sucesso:", emailResponse.data);
-
-    // Log successful email sending
-    try {
-      await supabase.from("email_logs").insert({
-        recipient_email: supplier_email,
-        subject: `Solicitação de Orçamento - ${assistance_title}`,
-        status: "sent",
-        assistance_id: assistance_id,
-        supplier_id: supplier_id,
-        template_used: "quotation_request",
-        metadata: {
-          magic_code: magicCode,
-          portal_url: portalUrl,
-          deadline: deadline
-        }
-      });
-      console.log("✅ Log de email registado com sucesso");
-    } catch (logError) {
-      console.warn("⚠️ Erro ao registar log de email (continuando):", logError);
-    }
-
-    const response = {
-      success: true,
-      emailResponse: emailResponse.data,
-      magic_code: magicCode,
-      portal_url: portalUrl,
-      message: `Email enviado com sucesso para ${supplier_email}`
-    };
-
-    console.log("🎉 Solicitação de orçamento processada com sucesso");
-    
-    return new Response(JSON.stringify(response), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      emailResponse,
+      magic_code: magicCode
+    }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
         ...corsHeaders,
       },
     });
-    
   } catch (error: any) {
-    console.error("💥 Erro crítico na função request-quotation-email:", error);
-    console.error("Stack trace:", error.stack);
-    
+    console.error("Error in request-quotation-email function:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message || "Erro interno do servidor",
-        details: error.stack || "Sem stack trace disponível",
-        timestamp: new Date().toISOString()
-      }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

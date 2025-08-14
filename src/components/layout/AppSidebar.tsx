@@ -1,141 +1,143 @@
-import {
-  LayoutDashboard,
-  Settings,
-  FileText,
+import { useState } from "react"
+import { 
+  Home,
+  Wrench,
+  Building2,
   Users,
-  Building,
-  ShoppingCart,
-  Mail,
-  BarChart4,
-  LogOut,
-} from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+  Settings,
+  BarChart3,
+  FileText,
+  Bell,
+  HelpCircle,
+  Euro,
+  Zap
+} from "lucide-react"
+import { NavLink, useLocation } from "react-router-dom"
+
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuItem,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { useAuth } from "@/hooks/useAuth";
-import { useIsMobile } from "@/hooks/use-mobile";
+  useSidebar,
+} from "@/components/ui/sidebar"
+
+const menuItems = [
+  { title: "Dashboard", url: "/", icon: Home },
+  { title: "Assistências", url: "/assistencias", icon: Wrench },
+  { title: "Orçamentos", url: "/orcamentos", icon: Euro },
+  { title: "Edifícios", url: "/edificios", icon: Building2 },
+  { title: "Fornecedores", url: "/fornecedores", icon: Users },
+  { title: "Análise e Relatórios", url: "/analytics", icon: BarChart3 },
+]
+
+const configItems = [
+  { title: "Configurações", url: "/configuracoes", icon: Settings },
+  { title: "Tipos Assistência", url: "/tipos-assistencia", icon: FileText },
+  { title: "Comunicações", url: "/comunicacoes", icon: Bell },
+]
 
 export function AppSidebar() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { user, signOut } = useAuth();
-  const isMobile = useIsMobile();
+  const { state } = useSidebar()
+  const location = useLocation()
+  const currentPath = location.pathname
+  const isCollapsed = state === "collapsed"
 
-  const menuItems = [
-    {
-      href: "/",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      href: "/assistances",
-      label: "Assistências",
-      icon: FileText,
-    },
-    {
-      href: "/buildings",
-      label: "Edifícios",
-      icon: Building,
-    },
-    {
-      href: "/suppliers",
-      label: "Fornecedores",
-      icon: Users,
-    },
-    {
-      href: "/quotations",
-      label: "Orçamentos",
-      icon: Mail,
-    },
-    {
-      href: "/invoices",
-      label: "Faturas",
-      icon: ShoppingCart,
-    },
-    {
-      href: "/reports",
-      label: "Relatórios",
-      icon: BarChart4,
-    },
-    {
-      href: "/settings",
-      label: "Definições",
-      icon: Settings,
-    },
-  ];
+  const isActive = (path: string) => currentPath === path
+  const isMainExpanded = menuItems.some((i) => isActive(i.url))
+  const isConfigExpanded = configItems.some((i) => isActive(i.url))
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/auth');
-  };
+  const getNavCls = (path: string) =>
+    isActive(path) 
+      ? "bg-gradient-to-r from-primary/20 to-primary/10 text-primary font-medium border-r-2 border-primary" 
+      : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
 
   return (
-    <Sidebar collapsible="icon" className="border-r bg-card">
-      <SidebarHeader className="border-b p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <img 
-              src="/logo-luvimg.png" 
-              alt="Luvimg" 
-              className="h-6 w-6 object-contain"
-              onError={(e) => {
-                console.error("Erro ao carregar logo:", e);
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">Luvimg</span>
-            <span className="text-xs text-muted-foreground">Gestão de Assistências</span>
-          </div>
+    <Sidebar
+      collapsible="icon"
+    >
+      <SidebarContent className="bg-gradient-to-b from-card to-muted/30">
+        <div className="p-4 border-b">
+          {!isCollapsed && (
+            <div className="flex items-center gap-2">
+              <img 
+                src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
+                alt="Luvimg" 
+                className="w-8 h-8 object-contain"
+              />
+              <div>
+                <h2 className="font-semibold text-sm">Luvimg</h2>
+                <p className="text-xs text-muted-foreground">Administração de Condomínios</p>
+              </div>
+            </div>
+          )}
+          {isCollapsed && (
+            <div className="flex justify-center">
+              <img 
+                src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" 
+                alt="Luvimg" 
+                className="w-8 h-8 object-contain"
+              />
+            </div>
+          )}
         </div>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarMenu>
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={location.pathname === item.href}
-                  onClick={() => navigate(item.href)}
-                >
-                  <a href={item.href}>
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
+
+        <SidebarGroup className="px-2">
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2">
+            {!isCollapsed && "Principal"}
+          </SidebarGroupLabel>
+
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild className="h-10">
+                    <NavLink to={item.url} end className={getNavCls(item.url)}>
+                      <item.icon className="h-4 w-4 flex-shrink-0" />
+                      {!isCollapsed && <span className="ml-3">{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="px-2">
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2">
+            {!isCollapsed && "Configuração"}
+          </SidebarGroupLabel>
+
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {configItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild className="h-10">
+                    <NavLink to={item.url} className={getNavCls(item.url)}>
+                      <item.icon className="h-4 w-4 flex-shrink-0" />
+                      {!isCollapsed && <span className="ml-3">{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <div className="mt-auto p-4 border-t">
+          {!isCollapsed && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <HelpCircle className="h-4 w-4" />
+              <span>Versão 1.0</span>
+            </div>
+          )}
+        </div>
       </SidebarContent>
-      <SidebarFooter className="border-t p-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold">{user?.email}</p>
-            <p className="text-xs text-muted-foreground">
-              Administrador
-            </p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Sair"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
-      </SidebarFooter>
     </Sidebar>
-  );
+  )
 }
