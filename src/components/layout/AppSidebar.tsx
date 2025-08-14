@@ -7,7 +7,7 @@ import {
   ShoppingCart,
   Mail,
   BarChart4,
-  Logout,
+  LogOut,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -15,16 +15,19 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarItem,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { useMobile } from "@/hooks/useMobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function AppSidebar() {
   const location = useLocation();
-  const { user, logout } = useAuth();
-  const { isMobile } = useMobile();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
 
   const menuItems = [
     {
@@ -70,7 +73,8 @@ export function AppSidebar() {
   ];
 
   const handleLogout = async () => {
-    logout();
+    await signOut();
+    navigate('/auth');
   };
 
   return (
@@ -95,37 +99,41 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        {menuItems.map((item) => (
-          <SidebarItem
-            key={item.href}
-            href={item.href}
-            label={item.label}
-            icon={item.icon}
-            isActive={location.pathname === item.href}
-          />
-        ))}
+        <SidebarMenu>
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === item.href}
+                  onClick={() => navigate(item.href)}
+                >
+                  <a href={item.href}>
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-sm font-semibold">{user?.email}</p>
             <p className="text-xs text-muted-foreground">
-              {user?.role || "Administrador"}
+              Administrador
             </p>
           </div>
-          <SidebarTrigger asChild>
-            <button
-              aria-label="Toggle sidebar"
-              className="peer inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-secondary focus:outline-none disabled:opacity-50 data-[state=open]:bg-secondary"
-            >
-              {isMobile ? (
-                <Logout className="h-4 w-4" onClick={handleLogout} />
-              ) : null}
-            </button>
-          </SidebarTrigger>
-          {!isMobile ? (
-            <Logout className="h-4 w-4" onClick={handleLogout} />
-          ) : null}
+          <button
+            onClick={handleLogout}
+            className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Sair"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </SidebarFooter>
     </Sidebar>
