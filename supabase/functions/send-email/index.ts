@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Resend } from "npm:resend@2.0.0";
@@ -380,10 +381,11 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     try {
+      // Usar o logo oficial da Luvimg
       const logoCandidates = [
+        `${APP_BASE_URL.replace(/\/$/, '')}/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png`,
         'https://luvimg.com/assets/images/luvimg-logo.png',
         `${APP_BASE_URL.replace(/\/$/, '')}/logo-luvimg.png`,
-        `${APP_BASE_URL.replace(/\/$/, '')}/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png`,
       ];
       let attached = false;
       for (const url of logoCandidates) {

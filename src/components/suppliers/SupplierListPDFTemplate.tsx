@@ -1,3 +1,4 @@
+
 interface SupplierListPDFTemplateProps {
   suppliers: any[];
   title?: string;
@@ -33,7 +34,7 @@ export const SupplierListPDFTemplate = ({
       {/* Header */}
       <div className="border-b-2 border-gray-300 pb-4 mb-6 text-center">
         <img
-          src="/logo-luvimg.png"
+          src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png"
           alt="Luvimg logotipo"
           className="h-10 w-auto mx-auto mb-3"
         />
