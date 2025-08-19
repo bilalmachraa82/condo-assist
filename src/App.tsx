@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,7 +11,7 @@ import Edificios from "./pages/Edificios";
 import Fornecedores from "./pages/Fornecedores";
 import Quotations from "./pages/Quotations";
 import Configuracoes from "./pages/Configuracoes";
-
+import Security from "./pages/Security";
 import TiposAssistencia from "./pages/TiposAssistencia";
 import Comunicacoes from "./pages/Comunicacoes";
 import Analytics from "./pages/Analytics";
@@ -101,6 +102,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <DashboardLayout><Configuracoes /></DashboardLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/seguranca" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout><Security /></DashboardLayout>
                   </ProtectedRoute>
                 } 
               />
