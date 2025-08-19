@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -88,18 +89,19 @@ interface SessionValidationResponse {
   last_used_at?: string;
   access_count?: number;
   error?: string;
+  recently_expired_extended?: boolean;
 }
 
 /**
- * Validates a magic code and creates/refreshes a supplier session
+ * Validates a magic code and creates/refreshes a supplier session using the secure function
  * @param code - The magic code to validate
  * @returns Promise<{isValid: boolean, supplier?: any, assistanceId?: string, sessionInfo?: any}>
  */
 export const validateMagicCode = async (code: string) => {
   try {
-    // Use the new session validation function
+    // Use the new secure session validation function
     const { data: sessionData, error } = await supabase
-      .rpc('validate_supplier_session', { p_magic_code: code.toUpperCase() });
+      .rpc('validate_supplier_session_secure', { p_magic_code: code.toUpperCase() });
 
     if (error) {
       console.error('Error validating magic code:', error);
@@ -116,16 +118,17 @@ export const validateMagicCode = async (code: string) => {
       };
     }
 
-    // Log successful access
+    // Log successful access using the new logging function
     try {
-      await supabase.rpc('log_supplier_access', {
-        p_supplier_id: typedSessionData.supplier!.id,
-        p_magic_code: code.toUpperCase(),
-        p_action: 'login',
-        p_success: true,
+      await supabase.rpc('log_security_event', {
+        p_event_type: 'supplier_portal_access',
+        p_details: 'Supplier accessed portal successfully',
         p_metadata: {
+          supplier_id: typedSessionData.supplier!.id,
+          magic_code: code.toUpperCase(),
           access_count: typedSessionData.access_count,
-          last_used_at: typedSessionData.last_used_at
+          last_used_at: typedSessionData.last_used_at,
+          recently_expired_extended: typedSessionData.recently_expired_extended || false
         }
       });
     } catch (logError) {
@@ -138,7 +141,8 @@ export const validateMagicCode = async (code: string) => {
       assistanceId: typedSessionData.assistance_id,
       sessionInfo: {
         accessCount: typedSessionData.access_count,
-        lastUsedAt: typedSessionData.last_used_at
+        lastUsedAt: typedSessionData.last_used_at,
+        wasExtended: typedSessionData.recently_expired_extended
       }
     };
   } catch (error) {
