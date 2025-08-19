@@ -93,15 +93,15 @@ interface SessionValidationResponse {
 }
 
 /**
- * Validates a magic code and creates/refreshes a supplier session using the secure function
+ * Validates a magic code and creates/refreshes a supplier session using the existing validation function
  * @param code - The magic code to validate
  * @returns Promise<{isValid: boolean, supplier?: any, assistanceId?: string, sessionInfo?: any}>
  */
 export const validateMagicCode = async (code: string) => {
   try {
-    // Use the new secure session validation function
+    // Use the existing secure session validation function
     const { data: sessionData, error } = await supabase
-      .rpc('validate_supplier_session_secure', { p_magic_code: code.toUpperCase() });
+      .rpc('validate_supplier_session', { p_magic_code: code.toUpperCase() });
 
     if (error) {
       console.error('Error validating magic code:', error);
@@ -118,22 +118,14 @@ export const validateMagicCode = async (code: string) => {
       };
     }
 
-    // Log successful access using the new logging function
-    try {
-      await supabase.rpc('log_security_event', {
-        p_event_type: 'supplier_portal_access',
-        p_details: 'Supplier accessed portal successfully',
-        p_metadata: {
-          supplier_id: typedSessionData.supplier!.id,
-          magic_code: code.toUpperCase(),
-          access_count: typedSessionData.access_count,
-          last_used_at: typedSessionData.last_used_at,
-          recently_expired_extended: typedSessionData.recently_expired_extended || false
-        }
-      });
-    } catch (logError) {
-      console.warn('Failed to log access:', logError);
-    }
+    // Log successful access attempt in console for now
+    console.log('Supplier accessed portal successfully:', {
+      supplier_id: typedSessionData.supplier!.id,
+      magic_code: code.toUpperCase(),
+      access_count: typedSessionData.access_count,
+      last_used_at: typedSessionData.last_used_at,
+      recently_expired_extended: typedSessionData.recently_expired_extended || false
+    });
 
     return {
       isValid: true,
