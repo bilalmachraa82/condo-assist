@@ -40,7 +40,8 @@ const queryClient = new QueryClient({
     },
     mutations: {
       onError: (error) => {
-        showErrorToast(error as Error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        showErrorToast(errorMessage);
       },
     },
   },
