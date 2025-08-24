@@ -204,14 +204,18 @@ export type Database = {
           escalated_at: string | null
           estimated_cost: number | null
           estimated_duration_hours: number | null
+          expected_completion_date: string | null
           final_cost: number | null
           follow_up_count: number | null
           id: string
           intervention_type_id: string
           last_follow_up_sent: string | null
+          last_quotation_follow_up_sent: string | null
+          last_work_reminder_sent: string | null
           priority: Database["public"]["Enums"]["assistance_priority"]
           progress_notes: string | null
           quotation_deadline: string | null
+          quotation_follow_up_count: number | null
           quotation_requested_at: string | null
           requires_quotation: boolean | null
           requires_validation: boolean | null
@@ -225,6 +229,7 @@ export type Database = {
           updated_at: string
           validated_at: string | null
           validated_by: string | null
+          work_reminder_count: number | null
         }
         Insert: {
           actual_end_date?: string | null
@@ -242,14 +247,18 @@ export type Database = {
           escalated_at?: string | null
           estimated_cost?: number | null
           estimated_duration_hours?: number | null
+          expected_completion_date?: string | null
           final_cost?: number | null
           follow_up_count?: number | null
           id?: string
           intervention_type_id: string
           last_follow_up_sent?: string | null
+          last_quotation_follow_up_sent?: string | null
+          last_work_reminder_sent?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
           progress_notes?: string | null
           quotation_deadline?: string | null
+          quotation_follow_up_count?: number | null
           quotation_requested_at?: string | null
           requires_quotation?: boolean | null
           requires_validation?: boolean | null
@@ -263,6 +272,7 @@ export type Database = {
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
+          work_reminder_count?: number | null
         }
         Update: {
           actual_end_date?: string | null
@@ -280,14 +290,18 @@ export type Database = {
           escalated_at?: string | null
           estimated_cost?: number | null
           estimated_duration_hours?: number | null
+          expected_completion_date?: string | null
           final_cost?: number | null
           follow_up_count?: number | null
           id?: string
           intervention_type_id?: string
           last_follow_up_sent?: string | null
+          last_quotation_follow_up_sent?: string | null
+          last_work_reminder_sent?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
           progress_notes?: string | null
           quotation_deadline?: string | null
+          quotation_follow_up_count?: number | null
           quotation_requested_at?: string | null
           requires_quotation?: boolean | null
           requires_validation?: boolean | null
@@ -301,6 +315,7 @@ export type Database = {
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
+          work_reminder_count?: number | null
         }
         Relationships: [
           {
@@ -453,6 +468,72 @@ export type Database = {
           },
           {
             foreignKeyName: "email_logs_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follow_up_schedules: {
+        Row: {
+          assistance_id: string
+          attempt_count: number
+          created_at: string
+          follow_up_type: string
+          id: string
+          max_attempts: number
+          metadata: Json | null
+          next_attempt_at: string | null
+          priority: Database["public"]["Enums"]["assistance_priority"]
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          supplier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assistance_id: string
+          attempt_count?: number
+          created_at?: string
+          follow_up_type: string
+          id?: string
+          max_attempts?: number
+          metadata?: Json | null
+          next_attempt_at?: string | null
+          priority?: Database["public"]["Enums"]["assistance_priority"]
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assistance_id?: string
+          attempt_count?: number
+          created_at?: string
+          follow_up_type?: string
+          id?: string
+          max_attempts?: number
+          metadata?: Json | null
+          next_attempt_at?: string | null
+          priority?: Database["public"]["Enums"]["assistance_priority"]
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_up_schedules_assistance_id_fkey"
+            columns: ["assistance_id"]
+            isOneToOne: false
+            referencedRelation: "assistances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_up_schedules_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
@@ -870,6 +951,15 @@ export type Database = {
         }
         Returns: Json
       }
+      calculate_next_followup: {
+        Args: {
+          p_attempt_count: number
+          p_base_date?: string
+          p_follow_up_type: string
+          p_priority: Database["public"]["Enums"]["assistance_priority"]
+        }
+        Returns: string
+      }
       calculate_reminder_schedule: {
         Args: {
           assistance_priority: Database["public"]["Enums"]["assistance_priority"]
@@ -987,6 +1077,10 @@ export type Database = {
         Returns: undefined
       }
       magic_code_valid_days: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      process_pending_followups: {
         Args: Record<PropertyKey, never>
         Returns: number
       }
