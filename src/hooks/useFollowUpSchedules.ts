@@ -67,7 +67,7 @@ export const useFollowUpSchedules = (filters?: {
       }
       
       if (filters?.priority) {
-        query = query.eq("priority", filters.priority);
+        query = query.eq("priority", filters.priority as 'normal' | 'urgent' | 'critical');
       }
 
       const { data, error } = await query;

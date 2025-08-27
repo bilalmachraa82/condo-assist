@@ -7,7 +7,7 @@ export default function FollowUps() {
   const { user } = useAuth();
 
   if (!user) {
-    return <ProtectedRoute />;
+    return <ProtectedRoute><div /></ProtectedRoute>;
   }
 
   return (
