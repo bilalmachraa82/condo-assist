@@ -202,6 +202,7 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
                     </table>
                   </td>
                 </tr>
+                ` : ''}
                 
                 <!-- Action message -->
                 <tr>
@@ -211,7 +212,6 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
                     </p>
                   </td>
                 </tr>
-                `}
                 
                 <!-- Magic code section -->
                 <tr>
