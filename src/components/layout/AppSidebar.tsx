@@ -31,6 +31,7 @@ const menuItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Assistências", url: "/assistencias", icon: Wrench },
   { title: "Orçamentos", url: "/orcamentos", icon: Euro },
+  { title: "Follow-ups", url: "/follow-ups", icon: Bell },
   { title: "Edifícios", url: "/edificios", icon: Building2 },
   { title: "Fornecedores", url: "/fornecedores", icon: Users },
   { title: "Análise e Relatórios", url: "/analytics", icon: BarChart3 },

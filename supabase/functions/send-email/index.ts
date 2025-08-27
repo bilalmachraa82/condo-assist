@@ -25,7 +25,7 @@ interface EmailRequest {
 }
 
 // Enhanced email template for maximum Outlook compatibility
-const createOutlookCompatibleTemplate = (data: any) => {
+const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magic_code') => {
   const { 
     supplierName = "Fornecedor", 
     magicCode = "", 
@@ -46,6 +46,40 @@ const createOutlookCompatibleTemplate = (data: any) => {
       case 'critical': return 'CRÍTICO';
       case 'urgent': return 'URGENTE';
       default: return 'NORMAL';
+    }
+  };
+
+  const getEmailTitle = (templateType: string, assistanceDetails: any) => {
+    switch (templateType) {
+      case 'quotation_reminder':
+        return '💰 Lembrete de Orçamento';
+      case 'date_confirmation':
+        return '📅 Confirmação de Data';
+      case 'work_reminder':
+        return '⏰ Lembrete de Trabalho';
+      case 'completion_reminder':
+        return '✅ Lembrete de Conclusão';
+      default:
+        return assistanceDetails ? 'Nova Assistência Atribuída' : 'Acesso ao Portal do Fornecedor';
+    }
+  };
+
+  const getEmailMessage = (templateType: string, data: any) => {
+    const { assistanceDetails, workDate, expectedDate, daysOverdue, isOverdue } = data;
+    
+    switch (templateType) {
+      case 'quotation_reminder':
+        return `Foi-lhe atribuída uma assistência que requer orçamento. Por favor, submeta o seu orçamento através do portal:`;
+      case 'date_confirmation':
+        return `A sua proposta foi aceite! Agora precisa de confirmar a data de início dos trabalhos:`;
+      case 'work_reminder':
+        return `Lembrete: tem trabalhos agendados para <strong>${workDate}</strong>. Não se esqueça de marcar o início dos trabalhos no portal:`;
+      case 'completion_reminder':
+        return isOverdue 
+          ? `⚠️ <strong>ATENÇÃO:</strong> Esta assistência está <strong>${daysOverdue} dias em atraso</strong> (prevista para ${expectedDate}). Por favor, conclua os trabalhos e atualize o estado no portal:`
+          : `Os trabalhos deviam estar concluídos. Por favor, atualize o estado da assistência no portal:`;
+      default:
+        return assistanceDetails ? `Para aceitar e gerir esta assistência, aceda ao portal do fornecedor:` : `Utilize o código abaixo para aceder ao portal do fornecedor:`;
     }
   };
 
@@ -106,9 +140,9 @@ const createOutlookCompatibleTemplate = (data: any) => {
                     <img src="cid:luvimg-logo" 
                          alt="Luvimg" 
                          style="height: 50px; width: auto; margin-bottom: 15px; display: block;" />
-                    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 600; line-height: 1.2;">
-                      ${assistanceDetails ? 'Nova Assistência Atribuída' : 'Acesso ao Portal do Fornecedor'}
-                    </h1>
+                     <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 600; line-height: 1.2;">
+                       ${getEmailTitle(templateType, assistanceDetails)}
+                     </h1>
                   </td>
                 </tr>
               </table>
@@ -173,16 +207,7 @@ const createOutlookCompatibleTemplate = (data: any) => {
                 <tr>
                   <td style="padding-bottom: 15px;">
                     <p style="color: #374151; font-size: 16px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; line-height: 1.5;">
-                      Para aceitar e gerir esta assistência, aceda ao portal do fornecedor:
-                    </p>
-                  </td>
-                </tr>
-                ` : `
-                <!-- Standard message -->
-                <tr>
-                  <td style="padding-bottom: 15px;">
-                    <p style="color: #374151; font-size: 16px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; line-height: 1.5;">
-                      Utilize o código abaixo para aceder ao portal do fornecedor:
+                      ${getEmailMessage(templateType, data)}
                     </p>
                   </td>
                 </tr>
@@ -282,7 +307,7 @@ const createOutlookCompatibleTemplate = (data: any) => {
 };
 
 // Plain text version for better deliverability
-const createPlainTextVersion = (data: any) => {
+const createPlainTextVersion = (data: any, templateType: string = 'magic_code') => {
   const { 
     supplierName = "Fornecedor", 
     magicCode = "", 
@@ -292,8 +317,27 @@ const createPlainTextVersion = (data: any) => {
 
   let text = `Olá ${supplierName},\n\n`;
   
+  // Add template-specific header
+  switch (templateType) {
+    case 'quotation_reminder':
+      text += `💰 LEMBRETE DE ORÇAMENTO\n\n`;
+      break;
+    case 'date_confirmation':
+      text += `📅 CONFIRMAÇÃO DE DATA\n\n`;
+      break;
+    case 'work_reminder':
+      text += `⏰ LEMBRETE DE TRABALHO\n\n`;
+      break;
+    case 'completion_reminder':
+      text += `✅ LEMBRETE DE CONCLUSÃO\n\n`;
+      break;
+    default:
+      if (assistanceDetails) {
+        text += `NOVA ASSISTÊNCIA ATRIBUÍDA\n\n`;
+      }
+  }
+  
   if (assistanceDetails) {
-    text += `NOVA ASSISTÊNCIA ATRIBUÍDA\n\n`;
     text += `📋 ${assistanceDetails.title}\n`;
     text += `🚨 Prioridade: ${assistanceDetails.priority === 'critical' ? 'CRÍTICO' : assistanceDetails.priority === 'urgent' ? 'URGENTE' : 'NORMAL'}\n`;
     text += `🏢 Edifício: ${assistanceDetails.buildingName}${assistanceDetails.buildingNif ? ` (NIF: ${assistanceDetails.buildingNif})` : ''}\n`;
@@ -301,9 +345,33 @@ const createPlainTextVersion = (data: any) => {
     if (assistanceDetails.description) {
       text += `📝 Descrição: ${assistanceDetails.description}\n`;
     }
-    text += `\nPara aceitar e gerir esta assistência, aceda ao portal do fornecedor:\n\n`;
-  } else {
-    text += `Utilize o código abaixo para aceder ao portal do fornecedor:\n\n`;
+    text += `\n`;
+  }
+
+  // Add template-specific message
+  switch (templateType) {
+    case 'quotation_reminder':
+      text += `Foi-lhe atribuída uma assistência que requer orçamento. Por favor, submeta o seu orçamento através do portal:\n\n`;
+      break;
+    case 'date_confirmation':
+      text += `A sua proposta foi aceite! Agora precisa de confirmar a data de início dos trabalhos:\n\n`;
+      break;
+    case 'work_reminder':
+      text += `Lembrete: tem trabalhos agendados para ${data.workDate}. Não se esqueça de marcar o início dos trabalhos no portal:\n\n`;
+      break;
+    case 'completion_reminder':
+      if (data.isOverdue) {
+        text += `⚠️ ATENÇÃO: Esta assistência está ${data.daysOverdue} dias em atraso (prevista para ${data.expectedDate}). Por favor, conclua os trabalhos e atualize o estado no portal:\n\n`;
+      } else {
+        text += `Os trabalhos deviam estar concluídos. Por favor, atualize o estado da assistência no portal:\n\n`;
+      }
+      break;
+    default:
+      if (assistanceDetails) {
+        text += `Para aceitar e gerir esta assistência, aceda ao portal do fornecedor:\n\n`;
+      } else {
+        text += `Utilize o código abaixo para aceder ao portal do fornecedor:\n\n`;
+      }
   }
   
   text += `CÓDIGO DE ACESSO: ${magicCode}\n`;
@@ -339,9 +407,22 @@ const handler = async (req: Request): Promise<Response> => {
     let finalText = text;
 
     // Generate template-based content if template is specified
-    if (template === 'magic_code' && data) {
-      finalHtml = createOutlookCompatibleTemplate(data);
-      finalText = createPlainTextVersion(data);
+    if (template && data) {
+      switch (template) {
+        case 'magic_code':
+        case 'quotation_reminder':
+        case 'date_confirmation':
+        case 'work_reminder':
+        case 'completion_reminder':
+          finalHtml = createOutlookCompatibleTemplate(data, template);
+          finalText = createPlainTextVersion(data, template);
+          break;
+        default:
+          if (template === 'magic_code') {
+            finalHtml = createOutlookCompatibleTemplate(data);
+            finalText = createPlainTextVersion(data);
+          }
+      }
     }
 
     // Ensure we have either HTML or text content
