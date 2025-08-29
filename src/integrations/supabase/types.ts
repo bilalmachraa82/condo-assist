@@ -60,13 +60,6 @@ export type Database = {
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "activity_log_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers_basic"
-            referencedColumns: ["id"]
-          },
         ]
       }
       app_settings: {
@@ -143,13 +136,6 @@ export type Database = {
             columns: ["uploaded_by_supplier"]
             isOneToOne: false
             referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assistance_photos_uploaded_by_supplier_fkey"
-            columns: ["uploaded_by_supplier"]
-            isOneToOne: false
-            referencedRelation: "suppliers_basic"
             referencedColumns: ["id"]
           },
         ]
@@ -340,13 +326,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "assistances_assigned_supplier_id_fkey"
-            columns: ["assigned_supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers_basic"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "assistances_building_id_fkey"
             columns: ["building_id"]
             isOneToOne: false
@@ -494,13 +473,6 @@ export type Database = {
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "email_logs_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers_basic"
-            referencedColumns: ["id"]
-          },
         ]
       }
       follow_up_schedules: {
@@ -565,13 +537,6 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "follow_up_schedules_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers_basic"
             referencedColumns: ["id"]
           },
         ]
@@ -742,13 +707,6 @@ export type Database = {
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "quotations_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers_basic"
-            referencedColumns: ["id"]
-          },
         ]
       }
       supplier_access_log: {
@@ -839,13 +797,6 @@ export type Database = {
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "supplier_magic_codes_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers_basic"
-            referencedColumns: ["id"]
-          },
         ]
       }
       supplier_responses: {
@@ -910,13 +861,6 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supplier_responses_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers_basic"
             referencedColumns: ["id"]
           },
         ]
@@ -992,33 +936,7 @@ export type Database = {
       }
     }
     Views: {
-      suppliers_basic: {
-        Row: {
-          id: string | null
-          is_active: boolean | null
-          name: string | null
-          rating: number | null
-          specialization: string | null
-          total_jobs: number | null
-        }
-        Insert: {
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          rating?: number | null
-          specialization?: string | null
-          total_jobs?: number | null
-        }
-        Update: {
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          rating?: number | null
-          specialization?: string | null
-          total_jobs?: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       assistance_needs_followup: {
@@ -1119,6 +1037,17 @@ export type Database = {
           status: Database["public"]["Enums"]["assistance_status"]
           supplier_notes: string
           title: string
+        }[]
+      }
+      get_basic_suppliers: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          is_active: boolean
+          name: string
+          rating: number
+          specialization: string
+          total_jobs: number
         }[]
       }
       get_communications_for_code: {

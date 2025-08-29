@@ -4,18 +4,25 @@ import { Tables } from "@/integrations/supabase/types";
 
 export type Supplier = Tables<"suppliers">;
 
+// Basic supplier data returned by the secure function
+export type BasicSupplier = {
+  id: string;
+  name: string;
+  specialization: string | null;
+  is_active: boolean;
+  rating: number | null;
+  total_jobs: number | null;
+};
+
 export const useSuppliers = () => {
   return useQuery({
     queryKey: ["suppliers"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("suppliers")
-        .select("*")
-        .eq("is_active", true)
-        .order("name", { ascending: true });
+      // Use the secure function for basic supplier data
+      const { data, error } = await supabase.rpc("get_basic_suppliers");
 
       if (error) throw error;
-      return data as Supplier[];
+      return data as BasicSupplier[];
     },
   });
 };
@@ -24,6 +31,7 @@ export const useAllSuppliers = () => {
   return useQuery({
     queryKey: ["all-suppliers"],
     queryFn: async () => {
+      // Admin-only access to full supplier data
       const { data, error } = await supabase
         .from("suppliers")
         .select("*")
@@ -39,36 +47,20 @@ export const useSupplierStats = () => {
   return useQuery({
     queryKey: ["supplier-stats"],
     queryFn: async () => {
-      // Get total count
-      const { count: totalCount, error: totalError } = await supabase
-        .from("suppliers")
-        .select("*", { count: "exact", head: true });
+      // Get basic supplier data using secure function
+      const { data: suppliers, error } = await supabase.rpc("get_basic_suppliers");
+      
+      if (error) throw error;
 
-      if (totalError) throw totalError;
-
-      // Get active count
-      const { count: activeCount, error: activeError } = await supabase
-        .from("suppliers")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true);
-
-      if (activeError) throw activeError;
-
-      // Get unique specializations
-      const { data: specializationData, error: specializationError } = await supabase
-        .from("suppliers")
-        .select("specialization")
-        .not("specialization", "is", null);
-
-      if (specializationError) throw specializationError;
-
+      const total = suppliers?.length || 0;
+      const active = suppliers?.filter(s => s.is_active)?.length || 0;
       const uniqueSpecializations = new Set(
-        specializationData?.map(s => s.specialization).filter(Boolean)
+        suppliers?.map(s => s.specialization).filter(Boolean)
       ).size;
 
       return {
-        total: totalCount || 0,
-        active: activeCount || 0,
+        total,
+        active,
         specializations: uniqueSpecializations,
       };
     },

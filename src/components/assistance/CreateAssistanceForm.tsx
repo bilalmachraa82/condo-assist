@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useBuildings } from "@/hooks/useBuildings";
-import { useSuppliers } from "@/hooks/useSuppliers";
+import { useAllSuppliers } from "@/hooks/useSuppliers";
 import { sendMagicCodeToSupplier } from "@/utils/sendMagicCode";
 
 const assistanceSchema = z.object({
@@ -40,7 +40,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
   
   // Get data for dropdowns
   const { data: buildings = [] } = useBuildings();
-  const { data: suppliers = [] } = useSuppliers();
+  const { data: suppliers = [] } = useAllSuppliers(); // Use admin hook for full supplier data
   
   const { data: interventionTypes = [] } = useQuery({
     queryKey: ["intervention-types"],
