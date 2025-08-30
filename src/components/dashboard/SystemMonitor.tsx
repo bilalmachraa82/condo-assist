@@ -4,35 +4,36 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle, Info, RefreshCw, Activity } from "lucide-react";
 import { useSystemHealth, useDebugInfo } from "@/hooks/useSystemMonitoring";
 import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function SystemMonitor() {
   const { data: health, isLoading: healthLoading, error: healthError, refetch } = useSystemHealth();
   const { data: debug, isLoading: debugLoading } = useDebugInfo();
 
   const getHealthStatus = () => {
-    if (!health) return { status: "unknown", color: "secondary", icon: Info };
+    if (!health) return { status: "desconhecido", color: "secondary", icon: Info };
     
     const issues = [];
     
     // Check for critical issues
     if (health.email_logs.success_rate < 90) {
-      issues.push("Low email success rate");
+      issues.push("Taxa de sucesso de email baixa");
     }
     
     if (health.email_logs.recent_failures > 5) {
-      issues.push("High email failure count");
+      issues.push("Elevado número de falhas de email");
     }
     
     if (health.assistances.pending > 50) {
-      issues.push("High pending assistance count");
+      issues.push("Elevado número de assistências pendentes");
     }
 
     if (issues.length === 0) {
-      return { status: "healthy", color: "default", icon: CheckCircle };
+      return { status: "saudável", color: "default", icon: CheckCircle };
     } else if (issues.length <= 2) {
-      return { status: "warning", color: "outline", icon: AlertTriangle };
+      return { status: "aviso", color: "outline", icon: AlertTriangle };
     } else {
-      return { status: "critical", color: "destructive", icon: AlertTriangle };
+      return { status: "crítico", color: "destructive", icon: AlertTriangle };
     }
   };
 
@@ -45,11 +46,11 @@ export default function SystemMonitor() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            System Monitor
+            Monitor do Sistema
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-4">Loading system health...</div>
+          <div className="text-center py-4">A carregar estado do sistema...</div>
         </CardContent>
       </Card>
     );
@@ -61,16 +62,16 @@ export default function SystemMonitor() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            System Monitor - Error
+            Monitor do Sistema - Erro
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-4 text-destructive">
-            Failed to load system health data
+            Falha ao carregar dados de saúde do sistema
           </div>
           <Button onClick={() => refetch()} variant="outline" className="w-full mt-2">
             <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
+            Tentar Novamente
           </Button>
         </CardContent>
       </Card>
@@ -84,7 +85,7 @@ export default function SystemMonitor() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              <CardTitle>System Monitor</CardTitle>
+              <CardTitle>Monitor do Sistema</CardTitle>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant={healthStatus.color as any} className="flex items-center gap-1">
@@ -96,50 +97,50 @@ export default function SystemMonitor() {
               </Button>
             </div>
           </div>
-          <CardDescription>Real-time system health and performance metrics</CardDescription>
+          <CardDescription>Métricas de saúde e desempenho do sistema em tempo real</CardDescription>
         </CardHeader>
         <CardContent>
           {health && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* Assistances */}
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">Assistances</h4>
+                <h4 className="font-medium text-sm">Assistências</h4>
                 <div className="text-2xl font-bold">{health.assistances.total}</div>
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <div>Pending: {health.assistances.pending}</div>
-                  <div>In Progress: {health.assistances.in_progress}</div>
-                  <div>Completed: {health.assistances.completed}</div>
+                  <div>Pendentes: {health.assistances.pending}</div>
+                  <div>Em Progresso: {health.assistances.in_progress}</div>
+                  <div>Concluídas: {health.assistances.completed}</div>
                 </div>
               </div>
 
               {/* Suppliers */}
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">Suppliers</h4>
+                <h4 className="font-medium text-sm">Fornecedores</h4>
                 <div className="text-2xl font-bold">{health.suppliers.active}</div>
                 <div className="text-xs text-muted-foreground">
                   <div>Total: {health.suppliers.total}</div>
-                  <div>Active: {health.suppliers.active}</div>
+                  <div>Ativos: {health.suppliers.active}</div>
                 </div>
               </div>
 
               {/* Quotations */}
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">Quotations</h4>
+                <h4 className="font-medium text-sm">Orçamentos</h4>
                 <div className="text-2xl font-bold">{health.quotations.total}</div>
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <div>Pending: {health.quotations.pending}</div>
-                  <div>Approved: {health.quotations.approved}</div>
-                  <div>Rejected: {health.quotations.rejected}</div>
+                  <div>Pendentes: {health.quotations.pending}</div>
+                  <div>Aprovados: {health.quotations.approved}</div>
+                  <div>Rejeitados: {health.quotations.rejected}</div>
                 </div>
               </div>
 
               {/* Email Health */}
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">Email System</h4>
+                <h4 className="font-medium text-sm">Sistema de Email</h4>
                 <div className="text-2xl font-bold">{health.email_logs.success_rate.toFixed(1)}%</div>
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <div>Sent: {health.email_logs.total_sent}</div>
-                  <div>Failures: {health.email_logs.recent_failures}</div>
+                  <div>Enviados: {health.email_logs.total_sent}</div>
+                  <div>Falhas: {health.email_logs.recent_failures}</div>
                 </div>
               </div>
             </div>
@@ -151,8 +152,8 @@ export default function SystemMonitor() {
       {health && health.recent_activity.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Recent Activity</CardTitle>
-            <CardDescription>Latest system events and actions</CardDescription>
+            <CardTitle className="text-lg">Atividade Recente</CardTitle>
+            <CardDescription>Eventos e ações mais recentes do sistema</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -165,7 +166,7 @@ export default function SystemMonitor() {
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true, locale: ptBR })}
                   </div>
                 </div>
               ))}
@@ -178,29 +179,29 @@ export default function SystemMonitor() {
       {debug && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Debug Information</CardTitle>
-            <CardDescription>System performance and environment details</CardDescription>
+            <CardTitle className="text-lg">Informação de Depuração</CardTitle>
+            <CardDescription>Detalhes de desempenho e ambiente do sistema</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium">Online Status:</span> 
+                <span className="font-medium">Estado Online:</span> 
                 <Badge variant={debug.online_status ? "default" : "destructive"} className="ml-2">
                   {debug.online_status ? "Online" : "Offline"}
                 </Badge>
               </div>
               <div>
-                <span className="font-medium">Local Storage:</span> {(debug.local_storage_size / 1024).toFixed(1)} KB
+                <span className="font-medium">Armazenamento Local:</span> {(debug.local_storage_size / 1024).toFixed(1)} KB
               </div>
               {debug.memory_usage && (
                 <div className="md:col-span-2">
-                  <span className="font-medium">Memory Usage:</span> 
+                  <span className="font-medium">Uso de Memória:</span> 
                   {(debug.memory_usage.used / 1024 / 1024).toFixed(1)} MB / 
                   {(debug.memory_usage.total / 1024 / 1024).toFixed(1)} MB
                 </div>
               )}
               <div className="md:col-span-2 text-xs text-muted-foreground">
-                Last updated: {formatDistanceToNow(new Date(debug.timestamp), { addSuffix: true })}
+                Última atualização: {formatDistanceToNow(new Date(debug.timestamp), { addSuffix: true, locale: ptBR })}
               </div>
             </div>
           </CardContent>

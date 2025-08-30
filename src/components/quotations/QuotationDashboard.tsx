@@ -14,7 +14,8 @@ import {
   CheckCircle,
   XCircle,
   Calendar,
-  Mail
+  Mail,
+  Info
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -70,29 +71,49 @@ export default function QuotationDashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["quotation-stats"],
     queryFn: async () => {
-      if (!quotations) return null;
+      // Get both quotations and assistance quotation data
+      const [quotationsRes, assistancesRes] = await Promise.all([
+        supabase.from("quotations").select("status, amount"),
+        supabase.from("assistances").select("status, requires_quotation, quotation_requested_at")
+      ]);
 
-      const totalQuotations = quotations.length;
-      const pendingQuotations = quotations.filter(q => q.status === "pending").length;
-      const approvedQuotations = quotations.filter(q => q.status === "approved").length;
-      const rejectedQuotations = quotations.filter(q => q.status === "rejected").length;
+      if (quotationsRes.error) throw quotationsRes.error;
+      if (assistancesRes.error) throw assistancesRes.error;
+
+      const quotationsData = quotationsRes.data || [];
+      const assistancesData = assistancesRes.data || [];
+
+      // Quotations submitted by suppliers
+      const totalQuotations = quotationsData.length;
+      const pendingQuotations = quotationsData.filter(q => q.status === "pending").length;
+      const approvedQuotations = quotationsData.filter(q => q.status === "approved").length;
+      const rejectedQuotations = quotationsData.filter(q => q.status === "rejected").length;
       
-      const totalValue = quotations
+      // Quotation requests from assistances
+      const quotationRequests = assistancesData.filter(a => a.requires_quotation).length;
+      const awaitingQuotation = assistancesData.filter(a => a.status === "awaiting_quotation").length;
+      const quotationReceived = assistancesData.filter(a => a.status === "quotation_received").length;
+      
+      const totalValue = quotationsData
         .filter(q => q.status === "approved")
         .reduce((sum, q) => sum + Number(q.amount), 0);
 
       const averageValue = approvedQuotations > 0 ? totalValue / approvedQuotations : 0;
 
       return {
+        // Submitted quotations 
         total: totalQuotations,
         pending: pendingQuotations,
         approved: approvedQuotations,
         rejected: rejectedQuotations,
         totalValue,
         averageValue,
+        // Quotation requests
+        quotationRequests,
+        awaitingQuotation,
+        quotationReceived,
       };
     },
-    enabled: !!quotations,
   });
 
   if (isLoading) {
@@ -111,14 +132,14 @@ export default function QuotationDashboard() {
   return (
     <div className="space-y-6">
       {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
+              <Mail className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-2xl font-bold text-primary">{stats?.total || 0}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-2xl font-bold text-primary">{stats?.quotationRequests || 0}</p>
+                <p className="text-xs text-muted-foreground">Solicitações</p>
               </div>
             </div>
           </CardContent>
@@ -129,8 +150,20 @@ export default function QuotationDashboard() {
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-warning" />
               <div>
-                <p className="text-2xl font-bold text-warning">{stats?.pending || 0}</p>
-                <p className="text-xs text-muted-foreground">Pendentes</p>
+                <p className="text-2xl font-bold text-warning">{stats?.awaitingQuotation || 0}</p>
+                <p className="text-xs text-muted-foreground">Aguardando</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-info/10 to-info/5">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-info" />
+              <div>
+                <p className="text-2xl font-bold text-info">{stats?.total || 0}</p>
+                <p className="text-xs text-muted-foreground">Recebidos</p>
               </div>
             </div>
           </CardContent>
@@ -143,6 +176,18 @@ export default function QuotationDashboard() {
               <div>
                 <p className="text-2xl font-bold text-success">{stats?.approved || 0}</p>
                 <p className="text-xs text-muted-foreground">Aprovados</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" />
+              <div>
+                <p className="text-2xl font-bold text-destructive">{stats?.rejected || 0}</p>
+                <p className="text-xs text-muted-foreground">Rejeitados</p>
               </div>
             </div>
           </CardContent>
