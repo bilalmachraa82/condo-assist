@@ -11,7 +11,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const APP_BASE_URL = Deno.env.get('APP_BASE_URL') || 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.lovableproject.com';
+const LOGO_URL = 'https://condo-assist.lovable.app/lovable-uploads/logo-luvimg.png';
 
 interface EmailRequest {
   to: string;
@@ -137,9 +137,9 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
               <table role="presentation" style="width: 100%; border-collapse: collapse;">
                 <tr>
                   <td align="center">
-                    <img src="cid:luvimg-logo" 
+                    <img src="${LOGO_URL}" 
                          alt="Luvimg" 
-                         style="height: 50px; width: auto; margin-bottom: 15px; display: block;" />
+                         style="height: 80px; width: auto; margin-bottom: 15px; display: block;" />
                      <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 600; line-height: 1.2;">
                        ${getEmailTitle(templateType, assistanceDetails)}
                      </h1>
@@ -461,45 +461,8 @@ const handler = async (req: Request): Promise<Response> => {
       emailPayload.text = finalText;
     }
 
-    try {
-      // Usar o logo oficial da Luvimg
-      const logoCandidates = [
-        `${APP_BASE_URL.replace(/\/$/, '')}/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png`,
-        'https://luvimg.com/assets/images/luvimg-logo.png',
-        `${APP_BASE_URL.replace(/\/$/, '')}/logo-luvimg.png`,
-      ];
-      let attached = false;
-      for (const url of logoCandidates) {
-        try {
-          const res = await fetch(url);
-          if (res.ok) {
-            const arr = await res.arrayBuffer();
-            const bytes = new Uint8Array(arr);
-            emailPayload.attachments = [
-              {
-                filename: 'logo-luvimg.png',
-                content: bytes,
-                contentType: 'image/png',
-                headers: { 'Content-ID': '<luvimg-logo>' },
-                disposition: 'inline'
-              }
-            ];
-            console.log('Attached logo from', url);
-            attached = true;
-            break;
-          } else {
-            console.warn('Logo fetch failed', url, res.status);
-          }
-        } catch (inner) {
-          console.warn('Logo fetch error', url, inner);
-        }
-      }
-      if (!attached) {
-        console.warn('No logo could be attached. Proceeding without CID logo.');
-      }
-    } catch (e) {
-      console.warn('Unable to attach inline logo:', e);
-    }
+    // Logo is now embedded directly in HTML via URL, no attachment needed
+    console.log('Using direct logo URL in email template');
 
     const emailResponse = await resend.emails.send(emailPayload);
 
