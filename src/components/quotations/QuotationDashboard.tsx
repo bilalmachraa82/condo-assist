@@ -83,16 +83,16 @@ export default function QuotationDashboard() {
       const quotationsData = quotationsRes.data || [];
       const assistancesData = assistancesRes.data || [];
 
-      // Quotations submitted by suppliers
+      // Quotations submitted by suppliers (actual quotations in DB)
       const totalQuotations = quotationsData.length;
       const pendingQuotations = quotationsData.filter(q => q.status === "pending").length;
       const approvedQuotations = quotationsData.filter(q => q.status === "approved").length;
       const rejectedQuotations = quotationsData.filter(q => q.status === "rejected").length;
       
-      // Quotation requests from assistances
+      // Quotation requests (assistances requiring quotations)
       const quotationRequests = assistancesData.filter(a => a.requires_quotation).length;
+      const newRequests = assistancesData.filter(a => a.requires_quotation && a.status === "pending").length;
       const awaitingQuotation = assistancesData.filter(a => a.status === "awaiting_quotation").length;
-      const quotationReceived = assistancesData.filter(a => a.status === "quotation_received").length;
       
       const totalValue = quotationsData
         .filter(q => q.status === "approved")
@@ -101,17 +101,17 @@ export default function QuotationDashboard() {
       const averageValue = approvedQuotations > 0 ? totalValue / approvedQuotations : 0;
 
       return {
-        // Submitted quotations 
+        // Submitted quotations (actual quotations)
         total: totalQuotations,
         pending: pendingQuotations,
         approved: approvedQuotations,
         rejected: rejectedQuotations,
         totalValue,
         averageValue,
-        // Quotation requests
+        // Quotation requests (from assistances)
         quotationRequests,
+        newRequests,
         awaitingQuotation,
-        quotationReceived,
       };
     },
   });
@@ -132,80 +132,102 @@ export default function QuotationDashboard() {
   return (
     <div className="space-y-6">
       {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-2xl font-bold text-primary">{stats?.quotationRequests || 0}</p>
-                <p className="text-xs text-muted-foreground">Solicitações</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold mb-3 text-muted-foreground">Solicitações de Orçamentos</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-2xl font-bold text-primary">{stats?.quotationRequests || 0}</p>
+                    <p className="text-xs text-muted-foreground">Total Solicitações</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="bg-gradient-to-br from-warning/10 to-warning/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-warning" />
-              <div>
-                <p className="text-2xl font-bold text-warning">{stats?.awaitingQuotation || 0}</p>
-                <p className="text-xs text-muted-foreground">Aguardando</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="bg-gradient-to-br from-warning/10 to-warning/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-warning" />
+                  <div>
+                    <p className="text-2xl font-bold text-warning">{stats?.awaitingQuotation || 0}</p>
+                    <p className="text-xs text-muted-foreground">Aguardando Resposta</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="bg-gradient-to-br from-info/10 to-info/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-info" />
-              <div>
-                <p className="text-2xl font-bold text-info">{stats?.total || 0}</p>
-                <p className="text-xs text-muted-foreground">Recebidos</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="bg-gradient-to-br from-info/10 to-info/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Info className="h-5 w-5 text-info" />
+                  <div>
+                    <p className="text-2xl font-bold text-info">{stats?.newRequests || 0}</p>
+                    <p className="text-xs text-muted-foreground">Novas</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-success/10 to-success/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-success" />
-              <div>
-                <p className="text-2xl font-bold text-success">{stats?.approved || 0}</p>
-                <p className="text-xs text-muted-foreground">Aprovados</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div>
+          <h2 className="text-lg font-semibold mb-3 text-muted-foreground">Orçamentos Submetidos</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="bg-gradient-to-br from-blue/10 to-blue/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-2xl font-bold text-blue-600">{stats?.total || 0}</p>
+                    <p className="text-xs text-muted-foreground">Total Recebidos</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-destructive" />
-              <div>
-                <p className="text-2xl font-bold text-destructive">{stats?.rejected || 0}</p>
-                <p className="text-xs text-muted-foreground">Rejeitados</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="bg-gradient-to-br from-success/10 to-success/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-success" />
+                  <div>
+                    <p className="text-2xl font-bold text-success">{stats?.approved || 0}</p>
+                    <p className="text-xs text-muted-foreground">Aprovados</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="bg-gradient-to-br from-accent/10 to-accent/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-accent" />
-              <div>
-                <p className="text-2xl font-bold text-accent">
-                  €{(stats?.averageValue || 0).toFixed(0)}
-                </p>
-                <p className="text-xs text-muted-foreground">Valor Médio</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="bg-gradient-to-br from-yellow/10 to-yellow/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-yellow-600" />
+                  <div>
+                    <p className="text-2xl font-bold text-yellow-600">{stats?.pending || 0}</p>
+                    <p className="text-xs text-muted-foreground">Pendentes</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-accent/10 to-accent/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-accent" />
+                  <div>
+                    <p className="text-2xl font-bold text-accent">
+                      €{(stats?.averageValue || 0).toFixed(0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Valor Médio</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
 
       {/* Quotations Tabs */}
@@ -284,13 +306,16 @@ export default function QuotationDashboard() {
                     </div>
                   )}
                 </div>
-              ) : (
+                ) : (
                 <div className="text-center text-muted-foreground py-8">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Nenhum orçamento ainda</h3>
-                  <p>Os orçamentos submetidos pelos fornecedores aparecerão aqui.</p>
+                  <h3 className="text-lg font-semibold mb-2">Nenhum orçamento submetido</h3>
+                  <p className="text-sm">Os orçamentos aparecerão aqui quando os fornecedores os submeterem através do portal.</p>
+                  <p className="text-xs mt-2 text-muted-foreground">
+                    Para solicitar orçamentos, vá às assistências e marque "Requer Orçamento"
+                  </p>
                 </div>
-              )}
+                )}
             </CardContent>
           </Card>
         </TabsContent>

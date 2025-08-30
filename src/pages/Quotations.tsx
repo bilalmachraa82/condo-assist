@@ -23,17 +23,12 @@ export default function Quotations() {
 
       <Tabs defaultValue="dashboard" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="dashboard">Painel</TabsTrigger>
-          <TabsTrigger value="management">Gerir Orçamentos</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="dashboard">Painel Principal</TabsTrigger>
+          <TabsTrigger value="analytics">Análises</TabsTrigger>
         </TabsList>
         
         <TabsContent value="dashboard">
           <QuotationDashboard />
-        </TabsContent>
-        
-        <TabsContent value="management">
-          <QuotationManagement />
         </TabsContent>
 
         <TabsContent value="analytics">

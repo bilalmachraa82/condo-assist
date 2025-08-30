@@ -38,9 +38,9 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-gray-300 pb-4">
         <img
-          src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png"
-          alt="Luvimg logotipo"
-          className="h-10 w-auto mx-auto mb-3 print:opacity-100"
+          src="/lovable-uploads/logo-luvimg.png"
+          alt="Logo"
+          className="h-20 w-auto mx-auto mb-3 print:opacity-100"
         />
         <h1 className="text-2xl font-bold mb-2">Relatório de Assistência</h1>
         <p className="text-gray-600">
@@ -142,7 +142,7 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
       {/* Footer */}
       <div className="mt-8 pt-4 border-t border-gray-300 text-center text-sm text-gray-500">
         <div className="flex items-center justify-center gap-2">
-          <img src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" alt="Luvimg logotipo" className="h-6 w-auto print:opacity-100" />
+          <img src="/lovable-uploads/logo-luvimg.png" alt="Logo" className="h-8 w-auto print:opacity-100" />
           <span className="font-medium text-gray-700">Luvimg</span>
         </div>
         <p className="mt-2">Este documento foi gerado automaticamente pelo sistema de gestão de assistências.</p>
