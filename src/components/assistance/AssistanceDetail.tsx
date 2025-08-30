@@ -39,7 +39,9 @@ const getStatusBadge = (status: string) => {
     awaiting_quotation: "bg-blue-500/10 text-blue-600 border-blue-500/20",
     quotation_received: "bg-purple-500/10 text-purple-600 border-purple-500/20",
     quotation_approved: "bg-green-500/10 text-green-600 border-green-500/20",
-    quotation_rejected: "bg-red-500/10 text-red-600 border-red-500/20"
+    accepted: "bg-success/10 text-success border-success/20",
+    scheduled: "bg-primary/10 text-primary border-primary/20",
+    awaiting_validation: "bg-warning/10 text-warning border-warning/20"
   }
 
   const labels = {
@@ -50,7 +52,9 @@ const getStatusBadge = (status: string) => {
     awaiting_quotation: "Aguardando Orçamento",
     quotation_received: "Orçamento Recebido",
     quotation_approved: "Orçamento Aprovado",
-    quotation_rejected: "Orçamento Rejeitado"
+    accepted: "Aceite",
+    scheduled: "Agendada",
+    awaiting_validation: "Aguardando Validação"
   }
 
   return (
@@ -423,9 +427,10 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
                     <SelectItem value="pending">⏳ Pendente</SelectItem>
                     <SelectItem value="awaiting_quotation">💰 Aguardando Orçamento</SelectItem>
                     <SelectItem value="quotation_received">📋 Orçamento Recebido</SelectItem>
-                    <SelectItem value="quotation_approved">✅ Orçamento Aprovado</SelectItem>
-                    <SelectItem value="quotation_rejected">❌ Orçamento Rejeitado</SelectItem>
+                    <SelectItem value="accepted">✅ Aceite</SelectItem>
+                    <SelectItem value="scheduled">📅 Agendada</SelectItem>
                     <SelectItem value="in_progress">🔧 Em Progresso</SelectItem>
+                    <SelectItem value="awaiting_validation">⚠️ Aguardando Validação</SelectItem>
                     <SelectItem value="completed">✅ Concluída</SelectItem>
                     <SelectItem value="cancelled">❌ Cancelada</SelectItem>
                   </SelectContent>

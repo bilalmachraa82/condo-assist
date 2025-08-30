@@ -206,14 +206,14 @@ export default function QuotationManagement() {
     },
     onSuccess: (_, variables) => {
       // Quotation status updated successfully
-      toast.success(`Quotation ${variables.status} successfully`);
+      toast.success(`Orçamento ${variables.status === 'approved' ? 'aprovado' : 'rejeitado'} com sucesso`);
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       setSelectedQuotation(null);
       setReviewNotes("");
     },
     onError: (error) => {
       console.error("Error updating quotation:", error);
-      toast.error("Failed to update quotation");
+      toast.error("Falha ao atualizar orçamento");
     },
   });
 
@@ -229,7 +229,7 @@ export default function QuotationManagement() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { variant: "outline" as const, icon: Clock, text: "Pendente" },
+      pending: { variant: "outline" as const, icon: Clock, text: "Análise Pendente" },
       approved: { variant: "default" as const, icon: CheckCircle, text: "Aprovado" },
       rejected: { variant: "destructive" as const, icon: XCircle, text: "Rejeitado" },
     };
