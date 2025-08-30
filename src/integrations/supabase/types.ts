@@ -1077,6 +1077,10 @@ export type Database = {
         Args: { p_magic_code: string }
         Returns: Json
       }
+      log_security_event: {
+        Args: { details?: string; event_type: string; metadata?: Json }
+        Returns: undefined
+      }
       log_supplier_access: {
         Args: {
           p_action: string
