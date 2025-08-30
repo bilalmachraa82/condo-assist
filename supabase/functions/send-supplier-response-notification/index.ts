@@ -69,7 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
     const statusColor = isAccepted ? '#5FB3B3' : '#ef4444'; // Cor primária da Luvimg
     const statusEmoji = isAccepted ? '✅' : '❌';
     const actionText = isAccepted ? 'ACEITE' : 'RECUSADA';
-    const luvimgLogo = 'https://luvimg.com/assets/images/luvimg-logo.png'; // Logo da Luvimg
+    const luvimgLogo = 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.sandbox.lovable.dev/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png'; // Logo oficial Luvimg
 
     // Prepare email content
     const emailSubject = `Luvimg - Resposta do Fornecedor: ${actionText} - ${assistance.title}`;
@@ -77,7 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
         <div style="background: linear-gradient(135deg, #5FB3B3, #7BC4C4); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-          <img src="cid:luvimg-logo" alt="Luvimg" style="height: 40px; width: auto; margin-bottom: 15px;" />
+          <img src="https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.sandbox.lovable.dev/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" alt="Luvimg" style="height: 40px; width: auto; margin-bottom: 15px;" />
           <h1 style="color: white; margin: 0; font-size: 24px;">${statusEmoji} Resposta do Fornecedor</h1>
         </div>
         

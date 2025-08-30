@@ -11,7 +11,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const LOGO_URL = 'https://condo-assist.lovable.app/lovable-uploads/logo-luvimg.png';
+const LOGO_URL = 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.sandbox.lovable.dev/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png';
 
 interface EmailRequest {
   to: string;
