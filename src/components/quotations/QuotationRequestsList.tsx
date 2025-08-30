@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Building, Calendar, Mail } from "lucide-react";
-import { format } from "date-fns";
+import { Separator } from "@/components/ui/separator";
+import { Clock, Building, Calendar, Mail, AlertCircle, CheckCircle2, Timer, Users } from "lucide-react";
+import { format, isAfter, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -128,74 +129,141 @@ export default function QuotationRequestsList() {
     );
   };
 
+  const getPriorityBadge = (request: AssistanceWithQuotationRequest) => {
+    const now = new Date();
+    const isOverdue = request.quotation_deadline && isAfter(now, new Date(request.quotation_deadline));
+    const daysUntilDeadline = request.quotation_deadline ? differenceInDays(new Date(request.quotation_deadline), now) : null;
+    
+    if (isOverdue) {
+      return (
+        <Badge variant="destructive" className="flex items-center gap-1">
+          <AlertCircle className="h-3 w-3" />
+          Prazo Excedido
+        </Badge>
+      );
+    }
+    
+    if (daysUntilDeadline !== null && daysUntilDeadline <= 2) {
+      return (
+        <Badge variant="outline" className="flex items-center gap-1 text-warning border-warning">
+          <Timer className="h-3 w-3" />
+          Urgente
+        </Badge>
+      );
+    }
+    
+    return null;
+  };
+
   if (isLoading || loadingPending) {
     return <div className="text-center py-8">Carregando solicitações...</div>;
   }
 
   return (
     <div className="space-y-6">
-      {/* Pending Requests */}
+      {/* Pending Requests - Awaiting Response */}
       {pendingRequests.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <div className="flex items-center gap-3 mb-4">
             <Clock className="h-5 w-5 text-warning" />
-            Orçamentos Solicitados ({pendingRequests.length})
-          </h3>
+            <h3 className="text-lg font-semibold">
+              Orçamentos Solicitados ({pendingRequests.length})
+            </h3>
+          </div>
           <div className="grid gap-4">
-            {pendingRequests.map((request) => (
-              <Card key={request.id} className="border-l-4 border-l-warning">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-lg">{request.title}</CardTitle>
-                      <CardDescription className="flex items-center gap-2">
-                        <Building className="h-4 w-4" />
-                        {request.buildings?.name} • {request.suppliers?.name}
-                      </CardDescription>
-                    </div>
-                    <Badge variant="outline" className="text-warning border-warning">
-                      Aguardando Resposta
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>
-                          Solicitado: {format(new Date(request.quotation_requested_at!), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </span>
-                      </div>
-                      {request.quotation_deadline && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            Prazo: {format(new Date(request.quotation_deadline), "dd/MM/yyyy", { locale: ptBR })}
-                          </span>
+            {pendingRequests.map((request) => {
+              const isOverdue = request.quotation_deadline && isAfter(new Date(), new Date(request.quotation_deadline));
+              const daysUntilDeadline = request.quotation_deadline ? differenceInDays(new Date(request.quotation_deadline), new Date()) : null;
+              
+              return (
+                <Card key={request.id} className={`hover:shadow-md transition-all duration-200 border-l-4 ${
+                  isOverdue ? 'border-l-destructive bg-destructive/5' : 
+                  daysUntilDeadline !== null && daysUntilDeadline <= 2 ? 'border-l-warning bg-warning/5' :
+                  'border-l-warning'
+                }`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2 flex-1">
+                        <CardTitle className="text-lg font-semibold">{request.title}</CardTitle>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Building className="h-4 w-4" />
+                            {request.buildings?.name}
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                            {request.suppliers?.name}
+                          </div>
                         </div>
-                      )}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {getPriorityBadge(request)}
+                        <Badge variant="outline" className="text-warning border-warning">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Aguardando
+                        </Badge>
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{request.suppliers?.email}</span>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {request.description}
+                      </p>
+                      
+                      <Separator />
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-primary" />
+                          <div>
+                            <span className="font-medium">Solicitado:</span>
+                            <p className="text-muted-foreground">
+                              {format(new Date(request.quotation_requested_at!), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
+                        </div>
+                        {request.quotation_deadline && (
+                          <div className="flex items-center gap-2">
+                            <Timer className={`h-4 w-4 ${isOverdue ? 'text-destructive' : daysUntilDeadline !== null && daysUntilDeadline <= 2 ? 'text-warning' : 'text-muted-foreground'}`} />
+                            <div>
+                              <span className="font-medium">Prazo limite:</span>
+                              <p className={`${isOverdue ? 'text-destructive font-medium' : daysUntilDeadline !== null && daysUntilDeadline <= 2 ? 'text-warning font-medium' : 'text-muted-foreground'}`}>
+                                {format(new Date(request.quotation_deadline), "dd/MM/yyyy", { locale: ptBR })}
+                                {daysUntilDeadline !== null && (
+                                  <span className="ml-1 text-xs">
+                                    ({daysUntilDeadline > 0 ? `${daysUntilDeadline} dias restantes` : 
+                                      daysUntilDeadline === 0 ? 'hoje' : 
+                                      `${Math.abs(daysUntilDeadline)} dias de atraso`})
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail className="h-4 w-4" />
+                          <span>{request.suppliers?.email}</span>
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => resendQuotationRequest(request.id)}
+                          className="hover:bg-primary/10"
+                        >
+                          <Mail className="h-4 w-4 mr-2" />
+                          Reenviar Solicitação
+                        </Button>
+                      </div>
                     </div>
-
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => resendQuotationRequest(request.id)}
-                      >
-                        <Mail className="h-4 w-4 mr-2" />
-                        Reenviar Solicitação
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}
@@ -203,38 +271,75 @@ export default function QuotationRequestsList() {
       {/* New/Unsent Requests */}
       {quotationRequests.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <div className="flex items-center gap-3 mb-4">
             <Mail className="h-5 w-5 text-primary" />
-            Solicitações Pendentes ({quotationRequests.length})
-          </h3>
+            <h3 className="text-lg font-semibold">
+              Solicitações Pendentes ({quotationRequests.length})
+            </h3>
+          </div>
           <div className="grid gap-4">
             {quotationRequests.map((request) => (
-              <Card key={request.id} className="border-l-4 border-l-primary">
-                <CardHeader>
+              <Card key={request.id} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
+                <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-lg">{request.title}</CardTitle>
-                      <CardDescription className="flex items-center gap-2">
-                        <Building className="h-4 w-4" />
-                        {request.buildings?.name} • {request.suppliers?.name || "Sem fornecedor atribuído"}
-                      </CardDescription>
+                    <div className="space-y-2 flex-1">
+                      <CardTitle className="text-lg font-semibold">{request.title}</CardTitle>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Building className="h-4 w-4" />
+                          {request.buildings?.name}
+                        </div>
+                        {request.suppliers?.name ? (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                            {request.suppliers.name}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-sm text-warning">
+                            <AlertCircle className="h-4 w-4" />
+                            Sem fornecedor
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <Badge variant="outline" className="text-primary border-primary">
-                      Por Enviar
-                    </Badge>
+                    <div className="flex flex-col gap-2">
+                      <Badge variant="outline" className="text-primary border-primary">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Por Enviar
+                      </Badge>
+                    </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
+                <CardContent className="pt-0">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {request.description}
                     </p>
                     
                     {!request.assigned_supplier_id && (
-                      <div className="bg-warning/10 text-warning p-3 rounded-lg text-sm">
-                        ⚠️ Esta assistência precisa de um fornecedor atribuído antes de solicitar orçamento.
+                      <div className="bg-warning/10 border border-warning/20 text-warning p-3 rounded-lg text-sm flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium">Ação necessária</p>
+                          <p>Esta assistência precisa de um fornecedor atribuído antes de solicitar orçamento.</p>
+                        </div>
                       </div>
                     )}
+                    
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>Criado: {format(new Date(request.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+                      </div>
+                      {request.suppliers?.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          <span>{request.suppliers.email}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -244,13 +349,20 @@ export default function QuotationRequestsList() {
       )}
 
       {quotationRequests.length === 0 && pendingRequests.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Nenhuma solicitação pendente</h3>
-            <p className="text-muted-foreground">
-              Todas as solicitações de orçamento foram enviadas e respondidas.
-            </p>
+        <Card className="border-dashed">
+          <CardContent className="text-center py-12">
+            <div className="flex flex-col items-center gap-4">
+              <div className="bg-primary/10 p-4 rounded-full">
+                <CheckCircle2 className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Tudo em Ordem!</h3>
+                <p className="text-muted-foreground max-w-md">
+                  Todas as solicitações de orçamento foram enviadas e processadas. 
+                  Não há nenhuma ação pendente neste momento.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
