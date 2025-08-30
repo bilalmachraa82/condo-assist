@@ -11,7 +11,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const LOGO_URL = 'https://zmpitnpmplemfozvtbam.supabase.co/storage/v1/object/public/logo/logo-luvimg.png';
+const LOGO_URL = 'https://condo-assist.lovable.app/lovable-uploads/logo-luvimg.png';
 
 interface EmailRequest {
   to: string;
@@ -137,7 +137,7 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
               <table role="presentation" style="width: 100%; border-collapse: collapse;">
                 <tr>
                   <td align="center">
-                    <img src="${LOGO_URL}" 
+                    <img src="cid:logo@luvimg" 
                          alt="Luvimg" 
                          style="height: 80px; width: auto; margin-bottom: 15px; display: block;" />
                      <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 600; line-height: 1.2;">
@@ -430,7 +430,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Missing 'html' or 'text' field. At least one is required.");
     }
 
-    // Enhanced headers for better deliverability
+    // Enhanced headers for better deliverability and logo attachment
     const emailPayload: any = {
       from: from || "Luvimg - Administração de Condomínios <arquivo@luvimg.com>",
       to: [to],
@@ -461,8 +461,40 @@ const handler = async (req: Request): Promise<Response> => {
       emailPayload.text = finalText;
     }
 
-    // Logo is now embedded directly in HTML via URL, no attachment needed
-    console.log('Using direct logo URL in email template');
+    // Fetch and attach logo as CID attachment for better email client compatibility
+    try {
+      console.log(`Fetching logo from: ${LOGO_URL}`);
+      const logoResponse = await fetch(LOGO_URL);
+      
+      if (logoResponse.ok) {
+        const logoBuffer = await logoResponse.arrayBuffer();
+        const logoBase64 = btoa(String.fromCharCode(...new Uint8Array(logoBuffer)));
+        
+        emailPayload.attachments = [
+          {
+            filename: 'logo-luvimg.png',
+            content: logoBase64,
+            content_id: 'logo@luvimg',
+            disposition: 'inline',
+            type: 'image/png'
+          }
+        ];
+        
+        console.log('Logo attached successfully as CID attachment');
+      } else {
+        console.warn(`Failed to fetch logo: ${logoResponse.status} ${logoResponse.statusText}`);
+        // Fallback: replace CID with direct URL in HTML
+        if (finalHtml) {
+          emailPayload.html = finalHtml.replace('src="cid:logo@luvimg"', `src="${LOGO_URL}"`);
+        }
+      }
+    } catch (logoError) {
+      console.error('Error fetching logo for attachment:', logoError);
+      // Fallback: replace CID with direct URL in HTML
+      if (finalHtml) {
+        emailPayload.html = finalHtml.replace('src="cid:logo@luvimg"', `src="${LOGO_URL}"`);
+      }
+    }
 
     const emailResponse = await resend.emails.send(emailPayload);
 
