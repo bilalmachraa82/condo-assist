@@ -11,7 +11,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const LOGO_URL = 'https://condo-assist.lovable.app/lovable-uploads/logo-luvimg.png';
+const LOGO_URL = 'https://zmpitnpmplemfozvtbam.supabase.co/storage/v1/object/public/logo/logo-luvimg.png';
 
 interface EmailRequest {
   to: string;
