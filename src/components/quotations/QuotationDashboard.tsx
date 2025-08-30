@@ -89,10 +89,25 @@ export default function QuotationDashboard() {
       const approvedQuotations = quotationsData.filter(q => q.status === "approved").length;
       const rejectedQuotations = quotationsData.filter(q => q.status === "rejected").length;
       
-      // Quotation requests (assistances requiring quotations)
+      // Quotation requests - count assistances that require quotations
       const quotationRequests = assistancesData.filter(a => a.requires_quotation).length;
-      const newRequests = assistancesData.filter(a => a.requires_quotation && a.status === "pending").length;
-      const awaitingQuotation = assistancesData.filter(a => a.status === "awaiting_quotation").length;
+      
+      // New requests - assistances that require quotation but haven't been requested yet
+      const newRequests = assistancesData.filter(a => 
+        a.requires_quotation && 
+        a.status === "pending" && 
+        !a.quotation_requested_at
+      ).length;
+      
+      // Awaiting quotation - assistances that had quotation requested but no quotation submitted yet
+      const awaitingQuotation = assistancesData.filter(a => 
+        a.status === "awaiting_quotation"
+      ).length;
+      
+      // Quotations approved - assistances with quotation_approved status (indicates quotation was accepted)
+      const quotationsApproved = assistancesData.filter(a => 
+        a.status === "quotation_approved"
+      ).length;
       
       const totalValue = quotationsData
         .filter(q => q.status === "approved")
@@ -101,17 +116,18 @@ export default function QuotationDashboard() {
       const averageValue = approvedQuotations > 0 ? totalValue / approvedQuotations : 0;
 
       return {
-        // Submitted quotations (actual quotations)
+        // Submitted quotations (actual quotations in quotations table)
         total: totalQuotations,
         pending: pendingQuotations,
         approved: approvedQuotations,
         rejected: rejectedQuotations,
         totalValue,
         averageValue,
-        // Quotation requests (from assistances)
+        // Quotation requests (from assistances table)
         quotationRequests,
         newRequests,
         awaitingQuotation,
+        quotationsApproved, // Quotations that were approved (from assistance status)
       };
     },
   });
@@ -183,7 +199,7 @@ export default function QuotationDashboard() {
                   <FileText className="h-5 w-5 text-blue-600" />
                   <div>
                     <p className="text-2xl font-bold text-blue-600">{stats?.total || 0}</p>
-                    <p className="text-xs text-muted-foreground">Total Recebidos</p>
+                    <p className="text-xs text-muted-foreground">Orçamentos Recebidos</p>
                   </div>
                 </div>
               </CardContent>
@@ -194,7 +210,7 @@ export default function QuotationDashboard() {
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-success" />
                   <div>
-                    <p className="text-2xl font-bold text-success">{stats?.approved || 0}</p>
+                    <p className="text-2xl font-bold text-success">{stats?.quotationsApproved || 0}</p>
                     <p className="text-xs text-muted-foreground">Aprovados</p>
                   </div>
                 </div>
@@ -207,7 +223,7 @@ export default function QuotationDashboard() {
                   <Clock className="h-5 w-5 text-yellow-600" />
                   <div>
                     <p className="text-2xl font-bold text-yellow-600">{stats?.pending || 0}</p>
-                    <p className="text-xs text-muted-foreground">Pendentes</p>
+                    <p className="text-xs text-muted-foreground">Pendentes Análise</p>
                   </div>
                 </div>
               </CardContent>
