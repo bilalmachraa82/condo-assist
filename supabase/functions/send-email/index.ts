@@ -474,9 +474,8 @@ const handler = async (req: Request): Promise<Response> => {
           {
             filename: 'logo-luvimg.png',
             content: logoBase64,
-            content_id: 'logo@luvimg',
-            disposition: 'inline',
-            type: 'image/png'
+            cid: 'logo@luvimg',
+            contentType: 'image/png'
           }
         ];
         
