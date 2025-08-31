@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { encode as b64encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -465,15 +466,14 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       const logoPath = new URL('./logo-luvimg.png', import.meta.url);
       const logoBytes = await Deno.readFile(logoPath);
-      const logoBase64 = btoa(String.fromCharCode(...logoBytes));
+      const logoBase64 = b64encode(logoBytes);
       
       emailPayload.attachments = [
         {
           filename: 'logo-luvimg.png',
           content: logoBase64,
           cid: 'logo@luvimg',
-          contentType: 'image/png',
-          contentDisposition: 'inline'
+          contentType: 'image/png'
         }
       ];
       
