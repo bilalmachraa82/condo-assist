@@ -461,38 +461,26 @@ const handler = async (req: Request): Promise<Response> => {
       emailPayload.text = finalText;
     }
 
-    // Fetch and attach logo as CID attachment for better email client compatibility
+    // Attach logo from local file to avoid external fetch issues
     try {
-      console.log(`Fetching logo from: ${LOGO_URL}`);
-      const logoResponse = await fetch(LOGO_URL);
+      const logoPath = new URL('./logo-luvimg.png', import.meta.url);
+      const logoBytes = await Deno.readFile(logoPath);
+      const logoBase64 = btoa(String.fromCharCode(...logoBytes));
       
-      if (logoResponse.ok) {
-        const logoBuffer = await logoResponse.arrayBuffer();
-        const logoBase64 = btoa(String.fromCharCode(...new Uint8Array(logoBuffer)));
-        
-        emailPayload.attachments = [
-          {
-            filename: 'logo-luvimg.png',
-            content: logoBase64,
-            cid: 'logo@luvimg',
-            contentType: 'image/png'
-          }
-        ];
-        
-        console.log('Logo attached successfully as CID attachment');
-      } else {
-        console.warn(`Failed to fetch logo: ${logoResponse.status} ${logoResponse.statusText}`);
-        // Fallback: replace CID with direct URL in HTML
-        if (finalHtml) {
-          emailPayload.html = finalHtml.replace('src="cid:logo@luvimg"', `src="${LOGO_URL}"`);
+      emailPayload.attachments = [
+        {
+          filename: 'logo-luvimg.png',
+          content: logoBase64,
+          cid: 'logo@luvimg',
+          contentType: 'image/png',
+          contentDisposition: 'inline'
         }
-      }
+      ];
+      
+      console.log('Logo attached successfully from local file as CID attachment');
     } catch (logoError) {
-      console.error('Error fetching logo for attachment:', logoError);
-      // Fallback: replace CID with direct URL in HTML
-      if (finalHtml) {
-        emailPayload.html = finalHtml.replace('src="cid:logo@luvimg"', `src="${LOGO_URL}"`);
-      }
+      console.error('Failed to read local logo for attachment:', logoError);
+      // Do not fallback to external URL to ensure consistent rendering
     }
 
     const emailResponse = await resend.emails.send(emailPayload);
