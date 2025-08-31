@@ -74,7 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw insertError;
     }
 
-    const APP_BASE_URL = Deno.env.get('APP_BASE_URL') || 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.lovableproject.com';
+    const APP_BASE_URL = Deno.env.get('APP_BASE_URL') || 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.sandbox.lovable.dev';
     const portalUrl = `${APP_BASE_URL}/supplier-portal?code=${magicCode}`;
     console.log(`Generated portal URL: ${portalUrl}`);
 

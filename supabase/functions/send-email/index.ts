@@ -138,7 +138,7 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
               <table role="presentation" style="width: 100%; border-collapse: collapse;">
                 <tr>
                   <td align="center">
-                    <img src="cid:logo@luvimg" 
+                    <img src="cid:logo" 
                          alt="Luvimg" 
                          style="height: 80px; width: auto; margin-bottom: 15px; display: block;" />
                      <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 600; line-height: 1.2;">
@@ -434,7 +434,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Enhanced headers for better deliverability and logo attachment
     const emailPayload: any = {
       from: from || "Luvimg - Administração de Condomínios <arquivo@luvimg.com>",
-      to: [to],
+      to: Array.isArray(to) ? to : [to],
       subject: subject,
       reply_to: "arquivo@luvimg.com",
       headers: {
@@ -472,8 +472,9 @@ const handler = async (req: Request): Promise<Response> => {
         {
           filename: 'logo-luvimg.png',
           content: logoBase64,
-          cid: 'logo@luvimg',
-          contentType: 'image/png'
+          cid: 'logo',
+          contentType: 'image/png',
+          contentDisposition: 'inline'
         }
       ];
       
