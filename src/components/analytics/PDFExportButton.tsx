@@ -64,25 +64,25 @@ export function PDFExportButton({ onExport }: PDFExportButtonProps) {
     
     // Create a simple downloadable file as placeholder
     const content = `
-Analytics Report
+Relatório de Análises
 ================
 
-Report Type: ${exportOptions.reportType}
-Period: Last ${exportOptions.period} days
-Generated: ${new Date().toLocaleString()}
+Tipo de Relatório: ${exportOptions.reportType}
+Período: Últimos ${exportOptions.period} dias
+Gerado em: ${new Date().toLocaleString()}
 
-Include Charts: ${exportOptions.includeCharts ? 'Yes' : 'No'}
-Include Tables: ${exportOptions.includeTables ? 'Yes' : 'No'}
-Include Alerts: ${exportOptions.includeAlerts ? 'Yes' : 'No'}
+Incluir Gráficos: ${exportOptions.includeCharts ? 'Sim' : 'Não'}
+Incluir Tabelas: ${exportOptions.includeTables ? 'Sim' : 'Não'}
+Incluir Alertas: ${exportOptions.includeAlerts ? 'Sim' : 'Não'}
 
-This is a sample report. Full PDF generation would be implemented here.
+Este é um relatório de exemplo. A geração completa de PDF seria implementada aqui.
     `;
     
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `analytics-report-${new Date().getTime()}.txt`;
+    a.download = `relatorio-analises-${new Date().getTime()}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
