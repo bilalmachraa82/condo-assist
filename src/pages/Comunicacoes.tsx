@@ -227,7 +227,7 @@ export default function Comunicacoes() {
           <TabsList>
             <TabsTrigger value="notifications">Dashboard de Notificações</TabsTrigger>
             <TabsTrigger value="logs">Histórico de Emails</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="analytics">Análises</TabsTrigger>
             <TabsTrigger value="automation">Automação</TabsTrigger>
           </TabsList>
 
