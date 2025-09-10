@@ -42,10 +42,9 @@ export const AssistanceFiltersComponent = ({ filters, onFiltersChange }: Assista
   ];
 
   const priorityOptions = [
-    { value: "low", label: "Baixa" },
     { value: "normal", label: "Normal" },
-    { value: "high", label: "Alta" },
-    { value: "urgent", label: "Urgente" }
+    { value: "urgent", label: "Urgente" },
+    { value: "critical", label: "Crítico" }
   ];
 
   const applyFilters = () => {

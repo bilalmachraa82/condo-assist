@@ -31,10 +31,9 @@ export const AssistanceListPDFTemplate = ({
 
   const getPriorityLabel = (priority: string) => {
     const labels = {
-      low: "Baixa",
       normal: "Normal",
-      high: "Alta",
-      urgent: "Urgente"
+      urgent: "Urgente", 
+      critical: "Crítico"
     };
     return labels[priority as keyof typeof labels] || priority;
   };
@@ -49,11 +48,14 @@ export const AssistanceListPDFTemplate = ({
     <div className="print-template max-w-6xl mx-auto p-8 bg-white text-black">
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-gray-300 pb-4">
-        <img
-          src="/lovable-uploads/logo-luvimg.png"
-          alt="Logo"
-          className="h-20 w-auto mx-auto mb-3"
-        />
+        <div className="flex flex-col items-center mb-4">
+          <img
+            src="/lovable-uploads/logo-luvimg.png"
+            alt="Logo"
+            className="h-32 w-auto mb-2"
+          />
+          <div className="text-xl font-bold text-primary">Luvimg Condomínios, Lda</div>
+        </div>
         <h1 className="text-2xl font-bold mb-2">{title}</h1>
         <p className="text-gray-600">
           Gerado em {format(new Date(), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: pt })}
@@ -131,7 +133,15 @@ export const AssistanceListPDFTemplate = ({
                   {truncate(assistance.description)}
                 </td>
                 <td className="border border-gray-300 p-2">
-                  {assistance.buildings?.name || "N/A"}
+                  <div>
+                    <div className="font-medium">{assistance.buildings?.name || "N/A"}</div>
+                    {assistance.buildings?.address && (
+                      <div className="text-xs text-gray-600 mt-1">{assistance.buildings.address}</div>
+                    )}
+                    {assistance.buildings?.cadastral_code && (
+                      <div className="text-xs text-gray-500">Cód. Postal: {assistance.buildings.cadastral_code}</div>
+                    )}
+                  </div>
                 </td>
                 <td className="border border-gray-300 p-2">
                   <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
