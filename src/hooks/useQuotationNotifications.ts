@@ -24,6 +24,7 @@ export const useQuotationNotifications = () => {
           queryClient.invalidateQueries({ queryKey: ["quotations"] });
           queryClient.invalidateQueries({ queryKey: ["all-quotations"] });
           queryClient.invalidateQueries({ queryKey: ["quotation-stats"] });
+          queryClient.invalidateQueries({ queryKey: ["quotation-stats-dashboard"] });
           queryClient.invalidateQueries({ queryKey: ["quotation-requests"] });
           queryClient.invalidateQueries({ queryKey: ["pending-quotation-requests"] });
           
@@ -47,6 +48,7 @@ export const useQuotationNotifications = () => {
           queryClient.invalidateQueries({ queryKey: ["quotations"] });
           queryClient.invalidateQueries({ queryKey: ["all-quotations"] });
           queryClient.invalidateQueries({ queryKey: ["quotation-stats"] });
+          queryClient.invalidateQueries({ queryKey: ["quotation-stats-dashboard"] });
           
           // Show notification for status changes
           const newRecord = payload.new as any;
@@ -84,6 +86,7 @@ export const useQuotationNotifications = () => {
             queryClient.invalidateQueries({ queryKey: ["assistances"] });
             queryClient.invalidateQueries({ queryKey: ["quotation-requests"] });
             queryClient.invalidateQueries({ queryKey: ["pending-quotation-requests"] });
+            queryClient.invalidateQueries({ queryKey: ["quotation-stats-dashboard"] });
             
             toast.info("Orçamento solicitado", {
               description: "Uma solicitação de orçamento foi enviada ao fornecedor."
@@ -93,6 +96,7 @@ export const useQuotationNotifications = () => {
           // Check if status changed to awaiting_quotation
           if (oldRecord.status !== newRecord.status && newRecord.status === 'awaiting_quotation') {
             queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
+            queryClient.invalidateQueries({ queryKey: ["quotation-stats-dashboard"] });
           }
         }
       )

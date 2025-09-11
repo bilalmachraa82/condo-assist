@@ -66,10 +66,14 @@ export default function QuotationDashboard() {
       if (error) throw error;
       return data as Quotation[];
     },
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
   });
 
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["quotation-stats"],
+    queryKey: ["quotation-stats-dashboard"],
     queryFn: async () => {
       // Get both quotations and assistance quotation data
       const [quotationsRes, assistancesRes] = await Promise.all([

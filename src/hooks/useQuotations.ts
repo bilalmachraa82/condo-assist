@@ -104,6 +104,7 @@ export const useCreateQuotation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       queryClient.invalidateQueries({ queryKey: ["quotation-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["quotation-stats-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
       toast.success("Orçamento criado com sucesso!");
     },
@@ -156,6 +157,7 @@ export const useUpdateQuotationStatus = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       queryClient.invalidateQueries({ queryKey: ["quotation-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["quotation-stats-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
       
       const statusText = data.status === "approved" ? "aprovado" : "rejeitado";
@@ -185,6 +187,7 @@ export const useDeleteQuotation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       queryClient.invalidateQueries({ queryKey: ["quotation-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["quotation-stats-dashboard"] });
       toast.success("Orçamento eliminado com sucesso!");
     },
     onError: (error) => {
@@ -262,6 +265,8 @@ export const useRequestQuotation = () => {
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
       queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["quotation-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["quotation-stats-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["quotation-requests"] });
       queryClient.invalidateQueries({ queryKey: ["quotation-requests-pending"] });
       toast.success("Orçamento solicitado e email enviado com sucesso!");
