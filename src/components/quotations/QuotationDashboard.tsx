@@ -72,7 +72,7 @@ export default function QuotationDashboard() {
     refetchInterval: 10000,
   });
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ["quotation-stats-dashboard"],
     queryFn: async () => {
       // Get both quotations and assistance quotation data
