@@ -134,6 +134,10 @@ export default function QuotationDashboard() {
         quotationsApproved, // Quotations that were approved (from assistance status)
       };
     },
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
   });
 
   if (isLoading) {
@@ -161,8 +165,12 @@ export default function QuotationDashboard() {
                 <div className="flex items-center gap-2">
                   <Mail className="h-5 w-5 text-primary" />
                   <div>
-                    <p className="text-2xl font-bold text-primary">{stats?.quotationRequests || 0}</p>
-                    <p className="text-xs text-muted-foreground">Total Solicitações</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {statsError ? "⚠️" : (stats?.quotationRequests || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {statsError ? "Erro ao carregar" : "Total Solicitações"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -173,8 +181,12 @@ export default function QuotationDashboard() {
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-warning" />
                   <div>
-                    <p className="text-2xl font-bold text-warning">{stats?.awaitingQuotation || 0}</p>
-                    <p className="text-xs text-muted-foreground">Aguardando Resposta</p>
+                    <p className="text-2xl font-bold text-warning">
+                      {statsError ? "⚠️" : (stats?.awaitingQuotation || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {statsError ? "Erro ao carregar" : "Aguardando Resposta"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -185,8 +197,12 @@ export default function QuotationDashboard() {
                 <div className="flex items-center gap-2">
                   <Info className="h-5 w-5 text-info" />
                   <div>
-                    <p className="text-2xl font-bold text-info">{stats?.newRequests || 0}</p>
-                    <p className="text-xs text-muted-foreground">Novas</p>
+                    <p className="text-2xl font-bold text-info">
+                      {statsError ? "⚠️" : (stats?.newRequests || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {statsError ? "Erro ao carregar" : "Novas"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -202,8 +218,12 @@ export default function QuotationDashboard() {
                 <div className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-blue-600" />
                   <div>
-                    <p className="text-2xl font-bold text-blue-600">{stats?.total || 0}</p>
-                    <p className="text-xs text-muted-foreground">Orçamentos Recebidos</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {statsError ? "⚠️" : (stats?.total || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {statsError ? "Erro ao carregar" : "Orçamentos Recebidos"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -214,8 +234,12 @@ export default function QuotationDashboard() {
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-success" />
                   <div>
-                    <p className="text-2xl font-bold text-success">{stats?.quotationsApproved || 0}</p>
-                    <p className="text-xs text-muted-foreground">Aprovados</p>
+                    <p className="text-2xl font-bold text-success">
+                      {statsError ? "⚠️" : (stats?.quotationsApproved || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {statsError ? "Erro ao carregar" : "Aprovados"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -226,8 +250,12 @@ export default function QuotationDashboard() {
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-yellow-600" />
                   <div>
-                    <p className="text-2xl font-bold text-yellow-600">{stats?.pending || 0}</p>
-                    <p className="text-xs text-muted-foreground">Pendentes Análise</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {statsError ? "⚠️" : (stats?.pending || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {statsError ? "Erro ao carregar" : "Pendentes Análise"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -239,9 +267,11 @@ export default function QuotationDashboard() {
                   <TrendingUp className="h-5 w-5 text-accent" />
                   <div>
                     <p className="text-2xl font-bold text-accent">
-                      €{(stats?.averageValue || 0).toFixed(0)}
+                      {statsError ? "⚠️" : `€${(stats?.averageValue || 0).toFixed(0)}`}
                     </p>
-                    <p className="text-xs text-muted-foreground">Valor Médio</p>
+                    <p className="text-xs text-muted-foreground">
+                      {statsError ? "Erro ao carregar" : "Valor Médio"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
