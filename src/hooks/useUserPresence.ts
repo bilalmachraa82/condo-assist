@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { secureLogger } from "@/utils/secureLogger";
 
 interface UserPresence {
   user_id: string;
@@ -25,7 +26,7 @@ export const useUserPresence = (): UseUserPresenceReturn => {
   useEffect(() => {
     if (!user) return;
 
-    console.log("👥 Setting up user presence for:", user.email);
+    secureLogger.debug('Setting up user presence', { userEmail: user.email });
 
     const presenceChannel = supabase.channel("user-presence", {
       config: {
@@ -48,7 +49,7 @@ export const useUserPresence = (): UseUserPresenceReturn => {
     presenceChannel
       .on("presence", { event: "sync" }, () => {
         const presenceState = presenceChannel.presenceState();
-        console.log("👥 Presence sync:", presenceState);
+        secureLogger.devOnly('Presence sync', presenceState);
         
         const users: UserPresence[] = [];
         Object.keys(presenceState).forEach((userId) => {
@@ -66,14 +67,14 @@ export const useUserPresence = (): UseUserPresenceReturn => {
         setOnlineUsers(users);
       })
       .on("presence", { event: "join" }, ({ key, newPresences }) => {
-        console.log("👥 User joined:", key, newPresences);
+        secureLogger.debug('User joined', { userId: key });
       })
       .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
-        console.log("👥 User left:", key, leftPresences);
+        secureLogger.debug('User left', { userId: key });
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
-          console.log("👥 Tracking user presence:", userPresence);
+          secureLogger.devOnly('Tracking user presence', userPresence);
           await presenceChannel.track(userPresence);
         }
       });
@@ -108,7 +109,7 @@ export const useUserPresence = (): UseUserPresenceReturn => {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      console.log("👥 Cleaning up user presence");
+      secureLogger.debug('Cleaning up user presence');
       clearInterval(presenceInterval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (presenceChannel) {
@@ -128,7 +129,7 @@ export const useUserPresence = (): UseUserPresenceReturn => {
 
     setCurrentUser(updatedPresence);
     await channel.track(updatedPresence);
-    console.log("👥 Updated status to:", status);
+    secureLogger.debug('Updated status', { status });
   };
 
   return {

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { secureLogger } from "@/utils/secureLogger";
 
 interface NotificationData {
   id: string;
@@ -44,13 +45,13 @@ export const useRealtimeNotifications = (): UseRealtimeNotificationsReturn => {
       duration: 5000,
     });
     
-    console.log("🔔 New notification:", newNotification);
+    secureLogger.debug('New notification added', { type: notification.type });
   }, []);
 
   useEffect(() => {
     if (!user) return;
 
-    console.log("🔌 Setting up real-time notifications for user:", user.id);
+    secureLogger.debug('Setting up real-time notifications', { userId: user.id });
 
     // Subscribe to assistance changes
     const assistanceChannel = supabase
@@ -63,7 +64,7 @@ export const useRealtimeNotifications = (): UseRealtimeNotificationsReturn => {
           table: "assistances",
         },
         (payload) => {
-          console.log("📝 New assistance created:", payload.new);
+          secureLogger.debug('New assistance created', { id: payload.new.id });
           addNotification({
             type: "assistance_created",
             title: "Nova Assistência Criada",
@@ -90,7 +91,7 @@ export const useRealtimeNotifications = (): UseRealtimeNotificationsReturn => {
           const newStatus = payload.new.status;
           
           if (oldStatus !== newStatus) {
-            console.log("📋 Assistance status updated:", { old: oldStatus, new: newStatus });
+            secureLogger.debug('Assistance status updated', { id: payload.new.id, oldStatus, newStatus });
             addNotification({
               type: "assistance_updated",
               title: "Status de Assistência Atualizado",
@@ -119,7 +120,7 @@ export const useRealtimeNotifications = (): UseRealtimeNotificationsReturn => {
           table: "supplier_responses",
         },
         (payload) => {
-          console.log("💬 New supplier response:", payload.new);
+          secureLogger.debug('New supplier response', { assistanceId: payload.new.assistance_id });
           const responseType = payload.new.response_type;
           addNotification({
             type: "supplier_response",
@@ -143,7 +144,7 @@ export const useRealtimeNotifications = (): UseRealtimeNotificationsReturn => {
           table: "quotations",
         },
         (payload) => {
-          console.log("💰 New quotation submitted:", payload.new);
+          secureLogger.debug('New quotation submitted', { assistanceId: payload.new.assistance_id });
           addNotification({
             type: "quotation_submitted",
             title: "Novo Orçamento Submetido",
@@ -156,7 +157,7 @@ export const useRealtimeNotifications = (): UseRealtimeNotificationsReturn => {
       .subscribe();
 
     return () => {
-      console.log("🔌 Cleaning up real-time subscriptions");
+      secureLogger.debug('Cleaning up real-time subscriptions');
       supabase.removeChannel(assistanceChannel);
       supabase.removeChannel(responseChannel);
       supabase.removeChannel(quotationChannel);

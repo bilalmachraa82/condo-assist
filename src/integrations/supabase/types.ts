@@ -568,6 +568,30 @@ export type Database = {
         }
         Relationships: []
       }
+      magic_code_attempts: {
+        Row: {
+          attempt_time: string | null
+          id: string
+          ip_address: unknown | null
+          magic_code: string | null
+          success: boolean | null
+        }
+        Insert: {
+          attempt_time?: string | null
+          id?: string
+          ip_address?: unknown | null
+          magic_code?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          attempt_time?: string | null
+          id?: string
+          ip_address?: unknown | null
+          magic_code?: string | null
+          success?: boolean | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           assistance_id: string
@@ -968,6 +992,10 @@ export type Database = {
       }
       can_complete_assistance: {
         Args: { assistance_id_param: string }
+        Returns: boolean
+      }
+      check_rate_limit: {
+        Args: { p_ip: unknown; p_magic_code: string }
         Returns: boolean
       }
       create_communication_via_code: {
