@@ -234,9 +234,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
-    secureLogger.info('Signing out...');
-    setLoading(true);
-    await supabase.auth.signOut();
+    try {
+      // Log security event before signing out
+      if (user) {
+        await supabase.rpc('log_security_event', {
+          p_event_type: 'user_logout',
+          p_severity: 'low',
+          p_details: { user_id: user.id, timestamp: new Date().toISOString() }
+        });
+      }
+      
+      secureLogger.info('Signing out...');
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      secureLogger.error('Error signing out', error);
+      setAuthError(error instanceof Error ? error.message : 'Erro ao sair');
+      
+      // Log failed logout attempt
+      await supabase.rpc('log_security_event', {
+        p_event_type: 'logout_failed',
+        p_severity: 'medium',
+        p_details: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+    }
   };
 
   const value = {

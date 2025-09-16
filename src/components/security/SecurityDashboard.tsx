@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Shield, AlertTriangle, CheckCircle, Clock, Users, Key } from "lucide-react";
 import { format } from "date-fns";
+import SecurityMonitor from "./SecurityMonitor";
 
 interface SecurityEvent {
   id: string;
@@ -182,15 +183,18 @@ export default function SecurityDashboard() {
         </Card>
       </div>
 
-      {/* Security Events Log */}
+      {/* New Security Monitor Component */}
+      <SecurityMonitor />
+
+      {/* Legacy Security Events Log */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Eventos de Segurança Recentes
+            Eventos do Sistema Legado
           </CardTitle>
           <CardDescription>
-            Últimos 20 eventos de segurança do sistema
+            Eventos de segurança do log de atividades anterior
           </CardDescription>
         </CardHeader>
         <CardContent>

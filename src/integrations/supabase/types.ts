@@ -733,6 +733,66 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          ip_address: unknown
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          ip_address: unknown
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          ip_address?: unknown
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       supplier_access_log: {
         Row: {
           action: string
@@ -1106,7 +1166,15 @@ export type Database = {
         Returns: Json
       }
       log_security_event: {
-        Args: { details?: string; event_type: string; metadata?: Json }
+        Args:
+          | { details?: string; event_type: string; metadata?: Json }
+          | {
+              p_details?: Json
+              p_event_type: string
+              p_ip_address?: unknown
+              p_severity?: string
+              p_user_agent?: string
+            }
         Returns: undefined
       }
       log_supplier_access: {
@@ -1133,6 +1201,14 @@ export type Database = {
       }
       validate_supplier_session: {
         Args: { p_magic_code: string }
+        Returns: Json
+      }
+      validate_supplier_session_secure: {
+        Args: {
+          p_ip_address?: unknown
+          p_magic_code: string
+          p_user_agent?: string
+        }
         Returns: Json
       }
     }
