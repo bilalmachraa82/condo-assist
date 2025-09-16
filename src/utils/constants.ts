@@ -11,7 +11,15 @@ export const STATUS_TRANSLATIONS = {
   awaiting_validation: 'Aguarda Validação',
   completed: 'Concluído',
   cancelled: 'Cancelado',
-  rejected: 'Rejeitado'
+  rejected: 'Rejeitado',
+  sent_to_suppliers: 'Enviado aos Fornecedores',
+  quotes_received: 'Orçamentos Recebidos',
+  quote_approved: 'Orçamento Aprovado',
+  awaiting_approval: 'Aguarda Aprovação',
+  submitted: 'Submetido',
+  expired: 'Expirado',
+  quotation_approved: 'Orçamento Aprovado',
+  quotation_rejected: 'Orçamento Rejeitado'
 } as const;
 
 export const PRIORITY_TRANSLATIONS = {
