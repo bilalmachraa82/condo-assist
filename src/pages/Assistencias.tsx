@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { StatusBadge, PriorityBadge } from "@/components/ui/status-badges"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -58,62 +59,6 @@ const getStatusIcon = (status: string) => {
   }
 }
 
-const getStatusBadge = (status: string) => {
-  const variants = {
-    pending: "bg-warning/10 text-warning border-warning/20",
-    in_progress: "bg-primary/10 text-primary border-primary/20",
-    completed: "bg-success/10 text-success border-success/20",
-    cancelled: "bg-destructive/10 text-destructive border-destructive/20",
-    awaiting_quotation: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-    quotation_received: "bg-purple-500/10 text-purple-600 border-purple-500/20",
-    quotation_approved: "bg-green-500/10 text-green-600 border-green-500/20",
-    quotation_rejected: "bg-red-500/10 text-red-600 border-red-500/20"
-  }
-
-  const labels = {
-    pending: "Pendente",
-    in_progress: "Em Progresso",
-    completed: "Concluída",
-    cancelled: "Cancelada",
-    awaiting_quotation: "Aguardando Orçamento",
-    quotation_received: "Orçamento Recebido",
-    quotation_approved: "Orçamento Aprovado",
-    quotation_rejected: "Orçamento Rejeitado"
-  }
-
-  return (
-    <Badge className={variants[status as keyof typeof variants] || variants.pending}>
-      {labels[status as keyof typeof labels] || status}
-    </Badge>
-  )
-}
-
-const getPriorityBadge = (priority: string) => {
-  const variants = {
-    normal: "bg-muted/50 text-muted-foreground",
-    urgent: "bg-warning/10 text-warning border-warning/20",
-    critical: "bg-destructive/10 text-destructive border-destructive/20"
-  }
-
-  const icons = {
-    normal: null,
-    urgent: <AlertTriangle className="h-3 w-3 mr-1" />,
-    critical: <AlertTriangle className="h-3 w-3 mr-1" />
-  }
-
-  const labels = {
-    normal: "Normal",
-    urgent: "Urgente",
-    critical: "Crítico"
-  }
-
-  return (
-    <Badge className={`text-xs ${variants[priority as keyof typeof variants] || variants.normal}`}>
-      {icons[priority as keyof typeof icons]}
-      {labels[priority as keyof typeof labels] || priority}
-    </Badge>
-  )
-}
 
 // Quick quotation component
 function QuickQuotationAction({ assistance }: { assistance: Assistance }) {
@@ -495,8 +440,8 @@ export default function Assistencias() {
                       <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">
                         #{assistance.assistance_number || 'N/A'}
                       </span>
-                      {getStatusBadge(assistance.status)}
-                      {getPriorityBadge(assistance.priority)}
+                          <StatusBadge status={assistance.status} />
+                          <PriorityBadge priority={assistance.priority} />
                     </div>
                     
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -542,8 +487,8 @@ export default function Assistencias() {
                           <span className="font-mono text-sm font-bold text-primary bg-primary/10 px-2 py-1 rounded">
                             #{assistance.assistance_number || 'N/A'}
                           </span>
-                          {getStatusBadge(assistance.status)}
-                          {getPriorityBadge(assistance.priority)}
+                           <StatusBadge status={assistance.status} />
+                           <PriorityBadge priority={assistance.priority} />
                         </div>
                         
                         <div className="space-y-1">

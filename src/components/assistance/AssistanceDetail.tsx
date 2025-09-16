@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings, Trash2, Edit, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { StatusBadge, PriorityBadge } from "@/components/ui/status-badges";
 import PhotoUpload from "./PhotoUpload";
 import PhotoGallery from "./PhotoGallery";
 import QuotationList from "@/components/quotations/QuotationList";
@@ -30,66 +31,6 @@ interface AssistanceDetailProps {
   onDeleted?: () => void;
 }
 
-const getStatusBadge = (status: string) => {
-  const variants = {
-    pending: "bg-warning/10 text-warning border-warning/20",
-    in_progress: "bg-primary/10 text-primary border-primary/20",
-    completed: "bg-success/10 text-success border-success/20",
-    cancelled: "bg-destructive/10 text-destructive border-destructive/20",
-    awaiting_quotation: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-    quotation_received: "bg-purple-500/10 text-purple-600 border-purple-500/20",
-    quotation_approved: "bg-green-500/10 text-green-600 border-green-500/20",
-    accepted: "bg-success/10 text-success border-success/20",
-    scheduled: "bg-primary/10 text-primary border-primary/20",
-    awaiting_validation: "bg-warning/10 text-warning border-warning/20"
-  }
-
-  const labels = {
-    pending: "Pendente",
-    in_progress: "Em Progresso",
-    completed: "Concluída",
-    cancelled: "Cancelada",
-    awaiting_quotation: "Aguardando Orçamento",
-    quotation_received: "Orçamento Recebido",
-    quotation_approved: "Orçamento Aprovado",
-    accepted: "Aceite",
-    scheduled: "Agendada",
-    awaiting_validation: "Aguardando Validação"
-  }
-
-  return (
-    <Badge className={variants[status as keyof typeof variants] || variants.pending}>
-      {labels[status as keyof typeof labels] || status}
-    </Badge>
-  )
-}
-
-const getPriorityBadge = (priority: string) => {
-  const variants = {
-    normal: "bg-muted/50 text-muted-foreground",
-    urgent: "bg-warning/10 text-warning border-warning/20",
-    critical: "bg-destructive/10 text-destructive border-destructive/20"
-  }
-
-  const icons = {
-    normal: null,
-    urgent: <AlertTriangle className="h-3 w-3 mr-1" />,
-    critical: <AlertTriangle className="h-3 w-3 mr-1" />
-  }
-
-  const labels = {
-    normal: "Normal",
-    urgent: "Urgente",
-    critical: "Crítico"
-  }
-
-  return (
-    <Badge className={`text-xs ${variants[priority as keyof typeof variants] || variants.normal}`}>
-      {icons[priority as keyof typeof icons]}
-      {labels[priority as keyof typeof labels] || priority}
-    </Badge>
-  )
-}
 
 export default function AssistanceDetail({ assistance, onBack, onDeleted }: AssistanceDetailProps) {
   const [refreshPhotos, setRefreshPhotos] = useState(0);
@@ -163,8 +104,8 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {getStatusBadge(assistanceData?.status ?? assistance.status)}
-          {getPriorityBadge(assistance.priority)}
+          <StatusBadge status={assistanceData?.status ?? assistance.status} />
+          <PriorityBadge priority={assistance.priority} />
           
           <PDFExportButton 
             filename={`assistencia-${assistance.title.replace(/\s+/g, '-').toLowerCase()}`}
@@ -239,7 +180,7 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Prioridade</p>
-                  <div className="flex">{getPriorityBadge(assistance.priority)}</div>
+                  <div className="flex"><PriorityBadge priority={assistance.priority} /></div>
                 </div>
               </div>
 
@@ -410,7 +351,7 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <p className="text-sm font-medium">Estado Atual</p>
-                {getStatusBadge(assistanceData?.status ?? assistance.status)}
+                <StatusBadge status={assistanceData?.status ?? assistance.status} />
               </div>
               
               <div className="space-y-2">

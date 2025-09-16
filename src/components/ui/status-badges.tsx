@@ -5,7 +5,7 @@ import { STATUS_TRANSLATIONS, PRIORITY_TRANSLATIONS } from '@/utils/constants';
 import { cn } from '@/lib/utils';
 
 interface StatusBadgeProps {
-  status: keyof typeof STATUS_TRANSLATIONS;
+  status: string;
   className?: string;
 }
 
@@ -38,13 +38,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
       variant={getStatusVariant(status)} 
       className={cn('text-xs', className)}
     >
-      {STATUS_TRANSLATIONS[status] || status}
+      {STATUS_TRANSLATIONS[status as keyof typeof STATUS_TRANSLATIONS] || status}
     </Badge>
   );
 };
 
 interface PriorityBadgeProps {
-  priority: keyof typeof PRIORITY_TRANSLATIONS;
+  priority: string;
   className?: string;
 }
 
@@ -88,7 +88,7 @@ export const PriorityBadge: React.FC<PriorityBadgeProps> = ({ priority, classNam
         className
       )}
     >
-      {PRIORITY_TRANSLATIONS[priority] || priority}
+      {PRIORITY_TRANSLATIONS[priority as keyof typeof PRIORITY_TRANSLATIONS] || priority}
     </Badge>
   );
 };

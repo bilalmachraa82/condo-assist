@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { StatusBadge } from "@/components/ui/status-badges";
 import { ArrowLeft, FileText, Calendar, Euro, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -26,35 +27,6 @@ export const SupplierAssistancesList = ({
 }: SupplierAssistancesListProps) => {
   const { data: assistances = [], isLoading } = useAssistancesBySupplier(supplierId);
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      pending: "bg-warning/10 text-warning border-warning/20",
-      in_progress: "bg-primary/10 text-primary border-primary/20",
-      completed: "bg-success/10 text-success border-success/20",
-      cancelled: "bg-destructive/10 text-destructive border-destructive/20",
-      awaiting_quotation: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-      quotation_received: "bg-purple-500/10 text-purple-600 border-purple-500/20",
-      quotation_approved: "bg-green-500/10 text-green-600 border-green-500/20",
-      quotation_rejected: "bg-red-500/10 text-red-600 border-red-500/20"
-    };
-
-    const labels = {
-      pending: "Pendente",
-      in_progress: "Em Progresso",
-      completed: "Concluída",
-      cancelled: "Cancelada",
-      awaiting_quotation: "Aguardando Orçamento",
-      quotation_received: "Orçamento Recebido",
-      quotation_approved: "Orçamento Aprovado",
-      quotation_rejected: "Orçamento Rejeitado"
-    };
-
-    return (
-      <Badge className={variants[status as keyof typeof variants] || variants.pending}>
-        {labels[status as keyof typeof labels] || status}
-      </Badge>
-    );
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -118,7 +90,7 @@ export const SupplierAssistancesList = ({
                       <div className="space-y-1 flex-1">
                         <CardTitle className="text-lg">{assistance.title}</CardTitle>
                         <div className="flex items-center gap-2">
-                          {getStatusBadge(assistance.status)}
+                          <StatusBadge status={assistance.status} />
                         </div>
                       </div>
                       <span className="text-xs text-muted-foreground font-mono">

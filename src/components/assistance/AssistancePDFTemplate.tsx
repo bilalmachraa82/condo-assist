@@ -32,7 +32,7 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
           alt="Logo Luvimg"
           className="h-32 w-auto mx-auto mb-3 print:opacity-100"
         />
-        <h1 className="text-2xl font-bold mb-2">Relatório de Assistência</h1>
+        <h1 className="text-2xl font-bold mb-2">Relatório de Assistência #{assistance.assistance_number || 'N/A'}</h1>
         <p className="text-gray-600">
           Gerado em {format(new Date(), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: pt })}
         </p>
@@ -43,6 +43,9 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
         <div>
           <h2 className="text-lg font-semibold mb-3 text-gray-800">Informações Gerais</h2>
           <div className="space-y-2">
+            <div>
+              <span className="font-medium">Número da Assistência:</span> #{assistance.assistance_number || 'N/A'}
+            </div>
             <div>
               <span className="font-medium">Título:</span> {assistance.title}
             </div>

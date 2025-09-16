@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { StatusBadge } from "@/components/ui/status-badges";
 import { FileText, Plus, CheckCircle, XCircle, Clock, Euro } from "lucide-react";
 import { useQuotationsByAssistance, useUpdateQuotationStatus, useRequestQuotation } from "@/hooks/useQuotations";
 import type { Assistance } from "@/hooks/useAssistances";
@@ -17,25 +18,6 @@ interface QuotationSectionProps {
   assistance: Assistance;
 }
 
-const getStatusBadge = (status: string) => {
-  const statusConfig = {
-    pending: { label: "Pendente", variant: "secondary" as const, icon: Clock },
-    submitted: { label: "Submetido", variant: "outline" as const, icon: FileText },
-    approved: { label: "Aprovado", variant: "default" as const, icon: CheckCircle },
-    rejected: { label: "Rejeitado", variant: "destructive" as const, icon: XCircle },
-    expired: { label: "Expirado", variant: "secondary" as const, icon: Clock },
-  };
-
-  const config = statusConfig[status as keyof typeof statusConfig];
-  const Icon = config?.icon || FileText;
-
-  return (
-    <Badge variant={config?.variant || "secondary"} className="gap-1">
-      <Icon className="h-3 w-3" />
-      {config?.label || status}
-    </Badge>
-  );
-};
 
 export default function QuotationSection({ assistance }: QuotationSectionProps) {
   const [notes, setNotes] = useState("");
@@ -167,7 +149,7 @@ export default function QuotationSection({ assistance }: QuotationSectionProps) 
           <div className="p-3 bg-muted rounded-lg">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Status da Solicitação:</span>
-              {getStatusBadge(assistance.status)}
+              <StatusBadge status={assistance.status} />
             </div>
             {assistance.quotation_deadline && (
               <p className="text-xs text-muted-foreground mt-1">
@@ -189,7 +171,7 @@ export default function QuotationSection({ assistance }: QuotationSectionProps) 
                     <span className="font-medium text-sm">
                       {quotation.suppliers?.name}
                     </span>
-                    {getStatusBadge(quotation.status)}
+                    <StatusBadge status={quotation.status} />
                   </div>
                   <div className="flex items-center gap-1 text-sm font-medium">
                     <Euro className="h-4 w-4" />

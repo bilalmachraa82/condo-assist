@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badges";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,27 +51,6 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
     assistance => ['completed', 'cancelled'].includes(assistance.status)
   );
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      pending: "bg-warning/10 text-warning border-warning/20",
-      in_progress: "bg-primary/10 text-primary border-primary/20", 
-      completed: "bg-success/10 text-success border-success/20",
-      cancelled: "bg-destructive/10 text-destructive border-destructive/20"
-    };
-
-    const labels = {
-      pending: "Pendente",
-      in_progress: "Em Progresso",
-      completed: "Concluída", 
-      cancelled: "Cancelada"
-    };
-
-    return (
-      <Badge className={variants[status as keyof typeof variants] || variants.pending}>
-        {labels[status as keyof typeof labels] || status}
-      </Badge>
-    );
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -174,7 +154,7 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           {getStatusIcon(assistance.status)}
-                          {getStatusBadge(assistance.status)}
+                          <StatusBadge status={assistance.status} />
                         </div>
                         <h3 className="font-semibold text-lg mb-1">
                           {assistance.intervention_types?.name || assistance.title}
@@ -229,7 +209,7 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           {getStatusIcon(assistance.status)}
-                          {getStatusBadge(assistance.status)}
+                          <StatusBadge status={assistance.status} />
                         </div>
                         <h3 className="font-semibold text-lg mb-1">
                           {assistance.intervention_types?.name || assistance.title}
