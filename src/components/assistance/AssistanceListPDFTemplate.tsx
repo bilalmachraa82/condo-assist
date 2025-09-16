@@ -2,6 +2,7 @@
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Assistance } from "@/hooks/useAssistances";
+import { getStatusLabel, getPriorityLabel } from "@/utils/constants";
 
 interface AssistanceListPDFTemplateProps {
   assistances: Assistance[];
@@ -19,25 +20,6 @@ export const AssistanceListPDFTemplate = ({
   title = "Listagem de Assistências",
   filters 
 }: AssistanceListPDFTemplateProps) => {
-  const getStatusLabel = (status: string) => {
-    const labels = {
-      pending: "Pendente",
-      in_progress: "Em Andamento", 
-      completed: "Concluída",
-      cancelled: "Cancelada"
-    };
-    return labels[status as keyof typeof labels] || status;
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    const labels = {
-      normal: "Normal",
-      urgent: "Urgente", 
-      critical: "Crítico"
-    };
-    return labels[priority as keyof typeof labels] || priority;
-  };
-
   const truncate = (text?: string, max = 120) => {
     if (!text) return "—";
     const t = String(text).trim();
@@ -52,7 +34,7 @@ export const AssistanceListPDFTemplate = ({
           <img
             src="/lovable-uploads/logo-luvimg.png"
             alt="Logo"
-            className="h-32 w-auto mb-2"
+          className="h-32 w-auto mb-2"
           />
           <div className="text-xl font-bold text-primary">Luvimg Condomínios, Lda</div>
         </div>
@@ -70,7 +52,7 @@ export const AssistanceListPDFTemplate = ({
         <div className="mb-6 p-4 bg-gray-50 rounded">
           <h3 className="font-semibold mb-2">Filtros Aplicados:</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            {filters.status && <div><span className="font-medium">Estado:</span> {getStatusLabel(filters.status)}</div>}
+            {filters.status && <div><span className="font-medium">Estado:</span> {getStatusLabel(filters.status as any)}</div>}
             {filters.building && <div><span className="font-medium">Edifício:</span> {filters.building}</div>}
             {filters.supplier && <div><span className="font-medium">Fornecedor:</span> {filters.supplier}</div>}
             {filters.dateRange && <div><span className="font-medium">Período:</span> {filters.dateRange}</div>}
@@ -150,7 +132,7 @@ export const AssistanceListPDFTemplate = ({
                     assistance.status === 'pending' ? 'bg-orange-100 text-orange-800' :
                     'bg-red-100 text-red-800'
                   }`}>
-                    {getStatusLabel(assistance.status)}
+                    {getStatusLabel(assistance.status as any)}
                   </span>
                 </td>
                 <td className="border border-gray-300 p-2">

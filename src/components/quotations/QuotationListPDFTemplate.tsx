@@ -1,4 +1,9 @@
 
+import React from 'react';
+import { format } from "date-fns";
+import { pt } from "date-fns/locale";
+import { getStatusLabel } from "@/utils/constants";
+
 interface QuotationListPDFTemplateProps {
   quotations: any[];
   title?: string;
@@ -17,15 +22,6 @@ export const QuotationListPDFTemplate = ({
   title = "Lista de Orçamentos",
   filters 
 }: QuotationListPDFTemplateProps) => {
-  const getStatusLabel = (status: string) => {
-    const statusMap: { [key: string]: string } = {
-      pending: "Pendente",
-      approved: "Aprovado", 
-      rejected: "Rejeitado"
-    };
-    return statusMap[status] || status;
-  };
-
   const totalValue = quotations.reduce((sum, quotation) => sum + (quotation.amount || 0), 0);
   const approvedValue = quotations
     .filter(q => q.status === 'approved')
@@ -37,8 +33,8 @@ export const QuotationListPDFTemplate = ({
       <div className="border-b-2 border-gray-300 pb-4 mb-6 text-center">
         <img
           src="/lovable-uploads/logo-luvimg.png"
-          alt="Logo"
-          className="h-20 w-auto mx-auto mb-3"
+          alt="Logo Luvimg"
+          className="h-32 w-auto mx-auto mb-3"
         />
         <h1 className="text-2xl font-bold text-center">{title}</h1>
         <p className="text-center text-gray-600 mt-2">
@@ -52,7 +48,7 @@ export const QuotationListPDFTemplate = ({
           <h3 className="font-semibold mb-2">Filtros Aplicados:</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             {filters.status && (
-              <div><strong>Estado:</strong> {getStatusLabel(filters.status)}</div>
+              <div><strong>Estado:</strong> {getStatusLabel(filters.status as any)}</div>
             )}
             {filters.minAmount && (
               <div><strong>Valor Mínimo:</strong> €{Number(filters.minAmount).toLocaleString()}</div>
@@ -143,7 +139,7 @@ export const QuotationListPDFTemplate = ({
                     quotation.status === 'rejected' ? 'bg-red-100 text-red-800' :
                     'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {getStatusLabel(quotation.status)}
+                    {getStatusLabel(quotation.status as any)}
                   </span>
                 </td>
                 <td className="border border-gray-300 px-4 py-2 text-sm">

@@ -1,11 +1,14 @@
 
-// Status translations
+// Status translations - COMPLETE COVERAGE FOR ALL STATUSES
 export const STATUS_TRANSLATIONS = {
   pending: 'Pendente',
   awaiting_quotation: 'Aguardando Orçamento',
   quotation_received: 'Orçamento Recebido',
+  accepted: 'Aceite',
+  scheduled: 'Agendado',
   approved: 'Aprovado',
   in_progress: 'Em Progresso',
+  awaiting_validation: 'Aguarda Validação',
   completed: 'Concluído',
   cancelled: 'Cancelado',
   rejected: 'Rejeitado'

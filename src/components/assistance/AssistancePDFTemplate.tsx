@@ -2,6 +2,7 @@
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Assistance } from "@/hooks/useAssistances";
+import { STATUS_TRANSLATIONS, PRIORITY_TRANSLATIONS } from "@/utils/constants";
 
 interface AssistancePDFTemplateProps {
   assistance: Assistance;
@@ -9,27 +10,16 @@ interface AssistancePDFTemplateProps {
 
 export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps) => {
   const getStatusLabel = (status: string) => {
-    const labels = {
-      pending: "Pendente",
-      in_progress: "Em Andamento", 
-      completed: "Concluída",
-      cancelled: "Cancelada"
-    };
-    return labels[status as keyof typeof labels] || status;
+    return STATUS_TRANSLATIONS[status as keyof typeof STATUS_TRANSLATIONS] || status;
   };
 
   const getPriorityLabel = (priority: string) => {
-    const labels = {
-      low: "Baixa",
-      normal: "Normal",
-      high: "Alta",
-      urgent: "Urgente"
-    };
-    return labels[priority as keyof typeof labels] || priority;
-};
+    return PRIORITY_TRANSLATIONS[priority as keyof typeof PRIORITY_TRANSLATIONS] || priority;
+  };
 
   const extractPostalCode = (address?: string) => {
-    const match = address?.match(/\b\d{4}-\d{3}\b/);
+    // Improved regex to handle both Portuguese formats: 1234-567 and 1234 567
+    const match = address?.match(/\b\d{4}[-\s]\d{3}\b/);
     return match ? match[0] : null;
   };
 
@@ -39,8 +29,8 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
       <div className="text-center mb-8 border-b-2 border-gray-300 pb-4">
         <img
           src="/lovable-uploads/logo-luvimg.png"
-          alt="Logo"
-          className="h-20 w-auto mx-auto mb-3 print:opacity-100"
+          alt="Logo Luvimg"
+          className="h-32 w-auto mx-auto mb-3 print:opacity-100"
         />
         <h1 className="text-2xl font-bold mb-2">Relatório de Assistência</h1>
         <p className="text-gray-600">
@@ -142,7 +132,7 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
       {/* Footer */}
       <div className="mt-8 pt-4 border-t border-gray-300 text-center text-sm text-gray-500">
         <div className="flex items-center justify-center gap-2">
-          <img src="/lovable-uploads/logo-luvimg.png" alt="Logo" className="h-8 w-auto print:opacity-100" />
+          <img src="/lovable-uploads/logo-luvimg.png" alt="Logo Luvimg" className="h-16 w-auto print:opacity-100" />
           <span className="font-medium text-gray-700">Luvimg</span>
         </div>
         <p className="mt-2">Este documento foi gerado automaticamente pelo sistema de gestão de assistências.</p>

@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Mail, AlertCircle, Clock, MapPin, Wrench, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getPriorityLabel, getStatusLabel } from "@/utils/constants";
 
 interface Assistance {
   id: string;
@@ -47,26 +48,6 @@ export function SupplierEmailSummary({
     }
   };
 
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'critical': return 'CRÍTICO';
-      case 'urgent': return 'URGENTE';
-      default: return 'NORMAL';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    const statusMap: { [key: string]: string } = {
-      'pending': 'Pendente',
-      'awaiting_quotation': 'Aguarda Orçamento',
-      'quotation_received': 'Orçamento Recebido',
-      'in_progress': 'Em Progresso',
-      'completed': 'Concluída',
-      'cancelled': 'Cancelada'
-    };
-    return statusMap[status] || status;
-  };
-
   const handleSendEmail = async () => {
     setIsSending(true);
     try {
@@ -97,13 +78,13 @@ export function SupplierEmailSummary({
           <h4 style="color: #1f2937; margin: 0 0 10px 0; font-size: 16px;">📋 ${assistance.title}</h4>
           <div style="margin: 10px 0;">
             <span style="background-color: ${assistance.priority === 'critical' ? '#ef4444' : assistance.priority === 'urgent' ? '#f97316' : '#10b981'}; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">
-              🚨 ${getPriorityLabel(assistance.priority)}
+              🚨 ${getPriorityLabel(assistance.priority as any).toUpperCase()}
             </span>
           </div>
           <p style="color: #6b7280; margin: 8px 0 4px 0; font-size: 13px;"><strong>🏢 Edifício:</strong> ${assistance.building_name}</p>
           <p style="color: #6b7280; margin: 4px 0; font-size: 13px;"><strong>🔧 Tipo:</strong> ${assistance.intervention_type}</p>
           <p style="color: #6b7280; margin: 4px 0; font-size: 13px;"><strong>📅 Data:</strong> ${new Date(assistance.created_at).toLocaleDateString('pt-PT')}</p>
-          <p style="color: #6b7280; margin: 4px 0; font-size: 13px;"><strong>📊 Status:</strong> ${getStatusLabel(assistance.status)}</p>
+          <p style="color: #6b7280; margin: 4px 0; font-size: 13px;"><strong>📊 Status:</strong> ${getStatusLabel(assistance.status as any)}</p>
           ${assistance.description ? `<p style="color: #4b5563; margin: 10px 0 4px 0; font-size: 13px; font-style: italic;">${assistance.description}</p>` : ''}
         </div>
       `).join('');
@@ -240,9 +221,9 @@ export function SupplierEmailSummary({
                   <div className="space-y-2">
                     <div className="flex items-start justify-between">
                       <h4 className="font-medium">{assistance.title}</h4>
-                      <Badge className={getPriorityColor(assistance.priority)}>
-                        {getPriorityLabel(assistance.priority)}
-                      </Badge>
+                       <Badge className={getPriorityColor(assistance.priority)}>
+                         {getPriorityLabel(assistance.priority as any).toUpperCase()}
+                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
@@ -258,7 +239,7 @@ export function SupplierEmailSummary({
                         {new Date(assistance.created_at).toLocaleDateString('pt-PT')}
                       </div>
                       <div className="text-xs">
-                        {getStatusLabel(assistance.status)}
+                        {getStatusLabel(assistance.status as any)}
                       </div>
                     </div>
                     {assistance.description && (

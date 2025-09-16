@@ -15,10 +15,16 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
       case 'completed':
         return 'default'; // green
       case 'in_progress':
+      case 'scheduled':
         return 'secondary'; // blue
       case 'pending':
       case 'awaiting_quotation':
-        return 'outline'; // yellow
+      case 'quotation_received':
+      case 'awaiting_validation':
+        return 'outline'; // yellow/warning
+      case 'accepted':
+      case 'approved':
+        return 'default'; // green
       case 'cancelled':
       case 'rejected':
         return 'destructive'; // red

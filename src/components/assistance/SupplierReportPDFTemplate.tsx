@@ -2,6 +2,7 @@
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Assistance } from "@/hooks/useAssistances";
+import { getStatusLabel } from "@/utils/constants";
 
 interface SupplierReportPDFTemplateProps {
   supplier: {
@@ -25,16 +26,6 @@ export const SupplierReportPDFTemplate = ({
   assistances,
   dateRange 
 }: SupplierReportPDFTemplateProps) => {
-  const getStatusLabel = (status: string) => {
-    const labels = {
-      pending: "Pendente",
-      in_progress: "Em Andamento", 
-      completed: "Concluída",
-      cancelled: "Cancelada"
-    };
-    return labels[status as keyof typeof labels] || status;
-  };
-
   const completedAssistances = assistances.filter(a => a.status === 'completed');
   const inProgressAssistances = assistances.filter(a => a.status === 'in_progress');
   const pendingAssistances = assistances.filter(a => a.status === 'pending');
@@ -57,9 +48,9 @@ export const SupplierReportPDFTemplate = ({
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-gray-300 pb-4">
         <img
-          src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png"
+          src="/lovable-uploads/logo-luvimg.png"
           alt="Luvimg logotipo"
-          className="h-10 w-auto mx-auto mb-3"
+          className="h-32 w-auto mx-auto mb-3"
         />
         <h1 className="text-2xl font-bold mb-2">Relatório de Fornecedor</h1>
         <h2 className="text-xl text-gray-700">{supplier.name}</h2>
@@ -154,7 +145,7 @@ export const SupplierReportPDFTemplate = ({
                       assistance.status === 'pending' ? 'bg-orange-100 text-orange-800' :
                       'bg-red-100 text-red-800'
                     }`}>
-                      {getStatusLabel(assistance.status)}
+                      {getStatusLabel(assistance.status as any)}
                     </span>
                   </td>
                   <td className="border border-gray-300 p-2">
