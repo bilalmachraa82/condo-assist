@@ -76,3 +76,6 @@ gw_mode = "disabled"
 
 [functions.send-email]
 verify_jwt = false
+
+[functions.process-followups]
+verify_jwt = true

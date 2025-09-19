@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, XCircle, Eye, Clock, Mail, Search, ArrowUpDown, Euro, Calendar, Building2, Users, FileText } from "lucide-react";
+import { StatusBadge } from "@/components/ui/status-badges";
+import { PriorityBadge } from "@/components/ui/status-badges";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -227,23 +229,6 @@ export default function QuotationManagement() {
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { variant: "outline" as const, icon: Clock, text: "Análise Pendente" },
-      approved: { variant: "default" as const, icon: CheckCircle, text: "Aprovado" },
-      rejected: { variant: "destructive" as const, icon: XCircle, text: "Rejeitado" },
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    const Icon = config.icon;
-
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {config.text}
-      </Badge>
-    );
-  };
 
   if (isLoading) {
     return <div className="text-center py-8">Carregando orçamentos...</div>;
@@ -380,7 +365,7 @@ export default function QuotationManagement() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  {getStatusBadge(quotation.status)}
+                  <StatusBadge status={quotation.status} />
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
                     {format(new Date(quotation.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}

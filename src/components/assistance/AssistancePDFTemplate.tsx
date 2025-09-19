@@ -18,9 +18,33 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
   };
 
   const extractPostalCode = (address?: string) => {
-    // Improved regex to handle both Portuguese formats: 1234-567 and 1234 567
-    const match = address?.match(/\b\d{4}[-\s]\d{3}\b/);
-    return match ? match[0] : null;
+    if (!address) return null;
+    
+    // Try multiple formats for Portuguese postal codes
+    const patterns = [
+      /\b\d{4}[-\s]\d{3}\b/,           // 1234-567 or 1234 567
+      /\b\d{4}\d{3}\b/,               // 1234567 (without separator)
+      /(\d{4})[-\s]?(\d{3})/          // More flexible pattern
+    ];
+    
+    for (const pattern of patterns) {
+      const match = address.match(pattern);
+      if (match) {
+        // Format as standard Portuguese postal code
+        const fullMatch = match[0];
+        if (fullMatch.includes('-') || fullMatch.includes(' ')) {
+          return fullMatch;
+        } else if (fullMatch.length === 7) {
+          // Insert dash for format 1234567 -> 1234-567
+          return fullMatch.substring(0, 4) + '-' + fullMatch.substring(4);
+        } else if (match[1] && match[2]) {
+          return match[1] + '-' + match[2];
+        }
+        return fullMatch;
+      }
+    }
+    
+    return null;
   };
 
   return (
@@ -134,11 +158,11 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
 
       {/* Footer */}
       <div className="mt-8 pt-4 border-t border-gray-300 text-center text-sm text-gray-500">
-        <div className="flex items-center justify-center gap-2">
-          <img src="/lovable-uploads/logo-luvimg.png" alt="Logo Luvimg" className="h-16 w-auto print:opacity-100" />
-          <span className="font-medium text-gray-700">Luvimg</span>
+        <div className="flex items-center justify-center gap-3">
+          <img src="/lovable-uploads/logo-luvimg.png" alt="Logo Luvimg Condomínios" className="h-24 w-auto print:opacity-100" />
+          <span className="font-bold text-gray-800 text-xl">Luvimg Condomínios, Lda</span>
         </div>
-        <p className="mt-2">Este documento foi gerado automaticamente pelo sistema de gestão de assistências.</p>
+        <p className="mt-3 text-gray-600">Este documento foi gerado automaticamente pelo sistema de gestão de assistências.</p>
       </div>
     </div>
   );

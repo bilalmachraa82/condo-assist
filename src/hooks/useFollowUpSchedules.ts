@@ -129,10 +129,22 @@ export const useProcessFollowUps = () => {
 
   return useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('process-followups');
+      console.log("Attempting to invoke process-followups function...");
       
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase.functions.invoke('process-followups');
+        
+        if (error) {
+          console.error("Supabase function error:", error);
+          throw error;
+        }
+        
+        console.log("Function response:", data);
+        return data;
+      } catch (err) {
+        console.error("Function invocation failed:", err);
+        throw err;
+      }
     },
     onSuccess: (data) => {
       toast({
