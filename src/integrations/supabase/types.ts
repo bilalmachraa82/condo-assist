@@ -1035,6 +1035,10 @@ export type Database = {
         }
         Returns: Json
       }
+      auto_process_followups: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       calculate_next_followup: {
         Args: {
           p_attempt_count: number
@@ -1149,6 +1153,10 @@ export type Database = {
           sender_id: string
           sender_type: string
         }[]
+      }
+      get_followup_processing_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       has_role: {
         Args: {
