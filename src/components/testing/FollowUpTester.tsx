@@ -24,12 +24,27 @@ export default function FollowUpTester() {
   const createTestFollowUp = async () => {
     setIsCreatingTest(true);
     try {
+      // First, get a real assistance and supplier from the database
+      const { data: assistances, error: assistanceError } = await supabase
+        .from('assistances')
+        .select('id, assigned_supplier_id')
+        .not('assigned_supplier_id', 'is', null)
+        .limit(1);
+
+      if (assistanceError) throw assistanceError;
+      
+      if (!assistances || assistances.length === 0) {
+        throw new Error('Nenhuma assistência com fornecedor encontrada para teste');
+      }
+
+      const assistance = assistances[0];
+
       // Create a test follow-up scheduled for now (so it can be processed immediately)
       const { data, error } = await supabase
         .from('follow_up_schedules')
         .insert({
-          assistance_id: 'test-assistance-id',
-          supplier_id: 'test-supplier-id',
+          assistance_id: assistance.id,
+          supplier_id: assistance.assigned_supplier_id,
           follow_up_type: 'quotation_reminder',
           priority: 'normal',
           scheduled_for: new Date().toISOString(), // Schedule for now
