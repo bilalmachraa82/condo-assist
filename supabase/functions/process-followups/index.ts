@@ -31,15 +31,19 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log("Starting follow-up processing...");
+    const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+    const mode = body.mode || 'due'; // 'due', 'all', 'ids'
+    const followUpIds = body.followUpIds || [];
+    
+    console.log(`Starting follow-up processing... Mode: ${mode}`);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Buscar follow-ups pendentes
-    const { data: followups, error: followupsError } = await supabase
+    // Construir query baseada no modo
+    let query = supabase
       .from('follow_up_schedules')
       .select(`
         *,
@@ -56,22 +60,65 @@ const handler = async (req: Request): Promise<Response> => {
         )
       `)
       .eq('status', 'pending')
-      .lte('scheduled_for', new Date().toISOString())
-      .lt('attempt_count', 3)
       .order('scheduled_for', { ascending: true })
-      .limit(20);
+      .limit(50);
+
+    // Aplicar filtros baseados no modo
+    switch (mode) {
+      case 'due':
+        query = query.lte('scheduled_for', new Date().toISOString());
+        break;
+      case 'all':
+        // Processar todos os pendentes independente da data
+        break;
+      case 'ids':
+        if (followUpIds.length === 0) {
+          console.log("No follow-up IDs provided for 'ids' mode");
+          return new Response(JSON.stringify({
+            success: true,
+            processed: 0,
+            errors: 0,
+            total: 0,
+            message: "No follow-up IDs provided"
+          }), {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+        query = query.in('id', followUpIds);
+        break;
+    }
+
+    const { data: followups, error: followupsError } = await query;
 
     if (followupsError) {
       console.error('Error fetching follow-ups:', followupsError);
       throw followupsError;
     }
 
-    console.log(`Found ${followups?.length || 0} follow-ups to process`);
+    console.log(`Found ${followups?.length || 0} follow-ups to process (mode: ${mode})`);
 
     let processedCount = 0;
     let errorCount = 0;
+    const validFollowups = (followups || []).filter(f => f.attempt_count < (f.max_attempts || 3));
 
-    for (const followup of followups || []) {
+    if (validFollowups.length === 0) {
+      console.log("No valid follow-ups to process (all have reached max attempts or other constraints)");
+      return new Response(JSON.stringify({
+        success: true,
+        processed: 0,
+        errors: 0,
+        total: followups?.length || 0,
+        message: mode === 'due' 
+          ? "Nenhum follow-up devido para envio no momento"
+          : "Todos os follow-ups já atingiram o número máximo de tentativas"
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    for (const followup of validFollowups) {
       try {
         console.log(`Processing follow-up ${followup.id} - Type: ${followup.follow_up_type}`);
 
@@ -156,7 +203,13 @@ const handler = async (req: Request): Promise<Response> => {
       success: true,
       processed: processedCount,
       errors: errorCount,
-      total: followups?.length || 0
+      total: followups?.length || 0,
+      mode: mode,
+      message: processedCount === 0 
+        ? (mode === 'due' 
+          ? "Nenhum follow-up devido para envio no momento" 
+          : "Nenhum follow-up foi processado")
+        : `${processedCount} follow-ups enviados com sucesso`
     }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },

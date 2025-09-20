@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Clock, 
   Send, 
@@ -16,7 +17,8 @@ import {
   TrendingUp,
   Play,
   Pause,
-  RotateCcw
+  RotateCcw,
+  Info
 } from "lucide-react";
 import { 
   useFollowUpSchedules, 
@@ -111,7 +113,7 @@ export default function FollowUpDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header com botão de processar */}
+      {/* Header com botões de processar */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Dashboard de Follow-ups</h2>
@@ -119,15 +121,37 @@ export default function FollowUpDashboard() {
             Monitore e gerencie todos os lembretes automáticos
           </p>
         </div>
-        <Button 
-          onClick={() => processFollowUps.mutate()}
-          disabled={processFollowUps.isPending}
-          className="gap-2"
-        >
-          <Play className="h-4 w-4" />
-          {processFollowUps.isPending ? "Processando..." : "Processar Follow-ups"}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => processFollowUps.mutate({ mode: 'due' })}
+            disabled={processFollowUps.isPending}
+            className="gap-2"
+          >
+            <Play className="h-4 w-4" />
+            {processFollowUps.isPending ? "Processando..." : "Processar Devidos"}
+          </Button>
+          <Button 
+            onClick={() => processFollowUps.mutate({ mode: 'all' })}
+            disabled={processFollowUps.isPending}
+            variant="outline"
+            className="gap-2"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Processar Todos Agora
+          </Button>
+        </div>
       </div>
+
+      {/* Alert informativo quando não há follow-ups para processar */}
+      {stats && stats.pending > 0 && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Existem {stats.pending} follow-ups pendentes. O botão "Processar Devidos" envia apenas os que chegaram à hora agendada. 
+            Use "Processar Todos Agora" para enviar todos independentemente do horário agendado.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Cards de estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

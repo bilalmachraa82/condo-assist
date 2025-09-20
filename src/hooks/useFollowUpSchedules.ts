@@ -128,11 +128,16 @@ export const useProcessFollowUps = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
-      console.log("Attempting to invoke process-followups function...");
+    mutationFn: async (params?: { mode?: 'due' | 'all' | 'ids'; followUpIds?: string[] }) => {
+      const mode = params?.mode || 'due';
+      const followUpIds = params?.followUpIds || [];
+      
+      console.log(`Attempting to invoke process-followups function... Mode: ${mode}`);
       
       try {
-        const { data, error } = await supabase.functions.invoke('process-followups');
+        const { data, error } = await supabase.functions.invoke('process-followups', {
+          body: { mode, followUpIds }
+        });
         
         if (error) {
           console.error("Supabase function error:", error);
@@ -147,9 +152,12 @@ export const useProcessFollowUps = () => {
       }
     },
     onSuccess: (data) => {
+      const message = data.message || `${data.processed} follow-ups enviados com sucesso!`;
+      
       toast({
-        title: "Follow-ups processados",
-        description: `${data.processed} follow-ups enviados com sucesso!`,
+        title: data.processed === 0 ? "Sem follow-ups para processar" : "Follow-ups processados",
+        description: message,
+        variant: data.processed === 0 ? "default" : "default",
       });
       
       queryClient.invalidateQueries({ queryKey: ["follow-up-schedules"] });
