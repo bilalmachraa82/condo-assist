@@ -142,13 +142,20 @@ export default function FollowUpDashboard() {
         </div>
       </div>
 
-      {/* Alert informativo quando não há follow-ups para processar */}
-      {stats && stats.pending > 0 && (
+      {/* Alert informativo sobre follow-ups */}
+      {stats && (
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Existem {stats.pending} follow-ups pendentes. O botão "Processar Devidos" envia apenas os que chegaram à hora agendada. 
-            Use "Processar Todos Agora" para enviar todos independentemente do horário agendado.
+            {stats.pending > 0 ? (
+              <>
+                Existem {stats.pending} follow-ups pendentes ({stats.due_now} devidos agora). 
+                O botão "Processar Devidos" envia apenas os que chegaram à hora agendada. 
+                Use "Processar Todos Agora" para enviar todos independentemente do horário agendado.
+              </>
+            ) : (
+              "Não há follow-ups pendentes no momento."
+            )}
           </AlertDescription>
         </Alert>
       )}

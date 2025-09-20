@@ -96,6 +96,9 @@ export const useFollowUpStats = () => {
       const overdue = data.filter(f => 
         f.status === 'pending' && new Date(f.scheduled_for) < now
       ).length;
+      const due_now = data.filter(f => 
+        f.status === 'pending' && new Date(f.scheduled_for) <= now
+      ).length;
 
       const byType = {
         quotation_reminder: data.filter(f => f.follow_up_type === 'quotation_reminder').length,
@@ -116,6 +119,7 @@ export const useFollowUpStats = () => {
         sent,
         failed,
         overdue,
+        due_now,
         byType,
         byPriority,
       };

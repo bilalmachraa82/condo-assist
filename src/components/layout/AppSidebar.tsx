@@ -10,7 +10,8 @@ import {
   Bell,
   HelpCircle,
   Euro,
-  Zap
+  Zap,
+  TestTube
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -43,6 +44,10 @@ const configItems = [
   { title: "Comunicações", url: "/comunicacoes", icon: Bell },
 ]
 
+const devItems = [
+  { title: "Teste Follow-ups", url: "/follow-up-testing", icon: TestTube },
+]
+
 export function AppSidebar() {
   const { state } = useSidebar()
   const location = useLocation()
@@ -52,6 +57,7 @@ export function AppSidebar() {
   const isActive = (path: string) => currentPath === path
   const isMainExpanded = menuItems.some((i) => isActive(i.url))
   const isConfigExpanded = configItems.some((i) => isActive(i.url))
+  const isDevExpanded = devItems.some((i) => isActive(i.url))
 
   const getNavCls = (path: string) =>
     isActive(path) 
@@ -117,6 +123,27 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {configItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild className="h-10">
+                    <NavLink to={item.url} className={getNavCls(item.url)}>
+                      <item.icon className="h-4 w-4 flex-shrink-0" />
+                      {!isCollapsed && <span className="ml-3">{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="px-2">
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2">
+            {!isCollapsed && "Desenvolvimento"}
+          </SidebarGroupLabel>
+
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {devItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild className="h-10">
                     <NavLink to={item.url} className={getNavCls(item.url)}>
