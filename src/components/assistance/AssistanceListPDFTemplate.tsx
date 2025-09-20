@@ -32,7 +32,7 @@ export const AssistanceListPDFTemplate = ({
       <div className="text-center mb-8 border-b-2 border-gray-300 pb-4">
         <div className="flex flex-col items-center mb-4">
           <img
-            src="/lovable-uploads/logo-luvimg.png"
+            src="/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png"
             alt="Logo"
           className="h-32 w-auto mb-2"
           />
