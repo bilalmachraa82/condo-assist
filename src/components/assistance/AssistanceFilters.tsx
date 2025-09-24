@@ -32,13 +32,18 @@ export const AssistanceFiltersComponent = ({ filters, onFiltersChange }: Assista
 
   const statusOptions = [
     { value: "pending", label: "Pendente" },
-    { value: "in_progress", label: "Em Progresso" },
-    { value: "completed", label: "Concluída" },
-    { value: "cancelled", label: "Cancelada" },
+    { value: "sent_to_suppliers", label: "Enviado aos Fornecedores" },
     { value: "awaiting_quotation", label: "Aguardando Orçamento" },
     { value: "quotation_received", label: "Orçamento Recebido" },
-    { value: "quotation_approved", label: "Orçamento Aprovado" },
-    { value: "quotation_rejected", label: "Orçamento Rejeitado" }
+    { value: "quotes_received", label: "Orçamentos Recebidos" },
+    { value: "quote_approved", label: "Orçamento Aprovado" },
+    { value: "awaiting_approval", label: "Aguarda Aprovação" },
+    { value: "accepted", label: "Aceite" },
+    { value: "scheduled", label: "Agendado" },
+    { value: "in_progress", label: "Em Progresso" },
+    { value: "awaiting_validation", label: "Aguarda Validação" },
+    { value: "completed", label: "Concluída" },
+    { value: "cancelled", label: "Cancelada" }
   ];
 
   const priorityOptions = [

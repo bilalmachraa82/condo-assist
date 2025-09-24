@@ -83,6 +83,8 @@ export const useUpdateBuilding = () => {
   
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Building> & { id: string }) => {
+      console.log('Updating building:', { id, updates });
+      
       const { data, error } = await supabase
         .from("buildings")
         .update(updates)
@@ -90,12 +92,21 @@ export const useUpdateBuilding = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating building:', error);
+        throw error;
+      }
+      
+      console.log('Building updated successfully:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Update mutation successful, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ["buildings"] });
       queryClient.invalidateQueries({ queryKey: ["building-stats"] });
+    },
+    onError: (error) => {
+      console.error('Update mutation failed:', error);
     },
   });
 };

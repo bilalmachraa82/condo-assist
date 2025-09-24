@@ -129,9 +129,9 @@ export function BuildingForm({ building, onSuccess, onCancel }: BuildingFormProp
             name="cadastral_code"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Código Cadastral</FormLabel>
+                <FormLabel>Código Postal</FormLabel>
                 <FormControl>
-                  <Input placeholder="Código cadastral" {...field} />
+                  <Input placeholder="Ex: 1234-567" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
