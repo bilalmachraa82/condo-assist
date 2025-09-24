@@ -31,7 +31,9 @@ import { pt } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { PDFExportButton } from "@/components/assistance/PDFExportButton";
 import { AssistanceListPDFTemplate } from "@/components/assistance/AssistanceListPDFTemplate";
+import { BuildingListPDFTemplate } from "@/components/buildings/BuildingListPDFTemplate";
 import AssistanceDetail from "@/components/assistance/AssistanceDetail";
+import { CLOSED_ASSISTANCE_STATUSES } from "@/utils/constants";
 
 // Building assistances view component
 function BuildingAssistancesView({ building, onBack }: { building: Building; onBack: () => void }) {
@@ -44,11 +46,11 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
   ) || [];
   
   const openAssistances = buildingAssistances.filter(
-    assistance => !['completed', 'cancelled'].includes(assistance.status)
+    assistance => !CLOSED_ASSISTANCE_STATUSES.includes(assistance.status as any)
   );
   
   const closedAssistances = buildingAssistances.filter(
-    assistance => ['completed', 'cancelled'].includes(assistance.status)
+    assistance => CLOSED_ASSISTANCE_STATUSES.includes(assistance.status as any)
   );
 
 
@@ -294,7 +296,7 @@ export default function Edificios() {
     return assistances?.filter(
       assistance => 
         assistance.building_id === buildingId && 
-        !['completed', 'cancelled'].includes(assistance.status)
+        !CLOSED_ASSISTANCE_STATUSES.includes(assistance.status as any)
     ).length || 0;
   };
 
@@ -341,13 +343,24 @@ export default function Edificios() {
             />
           </div>
         </div>
-        <Button 
-          className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
-          onClick={() => setShowCreateForm(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Edifício
-        </Button>
+        <div className="flex gap-2">
+          <PDFExportButton 
+            filename="lista-edificios"
+            variant="outline"
+          >
+            <BuildingListPDFTemplate 
+              buildings={filteredBuildings}
+              filters={searchTerm ? { search: searchTerm } : undefined}
+            />
+          </PDFExportButton>
+          <Button 
+            className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
+            onClick={() => setShowCreateForm(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Edifício
+          </Button>
+        </div>
       </div>
 
       {/* Buildings Grid */}

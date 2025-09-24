@@ -108,3 +108,11 @@ export const getPriorityLabel = (priority: keyof typeof PRIORITY_TRANSLATIONS) =
 export const getActionLabel = (action: keyof typeof ACTION_TRANSLATIONS) => {
   return ACTION_TRANSLATIONS[action] || action;
 };
+
+// Status constants for consistency
+export const CLOSED_ASSISTANCE_STATUSES = ['completed', 'cancelled'] as const;
+export const OPEN_ASSISTANCE_STATUSES = [
+  'pending', 'sent_to_suppliers', 'awaiting_quotation', 'quotation_received', 
+  'quotes_received', 'quote_approved', 'awaiting_approval', 'accepted', 
+  'scheduled', 'in_progress', 'awaiting_validation'
+] as const;
