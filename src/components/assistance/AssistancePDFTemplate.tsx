@@ -104,11 +104,9 @@ export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps
             <div>
               <span className="font-medium">Morada Completa:</span> {assistance.buildings?.address || "N/A"}
             </div>
-            {assistance.buildings?.address && (
-              <div>
-                <span className="font-medium">Código Postal:</span> {extractPostalCode(assistance.buildings?.address) || "N/A"}
-              </div>
-            )}
+            <div>
+              <span className="font-medium">Código Postal:</span> {assistance.buildings?.cadastral_code || "N/A"}
+            </div>
             <div>
               <span className="font-medium">Tipo de Intervenção:</span>{" "}
               {assistance.intervention_types?.name || "N/A"}
