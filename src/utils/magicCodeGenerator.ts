@@ -97,11 +97,29 @@ interface SessionValidationResponse {
  * @param code - The magic code to validate
  * @returns Promise<{isValid: boolean, supplier?: any, assistanceId?: string, sessionInfo?: any}>
  */
-export const validateMagicCode = async (code: string) => {
+export const validateMagicCode = async (code: string): Promise<{
+  isValid: boolean;
+  supplier?: any;
+  assistanceId?: string;
+  sessionInfo?: any;
+}> => {
   try {
-    // Use the existing secure session validation function
-    const { data: sessionData, error } = await supabase
-      .rpc('validate_supplier_session', { p_magic_code: code.toUpperCase() });
+    // Get client IP for security logging (best effort)
+    const clientIP = await fetch('https://api.ipify.org?format=json')
+      .then(res => res.json())
+      .then(data => data.ip)
+      .catch(() => null);
+
+    const userAgent = navigator.userAgent;
+
+    const { data, error } = await supabase.rpc(
+      'validate_supplier_session_secure',
+      { 
+        p_magic_code: code.toUpperCase(),
+        p_ip_address: clientIP,
+        p_user_agent: userAgent
+      }
+    );
 
     if (error) {
       console.error('Error validating magic code:', error);
@@ -109,36 +127,16 @@ export const validateMagicCode = async (code: string) => {
     }
 
     // Cast the response to our expected type
-    const typedSessionData = sessionData as unknown as SessionValidationResponse;
-
-    if (!typedSessionData.valid) {
-      return { 
-        isValid: false, 
-        error: typedSessionData.error 
-      };
-    }
-
-    // Log successful access attempt in console for now
-    console.log('Supplier accessed portal successfully:', {
-      supplier_id: typedSessionData.supplier!.id,
-      magic_code: code.toUpperCase(),
-      access_count: typedSessionData.access_count,
-      last_used_at: typedSessionData.last_used_at,
-      recently_expired_extended: typedSessionData.recently_expired_extended || false
-    });
+    const sessionData = data as unknown as SessionValidationResponse;
 
     return {
-      isValid: true,
-      supplier: typedSessionData.supplier,
-      assistanceId: typedSessionData.assistance_id,
-      sessionInfo: {
-        accessCount: typedSessionData.access_count,
-        lastUsedAt: typedSessionData.last_used_at,
-        wasExtended: typedSessionData.recently_expired_extended
-      }
+      isValid: sessionData?.valid || false,
+      supplier: sessionData?.supplier,
+      assistanceId: sessionData?.assistance_id,
+      sessionInfo: sessionData
     };
   } catch (error) {
-    console.error('Error validating magic code:', error);
+    console.error('Unexpected error validating magic code:', error);
     return { isValid: false };
   }
 };

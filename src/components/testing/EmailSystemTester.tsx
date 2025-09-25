@@ -57,7 +57,7 @@ export function EmailSystemTester() {
       } else {
         return {
           success: false,
-          message: `Código ${testCode} inválido: ${result.error || 'Erro desconhecido'}`,
+          message: `Código ${testCode} inválido`,
           details: result
         };
       }

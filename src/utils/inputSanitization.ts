@@ -1,5 +1,22 @@
 import { z } from "zod";
 
+// Enhanced client-side magic code validation
+export const validateMagicCodeFormat = (code: string): { isValid: boolean; error?: string } => {
+  if (!code || typeof code !== 'string') {
+    return { isValid: false, error: 'Magic code is required' };
+  }
+  
+  if (code.length !== 8) {
+    return { isValid: false, error: 'Magic code must be 8 characters long' };
+  }
+  
+  if (!/^[A-Z0-9]{8}$/.test(code)) {
+    return { isValid: false, error: 'Magic code must contain only uppercase letters and numbers' };
+  }
+  
+  return { isValid: true };
+};
+
 // Input sanitization utilities
 export const sanitizeInput = {
   // Remove potentially dangerous HTML/script tags
@@ -85,45 +102,52 @@ export const securitySchemas = {
     }, "Endereço IP inválido")
 };
 
-// Rate limiting utilities
+// Enhanced Rate Limiter Class with better security
 export class RateLimiter {
-  private static attempts = new Map<string, { count: number; lastAttempt: number }>();
-  private static readonly WINDOW_MS = 60 * 1000; // 1 minute
-  
+  private static attempts: Map<string, { count: number; resetTime: number; blocked?: boolean }> = new Map();
+  private static readonly WINDOW_MS = 3600000; // 1 hour
+  private static readonly BLOCK_DURATION_MS = 900000; // 15 minutes block
+
   static isAllowed(identifier: string, maxAttempts: number = 10): boolean {
     const now = Date.now();
     const key = identifier;
-    
-    const existing = this.attempts.get(key);
-    
-    if (!existing) {
-      this.attempts.set(key, { count: 1, lastAttempt: now });
+    const current = this.attempts.get(key);
+
+    if (!current || now > current.resetTime) {
+      this.attempts.set(key, { count: 1, resetTime: now + this.WINDOW_MS });
       return true;
     }
-    
-    // Reset if window has passed
-    if (now - existing.lastAttempt > this.WINDOW_MS) {
-      this.attempts.set(key, { count: 1, lastAttempt: now });
-      return true;
+
+    // Check if currently blocked
+    if (current.blocked && now < current.resetTime) {
+      return false;
     }
-    
-    // Increment counter
-    existing.count++;
-    existing.lastAttempt = now;
-    
-    return existing.count <= maxAttempts;
+
+    if (current.count >= maxAttempts) {
+      // Block the identifier for 15 minutes after max attempts
+      current.blocked = true;
+      current.resetTime = now + this.BLOCK_DURATION_MS;
+      return false;
+    }
+
+    current.count++;
+    return true;
   }
-  
+
   static getRemainingAttempts(identifier: string, maxAttempts: number = 10): number {
-    const existing = this.attempts.get(identifier);
-    if (!existing) return maxAttempts;
-    
-    const now = Date.now();
-    if (now - existing.lastAttempt > this.WINDOW_MS) {
+    const current = this.attempts.get(identifier);
+    if (!current || Date.now() > current.resetTime) {
       return maxAttempts;
     }
-    
-    return Math.max(0, maxAttempts - existing.count);
+    if (current.blocked) {
+      return 0;
+    }
+    return Math.max(0, maxAttempts - current.count);
+  }
+
+  static isBlocked(identifier: string): boolean {
+    const current = this.attempts.get(identifier);
+    return current?.blocked === true && Date.now() < current.resetTime;
   }
 }
 

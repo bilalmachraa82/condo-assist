@@ -2,7 +2,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SecurityDashboard from "./SecurityDashboard";
 import SecuritySettings from "./SecuritySettings";
-import SecurityAudit from "./SecurityAudit";
+import SecurityAudit from "./SecurityAudit";  
+import SecurityAlerts from "./SecurityAlerts";
 import { Shield, Settings, FileText } from "lucide-react";
 
 export default function SecurityOverview() {
@@ -30,7 +31,10 @@ export default function SecurityOverview() {
         </TabsList>
         
         <TabsContent value="dashboard" className="space-y-6">
-          <SecurityDashboard />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SecurityDashboard />
+            <SecurityAlerts />
+          </div>
         </TabsContent>
         
         <TabsContent value="settings" className="space-y-6">

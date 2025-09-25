@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { validateMagicCode } from "@/utils/magicCodeGenerator";
+import { sanitizeInput, validateMagicCodeFormat, securitySchemas } from "@/utils/inputSanitization";
+import { secureLogger } from "@/utils/secureLogger";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -190,6 +193,27 @@ export default function EnhancedQuotationForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!magicCode?.trim()) {
+      toast({
+        title: "Erro",
+        description: "Código de acesso é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate magic code format
+    const formatValidation = validateMagicCodeFormat(magicCode.trim());
+    if (!formatValidation.isValid) {
+      toast({
+        title: "Erro",
+        description: formatValidation.error || "Formato de código inválido",
+        variant: "destructive",
+      });
+      secureLogger.warn("Invalid magic code format attempted", { codeLength: magicCode.length });
+      return;
+    }
+
     if (!description.trim()) {
       toast({
         title: "Erro",
@@ -205,6 +229,24 @@ export default function EnhancedQuotationForm({
         description: "O valor total deve ser superior a zero.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Validate inputs using security schemas
+    try {
+      if (description) {
+        securitySchemas.supplierNotes.parse(description);
+      }
+      if (notes) {
+        securitySchemas.supplierNotes.parse(notes);
+      }
+    } catch (validationError) {
+      toast({
+        title: "Erro",
+        description: "Dados inválidos fornecidos",
+        variant: "destructive",
+      });
+      secureLogger.warn("Input validation failed", { error: validationError });
       return;
     }
 
@@ -482,21 +524,20 @@ export default function EnhancedQuotationForm({
                 </div>
 
                 <div className="bg-muted/50 p-4 rounded-lg">
-                  <div className="flex justify-between items-center font-bold text-lg">
-                    <span>Valor Total:</span>
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Total:</span>
                     <span>€{pdfAmount.toFixed(2)}</span>
                   </div>
                 </div>
 
                 <Button 
-                  type="button" 
-                  onClick={handleSubmit} 
-                  disabled={isSubmitting || !uploadedFileUrl || pdfAmount <= 0 || !description.trim()}
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || pdfAmount <= 0}
                   className="w-full"
                   size="lg"
                 >
                   <FileText className="h-4 w-4 mr-2" />
-                  {isSubmitting ? "A submeter..." : `Submeter Orçamento PDF (€${pdfAmount.toFixed(2)})`}
+                  {isSubmitting ? "A submeter..." : `Submeter Orçamento (€${pdfAmount.toFixed(2)})`}
                 </Button>
               </div>
             )}
