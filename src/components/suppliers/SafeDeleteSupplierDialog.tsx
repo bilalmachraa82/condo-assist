@@ -81,6 +81,7 @@ export function SafeDeleteSupplierDialog({
           return;
         }
 
+        // Use safe delete which internally checks again and prevents deletion if critical data exists
         await deleteSupplier.mutateAsync(supplier.id);
         toast({
           title: "Fornecedor eliminado",

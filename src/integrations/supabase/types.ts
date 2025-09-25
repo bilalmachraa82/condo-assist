@@ -1211,6 +1211,10 @@ export type Database = {
         Args: { p_supplier_id: string }
         Returns: Json
       }
+      safe_delete_supplier: {
+        Args: { p_supplier_id: string }
+        Returns: Json
+      }
       schedule_assistance_reminders: {
         Args: Record<PropertyKey, never>
         Returns: undefined

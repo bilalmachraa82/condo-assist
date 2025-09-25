@@ -117,12 +117,19 @@ export const useDeleteSupplier = () => {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("suppliers")
-        .delete()
-        .eq("id", id);
-      
+      const { data, error } = await supabase.rpc("safe_delete_supplier", {
+        p_supplier_id: id,
+      });
+
       if (error) throw error;
+      
+      // Handle function response - data is a JSON response
+      const result = data as { success?: boolean; error?: string };
+      if (!result?.success) {
+        throw new Error(result?.error || "Erro ao eliminar fornecedor");
+      }
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
