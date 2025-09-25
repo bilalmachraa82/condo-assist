@@ -31,7 +31,7 @@ export function SafeDeleteSupplierDialog({
   const [deleteStrategy, setDeleteStrategy] = useState<"deactivate" | "force" | null>(null);
   const { toast } = useToast();
 
-  const { data: dependencies, isLoading: isLoadingDeps } = useSupplierDependencies(
+  const { data: dependencies, isLoading: isLoadingDeps, isError } = useSupplierDependencies(
     supplier?.id || ""
   );
 
@@ -49,6 +49,15 @@ export function SafeDeleteSupplierDialog({
     if (!supplier) return;
 
     try {
+      if (!dependencies) {
+        toast({
+          title: "Não foi possível verificar dependências",
+          description: "Tente novamente antes de eliminar o fornecedor.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (deleteStrategy === "deactivate") {
         await deactivateSupplier.mutateAsync(supplier.id);
         toast({
@@ -62,7 +71,16 @@ export function SafeDeleteSupplierDialog({
           description: "O fornecedor e dados não críticos foram eliminados.",
         });
       } else {
-        // Safe delete - no dependencies
+        // Safe delete - only when backend confirms it's safe
+        if (!dependencies.can_delete) {
+          toast({
+            title: "Eliminação bloqueada",
+            description: "Existem dados críticos associados. Selecione outra opção.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         await deleteSupplier.mutateAsync(supplier.id);
         toast({
           title: "Fornecedor eliminado",
@@ -71,10 +89,10 @@ export function SafeDeleteSupplierDialog({
       }
       
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Erro",
-        description: "Erro ao processar a operação",
+        description: error?.message || "Erro ao processar a operação",
         variant: "destructive",
       });
     }
@@ -198,7 +216,7 @@ export function SafeDeleteSupplierDialog({
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
-            disabled={isProcessing || (dependencies?.has_critical_data && !deleteStrategy)}
+            disabled={isProcessing || isLoadingDeps || !dependencies || (dependencies?.has_critical_data && !deleteStrategy)}
             className={
               deleteStrategy === "force" 
                 ? "bg-destructive hover:bg-destructive/90" 

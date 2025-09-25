@@ -63,10 +63,11 @@ export const useForceDeleteSupplier = () => {
       // Delete magic codes
       await supabase.from("supplier_magic_codes").delete().eq("supplier_id", supplierId);
       
-      // Finally delete the supplier
+      // DO NOT delete the supplier if it still has critical dependencies
+      // Just deactivate it instead of full deletion
       const { error } = await supabase
         .from("suppliers")
-        .delete()
+        .update({ is_active: false })
         .eq("id", supplierId);
 
       if (error) throw error;
