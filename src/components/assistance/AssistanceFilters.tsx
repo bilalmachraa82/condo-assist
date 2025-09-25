@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Filter, X } from "lucide-react";
 import { useBuildings } from "@/hooks/useBuildings";
 import { useAllSuppliers } from "@/hooks/useSuppliers";
+import { VALID_ASSISTANCE_STATES, ASSISTANCE_STATUS_TRANSLATIONS } from "@/utils/assistanceStates";
 
 export interface AssistanceFilters {
   status?: string;
@@ -30,21 +31,11 @@ export const AssistanceFiltersComponent = ({ filters, onFiltersChange }: Assista
   const { data: buildings = [] } = useBuildings();
   const { data: suppliers = [] } = useAllSuppliers();
 
-  const statusOptions = [
-    { value: "pending", label: "Pendente" },
-    { value: "sent_to_suppliers", label: "Enviado aos Fornecedores" },
-    { value: "awaiting_quotation", label: "Aguardando Orçamento" },
-    { value: "quotation_received", label: "Orçamento Recebido" },
-    { value: "quotes_received", label: "Orçamentos Recebidos" },
-    { value: "quote_approved", label: "Orçamento Aprovado" },
-    { value: "awaiting_approval", label: "Aguarda Aprovação" },
-    { value: "accepted", label: "Aceite" },
-    { value: "scheduled", label: "Agendado" },
-    { value: "in_progress", label: "Em Progresso" },
-    { value: "awaiting_validation", label: "Aguarda Validação" },
-    { value: "completed", label: "Concluída" },
-    { value: "cancelled", label: "Cancelada" }
-  ];
+  // Import valid states from utility
+  const statusOptions = VALID_ASSISTANCE_STATES.map(status => ({
+    value: status,
+    label: ASSISTANCE_STATUS_TRANSLATIONS[status]
+  }));
 
   const priorityOptions = [
     { value: "normal", label: "Normal" },

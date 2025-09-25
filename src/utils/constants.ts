@@ -1,25 +1,13 @@
 
-// Status translations - COMPLETE COVERAGE FOR ALL STATUSES
+// Status translations - Now delegated to assistanceStates.ts for assistance statuses
+// These are for other entities (quotations, etc.)
 export const STATUS_TRANSLATIONS = {
+  // Quotation statuses
   pending: 'Pendente',
-  awaiting_quotation: 'Aguardando Orçamento',
-  quotation_received: 'Orçamento Recebido',
-  accepted: 'Aceite',
-  scheduled: 'Agendado',
-  approved: 'Aprovado',
-  in_progress: 'Em Progresso',
-  awaiting_validation: 'Aguarda Validação',
-  completed: 'Concluído',
-  cancelled: 'Cancelado',
-  rejected: 'Rejeitado',
-  sent_to_suppliers: 'Enviado aos Fornecedores',
-  quotes_received: 'Orçamentos Recebidos',
-  quote_approved: 'Orçamento Aprovado',
-  awaiting_approval: 'Aguarda Aprovação',
   submitted: 'Submetido',
-  expired: 'Expirado',
-  quotation_approved: 'Orçamento Aprovado',
-  quotation_rejected: 'Orçamento Rejeitado'
+  approved: 'Aprovado',
+  rejected: 'Rejeitado',
+  expired: 'Expirado'
 } as const;
 
 export const PRIORITY_TRANSLATIONS = {
@@ -109,10 +97,10 @@ export const getActionLabel = (action: keyof typeof ACTION_TRANSLATIONS) => {
   return ACTION_TRANSLATIONS[action] || action;
 };
 
-// Status constants for consistency
+// Status constants for consistency - delegated to assistanceStates.ts
 export const CLOSED_ASSISTANCE_STATUSES = ['completed', 'cancelled'] as const;
 export const OPEN_ASSISTANCE_STATUSES = [
   'pending', 'sent_to_suppliers', 'awaiting_quotation', 'quotation_received', 
-  'quotes_received', 'quote_approved', 'awaiting_approval', 'accepted', 
+  'quotes_received', 'quote_approved', 'quotation_approved', 'quotation_rejected', 'awaiting_approval', 'accepted', 
   'scheduled', 'in_progress', 'awaiting_validation'
 ] as const;

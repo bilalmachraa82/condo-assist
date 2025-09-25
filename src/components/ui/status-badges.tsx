@@ -2,6 +2,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { STATUS_TRANSLATIONS, PRIORITY_TRANSLATIONS } from '@/utils/constants';
+import { ASSISTANCE_STATUS_TRANSLATIONS, AssistanceStatus } from '@/utils/assistanceStates';
 import { cn } from '@/lib/utils';
 
 interface StatusBadgeProps {
@@ -73,12 +74,20 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
     }
   };
 
+  const getStatusLabel = (status: string): string => {
+    // Try assistance statuses first, fallback to general status translations
+    if (status in ASSISTANCE_STATUS_TRANSLATIONS) {
+      return ASSISTANCE_STATUS_TRANSLATIONS[status as AssistanceStatus];
+    }
+    return STATUS_TRANSLATIONS[status as keyof typeof STATUS_TRANSLATIONS] || status;
+  };
+
   return (
     <Badge 
       variant={getStatusVariant(status)} 
       className={cn('text-xs px-3 py-1', getStatusColors(status), className)}
     >
-      {STATUS_TRANSLATIONS[status as keyof typeof STATUS_TRANSLATIONS] || status}
+      {getStatusLabel(status)}
     </Badge>
   );
 };

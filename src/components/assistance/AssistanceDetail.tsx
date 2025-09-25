@@ -14,6 +14,7 @@ import PhotoGallery from "./PhotoGallery";
 import QuotationList from "@/components/quotations/QuotationList";
 import QuotationSection from "./QuotationSection";
 import EditAssistanceForm from "./EditAssistanceForm";
+import { VALID_ASSISTANCE_STATES, ASSISTANCE_STATUS_TRANSLATIONS, AssistanceStatus } from "@/utils/assistanceStates";
 
 import InternalNotes from "./InternalNotes";
 import CommunicationLog from "./CommunicationLog";
@@ -30,6 +31,28 @@ interface AssistanceDetailProps {
   onBack: () => void;
   onDeleted?: () => void;
 }
+
+// Helper function to get status icon
+const getStatusIcon = (status: AssistanceStatus): string => {
+  const iconMap: Record<AssistanceStatus, string> = {
+    pending: "⏳",
+    sent_to_suppliers: "📤",
+    awaiting_quotation: "💰",
+    quotation_received: "📋",
+    quotes_received: "📋",
+    quote_approved: "✅",
+    quotation_approved: "✅", 
+    quotation_rejected: "❌",
+    awaiting_approval: "⏳",
+    accepted: "✅",
+    scheduled: "📅",
+    in_progress: "🔧",
+    awaiting_validation: "⚠️",
+    completed: "✅",
+    cancelled: "❌"
+  };
+  return iconMap[status] || "📋";
+};
 
 
 export default function AssistanceDetail({ assistance, onBack, onDeleted }: AssistanceDetailProps) {
@@ -365,15 +388,11 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">⏳ Pendente</SelectItem>
-                    <SelectItem value="awaiting_quotation">💰 Aguardando Orçamento</SelectItem>
-                    <SelectItem value="quotation_received">📋 Orçamento Recebido</SelectItem>
-                    <SelectItem value="accepted">✅ Aceite</SelectItem>
-                    <SelectItem value="scheduled">📅 Agendada</SelectItem>
-                    <SelectItem value="in_progress">🔧 Em Progresso</SelectItem>
-                    <SelectItem value="awaiting_validation">⚠️ Aguardando Validação</SelectItem>
-                    <SelectItem value="completed">✅ Concluída</SelectItem>
-                    <SelectItem value="cancelled">❌ Cancelada</SelectItem>
+                    {VALID_ASSISTANCE_STATES.map(status => (
+                      <SelectItem key={status} value={status}>
+                        {getStatusIcon(status)} {ASSISTANCE_STATUS_TRANSLATIONS[status]}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

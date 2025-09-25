@@ -348,7 +348,7 @@ export default function QuotationDashboard() {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
                           <h4 className="font-medium">{assistance.title}</h4>
-                          <StatusBadge status={assistance.status as keyof typeof import("@/utils/constants").STATUS_TRANSLATIONS} />
+                          <StatusBadge status={assistance.status} />
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {format(new Date(assistance.created_at), "dd/MM/yyyy", { locale: ptBR })}
@@ -418,7 +418,7 @@ export default function QuotationDashboard() {
                             <Users className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">{quotation.suppliers?.name}</span>
                           </div>
-                          <StatusBadge status={quotation.status as keyof typeof import("@/utils/constants").STATUS_TRANSLATIONS} />
+                          <StatusBadge status={quotation.status} />
                         </div>
                         <div className="flex items-center gap-1 text-lg font-bold text-primary">
                           <Euro className="h-4 w-4" />

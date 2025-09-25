@@ -2,7 +2,8 @@
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Assistance } from "@/hooks/useAssistances";
-import { STATUS_TRANSLATIONS, PRIORITY_TRANSLATIONS } from "@/utils/constants";
+import { ASSISTANCE_STATUS_TRANSLATIONS } from "@/utils/assistanceStates";
+import { PRIORITY_TRANSLATIONS } from "@/utils/constants";
 
 interface AssistancePDFTemplateProps {
   assistance: Assistance;
@@ -10,7 +11,7 @@ interface AssistancePDFTemplateProps {
 
 export const AssistancePDFTemplate = ({ assistance }: AssistancePDFTemplateProps) => {
   const getStatusLabel = (status: string) => {
-    return STATUS_TRANSLATIONS[status as keyof typeof STATUS_TRANSLATIONS] || status;
+    return ASSISTANCE_STATUS_TRANSLATIONS[status as keyof typeof ASSISTANCE_STATUS_TRANSLATIONS] || status;
   };
 
   const getPriorityLabel = (priority: string) => {
