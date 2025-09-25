@@ -9,6 +9,7 @@ export type SupplierDependencies = {
     quotations: number;
     supplier_responses: number;
     magic_codes: number;
+    activity_logs: number;
   };
   has_critical_data: boolean;
   total_records: number;
@@ -57,20 +58,21 @@ export const useForceDeleteSupplier = () => {
 
   return useMutation({
     mutationFn: async (supplierId: string) => {
-      // First delete all email logs (non-critical data)
-      await supabase.from("email_logs").delete().eq("supplier_id", supplierId);
-      
-      // Delete magic codes
-      await supabase.from("supplier_magic_codes").delete().eq("supplier_id", supplierId);
-      
-      // DO NOT delete the supplier if it still has critical dependencies
-      // Just deactivate it instead of full deletion
+      // Use the secure RPC function to purge non-critical data
+      const { data, error: purgeError } = await supabase.rpc("purge_supplier_non_critical", {
+        p_supplier_id: supplierId,
+      });
+
+      if (purgeError) throw purgeError;
+
+      // Then deactivate the supplier (preserving critical audit data)
       const { error } = await supabase
         .from("suppliers")
         .update({ is_active: false })
         .eq("id", supplierId);
 
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });

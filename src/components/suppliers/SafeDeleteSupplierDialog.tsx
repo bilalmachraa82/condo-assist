@@ -90,11 +90,20 @@ export function SafeDeleteSupplierDialog({
       
       onOpenChange(false);
     } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error?.message || "Erro ao processar a operação",
-        variant: "destructive",
-      });
+      // Handle specific 409 errors related to activity_log
+      if (error?.code === "23503" || (error?.message && error.message.includes("activity_log"))) {
+        toast({
+          title: "Eliminação bloqueada",
+          description: "Existem registos de atividade. Desative o fornecedor para preservar auditoria.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: error?.message || "Erro ao processar a operação",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -145,6 +154,11 @@ export function SafeDeleteSupplierDialog({
                       Respostas <span>{dependencies.dependencies.supplier_responses}</span>
                     </Badge>
                   )}
+                  {dependencies.dependencies.activity_logs > 0 && (
+                    <Badge variant="destructive" className="justify-between">
+                      Registos <span>{dependencies.dependencies.activity_logs}</span>
+                    </Badge>
+                  )}
                   {dependencies.dependencies.email_logs > 0 && (
                     <Badge variant="outline" className="justify-between">
                       Emails <span>{dependencies.dependencies.email_logs}</span>
@@ -166,7 +180,7 @@ export function SafeDeleteSupplierDialog({
                   <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/20 rounded-md">
                     <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
                     <div className="text-xs text-warning-foreground">
-                      <strong>Dados críticos encontrados!</strong> Este fornecedor tem assistências, orçamentos ou respostas associadas que não podem ser eliminadas.
+                      <strong>Dados críticos encontrados!</strong> Este fornecedor tem assistências, orçamentos, respostas ou registos de atividade que não podem ser eliminadas.
                     </div>
                   </div>
 

@@ -1207,6 +1207,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      purge_supplier_non_critical: {
+        Args: { p_supplier_id: string }
+        Returns: Json
+      }
       schedule_assistance_reminders: {
         Args: Record<PropertyKey, never>
         Returns: undefined
