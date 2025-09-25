@@ -2,7 +2,8 @@
 import React from 'react';
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { getStatusLabel } from "@/utils/constants";
+import { getAssistanceStatusLabel } from "@/utils/assistanceStates";
+import { getPriorityLabel } from "@/utils/constants";
 
 interface QuotationListPDFTemplateProps {
   quotations: any[];
@@ -48,7 +49,7 @@ export const QuotationListPDFTemplate = ({
           <h3 className="font-semibold mb-2">Filtros Aplicados:</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             {filters.status && (
-              <div><strong>Estado:</strong> {getStatusLabel(filters.status as any)}</div>
+              <div><strong>Estado:</strong> {getAssistanceStatusLabel(filters.status as any)}</div>
             )}
             {filters.minAmount && (
               <div><strong>Valor Mínimo:</strong> €{Number(filters.minAmount).toLocaleString()}</div>
@@ -139,7 +140,7 @@ export const QuotationListPDFTemplate = ({
                     quotation.status === 'rejected' ? 'bg-red-100 text-red-800' :
                     'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {getStatusLabel(quotation.status as any)}
+                    {getAssistanceStatusLabel(quotation.status as any)}
                   </span>
                 </td>
                 <td className="border border-gray-300 px-4 py-2 text-sm">

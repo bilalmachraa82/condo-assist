@@ -7,7 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { Mail, AlertCircle, Clock, MapPin, Wrench, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { getPriorityLabel, getStatusLabel } from "@/utils/constants";
+import { getPriorityLabel } from "@/utils/constants";
+import { getAssistanceStatusLabel } from "@/utils/assistanceStates";
 
 interface Assistance {
   id: string;
@@ -84,7 +85,7 @@ export function SupplierEmailSummary({
           <p style="color: #6b7280; margin: 8px 0 4px 0; font-size: 13px;"><strong>🏢 Edifício:</strong> ${assistance.building_name}</p>
           <p style="color: #6b7280; margin: 4px 0; font-size: 13px;"><strong>🔧 Tipo:</strong> ${assistance.intervention_type}</p>
           <p style="color: #6b7280; margin: 4px 0; font-size: 13px;"><strong>📅 Data:</strong> ${new Date(assistance.created_at).toLocaleDateString('pt-PT')}</p>
-          <p style="color: #6b7280; margin: 4px 0; font-size: 13px;"><strong>📊 Status:</strong> ${getStatusLabel(assistance.status as any)}</p>
+          <p style="color: #6b7280; margin: 4px 0; font-size: 13px;"><strong>📊 Status:</strong> ${getAssistanceStatusLabel(assistance.status as any)}</p>
           ${assistance.description ? `<p style="color: #4b5563; margin: 10px 0 4px 0; font-size: 13px; font-style: italic;">${assistance.description}</p>` : ''}
         </div>
       `).join('');
@@ -239,7 +240,7 @@ export function SupplierEmailSummary({
                         {new Date(assistance.created_at).toLocaleDateString('pt-PT')}
                       </div>
                       <div className="text-xs">
-                        {getStatusLabel(assistance.status as any)}
+                        {getAssistanceStatusLabel(assistance.status as any)}
                       </div>
                     </div>
                     {assistance.description && (
