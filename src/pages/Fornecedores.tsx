@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { 
   Plus, 
   Search, 
@@ -27,8 +26,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAllSuppliers, useSupplierStats, useDeleteSupplier, type Supplier } from "@/hooks/useSuppliers"
+import { useAllSuppliers, useSupplierStats, type Supplier } from "@/hooks/useSuppliers"
 import { SupplierForm } from "@/components/suppliers/SupplierForm"
+import { SafeDeleteSupplierDialog } from "@/components/suppliers/SafeDeleteSupplierDialog"
 import { useToast } from "@/hooks/use-toast"
 import TestPortalButton from "@/components/supplier/TestPortalButton"
 import { SupplierEmailSummary } from "@/components/supplier/SupplierEmailSummary"
@@ -52,7 +52,6 @@ export default function Fornecedores() {
   
   const { data: suppliers = [], isLoading } = useAllSuppliers()
   const { data: stats, isLoading: isLoadingStats } = useSupplierStats()
-  const deleteSupplier = useDeleteSupplier()
   const { toast } = useToast()
 
   // Fetch suppliers with pending assistances for bulk email
@@ -196,20 +195,8 @@ export default function Fornecedores() {
     setSelectedSupplier(null)
   }
 
-  const handleDelete = async () => {
-    if (!supplierToDelete) return
-    
-    try {
-      await deleteSupplier.mutateAsync(supplierToDelete.id)
-      toast({ title: "Fornecedor eliminado com sucesso!" })
-      setSupplierToDelete(null)
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao eliminar fornecedor",
-        variant: "destructive",
-      })
-    }
+  const handleDelete = () => {
+    // The SafeDeleteSupplierDialog will handle all deletion logic
   }
 
   const handleEmailSummary = (supplier: Supplier) => {
@@ -469,28 +456,12 @@ export default function Fornecedores() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!supplierToDelete} onOpenChange={() => setSupplierToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar Fornecedor</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem a certeza que deseja eliminar o fornecedor "{supplierToDelete?.name}"? 
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteSupplier.isPending}
-            >
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Safe Delete Dialog */}
+      <SafeDeleteSupplierDialog
+        supplier={supplierToDelete}
+        open={!!supplierToDelete}
+        onOpenChange={() => setSupplierToDelete(null)}
+      />
 
       {/* Email Summary Dialog */}
       {emailSummarySupplier && (

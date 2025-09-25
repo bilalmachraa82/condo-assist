@@ -1062,6 +1062,10 @@ export type Database = {
         Args: { p_ip: unknown; p_magic_code: string }
         Returns: boolean
       }
+      check_supplier_dependencies: {
+        Args: { p_supplier_id: string }
+        Returns: Json
+      }
       create_communication_via_code: {
         Args: {
           p_assistance_id: string
