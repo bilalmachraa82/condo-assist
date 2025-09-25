@@ -48,7 +48,7 @@ export default function Fornecedores() {
   const [emailSummarySupplier, setEmailSummarySupplier] = useState<Supplier | null>(null)
   const [selectedSupplierForAssistances, setSelectedSupplierForAssistances] = useState<Supplier | null>(null)
   const [isBulkEmailOpen, setIsBulkEmailOpen] = useState(false)
-  const [filters, setFilters] = useState<SupplierFilters>({})
+  const [filters, setFilters] = useState<SupplierFilters>({ status: "active" })
   
   const { data: suppliers = [], isLoading } = useAllSuppliers()
   const { data: stats, isLoading: isLoadingStats } = useSupplierStats()
