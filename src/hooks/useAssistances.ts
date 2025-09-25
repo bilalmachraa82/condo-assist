@@ -17,12 +17,11 @@ export const useAssistances = () => {
         .from("assistances")
         .select(`
           *,
-          buildings (id, name, code, address, nif),
+          buildings (id, name, code, address, nif, cadastral_code),
           suppliers (id, name),
           intervention_types (id, name, category)
         `)
         .order("created_at", { ascending: false });
-
       if (error) throw error;
       return data as Assistance[];
     },
@@ -150,7 +149,7 @@ export const useAssistance = (id: string) => {
         .from("assistances")
         .select(`
           *,
-          buildings(id, name, code, address, nif),
+          buildings(id, name, code, address, nif, cadastral_code),
           suppliers(id, name),
           intervention_types(id, name)
         `)
@@ -198,7 +197,7 @@ export const useUpdateAssistanceStatus = () => {
         .eq("id", assistanceId)
         .select(`
           *,
-          buildings (id, name, code),
+          buildings (id, name, code, cadastral_code),
           suppliers (id, name, email),
           intervention_types (id, name, category)
         `)
