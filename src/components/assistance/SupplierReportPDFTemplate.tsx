@@ -2,7 +2,7 @@
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Assistance } from "@/hooks/useAssistances";
-import { getStatusLabel } from "@/utils/constants";
+import { getAssistanceStatusLabel } from "@/utils/assistanceStates";
 
 interface SupplierReportPDFTemplateProps {
   supplier: {
@@ -145,7 +145,7 @@ export const SupplierReportPDFTemplate = ({
                       assistance.status === 'pending' ? 'bg-orange-100 text-orange-800' :
                       'bg-red-100 text-red-800'
                     }`}>
-                      {getStatusLabel(assistance.status as any)}
+                      {getAssistanceStatusLabel(assistance.status as any)}
                     </span>
                   </td>
                   <td className="border border-gray-300 p-2">

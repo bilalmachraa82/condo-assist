@@ -2,7 +2,8 @@
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Assistance } from "@/hooks/useAssistances";
-import { getStatusLabel, getPriorityLabel } from "@/utils/constants";
+import { ASSISTANCE_STATUS_TRANSLATIONS, getAssistanceStatusLabel } from "@/utils/assistanceStates";
+import { getPriorityLabel } from "@/utils/constants";
 
 interface AssistanceListPDFTemplateProps {
   assistances: Assistance[];
@@ -52,7 +53,7 @@ export const AssistanceListPDFTemplate = ({
         <div className="mb-6 p-4 bg-gray-50 rounded">
           <h3 className="font-semibold mb-2">Filtros Aplicados:</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            {filters.status && <div><span className="font-medium">Estado:</span> {getStatusLabel(filters.status as any)}</div>}
+            {filters.status && <div><span className="font-medium">Estado:</span> {getAssistanceStatusLabel(filters.status as any)}</div>}
             {filters.building && <div><span className="font-medium">Edifício:</span> {filters.building}</div>}
             {filters.supplier && <div><span className="font-medium">Fornecedor:</span> {filters.supplier}</div>}
             {filters.dateRange && <div><span className="font-medium">Período:</span> {filters.dateRange}</div>}
@@ -132,7 +133,7 @@ export const AssistanceListPDFTemplate = ({
                     assistance.status === 'pending' ? 'bg-orange-100 text-orange-800' :
                     'bg-red-100 text-red-800'
                   }`}>
-                    {getStatusLabel(assistance.status as any)}
+                    {getAssistanceStatusLabel(assistance.status as any)}
                   </span>
                 </td>
                 <td className="border border-gray-300 p-2">
