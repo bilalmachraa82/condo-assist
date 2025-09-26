@@ -1027,8 +1027,22 @@ export type Database = {
         Args: { assistance_id: string }
         Returns: boolean
       }
+      atualizar_estado_assistencia_por_codigo: {
+        Args: {
+          p_magic_code: string
+          p_new_status: Database["public"]["Enums"]["assistance_status"]
+          p_supplier_notes?: string
+        }
+        Returns: Json
+      }
       auto_process_followups: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      calculate_reminder_schedule: {
+        Args: {
+          assistance_priority: Database["public"]["Enums"]["assistance_priority"]
+        }
         Returns: Json
       }
       can_complete_assistance: {
