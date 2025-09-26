@@ -1237,6 +1237,8 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+        | "accepted"
+        | "scheduled"
       quotation_status:
         | "pending"
         | "submitted"
@@ -1379,6 +1381,8 @@ export const Constants = {
         "in_progress",
         "completed",
         "cancelled",
+        "accepted",
+        "scheduled",
       ],
       quotation_status: [
         "pending",
