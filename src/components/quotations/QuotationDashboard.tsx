@@ -109,7 +109,7 @@ export default function QuotationDashboard() {
       const totalRequests = requestsData.length;
       const newRequests = requestsData.filter(a => a.status === "pending" && !a.quotation_requested_at).length;
       const awaitingResponse = requestsData.filter(a => a.status === "awaiting_quotation").length;
-      const responsesReceived = requestsData.filter(a => a.status === "quotation_received").length;
+      const responsesReceived = requestsData.filter(a => a.status === "awaiting_quotation" && a.quotation_requested_at).length;
       
       // Submitted quotations statistics
       const totalQuotations = quotationsData.length;

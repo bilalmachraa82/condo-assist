@@ -36,20 +36,11 @@ interface AssistanceDetailProps {
 const getStatusIcon = (status: AssistanceStatus): string => {
   const iconMap: Record<AssistanceStatus, string> = {
     pending: "⏳",
-    sent_to_suppliers: "📤",
     awaiting_quotation: "💰",
-    quotation_received: "📋",
-    quotes_received: "📋",
-    quote_approved: "✅",
-    quotation_approved: "✅", 
     quotation_rejected: "❌",
-    awaiting_approval: "⏳",
-    accepted: "✅",
-    scheduled: "📅",
-    in_progress: "🔧",
-    awaiting_validation: "⚠️",
+    in_progress: "🔄",
     completed: "✅",
-    cancelled: "❌"
+    cancelled: "🚫"
   };
   return iconMap[status] || "📋";
 };

@@ -29,7 +29,7 @@ export const useSupplierAssistances = (supplierId: string) => {
           intervention_types!inner(name)
         `)
         .eq("assigned_supplier_id", supplierId)
-        .in("status", ["pending", "awaiting_quotation", "quotation_received", "in_progress"])
+        .in("status", ["pending", "awaiting_quotation", "in_progress"])
         .order("created_at", { ascending: false });
 
       if (error) throw error;

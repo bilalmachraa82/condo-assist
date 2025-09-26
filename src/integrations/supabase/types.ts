@@ -212,8 +212,6 @@ export type Database = {
           last_follow_up_sent: string | null
           last_quotation_follow_up_sent: string | null
           last_work_reminder_sent: string | null
-          new_priority: Database["public"]["Enums"]["new_assistance_priority"]
-          new_status: Database["public"]["Enums"]["new_assistance_status"]
           priority: Database["public"]["Enums"]["assistance_priority"]
           progress_notes: string | null
           quotation_deadline: string | null
@@ -257,8 +255,6 @@ export type Database = {
           last_follow_up_sent?: string | null
           last_quotation_follow_up_sent?: string | null
           last_work_reminder_sent?: string | null
-          new_priority?: Database["public"]["Enums"]["new_assistance_priority"]
-          new_status?: Database["public"]["Enums"]["new_assistance_status"]
           priority?: Database["public"]["Enums"]["assistance_priority"]
           progress_notes?: string | null
           quotation_deadline?: string | null
@@ -302,8 +298,6 @@ export type Database = {
           last_follow_up_sent?: string | null
           last_quotation_follow_up_sent?: string | null
           last_work_reminder_sent?: string | null
-          new_priority?: Database["public"]["Enums"]["new_assistance_priority"]
-          new_status?: Database["public"]["Enums"]["new_assistance_status"]
           priority?: Database["public"]["Enums"]["assistance_priority"]
           progress_notes?: string | null
           quotation_deadline?: string | null
@@ -490,7 +484,6 @@ export type Database = {
           id: string
           max_attempts: number
           metadata: Json | null
-          new_priority: Database["public"]["Enums"]["new_assistance_priority"]
           next_attempt_at: string | null
           priority: Database["public"]["Enums"]["assistance_priority"]
           scheduled_for: string
@@ -507,7 +500,6 @@ export type Database = {
           id?: string
           max_attempts?: number
           metadata?: Json | null
-          new_priority?: Database["public"]["Enums"]["new_assistance_priority"]
           next_attempt_at?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
           scheduled_for: string
@@ -524,7 +516,6 @@ export type Database = {
           id?: string
           max_attempts?: number
           metadata?: Json | null
-          new_priority?: Database["public"]["Enums"]["new_assistance_priority"]
           next_attempt_at?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
           scheduled_for?: string
@@ -557,7 +548,6 @@ export type Database = {
           description: string | null
           id: string
           name: string
-          new_urgency_level: Database["public"]["Enums"]["new_assistance_priority"]
           urgency_level: Database["public"]["Enums"]["assistance_priority"]
         }
         Insert: {
@@ -566,7 +556,6 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
-          new_urgency_level?: Database["public"]["Enums"]["new_assistance_priority"]
           urgency_level?: Database["public"]["Enums"]["assistance_priority"]
         }
         Update: {
@@ -575,7 +564,6 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
-          new_urgency_level?: Database["public"]["Enums"]["new_assistance_priority"]
           urgency_level?: Database["public"]["Enums"]["assistance_priority"]
         }
         Relationships: []
@@ -1039,31 +1027,8 @@ export type Database = {
         Args: { assistance_id: string }
         Returns: boolean
       }
-      atualizar_estado_assistencia_por_codigo: {
-        Args: {
-          p_magic_code: string
-          p_new_status: Database["public"]["Enums"]["assistance_status"]
-          p_supplier_notes?: string
-        }
-        Returns: Json
-      }
       auto_process_followups: {
         Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      calculate_next_followup: {
-        Args: {
-          p_attempt_count: number
-          p_base_date?: string
-          p_follow_up_type: string
-          p_priority: Database["public"]["Enums"]["assistance_priority"]
-        }
-        Returns: string
-      }
-      calculate_reminder_schedule: {
-        Args: {
-          assistance_priority: Database["public"]["Enums"]["assistance_priority"]
-        }
         Returns: Json
       }
       can_complete_assistance: {
@@ -1121,31 +1086,6 @@ export type Database = {
       generate_magic_code: {
         Args: Record<PropertyKey, never>
         Returns: string
-      }
-      get_assistances_for_code: {
-        Args: { p_magic_code: string }
-        Returns: {
-          actual_end_date: string
-          actual_start_date: string
-          building_address: string
-          building_id: string
-          building_name: string
-          completion_photos_required: boolean
-          created_at: string
-          description: string
-          id: string
-          intervention_type_id: string
-          intervention_type_name: string
-          quotation_deadline: string
-          quotation_requested_at: string
-          requires_quotation: boolean
-          requires_validation: boolean
-          scheduled_end_date: string
-          scheduled_start_date: string
-          status: Database["public"]["Enums"]["assistance_status"]
-          supplier_notes: string
-          title: string
-        }[]
       }
       get_basic_suppliers: {
         Args: Record<PropertyKey, never>
@@ -1248,23 +1188,6 @@ export type Database = {
       app_role: "admin" | "user" | "supplier"
       assistance_priority: "normal" | "urgent" | "critical"
       assistance_status:
-        | "pending"
-        | "sent_to_suppliers"
-        | "quotes_received"
-        | "quote_approved"
-        | "scheduled"
-        | "in_progress"
-        | "awaiting_approval"
-        | "completed"
-        | "cancelled"
-        | "awaiting_quotation"
-        | "quotation_received"
-        | "quotation_approved"
-        | "quotation_rejected"
-        | "accepted"
-        | "awaiting_validation"
-      new_assistance_priority: "normal" | "urgent" | "critical"
-      new_assistance_status:
         | "pending"
         | "awaiting_quotation"
         | "quotation_rejected"
@@ -1407,24 +1330,6 @@ export const Constants = {
       app_role: ["admin", "user", "supplier"],
       assistance_priority: ["normal", "urgent", "critical"],
       assistance_status: [
-        "pending",
-        "sent_to_suppliers",
-        "quotes_received",
-        "quote_approved",
-        "scheduled",
-        "in_progress",
-        "awaiting_approval",
-        "completed",
-        "cancelled",
-        "awaiting_quotation",
-        "quotation_received",
-        "quotation_approved",
-        "quotation_rejected",
-        "accepted",
-        "awaiting_validation",
-      ],
-      new_assistance_priority: ["normal", "urgent", "critical"],
-      new_assistance_status: [
         "pending",
         "awaiting_quotation",
         "quotation_rejected",

@@ -73,7 +73,7 @@ export function BulkEmailDialog({ suppliers, isOpen, onClose }: BulkEmailDialogP
             intervention_types!inner(name)
           `)
           .eq("assigned_supplier_id", supplier.id)
-          .in("status", ["pending", "awaiting_quotation", "quotation_received", "in_progress"])
+          .in("status", ["pending", "awaiting_quotation", "in_progress"])
           .order("created_at", { ascending: false });
 
         if (assistancesError) throw assistancesError;
