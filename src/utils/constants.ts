@@ -101,6 +101,6 @@ export const getActionLabel = (action: keyof typeof ACTION_TRANSLATIONS) => {
 export const CLOSED_ASSISTANCE_STATUSES = ['completed', 'cancelled'] as const;
 export const OPEN_ASSISTANCE_STATUSES = [
   'pending', 'sent_to_suppliers', 'awaiting_quotation', 
-  'quotes_received', 'quote_approved', 'quotation_approved', 'quotation_rejected', 'awaiting_approval', 'accepted', 
+  'quotes_received', 'quote_approved', 'quotation_rejected', 'awaiting_approval', 'accepted', 
   'scheduled', 'in_progress'
 ] as const;

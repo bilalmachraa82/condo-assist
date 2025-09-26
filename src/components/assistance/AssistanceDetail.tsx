@@ -38,6 +38,8 @@ const getStatusIcon = (status: AssistanceStatus): string => {
     pending: "⏳",
     awaiting_quotation: "💰",
     quotation_rejected: "❌",
+    accepted: "✅",
+    scheduled: "📅",
     in_progress: "🔄",
     completed: "✅",
     cancelled: "🚫"

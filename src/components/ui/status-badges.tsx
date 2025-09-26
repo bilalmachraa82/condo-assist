@@ -26,7 +26,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
       case 'awaiting_approval':
       case 'submitted':
       case 'expired':
-      case 'quotation_approved':
       case 'quotation_rejected':
         return 'outline'; // yellow/warning
       case 'accepted':
@@ -58,9 +57,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
       case 'submitted':
         return 'bg-warning/20 text-warning border-warning/40 font-semibold shadow-sm';
       case 'expired':
-        return 'bg-orange-100 text-orange-700 border-orange-300 font-semibold shadow-sm';
-      case 'quotation_approved':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-300 font-semibold shadow-sm';
       case 'quotation_rejected':
       case 'cancelled':
       case 'rejected':
