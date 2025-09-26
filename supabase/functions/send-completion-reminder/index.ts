@@ -32,8 +32,8 @@ const handler = async (req: Request): Promise<Response> => {
       .from('assistances')
       .select(`
         title, description, priority, expected_completion_date, status,
-        buildings!inner(name, address, nif),
-        intervention_types!inner(name)
+        buildings(name, address, nif),
+        intervention_types(name)
       `)
       .eq('id', followup.assistance_id)
       .single();
@@ -103,10 +103,10 @@ const handler = async (req: Request): Promise<Response> => {
           title: assistance.title,
           description: assistance.description,
           priority: assistance.priority,
-          buildingName: assistance.buildings.name,
-          buildingAddress: assistance.buildings.address,
-          buildingNif: assistance.buildings.nif,
-          interventionType: assistance.intervention_types.name,
+          buildingName: assistance.buildings?.[0]?.name,
+          buildingAddress: assistance.buildings?.[0]?.address,
+          buildingNif: assistance.buildings?.[0]?.nif,
+          interventionType: assistance.intervention_types?.[0]?.name,
           expectedCompletionDate: assistance.expected_completion_date,
           status: assistance.status
         }
@@ -153,7 +153,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Failed to send completion reminder' 
+        error: error instanceof Error ? error.message : 'Failed to send completion reminder' 
       }),
       {
         status: 500,

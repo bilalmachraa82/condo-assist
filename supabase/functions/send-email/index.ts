@@ -466,7 +466,7 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       const logoPath = new URL('./logo-luvimg.png', import.meta.url);
       const logoBytes = await Deno.readFile(logoPath);
-      const logoBase64 = b64encode(logoBytes);
+      const logoBase64 = b64encode(logoBytes.buffer);
       
       emailPayload.attachments = [
         {

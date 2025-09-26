@@ -14,6 +14,8 @@ interface NotificationData {
   priority: string;
   reminder_count: number;
   metadata: any;
+  assistances?: any;
+  suppliers?: any;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -64,7 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
             status: 'failed',
             metadata: { 
               ...notification.metadata, 
-              error: error.message,
+              error: error instanceof Error ? error.message : String(error),
               failed_at: new Date().toISOString()
             }
           })
@@ -83,7 +85,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error) {
     console.error('Error in process-notifications function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
