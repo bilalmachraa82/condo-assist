@@ -212,6 +212,8 @@ export type Database = {
           last_follow_up_sent: string | null
           last_quotation_follow_up_sent: string | null
           last_work_reminder_sent: string | null
+          new_priority: Database["public"]["Enums"]["new_assistance_priority"]
+          new_status: Database["public"]["Enums"]["new_assistance_status"]
           priority: Database["public"]["Enums"]["assistance_priority"]
           progress_notes: string | null
           quotation_deadline: string | null
@@ -255,6 +257,8 @@ export type Database = {
           last_follow_up_sent?: string | null
           last_quotation_follow_up_sent?: string | null
           last_work_reminder_sent?: string | null
+          new_priority?: Database["public"]["Enums"]["new_assistance_priority"]
+          new_status?: Database["public"]["Enums"]["new_assistance_status"]
           priority?: Database["public"]["Enums"]["assistance_priority"]
           progress_notes?: string | null
           quotation_deadline?: string | null
@@ -298,6 +302,8 @@ export type Database = {
           last_follow_up_sent?: string | null
           last_quotation_follow_up_sent?: string | null
           last_work_reminder_sent?: string | null
+          new_priority?: Database["public"]["Enums"]["new_assistance_priority"]
+          new_status?: Database["public"]["Enums"]["new_assistance_status"]
           priority?: Database["public"]["Enums"]["assistance_priority"]
           progress_notes?: string | null
           quotation_deadline?: string | null
@@ -484,6 +490,7 @@ export type Database = {
           id: string
           max_attempts: number
           metadata: Json | null
+          new_priority: Database["public"]["Enums"]["new_assistance_priority"]
           next_attempt_at: string | null
           priority: Database["public"]["Enums"]["assistance_priority"]
           scheduled_for: string
@@ -500,6 +507,7 @@ export type Database = {
           id?: string
           max_attempts?: number
           metadata?: Json | null
+          new_priority?: Database["public"]["Enums"]["new_assistance_priority"]
           next_attempt_at?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
           scheduled_for: string
@@ -516,6 +524,7 @@ export type Database = {
           id?: string
           max_attempts?: number
           metadata?: Json | null
+          new_priority?: Database["public"]["Enums"]["new_assistance_priority"]
           next_attempt_at?: string | null
           priority?: Database["public"]["Enums"]["assistance_priority"]
           scheduled_for?: string
@@ -548,6 +557,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          new_urgency_level: Database["public"]["Enums"]["new_assistance_priority"]
           urgency_level: Database["public"]["Enums"]["assistance_priority"]
         }
         Insert: {
@@ -556,6 +566,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          new_urgency_level?: Database["public"]["Enums"]["new_assistance_priority"]
           urgency_level?: Database["public"]["Enums"]["assistance_priority"]
         }
         Update: {
@@ -564,6 +575,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          new_urgency_level?: Database["public"]["Enums"]["new_assistance_priority"]
           urgency_level?: Database["public"]["Enums"]["assistance_priority"]
         }
         Relationships: []
@@ -1251,6 +1263,14 @@ export type Database = {
         | "quotation_rejected"
         | "accepted"
         | "awaiting_validation"
+      new_assistance_priority: "normal" | "urgent" | "critical"
+      new_assistance_status:
+        | "pending"
+        | "awaiting_quotation"
+        | "quotation_rejected"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
       quotation_status:
         | "pending"
         | "submitted"
@@ -1402,6 +1422,15 @@ export const Constants = {
         "quotation_rejected",
         "accepted",
         "awaiting_validation",
+      ],
+      new_assistance_priority: ["normal", "urgent", "critical"],
+      new_assistance_status: [
+        "pending",
+        "awaiting_quotation",
+        "quotation_rejected",
+        "in_progress",
+        "completed",
+        "cancelled",
       ],
       quotation_status: [
         "pending",
