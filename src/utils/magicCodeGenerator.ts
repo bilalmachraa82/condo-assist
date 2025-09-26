@@ -104,9 +104,9 @@ export const validateMagicCode = async (code: string): Promise<{
   sessionInfo?: any;
 }> => {
   try {
-    // Use the simplified validation function to avoid transaction issues
+    // Use the read-only validation function to avoid transaction issues
     const { data, error } = await supabase.rpc(
-      'validate_supplier_session_simple',
+      'validate_supplier_session_readonly',
       { 
         p_magic_code: code.toUpperCase()
       }

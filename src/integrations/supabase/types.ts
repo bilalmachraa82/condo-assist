@@ -1218,6 +1218,10 @@ export type Database = {
         Args: { p_magic_code: string }
         Returns: Json
       }
+      validate_supplier_session_readonly: {
+        Args: { p_magic_code: string }
+        Returns: Json
+      }
       validate_supplier_session_secure: {
         Args: {
           p_ip_address?: unknown

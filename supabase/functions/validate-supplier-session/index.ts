@@ -35,9 +35,9 @@ serve(async (req) => {
                     'unknown'
     const userAgent = req.headers.get('user-agent') || 'unknown'
 
-    // Use the simplified validation function to avoid transaction issues
+    // Use the read-only validation function to avoid transaction issues
     const { data: result, error } = await supabaseClient
-      .rpc('validate_supplier_session_simple', {
+      .rpc('validate_supplier_session_readonly', {
         p_magic_code: magicCode
       })
 
