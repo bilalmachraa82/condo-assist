@@ -1087,6 +1087,31 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_assistances_for_code: {
+        Args: { p_magic_code: string }
+        Returns: {
+          actual_end_date: string
+          actual_start_date: string
+          building_address: string
+          building_id: string
+          building_name: string
+          completion_photos_required: boolean
+          created_at: string
+          description: string
+          id: string
+          intervention_type_id: string
+          intervention_type_name: string
+          quotation_deadline: string
+          quotation_requested_at: string
+          requires_quotation: boolean
+          requires_validation: boolean
+          scheduled_end_date: string
+          scheduled_start_date: string
+          status: Database["public"]["Enums"]["assistance_status"]
+          supplier_notes: string
+          title: string
+        }[]
+      }
       get_basic_suppliers: {
         Args: Record<PropertyKey, never>
         Returns: {
