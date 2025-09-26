@@ -40,7 +40,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
   
   // Get data for dropdowns
   const { data: buildings = [] } = useBuildings();
-  const { data: suppliers = [] } = useAllSuppliers(); // Use admin hook for full supplier data
+  const { data: suppliers = [] } = useAllSuppliers(); // Use active suppliers only for assignment
   
   const { data: interventionTypes = [] } = useQuery({
     queryKey: ["intervention-types"],

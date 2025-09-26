@@ -50,7 +50,7 @@ export default function Fornecedores() {
   const [isBulkEmailOpen, setIsBulkEmailOpen] = useState(false)
   const [filters, setFilters] = useState<SupplierFilters>({ status: "active" })
   
-  const { data: suppliers = [], isLoading } = useAllSuppliers()
+  const { data: suppliers = [], isLoading } = useAllSuppliers(true) // Include inactive suppliers for admin management
   const { data: stats, isLoading: isLoadingStats } = useSupplierStats()
   const { toast } = useToast()
 

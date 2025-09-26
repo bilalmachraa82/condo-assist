@@ -27,15 +27,21 @@ export const useSuppliers = () => {
   });
 };
 
-export const useAllSuppliers = () => {
+export const useAllSuppliers = (includeInactive: boolean = false) => {
   return useQuery({
-    queryKey: ["all-suppliers"],
+    queryKey: ["all-suppliers", includeInactive],
     queryFn: async () => {
       // Admin-only access to full supplier data
-      const { data, error } = await supabase
+      let query = supabase
         .from("suppliers")
-        .select("*")
-        .order("name", { ascending: true });
+        .select("*");
+
+      // Filter by active status unless includeInactive is true
+      if (!includeInactive) {
+        query = query.eq("is_active", true);
+      }
+
+      const { data, error } = await query.order("name", { ascending: true });
 
       if (error) throw error;
       return data as Supplier[];
@@ -83,7 +89,7 @@ export const useCreateSupplier = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
-      queryClient.invalidateQueries({ queryKey: ["all-suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["all-suppliers"] }); // Invalidate both active and inactive queries
       queryClient.invalidateQueries({ queryKey: ["supplier-stats"] });
     },
   });
@@ -106,7 +112,7 @@ export const useUpdateSupplier = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
-      queryClient.invalidateQueries({ queryKey: ["all-suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["all-suppliers"] }); // Invalidate both active and inactive queries
       queryClient.invalidateQueries({ queryKey: ["supplier-stats"] });
     },
   });
@@ -133,7 +139,7 @@ export const useDeleteSupplier = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
-      queryClient.invalidateQueries({ queryKey: ["all-suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["all-suppliers"] }); // Invalidate both active and inactive queries
       queryClient.invalidateQueries({ queryKey: ["supplier-stats"] });
     },
   });
