@@ -81,3 +81,32 @@ export const useForceDeleteSupplier = () => {
     },
   });
 };
+
+export const useCompleteDeleteSupplier = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (supplierId: string) => {
+      // Use the complete deletion RPC function
+      const { data, error } = await supabase.rpc("force_delete_supplier_complete" as any, {
+        p_supplier_id: supplierId,
+      });
+
+      if (error) throw error;
+      
+      // Handle function response - data is a JSON response
+      const result = data as { success?: boolean; error?: string; message?: string };
+      if (!result?.success) {
+        throw new Error(result?.message || result?.error || "Erro ao eliminar fornecedor completamente");
+      }
+      
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["all-suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["supplier-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["supplier-dependencies"] });
+    },
+  });
+};

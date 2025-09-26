@@ -12,8 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, AlertTriangle, Info, Trash2, UserX } from "lucide-react";
-import { useSupplierDependencies, useDeactivateSupplier, useForceDeleteSupplier } from "@/hooks/useSupplierDependencies";
+import { Loader2, AlertTriangle, Info, Trash2, UserX, AlertTriangle as WarningTriangle } from "lucide-react";
+import { useSupplierDependencies, useDeactivateSupplier, useForceDeleteSupplier, useCompleteDeleteSupplier } from "@/hooks/useSupplierDependencies";
 import { useDeleteSupplier, type Supplier } from "@/hooks/useSuppliers";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,7 +28,7 @@ export function SafeDeleteSupplierDialog({
   open, 
   onOpenChange 
 }: SafeDeleteSupplierDialogProps) {
-  const [deleteStrategy, setDeleteStrategy] = useState<"deactivate" | "force" | null>(null);
+  const [deleteStrategy, setDeleteStrategy] = useState<"deactivate" | "force" | "complete" | null>(null);
   const { toast } = useToast();
 
   const { data: dependencies, isLoading: isLoadingDeps, isError } = useSupplierDependencies(
@@ -38,6 +38,7 @@ export function SafeDeleteSupplierDialog({
   const deleteSupplier = useDeleteSupplier();
   const deactivateSupplier = useDeactivateSupplier();
   const forceDeleteSupplier = useForceDeleteSupplier();
+  const completeDeleteSupplier = useCompleteDeleteSupplier();
 
   useEffect(() => {
     if (open) {
@@ -69,6 +70,12 @@ export function SafeDeleteSupplierDialog({
         toast({
           title: "Fornecedor eliminado",
           description: "O fornecedor e dados não críticos foram eliminados.",
+        });
+      } else if (deleteStrategy === "complete") {
+        await completeDeleteSupplier.mutateAsync(supplier.id);
+        toast({
+          title: "Fornecedor eliminado completamente",
+          description: "O fornecedor e todos os dados foram eliminados permanentemente.",
         });
       } else {
         // Safe delete - only when backend confirms it's safe
@@ -108,7 +115,7 @@ export function SafeDeleteSupplierDialog({
     }
   };
 
-  const isProcessing = deleteSupplier.isPending || deactivateSupplier.isPending || forceDeleteSupplier.isPending;
+  const isProcessing = deleteSupplier.isPending || deactivateSupplier.isPending || forceDeleteSupplier.isPending || completeDeleteSupplier.isPending;
 
   if (!supplier) return null;
 
@@ -211,6 +218,19 @@ export function SafeDeleteSupplierDialog({
                     <p className="text-xs text-muted-foreground px-2">
                       Remove emails e códigos. Mantém assistências e orçamentos.
                     </p>
+
+                    <Button
+                      variant={deleteStrategy === "complete" ? "destructive" : "outline"}
+                      size="sm"
+                      className="w-full justify-start border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => setDeleteStrategy("complete")}
+                    >
+                      <WarningTriangle className="h-4 w-4 mr-2" />
+                      Eliminação Forçada Completa
+                    </Button>
+                    <p className="text-xs text-destructive px-2">
+                      ⚠️ REMOVE TUDO permanentemente. Assistências ficam sem fornecedor.
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -233,7 +253,9 @@ export function SafeDeleteSupplierDialog({
             onClick={handleDelete}
             disabled={isProcessing || isLoadingDeps || !dependencies || (dependencies?.has_critical_data && !deleteStrategy)}
             className={
-              deleteStrategy === "force" 
+              deleteStrategy === "complete" 
+                ? "bg-destructive hover:bg-destructive/90" 
+                : deleteStrategy === "force" 
                 ? "bg-destructive hover:bg-destructive/90" 
                 : deleteStrategy === "deactivate"
                 ? "bg-warning hover:bg-warning/90"
@@ -246,6 +268,8 @@ export function SafeDeleteSupplierDialog({
                 ? "Desativar Fornecedor"
                 : deleteStrategy === "force"
                 ? "Eliminar Dados Não-Críticos"
+                : deleteStrategy === "complete"
+                ? "ELIMINAR TUDO"
                 : "Escolher Opção"
               : "Eliminar Fornecedor"
             }

@@ -1093,6 +1093,10 @@ export type Database = {
         }
         Returns: Json
       }
+      force_delete_supplier_complete: {
+        Args: { p_supplier_id: string }
+        Returns: Json
+      }
       generate_assistance_number: {
         Args: Record<PropertyKey, never>
         Returns: number
