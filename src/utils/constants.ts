@@ -102,5 +102,5 @@ export const CLOSED_ASSISTANCE_STATUSES = ['completed', 'cancelled'] as const;
 export const OPEN_ASSISTANCE_STATUSES = [
   'pending', 'sent_to_suppliers', 'awaiting_quotation', 'quotation_received', 
   'quotes_received', 'quote_approved', 'quotation_approved', 'quotation_rejected', 'awaiting_approval', 'accepted', 
-  'scheduled', 'in_progress', 'awaiting_validation'
+  'scheduled', 'in_progress'
 ] as const;

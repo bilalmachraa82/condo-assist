@@ -318,7 +318,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
       accepted: { color: "bg-green-500", icon: CheckCircle, text: "Aceite - Pronto para Iniciar" },
       scheduled: { color: "bg-blue-500", icon: Calendar, text: "Agendado" },
       in_progress: { color: "bg-blue-600", icon: Clock, text: "Trabalho em Progresso" },
-      awaiting_validation: { color: "bg-yellow-600", icon: Clock, text: "Aguardando Validação" },
+      
       awaiting_quotation: { color: "bg-orange-500", icon: FileText, text: "Necessita Orçamento" },
       quotation_received: { color: "bg-purple-500", icon: FileText, text: "Orçamento Recebido" },
       completed: { color: "bg-green-600", icon: CheckCircle, text: "Trabalho Concluído" },
@@ -350,9 +350,6 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
     }
     if (assistance.status === "in_progress") {
       return "complete";
-    }
-    if (assistance.status === "awaiting_validation") {
-      return "validation";
     }
     if (assistance.status === "completed") {
       return "completed";
@@ -584,13 +581,6 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
           </Button>
         )}
 
-        {mainAction === "validation" && (
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800 font-medium">
-              ✓ Trabalho marcado como concluído. Aguardando validação da administração.
-            </p>
-          </div>
-        )}
 
         {mainAction === "completed" && (
           <div className="p-4 bg-green-50 border border-green-200 rounded-lg">

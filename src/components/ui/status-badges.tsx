@@ -21,7 +21,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
       case 'pending':
       case 'awaiting_quotation':
       case 'quotation_received':
-      case 'awaiting_validation':
       case 'sent_to_suppliers':
       case 'quotes_received':
       case 'quote_approved':
@@ -54,12 +53,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
       case 'pending':
       case 'awaiting_quotation':
       case 'quotation_received':
-      case 'awaiting_validation':
       case 'sent_to_suppliers':
       case 'quotes_received':
       case 'quote_approved':
       case 'awaiting_approval':
-      case 'submitted': 
+      case 'submitted':
         return 'bg-warning/20 text-warning border-warning/40 font-semibold shadow-sm';
       case 'expired':
         return 'bg-orange-100 text-orange-700 border-orange-300 font-semibold shadow-sm';
