@@ -320,7 +320,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
       in_progress: { color: "bg-blue-600", icon: Clock, text: "Trabalho em Progresso" },
       
       awaiting_quotation: { color: "bg-orange-500", icon: FileText, text: "Necessita Orçamento" },
-      quotation_received: { color: "bg-purple-500", icon: FileText, text: "Orçamento Recebido" },
+      
       completed: { color: "bg-green-600", icon: CheckCircle, text: "Trabalho Concluído" },
       cancelled: { color: "bg-red-500", icon: AlertCircle, text: "Cancelada" },
     };

@@ -20,7 +20,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
         return 'secondary'; // blue
       case 'pending':
       case 'awaiting_quotation':
-      case 'quotation_received':
       case 'sent_to_suppliers':
       case 'quotes_received':
       case 'quote_approved':
@@ -52,7 +51,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
         return 'bg-primary/20 text-primary border-primary/40 font-semibold shadow-sm';
       case 'pending':
       case 'awaiting_quotation':
-      case 'quotation_received':
       case 'sent_to_suppliers':
       case 'quotes_received':
       case 'quote_approved':

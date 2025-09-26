@@ -78,7 +78,7 @@ export default function Fornecedores() {
           name: supplier.name,
           email: supplier.email || "",
           pendingCount: supplier.assistances?.filter(a => 
-            ["pending", "awaiting_quotation", "quotation_received", "in_progress"].includes(a.status)
+            ["pending", "awaiting_quotation", "in_progress"].includes(a.status)
           ).length || 0
         }))
         .filter(supplier => supplier.pendingCount > 0);
