@@ -143,7 +143,7 @@ export default function SupplierPortal() {
       if (!enteredCode) return [];
       
       console.log(`Fetching assistances via RPC for code: ${enteredCode}`);
-      const { data, error } = await supabase.rpc('get_assistances_for_code', { p_magic_code: enteredCode });
+      const { data, error } = await supabase.rpc('get_assistances_for_code' as any, { p_magic_code: enteredCode });
       
       if (error) {
         console.error("Error fetching assistances via RPC:", error);
@@ -371,7 +371,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
       });
       if (respError) throw respError;
 
-      const { error: statusError } = await supabase.rpc('atualizar_estado_assistencia_por_codigo', {
+      const { error: statusError } = await supabase.rpc('atualizar_estado_assistencia_por_codigo' as any, {
         p_magic_code: magicCode,
         p_new_status: 'accepted',
         p_supplier_notes: notes ?? null
@@ -399,7 +399,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
       });
       if (respError) throw respError;
 
-      const { error: statusError } = await supabase.rpc('atualizar_estado_assistencia_por_codigo', {
+      const { error: statusError } = await supabase.rpc('atualizar_estado_assistencia_por_codigo' as any, {
         p_magic_code: magicCode,
         p_new_status: 'cancelled',
         p_supplier_notes: reason
@@ -422,7 +422,7 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
   const handleStartWork = async () => {
     setIsUpdatingStatus(true);
     try {
-      const { error } = await supabase.rpc('atualizar_estado_assistencia_por_codigo', {
+      const { error } = await supabase.rpc('atualizar_estado_assistencia_por_codigo' as any, {
         p_magic_code: magicCode,
         p_new_status: 'in_progress'
       });
@@ -440,8 +440,8 @@ function AssistanceCard({ assistance, supplier, magicCode }: { assistance: Assis
   const handleCompleteWork = async () => {
     setIsUpdatingStatus(true);
     try {
-      const nextStatus = assistance.requires_validation ? 'awaiting_validation' : 'completed';
-      const { error } = await supabase.rpc('atualizar_estado_assistencia_por_codigo', {
+      const nextStatus = assistance.requires_validation ? 'in_progress' : 'completed';
+      const { error } = await supabase.rpc('atualizar_estado_assistencia_por_codigo' as any, {
         p_magic_code: magicCode,
         p_new_status: nextStatus
       });

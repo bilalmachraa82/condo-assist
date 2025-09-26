@@ -137,7 +137,7 @@ export const useNotificationSchedule = (priority: 'critical' | 'urgent' | 'norma
     queryKey: ["notification-schedule", priority],
     queryFn: async () => {
       const { data, error } = await supabase
-        .rpc('calculate_reminder_schedule', { assistance_priority: priority });
+        .rpc('calculate_reminder_schedule' as any, { assistance_priority: priority });
 
       if (error) throw error;
       return data;
