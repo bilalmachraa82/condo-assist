@@ -104,20 +104,11 @@ export const validateMagicCode = async (code: string): Promise<{
   sessionInfo?: any;
 }> => {
   try {
-    // Get client IP for security logging (best effort)
-    const clientIP = await fetch('https://api.ipify.org?format=json')
-      .then(res => res.json())
-      .then(data => data.ip)
-      .catch(() => null);
-
-    const userAgent = navigator.userAgent;
-
+    // Use the simplified validation function to avoid transaction issues
     const { data, error } = await supabase.rpc(
-      'validate_supplier_session_secure',
+      'validate_supplier_session_simple',
       { 
-        p_magic_code: code.toUpperCase(),
-        p_ip_address: clientIP,
-        p_user_agent: userAgent
+        p_magic_code: code.toUpperCase()
       }
     );
 

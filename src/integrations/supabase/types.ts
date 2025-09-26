@@ -1226,6 +1226,10 @@ export type Database = {
         }
         Returns: Json
       }
+      validate_supplier_session_simple: {
+        Args: { p_magic_code: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "supplier"

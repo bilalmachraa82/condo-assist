@@ -35,12 +35,10 @@ serve(async (req) => {
                     'unknown'
     const userAgent = req.headers.get('user-agent') || 'unknown'
 
-    // Use the new secure validation function
+    // Use the simplified validation function to avoid transaction issues
     const { data: result, error } = await supabaseClient
-      .rpc('validate_supplier_session_secure', {
-        p_magic_code: magicCode,
-        p_ip_address: clientIP,
-        p_user_agent: userAgent
+      .rpc('validate_supplier_session_simple', {
+        p_magic_code: magicCode
       })
 
     if (error) {
