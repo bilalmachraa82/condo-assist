@@ -273,26 +273,34 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
               <FormField
                 control={form.control}
                 name="building_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Edifício</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecionar edifício" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {buildings.map((building) => (
-                          <SelectItem key={building.id} value={building.id}>
-                            {building.code} - {building.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const selectedBuilding = buildings.find(b => b.id === field.value);
+                  return (
+                    <FormItem>
+                      <FormLabel>Edifício</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar edifício" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {buildings.map((building) => (
+                            <SelectItem key={building.id} value={building.id}>
+                              {building.code} - {building.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedBuilding && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Código do edifício: <span className="font-mono font-semibold">{selectedBuilding.code}</span>
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField

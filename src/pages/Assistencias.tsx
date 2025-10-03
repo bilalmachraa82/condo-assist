@@ -418,7 +418,7 @@ export default function Assistencias() {
             };
 
             const buildingInfo = assistance.buildings ? 
-              `${assistance.buildings.code ? assistance.buildings.code + '=' : ''}${assistance.buildings.name}` : 
+              `${assistance.buildings.code ? assistance.buildings.code + ' - ' : ''}${assistance.buildings.name}` : 
               'Sem edifício';
             const assistanceTitle = assistance.title || 'Assistência';
             const interventionType = assistance.intervention_types?.name || 'Sem tipo definido';

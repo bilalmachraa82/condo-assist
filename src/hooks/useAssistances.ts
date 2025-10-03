@@ -101,9 +101,12 @@ export const useUpdateAssistance = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
       queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
+      // Also invalidate and refetch the single assistance to update detail views
+      queryClient.invalidateQueries({ queryKey: ["assistance", data.id] });
+      queryClient.refetchQueries({ queryKey: ["assistance", data.id] });
     },
   });
 };

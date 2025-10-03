@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Shield, Plus, Lock } from "lucide-react";
+import { Shield, Plus, Lock, Check } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import { useUpdateAssistance, useAssistances } from "@/hooks/useAssistances";
+import { useUpdateAssistance, useAssistance } from "@/hooks/useAssistances";
 import type { Assistance } from "@/hooks/useAssistances";
 
 interface InternalNotesProps {
@@ -19,23 +19,41 @@ interface InternalNotesProps {
 export default function InternalNotes({ assistance, canEdit = false }: InternalNotesProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [noteText, setNoteText] = useState(assistance.admin_notes || "");
+  const [showSaved, setShowSaved] = useState(false);
   const { toast } = useToast();
   const updateMutation = useUpdateAssistance();
-  const { refetch } = useAssistances();
+  // Use single assistance query for real-time updates
+  const { data: currentAssistance } = useAssistance(assistance.id);
+  
+  // Sync noteText when assistance data changes
+  useEffect(() => {
+    setNoteText(currentAssistance?.admin_notes || assistance.admin_notes || "");
+  }, [currentAssistance?.admin_notes, assistance.admin_notes]);
 
   const handleSave = async () => {
+    // Validate length
+    if (noteText.trim().length > 5000) {
+      toast({
+        title: "Erro",
+        description: "A nota não pode exceder 5000 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await updateMutation.mutateAsync({
         id: assistance.id,
-        admin_notes: noteText || null,
+        admin_notes: noteText.trim() || null,
       });
 
       setIsEditing(false);
-      // Force refresh to show updated note immediately
-      await refetch();
+      setShowSaved(true);
+      setTimeout(() => setShowSaved(false), 2000);
+      
       toast({
         title: "Sucesso", 
-        description: "Nota interna atualizada com sucesso!",
+        description: "Nota interna guardada com sucesso!",
       });
     } catch (error) {
       console.error("Error updating internal note:", error);
@@ -48,9 +66,12 @@ export default function InternalNotes({ assistance, canEdit = false }: InternalN
   };
 
   const handleCancel = () => {
-    setNoteText(assistance.admin_notes || "");
+    setNoteText(currentAssistance?.admin_notes || assistance.admin_notes || "");
     setIsEditing(false);
   };
+
+  // Check if note has changed
+  const hasChanged = noteText.trim() !== (currentAssistance?.admin_notes || assistance.admin_notes || "").trim();
 
   return (
     <Card className="border-amber-200 bg-amber-50/30">
@@ -64,7 +85,7 @@ export default function InternalNotes({ assistance, canEdit = false }: InternalN
               Apenas Administradores
             </Badge>
           </div>
-          {canEdit && !isEditing && (
+          {canEdit && !isEditing && !showSaved && (
             <Button
               variant="outline"
               size="sm"
@@ -72,8 +93,14 @@ export default function InternalNotes({ assistance, canEdit = false }: InternalN
               className="border-amber-300 text-amber-700 hover:bg-amber-100"
             >
               <Plus className="h-4 w-4 mr-1" />
-              {assistance.admin_notes ? "Editar" : "Adicionar"}
+              {currentAssistance?.admin_notes || assistance.admin_notes ? "Editar" : "Adicionar"}
             </Button>
+          )}
+          {showSaved && (
+            <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-300">
+              <Check className="h-3 w-3 mr-1" />
+              Guardado
+            </Badge>
           )}
         </CardTitle>
       </CardHeader>
@@ -93,8 +120,12 @@ export default function InternalNotes({ assistance, canEdit = false }: InternalN
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
               rows={4}
+              maxLength={5000}
               className="resize-none"
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {noteText.length}/5000 caracteres
+            </p>
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
@@ -106,26 +137,26 @@ export default function InternalNotes({ assistance, canEdit = false }: InternalN
               <Button
                 size="sm"
                 onClick={handleSave}
-                disabled={updateMutation.isPending}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
+                disabled={updateMutation.isPending || !hasChanged}
+                className="bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
               >
-                {updateMutation.isPending ? "Salvando..." : "Salvar"}
+                {updateMutation.isPending ? "A guardar..." : "Salvar"}
               </Button>
             </div>
           </div>
-        ) : assistance.admin_notes ? (
+        ) : (currentAssistance?.admin_notes || assistance.admin_notes) ? (
           <div className="space-y-3">
             <ScrollArea className="max-h-[300px]">
               <div className="prose prose-sm max-w-none">
                 <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {assistance.admin_notes}
+                  {currentAssistance?.admin_notes || assistance.admin_notes}
                 </p>
               </div>
             </ScrollArea>
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-amber-200">
               <Shield className="h-3 w-3" />
               <span>
-                Última atualização: {format(new Date(assistance.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                Última atualização: {format(new Date(currentAssistance?.updated_at || assistance.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               </span>
             </div>
           </div>
