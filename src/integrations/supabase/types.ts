@@ -572,21 +572,21 @@ export type Database = {
         Row: {
           attempt_time: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           magic_code: string | null
           success: boolean | null
         }
         Insert: {
           attempt_time?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           magic_code?: string | null
           success?: boolean | null
         }
         Update: {
           attempt_time?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           magic_code?: string | null
           success?: boolean | null
         }
@@ -766,7 +766,7 @@ export type Database = {
           details: Json | null
           event_type: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           severity: string
           user_agent: string | null
           user_id: string | null
@@ -776,7 +776,7 @@ export type Database = {
           details?: Json | null
           event_type: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           severity?: string
           user_agent?: string | null
           user_id?: string | null
@@ -786,7 +786,7 @@ export type Database = {
           details?: Json | null
           event_type?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           severity?: string
           user_agent?: string | null
           user_id?: string | null
@@ -798,7 +798,7 @@ export type Database = {
           action: string
           created_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           magic_code: string
           metadata: Json | null
           success: boolean | null
@@ -809,7 +809,7 @@ export type Database = {
           action: string
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           magic_code: string
           metadata?: Json | null
           success?: boolean | null
@@ -820,7 +820,7 @@ export type Database = {
           action?: string
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           magic_code?: string
           metadata?: Json | null
           success?: boolean | null
@@ -1035,14 +1035,8 @@ export type Database = {
         }
         Returns: Json
       }
-      auto_process_followups: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      bytea_to_text: {
-        Args: { data: string }
-        Returns: string
-      }
+      auto_process_followups: { Args: never; Returns: Json }
+      bytea_to_text: { Args: { data: string }; Returns: string }
       calculate_reminder_schedule: {
         Args: {
           assistance_priority: Database["public"]["Enums"]["assistance_priority"]
@@ -1101,14 +1095,8 @@ export type Database = {
         Args: { p_supplier_id: string }
         Returns: Json
       }
-      generate_assistance_number: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      generate_magic_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_assistance_number: { Args: never; Returns: number }
+      generate_magic_code: { Args: never; Returns: string }
       get_assistances_for_code: {
         Args: { p_magic_code: string }
         Returns: {
@@ -1135,7 +1123,7 @@ export type Database = {
         }[]
       }
       get_basic_suppliers: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           id: string
           is_active: boolean
@@ -1157,10 +1145,7 @@ export type Database = {
           sender_type: string
         }[]
       }
-      get_followup_processing_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      get_followup_processing_stats: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1171,27 +1156,77 @@ export type Database = {
       http: {
         Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "http_request"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_delete: {
-        Args:
-          | { content: string; content_type: string; uri: string }
-          | { uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
-      http_get: {
-        Args: { data: Json; uri: string } | { uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
+      http_delete:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_get:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       http_head: {
         Args: { uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       http_header: {
         Args: { field: string; value: string }
         Returns: Database["public"]["CompositeTypes"]["http_header"]
+        SetofOptions: {
+          from: "*"
+          to: "http_header"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       http_list_curlopt: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           curlopt: string
           value: string
@@ -1200,29 +1235,50 @@ export type Database = {
       http_patch: {
         Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_post: {
-        Args:
-          | { content: string; content_type: string; uri: string }
-          | { data: Json; uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
+      http_post:
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       http_put: {
         Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_reset_curlopt: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      http_reset_curlopt: { Args: never; Returns: boolean }
       http_set_curlopt: {
         Args: { curlopt: string; value: string }
         Returns: boolean
       }
-      is_admin: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       link_code_to_latest_assistance: {
         Args: { p_magic_code: string }
         Returns: Json
@@ -1231,18 +1287,21 @@ export type Database = {
         Args: { details?: string; job_name: string; success: boolean }
         Returns: undefined
       }
-      log_security_event: {
-        Args:
-          | { details?: string; event_type: string; metadata?: Json }
-          | {
+      log_security_event:
+        | {
+            Args: { details?: string; event_type: string; metadata?: Json }
+            Returns: undefined
+          }
+        | {
+            Args: {
               p_details?: Json
               p_event_type: string
               p_ip_address?: unknown
               p_severity?: string
               p_user_agent?: string
             }
-        Returns: undefined
-      }
+            Returns: undefined
+          }
       log_supplier_access: {
         Args: {
           p_action: string
@@ -1253,34 +1312,29 @@ export type Database = {
         }
         Returns: undefined
       }
-      magic_code_valid_days: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      process_pending_followups: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      magic_code_valid_days: { Args: never; Returns: number }
+      process_pending_followups: { Args: never; Returns: number }
       purge_supplier_non_critical: {
         Args: { p_supplier_id: string }
         Returns: Json
       }
-      safe_delete_supplier: {
-        Args: { p_supplier_id: string }
-        Returns: Json
-      }
-      schedule_assistance_reminders: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      text_to_bytea: {
-        Args: { data: string }
-        Returns: string
-      }
-      urlencode: {
-        Args: { data: Json } | { string: string } | { string: string }
-        Returns: string
-      }
+      safe_delete_supplier: { Args: { p_supplier_id: string }; Returns: Json }
+      schedule_assistance_reminders: { Args: never; Returns: undefined }
+      text_to_bytea: { Args: { data: string }; Returns: string }
+      urlencode:
+        | { Args: { data: Json }; Returns: string }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
       validate_supplier_session: {
         Args: { p_magic_code: string }
         Returns: Json
@@ -1327,7 +1381,7 @@ export type Database = {
         value: string | null
       }
       http_request: {
-        method: unknown | null
+        method: unknown
         uri: string | null
         headers: Database["public"]["CompositeTypes"]["http_header"][] | null
         content_type: string | null
