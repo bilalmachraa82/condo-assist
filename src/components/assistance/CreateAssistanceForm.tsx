@@ -16,6 +16,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useBuildings } from "@/hooks/useBuildings";
 import { useAllSuppliers } from "@/hooks/useSuppliers";
 import { sendMagicCodeToSupplier } from "@/utils/sendMagicCode";
+import { useAppSetting } from "@/hooks/useAppSettings";
 
 const assistanceSchema = z.object({
   title: z.string().min(3, "Título deve ter pelo menos 3 caracteres"),
@@ -38,9 +39,12 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Get email mode setting
+  const { data: emailMode } = useAppSetting('email_mode');
+  
   // Get data for dropdowns
   const { data: buildings = [] } = useBuildings();
-  const { data: suppliers = [] } = useAllSuppliers(); // Use active suppliers only for assignment
+  const { data: suppliers = [] } = useAllSuppliers();
   
   const { data: interventionTypes = [] } = useQuery({
     queryKey: ["intervention-types"],
@@ -106,7 +110,30 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
           const building = buildings.find(b => b.id === assistance.building_id);
           const interventionType = interventionTypes.find(i => i.id === assistance.intervention_type_id);
           
-          if (supplier?.email && supplier?.name) {
+          // Check email mode - if admin_first, send PDF to admin instead
+          if (emailMode === 'admin_first') {
+            // Send PDF to admin for manual forwarding
+            const pdfResponse = await supabase.functions.invoke('send-assistance-pdf-to-admin', {
+              body: {
+                assistanceId: assistance.id,
+              }
+            });
+
+            if (pdfResponse.error) {
+              console.error("PDF email error:", pdfResponse.error);
+              toast({
+                title: "Sucesso com Aviso",
+                description: "Assistência criada, mas houve erro ao enviar PDF para administração.",
+                variant: "default",
+              });
+            } else {
+              toast({
+                title: "Sucesso",
+                description: "Assistência criada! PDF enviado para arquivo@luvimg.com para reencaminhar.",
+              });
+            }
+          } else if (supplier?.email && supplier?.name) {
+            // Direct mode - send to supplier
             if (assistance.requires_quotation) {
               // Send quotation request email
               const emailResponse = await supabase.functions.invoke('request-quotation-email', {

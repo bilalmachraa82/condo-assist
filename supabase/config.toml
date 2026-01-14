@@ -79,3 +79,6 @@ verify_jwt = false
 
 [functions.process-followups]
 verify_jwt = true
+
+[functions.send-assistance-pdf-to-admin]
+verify_jwt = false
