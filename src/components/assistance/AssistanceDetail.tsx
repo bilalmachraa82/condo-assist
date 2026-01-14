@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings, Trash2, Edit, Download } from "lucide-react";
+import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings, Trash2, Edit, Mail, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StatusBadge, PriorityBadge } from "@/components/ui/status-badges";
@@ -25,6 +25,7 @@ import { useUpdateAssistanceStatus, useDeleteAssistance, useAssistance } from "@
 import type { Assistance } from "@/hooks/useAssistances";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AssistanceDetailProps {
   assistance: Assistance;
@@ -49,10 +50,38 @@ const getStatusIcon = (status: AssistanceStatus): string => {
 export default function AssistanceDetail({ assistance, onBack, onDeleted }: AssistanceDetailProps) {
   const [refreshPhotos, setRefreshPhotos] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSendingPdf, setIsSendingPdf] = useState(false);
   const updateStatusMutation = useUpdateAssistanceStatus();
   const deleteAssistanceMutation = useDeleteAssistance();
   const { toast } = useToast();
   const { data: assistanceData } = useAssistance(assistance.id);
+
+  const handleSendPdfToAdmin = async () => {
+    setIsSendingPdf(true);
+    try {
+      const response = await supabase.functions.invoke('send-assistance-pdf-to-admin', {
+        body: { assistanceId: assistance.id }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      toast({
+        title: "PDF Enviado",
+        description: "O PDF foi enviado para arquivo@luvimg.com com sucesso.",
+      });
+    } catch (error: any) {
+      console.error("Error sending PDF:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível enviar o PDF. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingPdf(false);
+    }
+  };
 
   const handlePhotoUploaded = () => {
     // Trigger photo gallery refresh
@@ -128,6 +157,20 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
           >
             <AssistancePDFTemplate assistance={assistance} />
           </PDFExportButton>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSendPdfToAdmin}
+            disabled={isSendingPdf}
+            title="Enviar PDF para arquivo@luvimg.com"
+          >
+            {isSendingPdf ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Mail className="h-4 w-4" />
+            )}
+          </Button>
           
           <Button
             variant="outline"
