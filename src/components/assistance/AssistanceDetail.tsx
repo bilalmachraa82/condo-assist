@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings, Trash2, Edit, Mail, Loader2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings, Trash2, Edit, Mail, Loader2, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StatusBadge, PriorityBadge } from "@/components/ui/status-badges";
@@ -150,27 +151,42 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
           <StatusBadge status={assistanceData?.status ?? assistance.status} />
           <PriorityBadge priority={assistance.priority} />
           
-          <PDFExportButton 
-            filename={`assistencia-${assistance.title.replace(/\s+/g, '-').toLowerCase()}`}
-            variant="outline"
-            size="sm"
-          >
-            <AssistancePDFTemplate assistance={assistance} />
-          </PDFExportButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <PDFExportButton 
+                  filename={`assistencia-${assistance.title.replace(/\s+/g, '-').toLowerCase()}`}
+                  variant="outline"
+                  size="sm"
+                >
+                  <AssistancePDFTemplate assistance={assistance} />
+                </PDFExportButton>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Exportar PDF</p>
+            </TooltipContent>
+          </Tooltip>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSendPdfToAdmin}
-            disabled={isSendingPdf}
-            title="Enviar PDF para arquivo@luvimg.com"
-          >
-            {isSendingPdf ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Mail className="h-4 w-4" />
-            )}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSendPdfToAdmin}
+                disabled={isSendingPdf}
+              >
+                {isSendingPdf ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Enviar PDF para arquivo@luvimg.com</p>
+            </TooltipContent>
+          </Tooltip>
           
           <Button
             variant="outline"
