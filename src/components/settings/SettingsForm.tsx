@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } fr
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, RotateCcw } from 'lucide-react';
 import { useUpdateAppSetting } from '@/hooks/useAppSettings';
 
@@ -27,14 +28,20 @@ interface SettingsFormProps {
   fields: SettingField[];
 }
 
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
 interface SettingField {
   key: string;
   label: string;
-  type: 'text' | 'email' | 'tel' | 'url' | 'textarea' | 'switch' | 'nif';
+  type: 'text' | 'email' | 'tel' | 'url' | 'textarea' | 'switch' | 'nif' | 'select';
   description?: string;
   placeholder?: string;
   required?: boolean;
   validation?: z.ZodSchema;
+  options?: SelectOption[];
 }
 
 export const SettingsForm: React.FC<SettingsFormProps> = ({
@@ -68,6 +75,9 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
           break;
         case 'switch':
           schema = z.boolean();
+          break;
+        case 'select':
+          schema = field.required ? z.string().min(1, 'Seleção obrigatória') : z.string().optional();
           break;
         default:
           schema = field.required ? z.string().min(1, 'Campo obrigatório') : z.string().optional();
@@ -161,6 +171,26 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                               {formField.value ? 'Ativo' : 'Inativo'}
                             </span>
                           </div>
+                        ) : field.type === 'select' ? (
+                          <Select
+                            value={formField.value || ''}
+                            onValueChange={(value) => {
+                              formField.onChange(value);
+                              handleFieldChange(field.key, value);
+                            }}
+                            disabled={isLoading}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={field.placeholder || 'Selecionar...'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.options?.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         ) : field.type === 'textarea' ? (
                           <Textarea
                             placeholder={field.placeholder}
