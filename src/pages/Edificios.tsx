@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,8 @@ import {
   Wrench,
   Clock,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  X
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -38,6 +39,7 @@ import { CLOSED_ASSISTANCE_STATUSES } from "@/utils/constants";
 // Building assistances view component
 function BuildingAssistancesView({ building, onBack }: { building: Building; onBack: () => void }) {
   const [selectedAssistance, setSelectedAssistance] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const { data: allAssistances } = useAssistances();
   
   // Filter assistances for this building
@@ -51,6 +53,35 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
   
   const closedAssistances = buildingAssistances.filter(
     assistance => CLOSED_ASSISTANCE_STATUSES.includes(assistance.status as any)
+  );
+
+  // Search filter function
+  const filterAssistances = useCallback((assistances: typeof buildingAssistances) => {
+    if (!searchTerm.trim()) return assistances;
+    
+    const term = searchTerm.toLowerCase().trim();
+    return assistances.filter(assistance => 
+      // Título e descrição (onde está "5º esquerdo", "Garagem B2", etc.)
+      assistance.title?.toLowerCase().includes(term) ||
+      assistance.description?.toLowerCase().includes(term) ||
+      // Tipo de intervenção
+      assistance.intervention_types?.name?.toLowerCase().includes(term) ||
+      // Fornecedor
+      assistance.suppliers?.name?.toLowerCase().includes(term) ||
+      // Notas
+      assistance.supplier_notes?.toLowerCase().includes(term) ||
+      // Número da assistência (suportar "#4" ou "4")
+      assistance.assistance_number?.toString().includes(term.replace('#', ''))
+    );
+  }, [searchTerm]);
+
+  // Apply filter with memoization
+  const filteredOpenAssistances = useMemo(() => 
+    filterAssistances(openAssistances), [openAssistances, filterAssistances]
+  );
+
+  const filteredClosedAssistances = useMemo(() => 
+    filterAssistances(closedAssistances), [closedAssistances, filterAssistances]
   );
 
 
@@ -81,26 +112,51 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={onBack}>
-            ← Voltar
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{building.name}</h1>
-            <p className="text-muted-foreground">Assistências do edifício</p>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" onClick={onBack}>
+              ← Voltar
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">{building.name}</h1>
+              <p className="text-muted-foreground">Assistências do edifício</p>
+            </div>
           </div>
         </div>
-        <PDFExportButton 
-          filename={`assistencias-${building.name.replace(/\s+/g, '-').toLowerCase()}`}
-          variant="outline"
-        >
-          <AssistanceListPDFTemplate 
-            assistances={buildingAssistances}
-            title={`Assistências - ${building.name}`}
-            filters={{ building: building.name }}
-          />
-        </PDFExportButton>
+        
+        {/* Search and PDF Export */}
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="relative flex-1 sm:flex-initial">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar assistências..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-10 w-full sm:w-80"
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                onClick={() => setSearchTerm("")}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <PDFExportButton 
+            filename={`assistencias-${building.name.replace(/\s+/g, '-').toLowerCase()}`}
+            variant="outline"
+          >
+            <AssistanceListPDFTemplate 
+              assistances={buildingAssistances}
+              title={`Assistências - ${building.name}`}
+              filters={{ building: building.name }}
+            />
+          </PDFExportButton>
+        </div>
       </div>
 
       {/* Building Info */}
@@ -132,13 +188,34 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
       {/* Assistances Tabs */}
       <Tabs defaultValue="open" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="open">Assistências Abertas ({openAssistances.length})</TabsTrigger>
-          <TabsTrigger value="closed">Assistências Fechadas ({closedAssistances.length})</TabsTrigger>
+          <TabsTrigger value="open">
+            Abertas ({filteredOpenAssistances.length}
+            {searchTerm && filteredOpenAssistances.length !== openAssistances.length && 
+              ` de ${openAssistances.length}`})
+          </TabsTrigger>
+          <TabsTrigger value="closed">
+            Fechadas ({filteredClosedAssistances.length}
+            {searchTerm && filteredClosedAssistances.length !== closedAssistances.length && 
+              ` de ${closedAssistances.length}`})
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="open" className="mt-6">
           <div className="space-y-4">
-            {openAssistances.length === 0 ? (
+            {searchTerm && filteredOpenAssistances.length === 0 && openAssistances.length > 0 ? (
+              <Card className="p-8">
+                <div className="text-center space-y-2">
+                  <Search className="h-12 w-12 text-muted-foreground mx-auto" />
+                  <h3 className="text-lg font-semibold">Nenhum resultado encontrado</h3>
+                  <p className="text-muted-foreground">
+                    Não foram encontradas assistências abertas para "{searchTerm}"
+                  </p>
+                  <Button variant="outline" onClick={() => setSearchTerm("")}>
+                    Limpar pesquisa
+                  </Button>
+                </div>
+              </Card>
+            ) : openAssistances.length === 0 ? (
               <Card className="p-8">
                 <div className="text-center space-y-2">
                   <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto" />
@@ -149,7 +226,7 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
                 </div>
               </Card>
             ) : (
-              openAssistances.map((assistance) => (
+              filteredOpenAssistances.map((assistance) => (
                 <Card key={assistance.id} className="hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -193,7 +270,20 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
         
         <TabsContent value="closed" className="mt-6">
           <div className="space-y-4">
-            {closedAssistances.length === 0 ? (
+            {searchTerm && filteredClosedAssistances.length === 0 && closedAssistances.length > 0 ? (
+              <Card className="p-8">
+                <div className="text-center space-y-2">
+                  <Search className="h-12 w-12 text-muted-foreground mx-auto" />
+                  <h3 className="text-lg font-semibold">Nenhum resultado encontrado</h3>
+                  <p className="text-muted-foreground">
+                    Não foram encontradas assistências fechadas para "{searchTerm}"
+                  </p>
+                  <Button variant="outline" onClick={() => setSearchTerm("")}>
+                    Limpar pesquisa
+                  </Button>
+                </div>
+              </Card>
+            ) : closedAssistances.length === 0 ? (
               <Card className="p-8">
                 <div className="text-center space-y-2">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto" />
@@ -204,7 +294,7 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
                 </div>
               </Card>
             ) : (
-              closedAssistances.map((assistance) => (
+              filteredClosedAssistances.map((assistance) => (
                 <Card key={assistance.id} className="hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
