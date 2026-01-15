@@ -43,6 +43,7 @@ import { FloatingActionButton } from "@/components/mobile/FloatingActionButton"
 import { SkeletonList } from "@/components/mobile/SkeletonList"
 import { PullToRefreshIndicator } from "@/components/mobile/PullToRefreshIndicator"
 import { usePullToRefresh } from "@/hooks/usePullToRefresh"
+import { HighlightText } from "@/components/ui/highlight-text"
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -509,14 +510,19 @@ export default function Assistencias() {
                         
                         <div className="space-y-1">
                           <h3 className="font-bold text-lg text-foreground">
-                            {buildingInfo}
+                            <HighlightText text={buildingInfo} highlight={searchTerm} />
                           </h3>
                           <p className="font-medium text-base">
-                            {assistanceTitle}
+                            <HighlightText text={assistanceTitle} highlight={searchTerm} />
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {interventionType}
+                            <HighlightText text={interventionType} highlight={searchTerm} />
                           </p>
+                          {assistance.description && (
+                            <p className="text-sm text-muted-foreground">
+                              <HighlightText text={assistance.description} highlight={searchTerm} />
+                            </p>
+                          )}
                         </div>
                         </div>
                         
@@ -524,7 +530,7 @@ export default function Assistencias() {
                         {assistance.suppliers && (
                           <div className="flex items-center gap-1">
                             <User className="h-4 w-4" />
-                            <span>{assistance.suppliers.name}</span>
+                            <HighlightText text={assistance.suppliers.name} highlight={searchTerm} />
                           </div>
                         )}
                         <div className="flex items-center gap-1">
