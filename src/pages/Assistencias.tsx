@@ -220,23 +220,39 @@ export default function Assistencias() {
     const matchesAssistanceNumber = !filters.assistanceNumber || 
       assistance.assistance_number?.toString().includes(filters.assistanceNumber);
 
-    // Search also includes assistance number (support both "#4" and "4" formats)
-    const cleanedSearchTerm = searchTerm.toString().replace('#', '');
-    const assistanceNumberStr = assistance.assistance_number?.toString();
-    const matchesSearchWithNumber = !searchTerm || 
-      assistance.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assistance.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assistance.buildings?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assistance.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assistanceNumberStr?.includes(cleanedSearchTerm) ||
-      (`#${assistanceNumberStr}`).includes(searchTerm.toString());
+    // Enhanced search - includes all relevant text fields
+    const cleanedSearchTerm = searchTerm.toLowerCase().trim();
+    const assistanceNumberStr = assistance.assistance_number?.toString() || '';
+    
+    const matchesSearch = !searchTerm || 
+      // Título
+      assistance.title?.toLowerCase().includes(cleanedSearchTerm) ||
+      // Descrição (ex: "5º esquerdo", "Garagem B2", "sala de reuniões")
+      assistance.description?.toLowerCase().includes(cleanedSearchTerm) ||
+      // Nome do edifício
+      assistance.buildings?.name?.toLowerCase().includes(cleanedSearchTerm) ||
+      // Código do edifício
+      assistance.buildings?.code?.toLowerCase().includes(cleanedSearchTerm) ||
+      // Nome do fornecedor
+      assistance.suppliers?.name?.toLowerCase().includes(cleanedSearchTerm) ||
+      // Tipo de intervenção
+      assistance.intervention_types?.name?.toLowerCase().includes(cleanedSearchTerm) ||
+      // Notas do fornecedor
+      assistance.supplier_notes?.toLowerCase().includes(cleanedSearchTerm) ||
+      // Notas do admin
+      assistance.admin_notes?.toLowerCase().includes(cleanedSearchTerm) ||
+      // Notas de progresso
+      assistance.progress_notes?.toLowerCase().includes(cleanedSearchTerm) ||
+      // Número da assistência (suporta "#4" e "4")
+      assistanceNumberStr.includes(cleanedSearchTerm.replace('#', '')) ||
+      (`#${assistanceNumberStr}`).includes(cleanedSearchTerm);
 
     // Date filters
     const createdDate = new Date(assistance.created_at);
     const matchesDateFrom = !filters.dateFrom || createdDate >= new Date(filters.dateFrom);
     const matchesDateTo = !filters.dateTo || createdDate <= new Date(filters.dateTo + 'T23:59:59');
 
-    return matchesSearchWithNumber && matchesStatus && matchesPriority && matchesBuilding && matchesSupplier && matchesAssistanceNumber && matchesDateFrom && matchesDateTo;
+    return matchesSearch && matchesStatus && matchesPriority && matchesBuilding && matchesSupplier && matchesAssistanceNumber && matchesDateFrom && matchesDateTo;
   }) || [];
 
   // Pull to refresh functionality
@@ -288,10 +304,10 @@ export default function Assistencias() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Pesquisar assistências..."
+              placeholder="Pesquisar por localização, descrição, fornecedor..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full sm:w-80"
+              className="pl-10 w-full sm:w-96"
             />
           </div>
           
