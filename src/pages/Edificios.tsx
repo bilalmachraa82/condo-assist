@@ -35,6 +35,7 @@ import { AssistanceListPDFTemplate } from "@/components/assistance/AssistanceLis
 import { BuildingListPDFTemplate } from "@/components/buildings/BuildingListPDFTemplate";
 import AssistanceDetail from "@/components/assistance/AssistanceDetail";
 import { CLOSED_ASSISTANCE_STATUSES } from "@/utils/constants";
+import { HighlightText } from "@/components/ui/highlight-text";
 
 // Building assistances view component
 function BuildingAssistancesView({ building, onBack }: { building: Building; onBack: () => void }) {
@@ -236,10 +237,16 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
                           <StatusBadge status={assistance.status} />
                         </div>
                         <h3 className="font-semibold text-lg mb-1">
-                          {assistance.intervention_types?.name || assistance.title}
+                          <HighlightText 
+                            text={assistance.intervention_types?.name || assistance.title} 
+                            highlight={searchTerm} 
+                          />
                         </h3>
                         <p className="text-sm text-muted-foreground mb-2">
-                          {assistance.description || 'Sem descrição'}
+                          <HighlightText 
+                            text={assistance.description || 'Sem descrição'} 
+                            highlight={searchTerm} 
+                          />
                         </p>
                         <div className="flex items-center text-sm text-muted-foreground">
                           <Clock className="h-3 w-3 mr-1" />
@@ -247,7 +254,7 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
                           {assistance.suppliers && (
                             <>
                               <span className="mx-2">•</span>
-                              <span>{assistance.suppliers.name}</span>
+                              <HighlightText text={assistance.suppliers.name} highlight={searchTerm} />
                             </>
                           )}
                         </div>
@@ -304,10 +311,16 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
                           <StatusBadge status={assistance.status} />
                         </div>
                         <h3 className="font-semibold text-lg mb-1">
-                          {assistance.intervention_types?.name || assistance.title}
+                          <HighlightText 
+                            text={assistance.intervention_types?.name || assistance.title} 
+                            highlight={searchTerm} 
+                          />
                         </h3>
                         <p className="text-sm text-muted-foreground mb-2">
-                          {assistance.description || 'Sem descrição'}
+                          <HighlightText 
+                            text={assistance.description || 'Sem descrição'} 
+                            highlight={searchTerm} 
+                          />
                         </p>
                         <div className="flex items-center text-sm text-muted-foreground">
                           <Clock className="h-3 w-3 mr-1" />
@@ -321,7 +334,7 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
                           {assistance.suppliers && (
                             <>
                               <span className="mx-2">•</span>
-                              <span>{assistance.suppliers.name}</span>
+                              <HighlightText text={assistance.suppliers.name} highlight={searchTerm} />
                             </>
                           )}
                         </div>
