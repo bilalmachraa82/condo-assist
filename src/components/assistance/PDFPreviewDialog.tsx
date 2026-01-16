@@ -13,7 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Mail, Building2, Wrench, User, Phone, FileText, Key, UserCheck } from "lucide-react";
+import { Loader2, Mail, Building2, Wrench, User, Phone, FileText, Key, UserCheck, Copy, Check } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import type { Assistance } from "@/hooks/useAssistances";
@@ -55,6 +56,8 @@ export function PDFPreviewDialog({
   const [recipientEmail, setRecipientEmail] = useState(defaultEmail);
   const [emailError, setEmailError] = useState("");
   const [showSupplierConfirmation, setShowSupplierConfirmation] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
+  const [copiedPhone, setCopiedPhone] = useState(false);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -95,6 +98,22 @@ export function PDFPreviewDialog({
   };
 
   const isSupplierEmailSelected = recipientEmail === assistance.suppliers?.email;
+
+  const handleCopyEmail = async () => {
+    if (assistance.suppliers?.email) {
+      await navigator.clipboard.writeText(assistance.suppliers.email);
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2000);
+    }
+  };
+
+  const handleCopyPhone = async () => {
+    if (assistance.suppliers?.phone) {
+      await navigator.clipboard.writeText(assistance.suppliers.phone);
+      setCopiedPhone(true);
+      setTimeout(() => setCopiedPhone(false), 2000);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -264,19 +283,63 @@ export function PDFPreviewDialog({
                   <User className="h-4 w-4" />
                   FORNECEDOR ATRIBUÍDO
                 </div>
-                <div className="space-y-1 text-sm">
+                <div className="space-y-2 text-sm">
                   <p><strong>{assistance.suppliers.name}</strong></p>
                   {assistance.suppliers.email && (
-                    <p className="flex items-center gap-1 text-muted-foreground">
-                      <Mail className="h-3 w-3" />
-                      {assistance.suppliers.email}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="flex items-center gap-1 text-muted-foreground">
+                        <Mail className="h-3 w-3" />
+                        {assistance.suppliers.email}
+                      </p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={handleCopyEmail}
+                          >
+                            {copiedEmail ? (
+                              <Check className="h-3 w-3 text-emerald-600" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{copiedEmail ? "Copiado!" : "Copiar email"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                   )}
                   {assistance.suppliers.phone && (
-                    <p className="flex items-center gap-1 text-muted-foreground">
-                      <Phone className="h-3 w-3" />
-                      {assistance.suppliers.phone}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="flex items-center gap-1 text-muted-foreground">
+                        <Phone className="h-3 w-3" />
+                        {assistance.suppliers.phone}
+                      </p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={handleCopyPhone}
+                          >
+                            {copiedPhone ? (
+                              <Check className="h-3 w-3 text-emerald-600" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{copiedPhone ? "Copiado!" : "Copiar telefone"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                   )}
                 </div>
               </div>
