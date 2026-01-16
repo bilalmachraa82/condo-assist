@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Mail, Building2, Wrench, User, Phone, AtSign, FileText, Key } from "lucide-react";
+import { Loader2, Mail, Building2, Wrench, User, Phone, FileText, Key } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import type { Assistance } from "@/hooks/useAssistances";
@@ -88,7 +88,7 @@ export function PDFPreviewDialog({
             Pré-visualização do PDF
           </DialogTitle>
           <DialogDescription>
-            Reveja o conteúdo antes de enviar para arquivo@luvimg.com
+            Reveja o conteúdo do PDF antes de enviar. Pode alterar o destinatário abaixo.
           </DialogDescription>
         </DialogHeader>
 
@@ -204,7 +204,7 @@ export function PDFPreviewDialog({
                   <p><strong>{assistance.suppliers.name}</strong></p>
                   {assistance.suppliers.email && (
                     <p className="flex items-center gap-1 text-muted-foreground">
-                      <AtSign className="h-3 w-3" />
+                      <Mail className="h-3 w-3" />
                       {assistance.suppliers.email}
                     </p>
                   )}
