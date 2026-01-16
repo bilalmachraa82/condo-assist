@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Mail, Building2, Wrench, User, Phone, FileText, Key } from "lucide-react";
+import { Loader2, Mail, Building2, Wrench, User, Phone, FileText, Key, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import type { Assistance } from "@/hooks/useAssistances";
@@ -95,10 +95,24 @@ export function PDFPreviewDialog({
         <ScrollArea className="max-h-[55vh] pr-4">
           {/* Recipient Email Input */}
           <div className="mb-4 p-4 border rounded-lg bg-muted/30">
-            <Label htmlFor="recipient-email" className="text-sm font-medium flex items-center gap-2 mb-2">
-              <Mail className="h-4 w-4" />
-              Email do Destinatário
-            </Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="recipient-email" className="text-sm font-medium flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email do Destinatário
+              </Label>
+              {assistance.suppliers?.email && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => handleEmailChange(assistance.suppliers!.email!)}
+                >
+                  <UserCheck className="h-3 w-3" />
+                  Usar email do fornecedor
+                </Button>
+              )}
+            </div>
             <Input
               id="recipient-email"
               type="email"
@@ -110,9 +124,16 @@ export function PDFPreviewDialog({
             {emailError && (
               <p className="text-xs text-destructive mt-1">{emailError}</p>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
-              O PDF será enviado para este endereço de email.
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-muted-foreground">
+                O PDF será enviado para este endereço de email.
+              </p>
+              {assistance.suppliers?.email && recipientEmail !== assistance.suppliers.email && (
+                <p className="text-xs text-muted-foreground">
+                  Fornecedor: {assistance.suppliers.email}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* PDF Preview Content */}
