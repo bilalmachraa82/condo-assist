@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -53,11 +54,11 @@ const getPriorityLabel = (priority: string): string => {
   return labels[priority] || priority;
 };
 
-const getPriorityColor = (priority: string): string => {
+const getPriorityColor = (priority: string): { r: number; g: number; b: number } => {
   switch (priority) {
-    case "critical": return "#dc2626";
-    case "urgent": return "#f59e0b";
-    default: return "#3b82f6";
+    case "critical": return { r: 0.86, g: 0.15, b: 0.15 }; // #dc2626
+    case "urgent": return { r: 0.96, g: 0.62, b: 0.04 }; // #f59e0b
+    default: return { r: 0.23, g: 0.51, b: 0.91 }; // #3b82f6
   }
 };
 
@@ -71,115 +72,353 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-const generatePDFHtml = (assistance: AssistanceData): string => {
-  const priorityColor = getPriorityColor(assistance.priority);
+const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): Promise<Uint8Array> => {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595, 842]); // A4
+  const { height } = page.getSize();
   
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Assistência #${assistance.assistance_number}</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
-    .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
-    .header h1 { margin: 0; color: #1e40af; font-size: 24px; }
-    .header p { margin: 5px 0 0 0; color: #666; font-size: 14px; }
-    .banner { background: #dbeafe; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; }
-    .banner.urgent { background: #fef3c7; }
-    .banner.critical { background: #fee2e2; }
-    .banner h2 { margin: 5px 0 0 0; font-size: 28px; color: #1e40af; }
-    .priority-badge { background: ${priorityColor}; color: white; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; display: inline-block; }
-    .section { background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-    .section.supplier { background: #ecfdf5; border-color: #a7f3d0; }
-    .section.quotation { background: #fef3c7; border-color: #fcd34d; }
-    .section h4 { margin: 0 0 15px 0; color: #1e40af; font-size: 16px; }
-    .section.supplier h4 { color: #059669; }
-    .section.quotation h4 { color: #b45309; }
-    table { width: 100%; border-collapse: collapse; }
-    td { padding: 8px 0; }
-    td:first-child { color: #666; width: 30%; }
-    .instructions { background: #eff6ff; padding: 20px; border-radius: 8px; border: 2px dashed #3b82f6; margin-top: 30px; }
-    .instructions h4 { margin: 0 0 10px 0; color: #1e40af; }
-    .instructions ol { margin: 0; padding-left: 20px; color: #1e3a8a; line-height: 1.8; }
-    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; color: #999; font-size: 12px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>LUVIMG - Gestão de Condomínios</h1>
-    <p>Pedido de Assistência para Reencaminhar</p>
-    <p style="font-size: 12px; color: #999; margin-top: 10px;">Gerado em: ${formatDate(new Date().toISOString())}</p>
-  </div>
-
-  <div class="banner ${assistance.priority}">
-    <span style="font-size: 14px; color: #666;">Assistência Nº</span>
-    <h2>${assistance.assistance_number || "N/A"}</h2>
-    <div style="margin-top: 10px;">
-      <span class="priority-badge">${getPriorityLabel(assistance.priority)}</span>
-    </div>
-  </div>
-
-  <div style="margin-bottom: 25px;">
-    <h3 style="margin: 0 0 10px 0; color: #1e40af; font-size: 18px;">${assistance.title}</h3>
-    ${assistance.description ? `<p style="margin: 0; color: #666; line-height: 1.6; white-space: pre-wrap;">${assistance.description}</p>` : ""}
-  </div>
-
-  <div class="section">
-    <h4>📍 Informação do Edifício</h4>
-    <table>
-      <tr><td>Código:</td><td><strong>${assistance.buildings?.code || "N/A"}</strong></td></tr>
-      <tr><td>Nome:</td><td><strong>${assistance.buildings?.name || "N/A"}</strong></td></tr>
-      ${assistance.buildings?.nif ? `<tr><td>NIF:</td><td>${assistance.buildings.nif}</td></tr>` : ""}
-      ${assistance.buildings?.address ? `<tr><td>Morada:</td><td>${assistance.buildings.address}</td></tr>` : ""}
-    </table>
-  </div>
-
-  <div class="section">
-    <h4>🔧 Tipo de Intervenção</h4>
-    <p style="margin: 0;"><strong>${assistance.intervention_types?.name || "N/A"}</strong>${assistance.intervention_types?.category ? ` (${assistance.intervention_types.category})` : ""}</p>
-  </div>
-
-  ${assistance.suppliers ? `
-  <div class="section supplier">
-    <h4>👷 Fornecedor Atribuído</h4>
-    <table>
-      <tr><td>Nome:</td><td><strong>${assistance.suppliers.name}</strong></td></tr>
-      ${assistance.suppliers.email ? `<tr><td>Email:</td><td>${assistance.suppliers.email}</td></tr>` : ""}
-      ${assistance.suppliers.phone ? `<tr><td>Telefone:</td><td>${assistance.suppliers.phone}</td></tr>` : ""}
-      ${assistance.suppliers.specialization ? `<tr><td>Especialização:</td><td>${assistance.suppliers.specialization}</td></tr>` : ""}
-    </table>
-  </div>
-  ` : ""}
-
-  ${assistance.requires_quotation ? `
-  <div class="section quotation">
-    <h4>💰 Orçamento Requerido</h4>
-    <p style="margin: 0; color: #92400e;">
-      Esta assistência requer orçamento antes de iniciar.
-      ${assistance.quotation_deadline ? ` Prazo: <strong>${formatDate(assistance.quotation_deadline)}</strong>` : ""}
-    </p>
-  </div>
-  ` : ""}
-
-  <div class="instructions">
-    <h4>📧 Instruções para Reencaminhamento</h4>
-    <ol>
-      <li>Reveja os detalhes desta assistência</li>
-      <li>Reencaminhe este email para o fornecedor: <strong>${assistance.suppliers?.email || "N/A"}</strong></li>
-      <li>O código de acesso ao portal está incluído no corpo deste email</li>
-      <li>O fornecedor poderá aceder ao portal para responder/agendar</li>
-    </ol>
-  </div>
-
-  <div class="footer">
-    <p>LUVIMG - Gestão de Condomínios | arquivo@luvimg.com</p>
-    <p>Documento gerado automaticamente pelo sistema de gestão de assistências</p>
-  </div>
-</body>
-</html>
-  `;
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  
+  const primaryColor = rgb(0.12, 0.25, 0.69); // #1e40af
+  const textColor = rgb(0.2, 0.2, 0.2);
+  const grayColor = rgb(0.4, 0.4, 0.4);
+  const priorityRgb = getPriorityColor(assistance.priority);
+  
+  let y = height - 50;
+  const leftMargin = 50;
+  const contentWidth = 495;
+  
+  // Header - LUVIMG
+  page.drawText("LUVIMG - Gestão de Condomínios", {
+    x: leftMargin,
+    y,
+    size: 20,
+    font: helveticaBold,
+    color: primaryColor,
+  });
+  
+  y -= 20;
+  page.drawText("Pedido de Assistência", {
+    x: leftMargin,
+    y,
+    size: 12,
+    font: helvetica,
+    color: grayColor,
+  });
+  
+  y -= 15;
+  page.drawText(`Gerado em: ${formatDate(new Date().toISOString())}`, {
+    x: leftMargin,
+    y,
+    size: 10,
+    font: helvetica,
+    color: grayColor,
+  });
+  
+  // Blue line separator
+  y -= 15;
+  page.drawLine({
+    start: { x: leftMargin, y },
+    end: { x: leftMargin + contentWidth, y },
+    thickness: 3,
+    color: primaryColor,
+  });
+  
+  // Assistance Number and Priority
+  y -= 40;
+  page.drawText(`ASSISTÊNCIA Nº ${assistance.assistance_number || "N/A"}`, {
+    x: leftMargin,
+    y,
+    size: 24,
+    font: helveticaBold,
+    color: primaryColor,
+  });
+  
+  // Priority badge
+  y -= 30;
+  const priorityLabel = getPriorityLabel(assistance.priority);
+  const badgeWidth = priorityLabel.length * 8 + 20;
+  page.drawRectangle({
+    x: leftMargin,
+    y: y - 5,
+    width: badgeWidth,
+    height: 22,
+    color: rgb(priorityRgb.r, priorityRgb.g, priorityRgb.b),
+    borderRadius: 10,
+  });
+  page.drawText(priorityLabel.toUpperCase(), {
+    x: leftMargin + 10,
+    y: y + 2,
+    size: 11,
+    font: helveticaBold,
+    color: rgb(1, 1, 1),
+  });
+  
+  // Title and Description
+  y -= 40;
+  page.drawText(assistance.title, {
+    x: leftMargin,
+    y,
+    size: 16,
+    font: helveticaBold,
+    color: textColor,
+  });
+  
+  if (assistance.description) {
+    y -= 20;
+    const descLines = splitTextIntoLines(assistance.description, helvetica, 11, contentWidth);
+    for (const line of descLines) {
+      page.drawText(line, {
+        x: leftMargin,
+        y,
+        size: 11,
+        font: helvetica,
+        color: grayColor,
+      });
+      y -= 15;
+    }
+  }
+  
+  // Section: Building Info
+  y -= 20;
+  page.drawRectangle({
+    x: leftMargin,
+    y: y - 70,
+    width: contentWidth,
+    height: 80,
+    color: rgb(0.97, 0.98, 0.99),
+    borderColor: rgb(0.89, 0.91, 0.94),
+    borderWidth: 1,
+  });
+  
+  y -= 5;
+  page.drawText("📍 EDIFÍCIO", {
+    x: leftMargin + 10,
+    y,
+    size: 12,
+    font: helveticaBold,
+    color: primaryColor,
+  });
+  
+  y -= 20;
+  page.drawText(`Código: ${assistance.buildings?.code || "N/A"}`, {
+    x: leftMargin + 10,
+    y,
+    size: 11,
+    font: helvetica,
+    color: textColor,
+  });
+  
+  y -= 15;
+  page.drawText(`Nome: ${assistance.buildings?.name || "N/A"}`, {
+    x: leftMargin + 10,
+    y,
+    size: 11,
+    font: helvetica,
+    color: textColor,
+  });
+  
+  if (assistance.buildings?.nif) {
+    y -= 15;
+    page.drawText(`NIF: ${assistance.buildings.nif}`, {
+      x: leftMargin + 10,
+      y,
+      size: 11,
+      font: helvetica,
+      color: textColor,
+    });
+  }
+  
+  if (assistance.buildings?.address) {
+    y -= 15;
+    page.drawText(`Morada: ${assistance.buildings.address}`, {
+      x: leftMargin + 10,
+      y,
+      size: 11,
+      font: helvetica,
+      color: textColor,
+    });
+  }
+  
+  // Section: Intervention Type
+  y -= 30;
+  page.drawRectangle({
+    x: leftMargin,
+    y: y - 35,
+    width: contentWidth,
+    height: 45,
+    color: rgb(0.97, 0.98, 0.99),
+    borderColor: rgb(0.89, 0.91, 0.94),
+    borderWidth: 1,
+  });
+  
+  y -= 5;
+  page.drawText("🔧 TIPO DE INTERVENÇÃO", {
+    x: leftMargin + 10,
+    y,
+    size: 12,
+    font: helveticaBold,
+    color: primaryColor,
+  });
+  
+  y -= 20;
+  const interventionText = assistance.intervention_types?.name || "N/A";
+  const categoryText = assistance.intervention_types?.category ? ` (${assistance.intervention_types.category})` : "";
+  page.drawText(`${interventionText}${categoryText}`, {
+    x: leftMargin + 10,
+    y,
+    size: 11,
+    font: helvetica,
+    color: textColor,
+  });
+  
+  // Section: Supplier
+  if (assistance.suppliers) {
+    y -= 30;
+    page.drawRectangle({
+      x: leftMargin,
+      y: y - 70,
+      width: contentWidth,
+      height: 80,
+      color: rgb(0.93, 0.99, 0.96),
+      borderColor: rgb(0.65, 0.95, 0.82),
+      borderWidth: 1,
+    });
+    
+    y -= 5;
+    page.drawText("👷 FORNECEDOR ATRIBUÍDO", {
+      x: leftMargin + 10,
+      y,
+      size: 12,
+      font: helveticaBold,
+      color: rgb(0.02, 0.59, 0.41), // #059669
+    });
+    
+    y -= 20;
+    page.drawText(`Nome: ${assistance.suppliers.name}`, {
+      x: leftMargin + 10,
+      y,
+      size: 11,
+      font: helvetica,
+      color: textColor,
+    });
+    
+    if (assistance.suppliers.email) {
+      y -= 15;
+      page.drawText(`Email: ${assistance.suppliers.email}`, {
+        x: leftMargin + 10,
+        y,
+        size: 11,
+        font: helvetica,
+        color: textColor,
+      });
+    }
+    
+    if (assistance.suppliers.phone) {
+      y -= 15;
+      page.drawText(`Telefone: ${assistance.suppliers.phone}`, {
+        x: leftMargin + 10,
+        y,
+        size: 11,
+        font: helvetica,
+        color: textColor,
+      });
+    }
+  }
+  
+  // Section: Magic Code (if provided)
+  if (magicCode) {
+    y -= 40;
+    page.drawRectangle({
+      x: leftMargin,
+      y: y - 55,
+      width: contentWidth,
+      height: 65,
+      color: rgb(1, 0.97, 0.86),
+      borderColor: rgb(0.99, 0.83, 0.30),
+      borderWidth: 2,
+    });
+    
+    y -= 5;
+    page.drawText("🔑 CÓDIGO DE ACESSO AO PORTAL", {
+      x: leftMargin + 10,
+      y,
+      size: 12,
+      font: helveticaBold,
+      color: rgb(0.71, 0.26, 0.05), // #b45309
+    });
+    
+    y -= 25;
+    page.drawText(magicCode, {
+      x: leftMargin + 10,
+      y,
+      size: 18,
+      font: helveticaBold,
+      color: textColor,
+    });
+    
+    y -= 18;
+    page.drawText("Portal: condo-assist.lovable.app/fornecedor", {
+      x: leftMargin + 10,
+      y,
+      size: 10,
+      font: helvetica,
+      color: grayColor,
+    });
+  }
+  
+  // Footer
+  page.drawLine({
+    start: { x: leftMargin, y: 60 },
+    end: { x: leftMargin + contentWidth, y: 60 },
+    thickness: 1,
+    color: rgb(0.89, 0.91, 0.94),
+  });
+  
+  page.drawText("LUVIMG - Gestão de Condomínios | arquivo@luvimg.com", {
+    x: leftMargin,
+    y: 45,
+    size: 10,
+    font: helvetica,
+    color: grayColor,
+  });
+  
+  page.drawText("Documento gerado automaticamente pelo sistema de gestão de assistências", {
+    x: leftMargin,
+    y: 32,
+    size: 9,
+    font: helvetica,
+    color: grayColor,
+  });
+  
+  return await pdfDoc.save();
 };
+
+// Helper to split text into lines
+function splitTextIntoLines(text: string, font: any, fontSize: number, maxWidth: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+  
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const width = font.widthOfTextAtSize(testLine, fontSize);
+    
+    if (width > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  
+  return lines.slice(0, 5); // Limit to 5 lines
+}
 
 const handler = async (req: Request): Promise<Response> => {
   console.log("send-assistance-pdf-to-admin function called");
@@ -246,10 +485,13 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    console.log(`Sending PDF to admin email: ${targetEmail}`);
+    console.log(`Generating real PDF for assistance #${assistance.assistance_number}`);
 
-    // Generate HTML for PDF
-    const pdfHtml = generatePDFHtml(assistance as AssistanceData);
+    // Generate real PDF
+    const pdfBytes = await generateRealPDF(assistance as AssistanceData, magicCode);
+    const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
+
+    console.log(`Sending PDF to admin email: ${targetEmail}`);
 
     // Build email body
     const priorityEmoji = assistance.priority === "critical" ? "🔴" : 
@@ -299,7 +541,7 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    // Send email with HTML as attachment
+    // Send email with real PDF attachment
     const emailResponse = await resend.emails.send({
       from: "LUVIMG Assistências <onboarding@resend.dev>",
       to: [targetEmail],
@@ -307,13 +549,14 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailBody,
       attachments: [
         {
-          filename: `assistencia-${assistance.assistance_number}.html`,
-          content: Buffer.from(pdfHtml).toString("base64"),
+          filename: `assistencia-${assistance.assistance_number}.pdf`,
+          content: pdfBase64,
+          contentType: 'application/pdf',
         },
       ],
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Email sent successfully with real PDF:", emailResponse);
 
     // Log the email
     await supabase.from("email_logs").insert({
@@ -326,13 +569,14 @@ const handler = async (req: Request): Promise<Response> => {
       metadata: {
         email_mode: "admin_first",
         magic_code_included: !!magicCode,
+        pdf_format: "real_pdf",
       },
     });
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `PDF enviado para ${targetEmail}`,
+        message: `PDF real enviado para ${targetEmail}`,
         emailId: emailResponse.id,
       }),
       {

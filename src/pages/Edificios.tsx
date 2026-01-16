@@ -85,6 +85,17 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
     filterAssistances(closedAssistances), [closedAssistances, filterAssistances]
   );
 
+  // Combined list for "Todas" tab
+  const filteredAllAssistances = useMemo(() => 
+    filterAssistances(buildingAssistances), [buildingAssistances, filterAssistances]
+  );
+
+  // Auto-select "all" tab when searching
+  const [activeTab, setActiveTab] = useState("open");
+  
+  // Effect to switch to "all" tab when user starts searching
+  const effectiveTab = searchTerm.trim() ? "all" : activeTab;
+
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -187,8 +198,13 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
       </Card>
 
       {/* Assistances Tabs */}
-      <Tabs defaultValue="open" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={effectiveTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="all">
+            Todas ({filteredAllAssistances.length}
+            {searchTerm && filteredAllAssistances.length !== buildingAssistances.length && 
+              ` de ${buildingAssistances.length}`})
+          </TabsTrigger>
           <TabsTrigger value="open">
             Abertas ({filteredOpenAssistances.length}
             {searchTerm && filteredOpenAssistances.length !== openAssistances.length && 
@@ -200,6 +216,87 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
               ` de ${closedAssistances.length}`})
           </TabsTrigger>
         </TabsList>
+        
+        {/* Tab: All Assistances */}
+        <TabsContent value="all" className="mt-6">
+          <div className="space-y-4">
+            {searchTerm && filteredAllAssistances.length === 0 && buildingAssistances.length > 0 ? (
+              <Card className="p-8">
+                <div className="text-center space-y-2">
+                  <Search className="h-12 w-12 text-muted-foreground mx-auto" />
+                  <h3 className="text-lg font-semibold">Nenhum resultado encontrado</h3>
+                  <p className="text-muted-foreground">
+                    Não foram encontradas assistências para "{searchTerm}"
+                  </p>
+                  <Button variant="outline" onClick={() => setSearchTerm("")}>
+                    Limpar pesquisa
+                  </Button>
+                </div>
+              </Card>
+            ) : buildingAssistances.length === 0 ? (
+              <Card className="p-8">
+                <div className="text-center space-y-2">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto" />
+                  <h3 className="text-lg font-semibold">Nenhuma assistência</h3>
+                  <p className="text-muted-foreground">
+                    Este edifício ainda não tem assistências registadas.
+                  </p>
+                </div>
+              </Card>
+            ) : (
+              filteredAllAssistances.map((assistance) => {
+                const isOpen = !CLOSED_ASSISTANCE_STATUSES.includes(assistance.status as any);
+                return (
+                  <Card key={assistance.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            {getStatusIcon(assistance.status)}
+                            <StatusBadge status={assistance.status} />
+                            <Badge variant={isOpen ? "outline" : "secondary"} className={isOpen ? "border-warning text-warning" : "bg-muted text-muted-foreground"}>
+                              {isOpen ? "Aberta" : "Fechada"}
+                            </Badge>
+                          </div>
+                          <h3 className="font-semibold text-lg mb-1">
+                            <HighlightText 
+                              text={assistance.intervention_types?.name || assistance.title} 
+                              highlight={searchTerm} 
+                            />
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            <HighlightText 
+                              text={assistance.description || 'Sem descrição'} 
+                              highlight={searchTerm} 
+                            />
+                          </p>
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {format(new Date(assistance.created_at), "dd/MM/yyyy HH:mm", { locale: pt })}
+                            {assistance.suppliers && (
+                              <>
+                                <span className="mx-2">•</span>
+                                <HighlightText text={assistance.suppliers.name} highlight={searchTerm} />
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedAssistance(assistance)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Detalhes
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        </TabsContent>
         
         <TabsContent value="open" className="mt-6">
           <div className="space-y-4">
