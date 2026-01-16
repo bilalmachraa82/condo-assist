@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -769,7 +770,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Generate the premium PDF
     const pdfBytes = await generateRealPDF(assistance as unknown as AssistanceData, isArchiveMode ? undefined : magicCode);
-    const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
+    // Use Deno's base64 encode to avoid stack overflow with large arrays
+    const pdfBase64 = base64Encode(pdfBytes);
 
     console.log(`PDF generated, size: ${pdfBytes.length} bytes`);
 
