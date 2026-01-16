@@ -59,11 +59,14 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
   const { toast } = useToast();
   const { data: assistanceData } = useAssistance(assistance.id);
 
-  const handleSendPdfToAdmin = async () => {
+  const handleSendPdfToAdmin = async (customEmail?: string) => {
     setIsSendingPdf(true);
     try {
       const response = await supabase.functions.invoke('send-assistance-pdf-to-admin', {
-        body: { assistanceId: assistance.id }
+        body: { 
+          assistanceId: assistance.id,
+          adminEmail: customEmail 
+        }
       });
 
       if (response.error) {
@@ -72,7 +75,7 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
 
       toast({
         title: "PDF Enviado",
-        description: "O PDF foi enviado para arquivo@luvimg.com com sucesso.",
+        description: `O PDF foi enviado para ${customEmail || 'arquivo@luvimg.com'} com sucesso.`,
       });
     } catch (error: any) {
       console.error("Error sending PDF:", error);

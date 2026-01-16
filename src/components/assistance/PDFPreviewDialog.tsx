@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Loader2, Mail, Building2, Wrench, User, Phone, AtSign, FileText, Key } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -20,8 +22,9 @@ interface PDFPreviewDialogProps {
   assistance: Assistance;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => Promise<void>;
+  onConfirm: (customEmail?: string) => Promise<void>;
   isLoading?: boolean;
+  defaultEmail?: string;
 }
 
 const getPriorityLabel = (priority: string): string => {
@@ -46,11 +49,34 @@ export function PDFPreviewDialog({
   open, 
   onOpenChange, 
   onConfirm,
-  isLoading = false 
+  isLoading = false,
+  defaultEmail = "arquivo@luvimg.com"
 }: PDFPreviewDialogProps) {
+  const [recipientEmail, setRecipientEmail] = useState(defaultEmail);
+  const [emailError, setEmailError] = useState("");
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleConfirm = async () => {
-    await onConfirm();
+    if (!recipientEmail.trim()) {
+      setEmailError("Email é obrigatório");
+      return;
+    }
+    if (!validateEmail(recipientEmail)) {
+      setEmailError("Email inválido");
+      return;
+    }
+    setEmailError("");
+    await onConfirm(recipientEmail);
     onOpenChange(false);
+  };
+
+  const handleEmailChange = (value: string) => {
+    setRecipientEmail(value);
+    if (emailError) setEmailError("");
   };
 
   return (
@@ -66,7 +92,29 @@ export function PDFPreviewDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-4">
+        <ScrollArea className="max-h-[55vh] pr-4">
+          {/* Recipient Email Input */}
+          <div className="mb-4 p-4 border rounded-lg bg-muted/30">
+            <Label htmlFor="recipient-email" className="text-sm font-medium flex items-center gap-2 mb-2">
+              <Mail className="h-4 w-4" />
+              Email do Destinatário
+            </Label>
+            <Input
+              id="recipient-email"
+              type="email"
+              value={recipientEmail}
+              onChange={(e) => handleEmailChange(e.target.value)}
+              placeholder="exemplo@email.com"
+              className={emailError ? "border-destructive" : ""}
+            />
+            {emailError && (
+              <p className="text-xs text-destructive mt-1">{emailError}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              O PDF será enviado para este endereço de email.
+            </p>
+          </div>
+
           {/* PDF Preview Content */}
           <div className="space-y-4 border rounded-lg p-6 bg-background shadow-inner">
             {/* Header */}
