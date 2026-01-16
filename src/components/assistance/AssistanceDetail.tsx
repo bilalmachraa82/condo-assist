@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, Building2, User, Calendar, Clock, AlertTriangle, Settings, Trash2, Edit, Mail, Loader2, Download } from "lucide-react";
+import { ArrowLeft, Building2, User, Calendar, Clock, Settings, Trash2, Edit, Mail, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StatusBadge, PriorityBadge } from "@/components/ui/status-badges";
