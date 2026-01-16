@@ -477,7 +477,9 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Assistance fetched:", assistance.title);
 
     // Get admin email from settings if not provided
-    let targetEmail = adminEmail || "arquivo@luvimg.com";
+    // NOTE: Resend in test mode only allows sending to the account owner's email
+    // Once domain is verified at resend.com/domains, change this to use the actual admin email
+    let targetEmail = adminEmail || "bilal.machraa@gmail.com"; // Temporary: using Resend account email
     
     if (!adminEmail) {
       const { data: setting } = await supabase
@@ -486,11 +488,15 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("key", "admin_email")
         .single();
       
-      if (setting?.value) {
-        targetEmail = typeof setting.value === "string" 
-          ? setting.value.replace(/"/g, "") 
-          : setting.value;
-      }
+      // For now, we override with the Resend account email since domain is not verified
+      // Once luvimg.com is verified at resend.com/domains, uncomment the line below:
+      // if (setting?.value) {
+      //   targetEmail = typeof setting.value === "string" 
+      //     ? setting.value.replace(/"/g, "") 
+      //     : setting.value;
+      // }
+      
+      console.log("Admin email setting found:", setting?.value, "but using Resend account email due to unverified domain");
     }
 
     console.log(`Generating real PDF for assistance #${assistance.assistance_number}`);
