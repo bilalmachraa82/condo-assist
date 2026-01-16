@@ -194,7 +194,7 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   });
   
   y -= 5;
-  page.drawText("📍 EDIFÍCIO", {
+  page.drawText("EDIFICIO", {
     x: leftMargin + 10,
     y,
     size: 12,
@@ -255,7 +255,7 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   });
   
   y -= 5;
-  page.drawText("🔧 TIPO DE INTERVENÇÃO", {
+  page.drawText("TIPO DE INTERVENCAO", {
     x: leftMargin + 10,
     y,
     size: 12,
@@ -288,7 +288,7 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
     });
     
     y -= 5;
-    page.drawText("👷 FORNECEDOR ATRIBUÍDO", {
+    page.drawText("FORNECEDOR ATRIBUIDO", {
       x: leftMargin + 10,
       y,
       size: 12,
@@ -342,7 +342,7 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
     });
     
     y -= 5;
-    page.drawText("🔑 CÓDIGO DE ACESSO AO PORTAL", {
+    page.drawText("CODIGO DE ACESSO AO PORTAL", {
       x: leftMargin + 10,
       y,
       size: 12,
@@ -398,11 +398,16 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
 
 // Helper to split text into lines
 function splitTextIntoLines(text: string, font: any, fontSize: number, maxWidth: number): string[] {
-  const words = text.split(' ');
+  // Clean the text: remove newlines and extra whitespace
+  const cleanText = text.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const words = cleanText.split(' ');
   const lines: string[] = [];
   let currentLine = '';
   
   for (const word of words) {
+    // Skip empty words
+    if (!word) continue;
+    
     const testLine = currentLine ? `${currentLine} ${word}` : word;
     const width = font.widthOfTextAtSize(testLine, fontSize);
     
