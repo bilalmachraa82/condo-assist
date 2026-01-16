@@ -43,6 +43,7 @@ interface RequestBody {
   assistanceId: string;
   adminEmail?: string;
   magicCode?: string;
+  mode?: 'archive' | 'forward'; // 'archive' = simple PDF, 'forward' = with magic code for supplier
 }
 
 const getPriorityLabel = (priority: string): string => {
@@ -428,13 +429,14 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { assistanceId, adminEmail, magicCode }: RequestBody = await req.json();
+    const { assistanceId, adminEmail, magicCode, mode = 'archive' }: RequestBody = await req.json();
 
     if (!assistanceId) {
       throw new Error("assistanceId is required");
     }
 
-    console.log(`Fetching assistance data for ID: ${assistanceId}`);
+    const isArchiveMode = mode === 'archive' || !magicCode;
+    console.log(`Fetching assistance data for ID: ${assistanceId} (mode: ${isArchiveMode ? 'archive' : 'forward'})`);
 
     // Create Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -487,65 +489,92 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Generating real PDF for assistance #${assistance.assistance_number}`);
 
-    // Generate real PDF
-    const pdfBytes = await generateRealPDF(assistance as AssistanceData, magicCode);
+    // Generate real PDF - only include magic code if in forward mode
+    const pdfBytes = await generateRealPDF(assistance as AssistanceData, isArchiveMode ? undefined : magicCode);
     const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
 
-    console.log(`Sending PDF to admin email: ${targetEmail}`);
+    console.log(`Sending PDF to email: ${targetEmail} (mode: ${isArchiveMode ? 'archive' : 'forward'})`);
 
-    // Build email body
+    // Build email body based on mode
     const priorityEmoji = assistance.priority === "critical" ? "🔴" : 
                          assistance.priority === "urgent" ? "🟡" : "🟢";
     
-    let emailBody = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #1e40af;">${priorityEmoji} Nova Assistência para Reencaminhar</h2>
-        
-        <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>Assistência #${assistance.assistance_number}:</strong> ${assistance.title}</p>
-          <p><strong>Prioridade:</strong> ${getPriorityLabel(assistance.priority)}</p>
-          <p><strong>Edifício:</strong> ${assistance.buildings?.code} - ${assistance.buildings?.name}</p>
-          <p><strong>Fornecedor:</strong> ${assistance.suppliers?.name || "Não atribuído"}</p>
-          ${assistance.suppliers?.email ? `<p><strong>Email do Fornecedor:</strong> ${assistance.suppliers.email}</p>` : ""}
-        </div>
-    `;
+    let emailBody: string;
+    let emailSubject: string;
 
-    if (magicCode) {
-      emailBody += `
-        <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #f59e0b;">
-          <h3 style="color: #b45309; margin-top: 0;">🔑 Código de Acesso ao Portal</h3>
-          <p style="font-size: 24px; font-family: monospace; background: white; padding: 15px; text-align: center; border-radius: 4px; letter-spacing: 4px;">
-            <strong>${magicCode}</strong>
+    if (isArchiveMode) {
+      // Simple archive mode - just the PDF with minimal email content
+      emailSubject = `${priorityEmoji} [Assistência #${assistance.assistance_number}] ${assistance.title}`;
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1e40af;">📋 Documento de Assistência</h2>
+          
+          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Assistência #${assistance.assistance_number}:</strong> ${assistance.title}</p>
+            <p><strong>Prioridade:</strong> ${getPriorityLabel(assistance.priority)}</p>
+            <p><strong>Edifício:</strong> ${assistance.buildings?.code} - ${assistance.buildings?.name}</p>
+            ${assistance.buildings?.address ? `<p><strong>Morada:</strong> ${assistance.buildings.address}</p>` : ""}
+            ${assistance.suppliers ? `<p><strong>Fornecedor:</strong> ${assistance.suppliers.name}</p>` : ""}
+          </div>
+          
+          <p style="color: #374151;">
+            Em anexo encontra o documento PDF com todos os detalhes da assistência.
           </p>
-          <p style="color: #92400e; font-size: 14px;">
-            Inclua este código ao reencaminhar para o fornecedor. 
-            O fornecedor pode aceder ao portal em: <a href="https://condo-assist.lovable.app/fornecedor">Portal do Fornecedor</a>
+          
+          <p style="color: #666; font-size: 12px; text-align: center; margin-top: 30px;">
+            Este email foi gerado automaticamente pelo sistema LUVIMG.
+          </p>
+        </div>
+      `;
+    } else {
+      // Forward mode - with magic code and instructions for forwarding to supplier
+      emailSubject = `${priorityEmoji} [Assistência #${assistance.assistance_number}] ${assistance.title} - Para Reencaminhar`;
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1e40af;">${priorityEmoji} Nova Assistência para Reencaminhar</h2>
+          
+          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Assistência #${assistance.assistance_number}:</strong> ${assistance.title}</p>
+            <p><strong>Prioridade:</strong> ${getPriorityLabel(assistance.priority)}</p>
+            <p><strong>Edifício:</strong> ${assistance.buildings?.code} - ${assistance.buildings?.name}</p>
+            <p><strong>Fornecedor:</strong> ${assistance.suppliers?.name || "Não atribuído"}</p>
+            ${assistance.suppliers?.email ? `<p><strong>Email do Fornecedor:</strong> ${assistance.suppliers.email}</p>` : ""}
+          </div>
+
+          ${magicCode ? `
+          <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #f59e0b;">
+            <h3 style="color: #b45309; margin-top: 0;">🔑 Código de Acesso ao Portal</h3>
+            <p style="font-size: 24px; font-family: monospace; background: white; padding: 15px; text-align: center; border-radius: 4px; letter-spacing: 4px;">
+              <strong>${magicCode}</strong>
+            </p>
+            <p style="color: #92400e; font-size: 14px;">
+              Inclua este código ao reencaminhar para o fornecedor. 
+              O fornecedor pode aceder ao portal em: <a href="https://condo-assist.lovable.app/fornecedor">Portal do Fornecedor</a>
+            </p>
+          </div>
+          ` : ""}
+      
+          <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1e40af; margin-top: 0;">📋 Próximos Passos</h3>
+            <ol style="color: #1e3a8a; line-height: 1.8;">
+              <li>Reveja o PDF anexado com todos os detalhes</li>
+              <li>Reencaminhe este email para: <strong>${assistance.suppliers?.email || "fornecedor"}</strong></li>
+              ${magicCode ? "<li>Certifique-se de incluir o código de acesso</li>" : ""}
+            </ol>
+          </div>
+          
+          <p style="color: #666; font-size: 12px; text-align: center; margin-top: 30px;">
+            Este email foi gerado automaticamente pelo sistema LUVIMG.
           </p>
         </div>
       `;
     }
 
-    emailBody += `
-        <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="color: #1e40af; margin-top: 0;">📋 Próximos Passos</h3>
-          <ol style="color: #1e3a8a; line-height: 1.8;">
-            <li>Reveja o PDF anexado com todos os detalhes</li>
-            <li>Reencaminhe este email para: <strong>${assistance.suppliers?.email || "fornecedor"}</strong></li>
-            <li>Certifique-se de incluir o código de acesso</li>
-          </ol>
-        </div>
-        
-        <p style="color: #666; font-size: 12px; text-align: center; margin-top: 30px;">
-          Este email foi gerado automaticamente pelo sistema LUVIMG.
-        </p>
-      </div>
-    `;
-
     // Send email with real PDF attachment
     const emailResponse = await resend.emails.send({
       from: "LUVIMG Assistências <onboarding@resend.dev>",
       to: [targetEmail],
-      subject: `${priorityEmoji} [Assistência #${assistance.assistance_number}] ${assistance.title} - Para Reencaminhar`,
+      subject: emailSubject,
       html: emailBody,
       attachments: [
         {
@@ -561,14 +590,14 @@ const handler = async (req: Request): Promise<Response> => {
     // Log the email
     await supabase.from("email_logs").insert({
       recipient_email: targetEmail,
-      subject: `[Assistência #${assistance.assistance_number}] ${assistance.title}`,
-      template_used: "admin_pdf_forward",
+      subject: emailSubject,
+      template_used: isArchiveMode ? "admin_pdf_archive" : "admin_pdf_forward",
       status: "sent",
       assistance_id: assistanceId,
       supplier_id: assistance.suppliers?.id || null,
       metadata: {
-        email_mode: "admin_first",
-        magic_code_included: !!magicCode,
+        email_mode: isArchiveMode ? "archive" : "forward",
+        magic_code_included: !isArchiveMode && !!magicCode,
         pdf_format: "real_pdf",
       },
     });

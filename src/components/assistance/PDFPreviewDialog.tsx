@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Mail, Building2, Wrench, User, Phone, FileText, Key, UserCheck, Copy, Check } from "lucide-react";
+import { Loader2, Mail, Building2, Wrench, User, Phone, FileText, UserCheck, Copy, Check } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -344,17 +344,6 @@ export function PDFPreviewDialog({
                 </div>
               </div>
             )}
-
-            {/* Magic Code Info */}
-            <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg border-2 border-dashed border-amber-400 space-y-2">
-              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-semibold">
-                <Key className="h-4 w-4" />
-                CÓDIGO DE ACESSO
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Um código de acesso ao portal será gerado automaticamente e incluído no PDF.
-              </p>
-            </div>
 
             {/* Footer Preview */}
             <div className="border-t pt-4 text-center text-xs text-muted-foreground">
