@@ -54,6 +54,7 @@ export function PDFPreviewDialog({
 }: PDFPreviewDialogProps) {
   const [recipientEmail, setRecipientEmail] = useState(defaultEmail);
   const [emailError, setEmailError] = useState("");
+  const [showSupplierConfirmation, setShowSupplierConfirmation] = useState(false);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -77,7 +78,23 @@ export function PDFPreviewDialog({
   const handleEmailChange = (value: string) => {
     setRecipientEmail(value);
     if (emailError) setEmailError("");
+    // Hide supplier confirmation if user changes email manually
+    if (showSupplierConfirmation && value !== assistance.suppliers?.email) {
+      setShowSupplierConfirmation(false);
+    }
   };
+
+  const handleUseSupplierEmail = () => {
+    if (assistance.suppliers?.email) {
+      setRecipientEmail(assistance.suppliers.email);
+      setShowSupplierConfirmation(true);
+      if (emailError) setEmailError("");
+      // Auto-hide confirmation after 3 seconds
+      setTimeout(() => setShowSupplierConfirmation(false), 3000);
+    }
+  };
+
+  const isSupplierEmailSelected = recipientEmail === assistance.suppliers?.email;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,23 +111,33 @@ export function PDFPreviewDialog({
 
         <ScrollArea className="max-h-[55vh] pr-4">
           {/* Recipient Email Input */}
-          <div className="mb-4 p-4 border rounded-lg bg-muted/30">
+          <div className={`mb-4 p-4 border rounded-lg transition-all duration-300 ${
+            isSupplierEmailSelected 
+              ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700" 
+              : "bg-muted/30"
+          }`}>
             <div className="flex items-center justify-between mb-2">
               <Label htmlFor="recipient-email" className="text-sm font-medium flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Email do Destinatário
               </Label>
-              {assistance.suppliers?.email && (
+              {assistance.suppliers?.email && !isSupplierEmailSelected && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => handleEmailChange(assistance.suppliers!.email!)}
+                  className="h-7 text-xs gap-1 border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400 dark:border-emerald-700 dark:hover:bg-emerald-950/50"
+                  onClick={handleUseSupplierEmail}
                 >
                   <UserCheck className="h-3 w-3" />
                   Usar email do fornecedor
                 </Button>
+              )}
+              {isSupplierEmailSelected && (
+                <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/50 dark:text-emerald-400 dark:border-emerald-700">
+                  <UserCheck className="h-3 w-3 mr-1" />
+                  Fornecedor selecionado
+                </Badge>
               )}
             </div>
             <Input
@@ -119,21 +146,37 @@ export function PDFPreviewDialog({
               value={recipientEmail}
               onChange={(e) => handleEmailChange(e.target.value)}
               placeholder="exemplo@email.com"
-              className={emailError ? "border-destructive" : ""}
+              className={`transition-all duration-300 ${
+                emailError 
+                  ? "border-destructive" 
+                  : isSupplierEmailSelected 
+                    ? "border-emerald-400 dark:border-emerald-600 bg-white dark:bg-background" 
+                    : ""
+              }`}
             />
             {emailError && (
               <p className="text-xs text-destructive mt-1">{emailError}</p>
             )}
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">
-                O PDF será enviado para este endereço de email.
-              </p>
-              {assistance.suppliers?.email && recipientEmail !== assistance.suppliers.email && (
-                <p className="text-xs text-muted-foreground">
-                  Fornecedor: {assistance.suppliers.email}
+            {showSupplierConfirmation && (
+              <div className="flex items-center gap-2 mt-2 p-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-md animate-in fade-in slide-in-from-top-1 duration-300">
+                <UserCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+                  Email do fornecedor "{assistance.suppliers?.name}" aplicado com sucesso!
                 </p>
-              )}
-            </div>
+              </div>
+            )}
+            {!showSupplierConfirmation && (
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-xs text-muted-foreground">
+                  O PDF será enviado para este endereço de email.
+                </p>
+                {assistance.suppliers?.email && !isSupplierEmailSelected && (
+                  <p className="text-xs text-muted-foreground">
+                    Fornecedor: {assistance.suppliers.email}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* PDF Preview Content */}
