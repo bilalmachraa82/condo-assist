@@ -43,6 +43,7 @@ interface RequestBody {
   assistanceId: string;
   adminEmail?: string;
   magicCode?: string;
+  customMessage?: string;
   mode?: 'archive' | 'forward'; // 'archive' = simple PDF, 'forward' = with magic code for supplier
 }
 
@@ -434,7 +435,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { assistanceId, adminEmail, magicCode, mode = 'archive' }: RequestBody = await req.json();
+    const { assistanceId, adminEmail, magicCode, customMessage, mode = 'archive' }: RequestBody = await req.json();
 
     if (!assistanceId) {
       throw new Error("assistanceId is required");
@@ -510,9 +511,20 @@ const handler = async (req: Request): Promise<Response> => {
     if (isArchiveMode) {
       // Simple archive mode - just the PDF with minimal email content
       emailSubject = `${priorityEmoji} [Assistência #${assistance.assistance_number}] ${assistance.title}`;
+      
+      // Build custom message section if provided
+      const customMessageHtml = customMessage ? `
+        <div style="background: #e0f2fe; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #0284c7;">
+          <h4 style="color: #0369a1; margin: 0 0 10px 0;">📝 Nota do Remetente:</h4>
+          <p style="color: #0c4a6e; margin: 0; white-space: pre-wrap;">${customMessage.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+        </div>
+      ` : '';
+      
       emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #1e40af;">📋 Documento de Assistência</h2>
+          
+          ${customMessageHtml}
           
           <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <p><strong>Assistência #${assistance.assistance_number}:</strong> ${assistance.title}</p>
@@ -603,6 +615,7 @@ const handler = async (req: Request): Promise<Response> => {
       metadata: {
         email_mode: isArchiveMode ? "archive" : "forward",
         magic_code_included: !isArchiveMode && !!magicCode,
+        has_custom_message: !!customMessage,
         pdf_format: "real_pdf",
       },
     });

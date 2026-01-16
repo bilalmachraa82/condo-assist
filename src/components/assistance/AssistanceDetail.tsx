@@ -59,13 +59,14 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
   const { toast } = useToast();
   const { data: assistanceData } = useAssistance(assistance.id);
 
-  const handleSendPdfToAdmin = async (customEmail?: string) => {
+  const handleSendPdfToAdmin = async (customEmail?: string, customMessage?: string) => {
     setIsSendingPdf(true);
     try {
       const response = await supabase.functions.invoke('send-assistance-pdf-to-admin', {
         body: { 
           assistanceId: assistance.id,
-          adminEmail: customEmail 
+          adminEmail: customEmail,
+          customMessage: customMessage
         }
       });
 
