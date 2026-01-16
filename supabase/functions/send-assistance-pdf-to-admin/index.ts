@@ -152,6 +152,13 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   
+  // ==================== LAYOUT CONSTANTS ====================
+  const HEADER_HEIGHT = 120;
+  const FOOTER_HEIGHT = 70;
+  const FOOTER_Y = 35; // Position from bottom of page
+  const CONTENT_TOP = height - HEADER_HEIGHT;
+  const CONTENT_BOTTOM = FOOTER_Y + FOOTER_HEIGHT + 15; // Safety margin above footer
+  
   // Premium color palette
   const primaryColor = rgb(0.03, 0.57, 0.70); // Teal #0891b2
   const darkBlue = rgb(0.07, 0.21, 0.33); // Dark blue #123554
@@ -164,17 +171,17 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   const leftMargin = 50;
   const rightMargin = 50;
   const contentWidth = width - leftMargin - rightMargin;
-  let y = height - 40;
   
-  // ==================== HEADER WITH LOGO ====================
-  // Try to embed logo
+  // ==================== HEADER SECTION ====================
+  let y = height - 35;
+  
+  // Try to embed logo (smaller scale)
   const logoBytes = await fetchLogoBytes();
   if (logoBytes) {
     try {
       const logoImage = await pdfDoc.embedPng(logoBytes);
-      const logoDims = logoImage.scale(0.35); // Adjust scale for appropriate size
+      const logoDims = logoImage.scale(0.22); // Reduced from 0.35
       
-      // Center the logo
       const logoX = (width - logoDims.width) / 2;
       page.drawImage(logoImage, {
         x: logoX,
@@ -182,474 +189,462 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
         width: logoDims.width,
         height: logoDims.height,
       });
-      y -= logoDims.height + 15;
+      y -= logoDims.height + 8; // Reduced spacing
     } catch (logoError) {
       console.error("Error embedding logo:", logoError);
-      // Fallback to text header
       page.drawText("LUVIMG", {
-        x: (width - helveticaBold.widthOfTextAtSize("LUVIMG", 32)) / 2,
+        x: (width - helveticaBold.widthOfTextAtSize("LUVIMG", 26)) / 2,
         y,
-        size: 32,
+        size: 26,
         font: helveticaBold,
         color: primaryColor,
       });
-      y -= 45;
+      y -= 35;
     }
   } else {
-    // Fallback text header
     page.drawText("LUVIMG", {
-      x: (width - helveticaBold.widthOfTextAtSize("LUVIMG", 32)) / 2,
+      x: (width - helveticaBold.widthOfTextAtSize("LUVIMG", 26)) / 2,
       y,
-      size: 32,
+      size: 26,
       font: helveticaBold,
       color: primaryColor,
     });
-    y -= 45;
+    y -= 35;
   }
   
   // Subtitle
   const subtitle = "Administracao de Condominios";
   page.drawText(subtitle, {
-    x: (width - helvetica.widthOfTextAtSize(subtitle, 12)) / 2,
+    x: (width - helvetica.widthOfTextAtSize(subtitle, 10)) / 2,
     y,
-    size: 12,
+    size: 10,
     font: helvetica,
     color: grayColor,
   });
-  y -= 25;
+  y -= 18;
   
-  // Elegant divider line with gradient effect (two lines)
+  // Elegant divider
   page.drawLine({
-    start: { x: leftMargin + 100, y },
-    end: { x: width - rightMargin - 100, y },
-    thickness: 2,
+    start: { x: leftMargin + 80, y },
+    end: { x: width - rightMargin - 80, y },
+    thickness: 1.5,
     color: primaryColor,
   });
-  y -= 8;
-  page.drawLine({
-    start: { x: leftMargin + 150, y },
-    end: { x: width - rightMargin - 150, y },
-    thickness: 1,
-    color: borderGray,
-  });
-  y -= 25;
+  y -= 18;
   
   // Report title
   const reportTitle = "RELATORIO DE ASSISTENCIA";
   page.drawText(reportTitle, {
-    x: (width - helveticaBold.widthOfTextAtSize(reportTitle, 16)) / 2,
+    x: (width - helveticaBold.widthOfTextAtSize(reportTitle, 14)) / 2,
     y,
-    size: 16,
+    size: 14,
     font: helveticaBold,
     color: darkBlue,
   });
-  y -= 18;
+  y -= 14;
   
   // Generation date
   const genDate = `Gerado em ${formatDate(new Date().toISOString())}`;
   page.drawText(genDate, {
-    x: (width - helvetica.widthOfTextAtSize(genDate, 10)) / 2,
+    x: (width - helvetica.widthOfTextAtSize(genDate, 9)) / 2,
     y,
-    size: 10,
+    size: 9,
     font: helvetica,
     color: grayColor,
   });
-  y -= 30;
+  y -= 20;
   
-  // ==================== MAIN CONTENT BOX ====================
-  // Assistance Number with Priority Badge
-  const assistanceBoxHeight = 65;
-  page.drawRectangle({
-    x: leftMargin,
-    y: y - assistanceBoxHeight,
-    width: contentWidth,
-    height: assistanceBoxHeight,
-    color: rgb(0.97, 0.99, 1),
-    borderColor: primaryColor,
-    borderWidth: 1.5,
-  });
+  // ==================== CONTENT SECTIONS ====================
+  const SECTION_GAP = 10;
   
-  // Assistance number
-  const assistNum = `ASSISTENCIA N. ${assistance.assistance_number || "N/A"}`;
-  page.drawText(assistNum, {
-    x: leftMargin + 15,
-    y: y - 25,
-    size: 20,
-    font: helveticaBold,
-    color: darkBlue,
-  });
+  // Helper to check if we can fit content
+  const canFit = (neededHeight: number): boolean => {
+    return (y - neededHeight) > CONTENT_BOTTOM;
+  };
   
-  // Priority badge on the right
-  const priorityLabel = getPriorityLabel(assistance.priority);
-  const badgeWidth = priorityLabel.length * 7 + 24;
-  const badgeX = width - rightMargin - badgeWidth - 15;
-  page.drawRectangle({
-    x: badgeX,
-    y: y - 30,
-    width: badgeWidth,
-    height: 20,
-    color: rgb(priorityRgb.r, priorityRgb.g, priorityRgb.b),
-  });
-  page.drawText(priorityLabel.toUpperCase(), {
-    x: badgeX + 12,
-    y: y - 24,
-    size: 10,
-    font: helveticaBold,
-    color: rgb(1, 1, 1),
-  });
-  
-  // Title
-  const titleLines = splitTextIntoLines(assistance.title, helveticaBold, 12, contentWidth - 30);
-  let titleY = y - 50;
-  for (const line of titleLines.slice(0, 2)) {
-    page.drawText(line, {
-      x: leftMargin + 15,
-      y: titleY,
-      size: 12,
+  // === MAIN ASSISTANCE BOX ===
+  const assistanceBoxHeight = 58;
+  if (canFit(assistanceBoxHeight)) {
+    page.drawRectangle({
+      x: leftMargin,
+      y: y - assistanceBoxHeight,
+      width: contentWidth,
+      height: assistanceBoxHeight,
+      color: rgb(0.97, 0.99, 1),
+      borderColor: primaryColor,
+      borderWidth: 1.5,
+    });
+    
+    // Assistance number
+    const assistNum = `ASSISTENCIA N. ${assistance.assistance_number || "N/A"}`;
+    page.drawText(assistNum, {
+      x: leftMargin + 12,
+      y: y - 22,
+      size: 16,
+      font: helveticaBold,
+      color: darkBlue,
+    });
+    
+    // Priority badge
+    const priorityLabel = getPriorityLabel(assistance.priority);
+    const badgeWidth = priorityLabel.length * 6 + 20;
+    const badgeX = width - rightMargin - badgeWidth - 12;
+    page.drawRectangle({
+      x: badgeX,
+      y: y - 26,
+      width: badgeWidth,
+      height: 18,
+      color: rgb(priorityRgb.r, priorityRgb.g, priorityRgb.b),
+    });
+    page.drawText(priorityLabel.toUpperCase(), {
+      x: badgeX + 10,
+      y: y - 21,
+      size: 9,
+      font: helveticaBold,
+      color: rgb(1, 1, 1),
+    });
+    
+    // Title (1 line max)
+    const titleLines = splitTextIntoLines(assistance.title, helveticaBold, 11, contentWidth - 24);
+    page.drawText(titleLines[0] || "", {
+      x: leftMargin + 12,
+      y: y - 45,
+      size: 11,
       font: helveticaBold,
       color: textColor,
     });
-    titleY -= 14;
+    
+    y -= assistanceBoxHeight + SECTION_GAP;
   }
   
-  y -= assistanceBoxHeight + 15;
-  
-  // ==================== DESCRIPTION (if exists) ====================
-  if (assistance.description) {
+  // === DESCRIPTION (if exists) ===
+  if (assistance.description && canFit(45)) {
     page.drawText("DESCRICAO", {
       x: leftMargin,
       y,
-      size: 10,
+      size: 9,
       font: helveticaBold,
       color: primaryColor,
     });
-    y -= 15;
+    y -= 12;
     
-    const descLines = splitTextIntoLines(assistance.description, helvetica, 10, contentWidth);
-    for (const line of descLines) {
+    const descLines = splitTextIntoLines(assistance.description, helvetica, 9, contentWidth);
+    for (const line of descLines.slice(0, 3)) {
+      if (!canFit(12)) break;
       page.drawText(line, {
         x: leftMargin,
         y,
-        size: 10,
+        size: 9,
         font: helvetica,
         color: grayColor,
       });
-      y -= 13;
+      y -= 11;
     }
-    y -= 10;
+    y -= 8;
   }
   
-  // ==================== INFO SECTIONS ====================
-  // Building Section
-  const sectionHeight = 75;
-  page.drawRectangle({
-    x: leftMargin,
-    y: y - sectionHeight,
-    width: contentWidth,
-    height: sectionHeight,
-    color: lightGray,
-    borderColor: borderGray,
-    borderWidth: 1,
-  });
-  
-  // Section header with icon-like decoration
-  page.drawRectangle({
-    x: leftMargin,
-    y: y - 20,
-    width: 4,
-    height: 20,
-    color: primaryColor,
-  });
-  page.drawText("EDIFICIO", {
-    x: leftMargin + 12,
-    y: y - 14,
-    size: 11,
-    font: helveticaBold,
-    color: darkBlue,
-  });
-  
-  let infoY = y - 35;
-  page.drawText(`Codigo: ${assistance.buildings?.code || "N/A"}`, {
-    x: leftMargin + 12,
-    y: infoY,
-    size: 10,
-    font: helvetica,
-    color: textColor,
-  });
-  
-  // Second column for NIF
-  if (assistance.buildings?.nif) {
-    page.drawText(`NIF: ${assistance.buildings.nif}`, {
-      x: leftMargin + 200,
-      y: infoY,
+  // === BUILDING SECTION ===
+  const buildingHeight = 58;
+  if (canFit(buildingHeight)) {
+    page.drawRectangle({
+      x: leftMargin,
+      y: y - buildingHeight,
+      width: contentWidth,
+      height: buildingHeight,
+      color: lightGray,
+      borderColor: borderGray,
+      borderWidth: 1,
+    });
+    
+    // Section indicator
+    page.drawRectangle({
+      x: leftMargin,
+      y: y - 16,
+      width: 3,
+      height: 16,
+      color: primaryColor,
+    });
+    page.drawText("EDIFICIO", {
+      x: leftMargin + 10,
+      y: y - 12,
       size: 10,
+      font: helveticaBold,
+      color: darkBlue,
+    });
+    
+    let infoY = y - 28;
+    page.drawText(`Codigo: ${assistance.buildings?.code || "N/A"}`, {
+      x: leftMargin + 10,
+      y: infoY,
+      size: 9,
       font: helvetica,
       color: textColor,
     });
-  }
-  
-  infoY -= 14;
-  const buildingName = assistance.buildings?.name || "N/A";
-  const nameLines = splitTextIntoLines(`Nome: ${buildingName}`, helvetica, 10, contentWidth - 24);
-  for (const line of nameLines.slice(0, 1)) {
-    page.drawText(line, {
-      x: leftMargin + 12,
-      y: infoY,
-      size: 10,
-      font: helvetica,
-      color: textColor,
-    });
-    infoY -= 14;
-  }
-  
-  if (assistance.buildings?.address) {
-    const addrLines = splitTextIntoLines(`Morada: ${assistance.buildings.address}`, helvetica, 10, contentWidth - 24);
-    for (const line of addrLines.slice(0, 1)) {
-      page.drawText(line, {
-        x: leftMargin + 12,
+    
+    if (assistance.buildings?.nif) {
+      page.drawText(`NIF: ${assistance.buildings.nif}`, {
+        x: leftMargin + 180,
         y: infoY,
-        size: 10,
+        size: 9,
         font: helvetica,
         color: textColor,
       });
     }
+    
+    infoY -= 12;
+    const buildingName = assistance.buildings?.name || "N/A";
+    const nameLines = splitTextIntoLines(`Nome: ${buildingName}`, helvetica, 9, contentWidth - 20);
+    page.drawText(nameLines[0] || "", {
+      x: leftMargin + 10,
+      y: infoY,
+      size: 9,
+      font: helvetica,
+      color: textColor,
+    });
+    
+    infoY -= 12;
+    if (assistance.buildings?.address) {
+      const addrLines = splitTextIntoLines(`Morada: ${assistance.buildings.address}`, helvetica, 9, contentWidth - 20);
+      page.drawText(addrLines[0] || "", {
+        x: leftMargin + 10,
+        y: infoY,
+        size: 9,
+        font: helvetica,
+        color: textColor,
+      });
+    }
+    
+    y -= buildingHeight + SECTION_GAP;
   }
   
-  y -= sectionHeight + 12;
-  
-  // Intervention Type Section
-  const interventionHeight = 45;
-  page.drawRectangle({
-    x: leftMargin,
-    y: y - interventionHeight,
-    width: contentWidth,
-    height: interventionHeight,
-    color: lightGray,
-    borderColor: borderGray,
-    borderWidth: 1,
-  });
-  
-  page.drawRectangle({
-    x: leftMargin,
-    y: y - 20,
-    width: 4,
-    height: 20,
-    color: rgb(0.55, 0.36, 0.75), // Purple accent
-  });
-  page.drawText("TIPO DE INTERVENCAO", {
-    x: leftMargin + 12,
-    y: y - 14,
-    size: 11,
-    font: helveticaBold,
-    color: darkBlue,
-  });
-  
-  const interventionText = assistance.intervention_types?.name || "N/A";
-  const categoryText = assistance.intervention_types?.category ? ` (${assistance.intervention_types.category})` : "";
-  page.drawText(`${interventionText}${categoryText}`, {
-    x: leftMargin + 12,
-    y: y - 35,
-    size: 10,
-    font: helvetica,
-    color: textColor,
-  });
-  
-  y -= interventionHeight + 12;
-  
-  // Supplier Section (if assigned)
-  if (assistance.suppliers) {
-    const supplierHeight = 70;
+  // === INTERVENTION TYPE SECTION ===
+  const interventionHeight = 38;
+  if (canFit(interventionHeight)) {
     page.drawRectangle({
       x: leftMargin,
-      y: y - supplierHeight,
+      y: y - interventionHeight,
       width: contentWidth,
-      height: supplierHeight,
-      color: rgb(0.94, 0.99, 0.97),
-      borderColor: rgb(0.16, 0.73, 0.56),
+      height: interventionHeight,
+      color: lightGray,
+      borderColor: borderGray,
       borderWidth: 1,
     });
     
     page.drawRectangle({
       x: leftMargin,
-      y: y - 20,
-      width: 4,
-      height: 20,
-      color: rgb(0.16, 0.73, 0.56), // Green
+      y: y - 16,
+      width: 3,
+      height: 16,
+      color: rgb(0.55, 0.36, 0.75),
     });
-    page.drawText("FORNECEDOR ATRIBUIDO", {
-      x: leftMargin + 12,
-      y: y - 14,
-      size: 11,
-      font: helveticaBold,
-      color: rgb(0.05, 0.45, 0.35),
-    });
-    
-    let suppY = y - 35;
-    page.drawText(`Nome: ${assistance.suppliers.name}`, {
-      x: leftMargin + 12,
-      y: suppY,
+    page.drawText("TIPO DE INTERVENCAO", {
+      x: leftMargin + 10,
+      y: y - 12,
       size: 10,
       font: helveticaBold,
+      color: darkBlue,
+    });
+    
+    const interventionText = assistance.intervention_types?.name || "N/A";
+    const categoryText = assistance.intervention_types?.category ? ` (${assistance.intervention_types.category})` : "";
+    page.drawText(`${interventionText}${categoryText}`, {
+      x: leftMargin + 10,
+      y: y - 30,
+      size: 9,
+      font: helvetica,
       color: textColor,
     });
     
-    suppY -= 14;
-    if (assistance.suppliers.email) {
-      page.drawText(`Email: ${assistance.suppliers.email}`, {
-        x: leftMargin + 12,
-        y: suppY,
+    y -= interventionHeight + SECTION_GAP;
+  }
+  
+  // === SUPPLIER SECTION (if assigned) ===
+  if (assistance.suppliers) {
+    const supplierHeight = 52;
+    if (canFit(supplierHeight)) {
+      page.drawRectangle({
+        x: leftMargin,
+        y: y - supplierHeight,
+        width: contentWidth,
+        height: supplierHeight,
+        color: rgb(0.94, 0.99, 0.97),
+        borderColor: rgb(0.16, 0.73, 0.56),
+        borderWidth: 1,
+      });
+      
+      page.drawRectangle({
+        x: leftMargin,
+        y: y - 16,
+        width: 3,
+        height: 16,
+        color: rgb(0.16, 0.73, 0.56),
+      });
+      page.drawText("FORNECEDOR ATRIBUIDO", {
+        x: leftMargin + 10,
+        y: y - 12,
         size: 10,
+        font: helveticaBold,
+        color: rgb(0.05, 0.45, 0.35),
+      });
+      
+      let suppY = y - 28;
+      page.drawText(`Nome: ${assistance.suppliers.name}`, {
+        x: leftMargin + 10,
+        y: suppY,
+        size: 9,
+        font: helveticaBold,
+        color: textColor,
+      });
+      
+      suppY -= 12;
+      if (assistance.suppliers.email) {
+        page.drawText(`Email: ${assistance.suppliers.email}`, {
+          x: leftMargin + 10,
+          y: suppY,
+          size: 9,
+          font: helvetica,
+          color: textColor,
+        });
+      }
+      
+      if (assistance.suppliers.phone) {
+        page.drawText(`Tel: ${assistance.suppliers.phone}`, {
+          x: leftMargin + 220,
+          y: suppY,
+          size: 9,
+          font: helvetica,
+          color: textColor,
+        });
+      }
+      
+      y -= supplierHeight + SECTION_GAP;
+    }
+  }
+  
+  // === STATUS AND DATES SECTION ===
+  const statusHeight = 45;
+  if (canFit(statusHeight)) {
+    page.drawRectangle({
+      x: leftMargin,
+      y: y - statusHeight,
+      width: contentWidth,
+      height: statusHeight,
+      color: lightGray,
+      borderColor: borderGray,
+      borderWidth: 1,
+    });
+    
+    page.drawRectangle({
+      x: leftMargin,
+      y: y - 16,
+      width: 3,
+      height: 16,
+      color: rgb(0.98, 0.55, 0.24),
+    });
+    page.drawText("ESTADO E DATAS", {
+      x: leftMargin + 10,
+      y: y - 12,
+      size: 10,
+      font: helveticaBold,
+      color: darkBlue,
+    });
+    
+    let statusY = y - 28;
+    page.drawText(`Estado: ${getStatusLabel(assistance.status)}`, {
+      x: leftMargin + 10,
+      y: statusY,
+      size: 9,
+      font: helvetica,
+      color: textColor,
+    });
+    
+    page.drawText(`Criado: ${formatDateOnly(assistance.created_at)}`, {
+      x: leftMargin + 160,
+      y: statusY,
+      size: 9,
+      font: helvetica,
+      color: textColor,
+    });
+    
+    statusY -= 12;
+    const reqQuot = assistance.requires_quotation ? "Sim" : "Nao";
+    page.drawText(`Requer orcamento: ${reqQuot}`, {
+      x: leftMargin + 10,
+      y: statusY,
+      size: 9,
+      font: helvetica,
+      color: textColor,
+    });
+    
+    if (assistance.quotation_deadline) {
+      page.drawText(`Prazo: ${formatDateOnly(assistance.quotation_deadline)}`, {
+        x: leftMargin + 160,
+        y: statusY,
+        size: 9,
         font: helvetica,
         color: textColor,
       });
     }
     
-    if (assistance.suppliers.phone) {
-      page.drawText(`Tel: ${assistance.suppliers.phone}`, {
-        x: leftMargin + 250,
-        y: suppY,
+    y -= statusHeight + SECTION_GAP;
+  }
+  
+  // === MAGIC CODE SECTION (if provided) ===
+  if (magicCode) {
+    const codeHeight = 55;
+    if (canFit(codeHeight)) {
+      page.drawRectangle({
+        x: leftMargin,
+        y: y - codeHeight,
+        width: contentWidth,
+        height: codeHeight,
+        color: rgb(1, 0.98, 0.92),
+        borderColor: rgb(0.96, 0.72, 0.20),
+        borderWidth: 2,
+      });
+      
+      page.drawRectangle({
+        x: leftMargin,
+        y: y - 16,
+        width: 3,
+        height: 16,
+        color: rgb(0.96, 0.72, 0.20),
+      });
+      page.drawText("CODIGO DE ACESSO AO PORTAL", {
+        x: leftMargin + 10,
+        y: y - 12,
         size: 10,
-        font: helvetica,
+        font: helveticaBold,
+        color: rgb(0.65, 0.38, 0.05),
+      });
+      
+      page.drawText(magicCode, {
+        x: leftMargin + 10,
+        y: y - 36,
+        size: 18,
+        font: helveticaBold,
         color: textColor,
       });
-    }
-    
-    if (assistance.suppliers.specialization) {
-      suppY -= 14;
-      page.drawText(`Especializacao: ${assistance.suppliers.specialization}`, {
-        x: leftMargin + 12,
-        y: suppY,
-        size: 10,
+      
+      page.drawText("Portal: condo-assist.lovable.app/fornecedor", {
+        x: leftMargin + 10,
+        y: y - 50,
+        size: 8,
         font: helvetica,
         color: grayColor,
       });
+      
+      y -= codeHeight + SECTION_GAP;
     }
-    
-    y -= supplierHeight + 12;
   }
   
-  // Status and Dates Section
-  const statusHeight = 55;
-  page.drawRectangle({
-    x: leftMargin,
-    y: y - statusHeight,
-    width: contentWidth,
-    height: statusHeight,
-    color: lightGray,
-    borderColor: borderGray,
-    borderWidth: 1,
-  });
-  
-  page.drawRectangle({
-    x: leftMargin,
-    y: y - 20,
-    width: 4,
-    height: 20,
-    color: rgb(0.98, 0.55, 0.24), // Orange
-  });
-  page.drawText("ESTADO E DATAS", {
-    x: leftMargin + 12,
-    y: y - 14,
-    size: 11,
-    font: helveticaBold,
-    color: darkBlue,
-  });
-  
-  let statusY = y - 35;
-  page.drawText(`Estado: ${getStatusLabel(assistance.status)}`, {
-    x: leftMargin + 12,
-    y: statusY,
-    size: 10,
-    font: helvetica,
-    color: textColor,
-  });
-  
-  page.drawText(`Criado: ${formatDateOnly(assistance.created_at)}`, {
-    x: leftMargin + 200,
-    y: statusY,
-    size: 10,
-    font: helvetica,
-    color: textColor,
-  });
-  
-  statusY -= 14;
-  const reqQuot = assistance.requires_quotation ? "Sim" : "Nao";
-  page.drawText(`Requer orcamento: ${reqQuot}`, {
-    x: leftMargin + 12,
-    y: statusY,
-    size: 10,
-    font: helvetica,
-    color: textColor,
-  });
-  
-  if (assistance.quotation_deadline) {
-    page.drawText(`Prazo orcamento: ${formatDateOnly(assistance.quotation_deadline)}`, {
-      x: leftMargin + 200,
-      y: statusY,
-      size: 10,
-      font: helvetica,
-      color: textColor,
-    });
-  }
-  
-  y -= statusHeight + 12;
-  
-  // ==================== MAGIC CODE SECTION (if provided) ====================
-  if (magicCode) {
-    const codeHeight = 70;
-    page.drawRectangle({
-      x: leftMargin,
-      y: y - codeHeight,
-      width: contentWidth,
-      height: codeHeight,
-      color: rgb(1, 0.98, 0.92),
-      borderColor: rgb(0.96, 0.72, 0.20),
-      borderWidth: 2,
-    });
-    
-    page.drawRectangle({
-      x: leftMargin,
-      y: y - 20,
-      width: 4,
-      height: 20,
-      color: rgb(0.96, 0.72, 0.20),
-    });
-    page.drawText("CODIGO DE ACESSO AO PORTAL DO FORNECEDOR", {
-      x: leftMargin + 12,
-      y: y - 14,
-      size: 11,
-      font: helveticaBold,
-      color: rgb(0.65, 0.38, 0.05),
-    });
-    
-    // Large magic code
-    page.drawText(magicCode, {
-      x: leftMargin + 12,
-      y: y - 42,
-      size: 22,
-      font: helveticaBold,
-      color: textColor,
-    });
-    
-    // Portal URL
-    page.drawText("Portal: condo-assist.lovable.app/fornecedor", {
-      x: leftMargin + 12,
-      y: y - 60,
-      size: 9,
-      font: helvetica,
-      color: grayColor,
-    });
-    
-    y -= codeHeight + 12;
-  }
-  
-  // ==================== FOOTER ====================
-  const footerY = 80;
+  // ==================== FOOTER (FIXED POSITION) ====================
+  const footerY = FOOTER_Y;
   
   // Footer divider
   page.drawLine({
-    start: { x: leftMargin, y: footerY },
-    end: { x: width - rightMargin, y: footerY },
+    start: { x: leftMargin, y: footerY + FOOTER_HEIGHT - 5 },
+    end: { x: width - rightMargin, y: footerY + FOOTER_HEIGHT - 5 },
     thickness: 1,
     color: primaryColor,
   });
@@ -657,36 +652,36 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   // Company info - centered
   const companyName = "Luvimg - Administracao de Condominios, Lda";
   page.drawText(companyName, {
-    x: (width - helveticaBold.widthOfTextAtSize(companyName, 9)) / 2,
-    y: footerY - 15,
-    size: 9,
+    x: (width - helveticaBold.widthOfTextAtSize(companyName, 8)) / 2,
+    y: footerY + FOOTER_HEIGHT - 18,
+    size: 8,
     font: helveticaBold,
     color: darkBlue,
   });
   
   const address = "Praceta Pedro Manuel Pereira n. 1 - 1. esq, 2620-158 Povoa Santo Adriao";
   page.drawText(address, {
-    x: (width - helvetica.widthOfTextAtSize(address, 8)) / 2,
-    y: footerY - 27,
-    size: 8,
+    x: (width - helvetica.widthOfTextAtSize(address, 7)) / 2,
+    y: footerY + FOOTER_HEIGHT - 30,
+    size: 7,
     font: helvetica,
     color: grayColor,
   });
   
   const contacts = "Tel: +351 219 379 248 | Email: geral@luvimg.com";
   page.drawText(contacts, {
-    x: (width - helvetica.widthOfTextAtSize(contacts, 8)) / 2,
-    y: footerY - 39,
-    size: 8,
+    x: (width - helvetica.widthOfTextAtSize(contacts, 7)) / 2,
+    y: footerY + FOOTER_HEIGHT - 42,
+    size: 7,
     font: helvetica,
     color: grayColor,
   });
   
   const autoGen = "Documento gerado automaticamente pelo Sistema de Gestao de Assistencias";
   page.drawText(autoGen, {
-    x: (width - helvetica.widthOfTextAtSize(autoGen, 7)) / 2,
-    y: footerY - 55,
-    size: 7,
+    x: (width - helvetica.widthOfTextAtSize(autoGen, 6)) / 2,
+    y: footerY + FOOTER_HEIGHT - 55,
+    size: 6,
     font: helvetica,
     color: rgb(0.6, 0.6, 0.6),
   });
