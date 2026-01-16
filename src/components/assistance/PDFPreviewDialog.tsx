@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, Mail, Building2, Wrench, User, Phone, FileText, UserCheck, Copy, Check } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -23,7 +24,7 @@ interface PDFPreviewDialogProps {
   assistance: Assistance;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (customEmail?: string) => Promise<void>;
+  onConfirm: (customEmail?: string, customMessage?: string) => Promise<void>;
   isLoading?: boolean;
   defaultEmail?: string;
 }
@@ -55,6 +56,7 @@ export function PDFPreviewDialog({
 }: PDFPreviewDialogProps) {
   const [recipientEmail, setRecipientEmail] = useState(defaultEmail);
   const [emailError, setEmailError] = useState("");
+  const [customMessage, setCustomMessage] = useState("");
   const [showSupplierConfirmation, setShowSupplierConfirmation] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState(false);
@@ -74,8 +76,9 @@ export function PDFPreviewDialog({
       return;
     }
     setEmailError("");
-    await onConfirm(recipientEmail);
+    await onConfirm(recipientEmail, customMessage.trim() || undefined);
     onOpenChange(false);
+    setCustomMessage(""); // Reset after sending
   };
 
   const handleEmailChange = (value: string) => {
@@ -196,6 +199,30 @@ export function PDFPreviewDialog({
                 )}
               </div>
             )}
+          </div>
+
+          {/* Custom Message Input */}
+          <div className="mb-4 p-4 border rounded-lg bg-muted/30">
+            <Label htmlFor="custom-message" className="text-sm font-medium flex items-center gap-2 mb-2">
+              <Mail className="h-4 w-4" />
+              Mensagem Personalizada (opcional)
+            </Label>
+            <Textarea
+              id="custom-message"
+              value={customMessage}
+              onChange={(e) => setCustomMessage(e.target.value)}
+              placeholder="Adicione uma nota ou mensagem que será incluída no corpo do email..."
+              className="min-h-[80px] resize-none"
+              maxLength={500}
+            />
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-muted-foreground">
+                Esta mensagem será incluída no email junto com o PDF.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {customMessage.length}/500
+              </p>
+            </div>
           </div>
 
           {/* PDF Preview Content */}
