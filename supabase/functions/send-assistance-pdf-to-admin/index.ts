@@ -588,7 +588,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Send email with real PDF attachment
-    const emailResponse = await resend.emails.send({
+    const { data: resendData, error: resendError } = await resend.emails.send({
       from: "LUVIMG Assistências <onboarding@resend.dev>",
       to: [targetEmail],
       subject: emailSubject,
@@ -597,34 +597,75 @@ const handler = async (req: Request): Promise<Response> => {
         {
           filename: `assistencia-${assistance.assistance_number}.pdf`,
           content: pdfBase64,
-          contentType: 'application/pdf',
+          contentType: "application/pdf",
         },
       ],
     });
 
-    console.log("Email sent successfully with real PDF:", emailResponse);
+    if (resendError) {
+      console.error("Resend email send failed:", resendError);
 
-    // Log the email
-    await supabase.from("email_logs").insert({
-      recipient_email: targetEmail,
-      subject: emailSubject,
-      template_used: isArchiveMode ? "admin_pdf_archive" : "admin_pdf_forward",
-      status: "sent",
-      assistance_id: assistanceId,
-      supplier_id: assistance.suppliers?.id || null,
-      metadata: {
-        email_mode: isArchiveMode ? "archive" : "forward",
-        magic_code_included: !isArchiveMode && !!magicCode,
-        has_custom_message: !!customMessage,
-        pdf_format: "real_pdf",
-      },
-    });
+      // Log the failed email attempt (best-effort)
+      try {
+        await supabase.from("email_logs").insert({
+          recipient_email: targetEmail,
+          subject: emailSubject,
+          template_used: isArchiveMode ? "admin_pdf_archive" : "admin_pdf_forward",
+          status: "failed",
+          assistance_id: assistanceId,
+          supplier_id: assistance.suppliers?.id || null,
+          metadata: {
+            email_mode: isArchiveMode ? "archive" : "forward",
+            magic_code_included: !isArchiveMode && !!magicCode,
+            has_custom_message: !!customMessage,
+            pdf_format: "real_pdf",
+            resend_error: (resendError as any)?.message || resendError,
+          },
+        });
+      } catch (logError) {
+        console.error("Failed to log email failure to email_logs:", logError);
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: (resendError as any)?.message || "Falha ao enviar email via Resend",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log("Email sent successfully with real PDF:", resendData);
+
+    // Log the email (best-effort)
+    try {
+      await supabase.from("email_logs").insert({
+        recipient_email: targetEmail,
+        subject: emailSubject,
+        template_used: isArchiveMode ? "admin_pdf_archive" : "admin_pdf_forward",
+        status: "sent",
+        assistance_id: assistanceId,
+        supplier_id: assistance.suppliers?.id || null,
+        metadata: {
+          email_mode: isArchiveMode ? "archive" : "forward",
+          magic_code_included: !isArchiveMode && !!magicCode,
+          has_custom_message: !!customMessage,
+          pdf_format: "real_pdf",
+          resend_email_id: (resendData as any)?.id,
+        },
+      });
+    } catch (logError) {
+      console.error("Failed to log email to email_logs:", logError);
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `PDF real enviado para ${targetEmail}`,
-        emailId: emailResponse.id,
+        message: `PDF enviado para ${targetEmail}`,
+        emailId: (resendData as any)?.id,
       }),
       {
         status: 200,

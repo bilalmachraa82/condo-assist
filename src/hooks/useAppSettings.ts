@@ -134,9 +134,22 @@ export const useAppSetting = (key: string) => {
         .select("value")
         .eq("key", key)
         .single();
-      
+
       if (error) throw error;
-      return typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+
+      const value = (data as any)?.value;
+
+      // `app_settings.value` is a JSON column (json/jsonb). Supabase already returns it as a JS value.
+      // Some older rows may have stringified JSON; parse safely but never throw.
+      if (typeof value === "string") {
+        try {
+          return JSON.parse(value);
+        } catch {
+          return value;
+        }
+      }
+
+      return value;
     },
   });
 };
