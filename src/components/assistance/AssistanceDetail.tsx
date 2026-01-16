@@ -22,6 +22,7 @@ import CommunicationLog from "./CommunicationLog";
 import ProgressTimeline from "./ProgressTimeline";
 import { PDFExportButton } from "./PDFExportButton";
 import { AssistancePDFTemplate } from "./AssistancePDFTemplate";
+import { PDFPreviewDialog } from "./PDFPreviewDialog";
 import { useUpdateAssistanceStatus, useDeleteAssistance, useAssistance } from "@/hooks/useAssistances";
 import type { Assistance } from "@/hooks/useAssistances";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -52,6 +53,7 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
   const [refreshPhotos, setRefreshPhotos] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [isSendingPdf, setIsSendingPdf] = useState(false);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const updateStatusMutation = useUpdateAssistanceStatus();
   const deleteAssistanceMutation = useDeleteAssistance();
   const { toast } = useToast();
@@ -173,7 +175,7 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleSendPdfToAdmin}
+                onClick={() => setShowPdfPreview(true)}
                 disabled={isSendingPdf}
               >
                 {isSendingPdf ? (
@@ -187,6 +189,14 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
               <p>Enviar PDF para arquivo@luvimg.com</p>
             </TooltipContent>
           </Tooltip>
+
+          <PDFPreviewDialog
+            assistance={assistance}
+            open={showPdfPreview}
+            onOpenChange={setShowPdfPreview}
+            onConfirm={handleSendPdfToAdmin}
+            isLoading={isSendingPdf}
+          />
           
           <Button
             variant="outline"
