@@ -39,8 +39,14 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Get email mode setting
-  const { data: emailMode } = useAppSetting('email_mode');
+  // Get email mode setting - default to 'admin_first' if not loaded or undefined
+  const { data: emailModeSetting, isLoading: isLoadingEmailMode } = useAppSetting('email_mode');
+  // Normalize the email mode value - handle various formats
+  const emailMode = typeof emailModeSetting === 'string' 
+    ? emailModeSetting.replace(/"/g, '').trim() 
+    : (emailModeSetting ?? 'admin_first');
+  
+  console.log('[CreateAssistanceForm] Email mode setting:', { raw: emailModeSetting, normalized: emailMode, isLoading: isLoadingEmailMode });
   
   // Get data for dropdowns
   const { data: buildings = [] } = useBuildings();
@@ -110,14 +116,28 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
           const building = buildings.find(b => b.id === assistance.building_id);
           const interventionType = interventionTypes.find(i => i.id === assistance.intervention_type_id);
           
-          // Check email mode - if admin_first, send PDF to admin instead
-          if (emailMode === 'admin_first') {
+          console.log('[CreateAssistanceForm] Processing email notification:', { 
+            emailMode, 
+            supplierId: assistance.assigned_supplier_id,
+            supplierEmail: supplier?.email,
+            assistanceId: assistance.id 
+          });
+          
+          // Check email mode - if admin_first (or default), send PDF to admin instead
+          // Use includes to handle any formatting issues with the setting value
+          const isAdminFirstMode = emailMode === 'admin_first' || emailMode?.includes?.('admin_first') || !emailMode;
+          
+          if (isAdminFirstMode) {
+            console.log('[CreateAssistanceForm] Using admin_first mode - sending PDF to admin');
             // Send PDF to admin for manual forwarding
             const pdfResponse = await supabase.functions.invoke('send-assistance-pdf-to-admin', {
               body: {
                 assistanceId: assistance.id,
+                mode: 'archive'
               }
             });
+
+            console.log('[CreateAssistanceForm] PDF response:', pdfResponse);
 
             if (pdfResponse.error) {
               console.error("PDF email error:", pdfResponse.error);
@@ -129,10 +149,11 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
             } else {
               toast({
                 title: "Sucesso",
-                description: "Assistência criada! PDF enviado para arquivo@luvimg.com para reencaminhar.",
+                description: "Assistência criada! PDF enviado para geral@luvimg.com.",
               });
             }
           } else if (supplier?.email && supplier?.name) {
+            console.log('[CreateAssistanceForm] Using direct mode - sending to supplier');
             // Direct mode - send to supplier
             if (assistance.requires_quotation) {
               // Send quotation request email
