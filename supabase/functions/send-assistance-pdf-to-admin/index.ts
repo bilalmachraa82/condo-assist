@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont, RGB } from "https://esm.sh/pdf-lib@1.17.1";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -48,6 +48,40 @@ interface RequestBody {
   mode?: 'archive' | 'forward';
 }
 
+interface PDFContext {
+  pdfDoc: any;
+  page: PDFPage;
+  helvetica: PDFFont;
+  helveticaBold: PDFFont;
+  y: number;
+  pageNumber: number;
+  width: number;
+  height: number;
+  leftMargin: number;
+  rightMargin: number;
+  contentWidth: number;
+  colors: {
+    primary: RGB;
+    darkBlue: RGB;
+    text: RGB;
+    gray: RGB;
+    lightGray: RGB;
+    borderGray: RGB;
+  };
+}
+
+// Layout constants
+const PAGE_WIDTH = 595;
+const PAGE_HEIGHT = 842;
+const HEADER_HEIGHT = 90;
+const FOOTER_HEIGHT = 60;
+const LEFT_MARGIN = 50;
+const RIGHT_MARGIN = 50;
+const CONTENT_WIDTH = PAGE_WIDTH - LEFT_MARGIN - RIGHT_MARGIN;
+const CONTENT_TOP = PAGE_HEIGHT - HEADER_HEIGHT;
+const CONTENT_BOTTOM = FOOTER_HEIGHT + 20;
+const SECTION_GAP = 12;
+
 const getPriorityLabel = (priority: string): string => {
   const labels: Record<string, string> = {
     normal: "Normal",
@@ -61,7 +95,7 @@ const getPriorityColor = (priority: string): { r: number; g: number; b: number }
   switch (priority) {
     case "critical": return { r: 0.86, g: 0.15, b: 0.15 };
     case "urgent": return { r: 0.96, g: 0.62, b: 0.04 };
-    default: return { r: 0.03, g: 0.57, b: 0.70 }; // Teal #0891b2
+    default: return { r: 0.03, g: 0.57, b: 0.70 };
   }
 };
 
@@ -97,8 +131,7 @@ const formatDateOnly = (dateString: string): string => {
   });
 };
 
-// Helper to split text into lines
-function splitTextIntoLines(text: string, font: any, fontSize: number, maxWidth: number): string[] {
+function splitTextIntoLines(text: string, font: PDFFont, fontSize: number, maxWidth: number): string[] {
   const cleanText = text.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim();
   const words = cleanText.split(' ');
   const lines: string[] = [];
@@ -121,570 +154,641 @@ function splitTextIntoLines(text: string, font: any, fontSize: number, maxWidth:
     lines.push(currentLine);
   }
   
-  return lines.slice(0, 6);
+  return lines;
 }
 
-// Fetch and embed logo
 async function fetchLogoBytes(): Promise<Uint8Array | null> {
   try {
     const logoUrl = "https://condo-assist.lovable.app/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png";
-    console.log("Fetching logo from:", logoUrl);
-    
     const response = await fetch(logoUrl);
-    if (!response.ok) {
-      console.error("Failed to fetch logo:", response.status);
-      return null;
-    }
-    
+    if (!response.ok) return null;
     const arrayBuffer = await response.arrayBuffer();
     return new Uint8Array(arrayBuffer);
-  } catch (error) {
-    console.error("Error fetching logo:", error);
+  } catch {
     return null;
   }
 }
 
+// Add new page with header and footer
+async function addNewPage(ctx: PDFContext, logoImage: any, logoBytes: Uint8Array | null): Promise<void> {
+  ctx.pageNumber++;
+  ctx.page = ctx.pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  ctx.y = CONTENT_TOP;
+  
+  // Draw minimal header for continuation pages
+  if (ctx.pageNumber > 1) {
+    // Small logo or text
+    const headerText = "LUVIMG - Relatorio de Assistencia (continuacao)";
+    ctx.page.drawText(headerText, {
+      x: LEFT_MARGIN,
+      y: PAGE_HEIGHT - 30,
+      size: 9,
+      font: ctx.helvetica,
+      color: ctx.colors.gray,
+    });
+    
+    // Page number
+    const pageNumText = `Pagina ${ctx.pageNumber}`;
+    ctx.page.drawText(pageNumText, {
+      x: PAGE_WIDTH - RIGHT_MARGIN - ctx.helvetica.widthOfTextAtSize(pageNumText, 9),
+      y: PAGE_HEIGHT - 30,
+      size: 9,
+      font: ctx.helvetica,
+      color: ctx.colors.gray,
+    });
+    
+    // Divider
+    ctx.page.drawLine({
+      start: { x: LEFT_MARGIN, y: PAGE_HEIGHT - 40 },
+      end: { x: PAGE_WIDTH - RIGHT_MARGIN, y: PAGE_HEIGHT - 40 },
+      thickness: 0.5,
+      color: ctx.colors.borderGray,
+    });
+    
+    ctx.y = PAGE_HEIGHT - 55;
+  }
+  
+  // Draw footer on every page
+  drawFooter(ctx);
+}
+
+function drawFooter(ctx: PDFContext): void {
+  const footerY = 25;
+  
+  // Footer divider
+  ctx.page.drawLine({
+    start: { x: LEFT_MARGIN, y: footerY + FOOTER_HEIGHT - 5 },
+    end: { x: PAGE_WIDTH - RIGHT_MARGIN, y: footerY + FOOTER_HEIGHT - 5 },
+    thickness: 0.5,
+    color: ctx.colors.primary,
+  });
+  
+  // Company info
+  const companyName = "Luvimg - Administracao de Condominios, Lda";
+  ctx.page.drawText(companyName, {
+    x: (PAGE_WIDTH - ctx.helveticaBold.widthOfTextAtSize(companyName, 7)) / 2,
+    y: footerY + FOOTER_HEIGHT - 16,
+    size: 7,
+    font: ctx.helveticaBold,
+    color: ctx.colors.darkBlue,
+  });
+  
+  const address = "Praceta Pedro Manuel Pereira n. 1 - 1. esq, 2620-158 Povoa Santo Adriao";
+  ctx.page.drawText(address, {
+    x: (PAGE_WIDTH - ctx.helvetica.widthOfTextAtSize(address, 6)) / 2,
+    y: footerY + FOOTER_HEIGHT - 26,
+    size: 6,
+    font: ctx.helvetica,
+    color: ctx.colors.gray,
+  });
+  
+  const contacts = "Tel: +351 219 379 248 | Email: geral@luvimg.com";
+  ctx.page.drawText(contacts, {
+    x: (PAGE_WIDTH - ctx.helvetica.widthOfTextAtSize(contacts, 6)) / 2,
+    y: footerY + FOOTER_HEIGHT - 36,
+    size: 6,
+    font: ctx.helvetica,
+    color: ctx.colors.gray,
+  });
+  
+  // Page number at bottom right
+  if (ctx.pageNumber >= 1) {
+    const pageText = `${ctx.pageNumber}`;
+    ctx.page.drawText(pageText, {
+      x: PAGE_WIDTH - RIGHT_MARGIN - ctx.helvetica.widthOfTextAtSize(pageText, 8),
+      y: footerY + 5,
+      size: 8,
+      font: ctx.helvetica,
+      color: ctx.colors.gray,
+    });
+  }
+}
+
+// Check if content fits, add new page if needed
+async function ensureSpace(ctx: PDFContext, neededHeight: number, logoImage: any, logoBytes: Uint8Array | null): Promise<boolean> {
+  if (ctx.y - neededHeight < CONTENT_BOTTOM) {
+    await addNewPage(ctx, logoImage, logoBytes);
+    return true; // New page was added
+  }
+  return false;
+}
+
 const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): Promise<Uint8Array> => {
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([595, 842]); // A4
-  const { width, height } = page.getSize();
-  
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   
-  // ==================== LAYOUT CONSTANTS ====================
-  const HEADER_HEIGHT = 120;
-  const FOOTER_HEIGHT = 70;
-  const FOOTER_Y = 35; // Position from bottom of page
-  const CONTENT_TOP = height - HEADER_HEIGHT;
-  const CONTENT_BOTTOM = FOOTER_Y + FOOTER_HEIGHT + 15; // Safety margin above footer
+  // Colors
+  const colors = {
+    primary: rgb(0.03, 0.57, 0.70),
+    darkBlue: rgb(0.07, 0.21, 0.33),
+    text: rgb(0.15, 0.15, 0.15),
+    gray: rgb(0.45, 0.45, 0.45),
+    lightGray: rgb(0.96, 0.97, 0.98),
+    borderGray: rgb(0.88, 0.90, 0.92),
+  };
   
-  // Premium color palette
-  const primaryColor = rgb(0.03, 0.57, 0.70); // Teal #0891b2
-  const darkBlue = rgb(0.07, 0.21, 0.33); // Dark blue #123554
-  const textColor = rgb(0.15, 0.15, 0.15);
-  const grayColor = rgb(0.45, 0.45, 0.45);
-  const lightGray = rgb(0.96, 0.97, 0.98);
-  const borderGray = rgb(0.88, 0.90, 0.92);
-  const priorityRgb = getPriorityColor(assistance.priority);
-  
-  const leftMargin = 50;
-  const rightMargin = 50;
-  const contentWidth = width - leftMargin - rightMargin;
-  
-  // ==================== HEADER SECTION ====================
-  let y = height - 35;
-  
-  // Try to embed logo (smaller scale)
+  // Fetch logo
   const logoBytes = await fetchLogoBytes();
+  let logoImage: any = null;
+  
+  // Create first page
+  const firstPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  
+  const ctx: PDFContext = {
+    pdfDoc,
+    page: firstPage,
+    helvetica,
+    helveticaBold,
+    y: PAGE_HEIGHT - 35,
+    pageNumber: 1,
+    width: PAGE_WIDTH,
+    height: PAGE_HEIGHT,
+    leftMargin: LEFT_MARGIN,
+    rightMargin: RIGHT_MARGIN,
+    contentWidth: CONTENT_WIDTH,
+    colors,
+  };
+  
+  // ==================== HEADER (First page only - full header) ====================
+  
+  // Logo
   if (logoBytes) {
     try {
-      const logoImage = await pdfDoc.embedPng(logoBytes);
-      const logoDims = logoImage.scale(0.22); // Reduced from 0.35
-      
-      const logoX = (width - logoDims.width) / 2;
-      page.drawImage(logoImage, {
+      logoImage = await pdfDoc.embedPng(logoBytes);
+      const logoDims = logoImage.scale(0.18);
+      const logoX = (PAGE_WIDTH - logoDims.width) / 2;
+      ctx.page.drawImage(logoImage, {
         x: logoX,
-        y: y - logoDims.height,
+        y: ctx.y - logoDims.height,
         width: logoDims.width,
         height: logoDims.height,
       });
-      y -= logoDims.height + 8; // Reduced spacing
-    } catch (logoError) {
-      console.error("Error embedding logo:", logoError);
-      page.drawText("LUVIMG", {
-        x: (width - helveticaBold.widthOfTextAtSize("LUVIMG", 26)) / 2,
-        y,
-        size: 26,
+      ctx.y -= logoDims.height + 6;
+    } catch {
+      ctx.page.drawText("LUVIMG", {
+        x: (PAGE_WIDTH - helveticaBold.widthOfTextAtSize("LUVIMG", 22)) / 2,
+        y: ctx.y,
+        size: 22,
         font: helveticaBold,
-        color: primaryColor,
+        color: colors.primary,
       });
-      y -= 35;
+      ctx.y -= 28;
     }
   } else {
-    page.drawText("LUVIMG", {
-      x: (width - helveticaBold.widthOfTextAtSize("LUVIMG", 26)) / 2,
-      y,
-      size: 26,
+    ctx.page.drawText("LUVIMG", {
+      x: (PAGE_WIDTH - helveticaBold.widthOfTextAtSize("LUVIMG", 22)) / 2,
+      y: ctx.y,
+      size: 22,
       font: helveticaBold,
-      color: primaryColor,
+      color: colors.primary,
     });
-    y -= 35;
+    ctx.y -= 28;
   }
   
   // Subtitle
   const subtitle = "Administracao de Condominios";
-  page.drawText(subtitle, {
-    x: (width - helvetica.widthOfTextAtSize(subtitle, 10)) / 2,
-    y,
-    size: 10,
+  ctx.page.drawText(subtitle, {
+    x: (PAGE_WIDTH - helvetica.widthOfTextAtSize(subtitle, 9)) / 2,
+    y: ctx.y,
+    size: 9,
     font: helvetica,
-    color: grayColor,
+    color: colors.gray,
   });
-  y -= 18;
+  ctx.y -= 14;
   
-  // Elegant divider
-  page.drawLine({
-    start: { x: leftMargin + 80, y },
-    end: { x: width - rightMargin - 80, y },
-    thickness: 1.5,
-    color: primaryColor,
+  // Divider
+  ctx.page.drawLine({
+    start: { x: LEFT_MARGIN + 100, y: ctx.y },
+    end: { x: PAGE_WIDTH - RIGHT_MARGIN - 100, y: ctx.y },
+    thickness: 1,
+    color: colors.primary,
   });
-  y -= 18;
+  ctx.y -= 14;
   
   // Report title
   const reportTitle = "RELATORIO DE ASSISTENCIA";
-  page.drawText(reportTitle, {
-    x: (width - helveticaBold.widthOfTextAtSize(reportTitle, 14)) / 2,
-    y,
-    size: 14,
+  ctx.page.drawText(reportTitle, {
+    x: (PAGE_WIDTH - helveticaBold.widthOfTextAtSize(reportTitle, 12)) / 2,
+    y: ctx.y,
+    size: 12,
     font: helveticaBold,
-    color: darkBlue,
+    color: colors.darkBlue,
   });
-  y -= 14;
+  ctx.y -= 12;
   
   // Generation date
   const genDate = `Gerado em ${formatDate(new Date().toISOString())}`;
-  page.drawText(genDate, {
-    x: (width - helvetica.widthOfTextAtSize(genDate, 9)) / 2,
-    y,
-    size: 9,
+  ctx.page.drawText(genDate, {
+    x: (PAGE_WIDTH - helvetica.widthOfTextAtSize(genDate, 8)) / 2,
+    y: ctx.y,
+    size: 8,
     font: helvetica,
-    color: grayColor,
+    color: colors.gray,
   });
-  y -= 20;
+  ctx.y -= 18;
+  
+  // Draw footer on first page
+  drawFooter(ctx);
   
   // ==================== CONTENT SECTIONS ====================
-  const SECTION_GAP = 10;
   
-  // Helper to check if we can fit content
-  const canFit = (neededHeight: number): boolean => {
-    return (y - neededHeight) > CONTENT_BOTTOM;
-  };
+  const priorityRgb = getPriorityColor(assistance.priority);
   
   // === MAIN ASSISTANCE BOX ===
-  const assistanceBoxHeight = 58;
-  if (canFit(assistanceBoxHeight)) {
-    page.drawRectangle({
-      x: leftMargin,
-      y: y - assistanceBoxHeight,
-      width: contentWidth,
-      height: assistanceBoxHeight,
-      color: rgb(0.97, 0.99, 1),
-      borderColor: primaryColor,
-      borderWidth: 1.5,
-    });
-    
-    // Assistance number
-    const assistNum = `ASSISTENCIA N. ${assistance.assistance_number || "N/A"}`;
-    page.drawText(assistNum, {
-      x: leftMargin + 12,
-      y: y - 22,
-      size: 16,
-      font: helveticaBold,
-      color: darkBlue,
-    });
-    
-    // Priority badge
-    const priorityLabel = getPriorityLabel(assistance.priority);
-    const badgeWidth = priorityLabel.length * 6 + 20;
-    const badgeX = width - rightMargin - badgeWidth - 12;
-    page.drawRectangle({
-      x: badgeX,
-      y: y - 26,
-      width: badgeWidth,
-      height: 18,
-      color: rgb(priorityRgb.r, priorityRgb.g, priorityRgb.b),
-    });
-    page.drawText(priorityLabel.toUpperCase(), {
-      x: badgeX + 10,
-      y: y - 21,
-      size: 9,
-      font: helveticaBold,
-      color: rgb(1, 1, 1),
-    });
-    
-    // Title (1 line max)
-    const titleLines = splitTextIntoLines(assistance.title, helveticaBold, 11, contentWidth - 24);
-    page.drawText(titleLines[0] || "", {
-      x: leftMargin + 12,
-      y: y - 45,
-      size: 11,
-      font: helveticaBold,
-      color: textColor,
-    });
-    
-    y -= assistanceBoxHeight + SECTION_GAP;
-  }
+  const assistanceBoxHeight = 52;
+  await ensureSpace(ctx, assistanceBoxHeight, logoImage, logoBytes);
+  
+  ctx.page.drawRectangle({
+    x: LEFT_MARGIN,
+    y: ctx.y - assistanceBoxHeight,
+    width: CONTENT_WIDTH,
+    height: assistanceBoxHeight,
+    color: rgb(0.97, 0.99, 1),
+    borderColor: colors.primary,
+    borderWidth: 1.5,
+  });
+  
+  // Assistance number
+  const assistNum = `ASSISTENCIA N. ${assistance.assistance_number || "N/A"}`;
+  ctx.page.drawText(assistNum, {
+    x: LEFT_MARGIN + 10,
+    y: ctx.y - 18,
+    size: 14,
+    font: helveticaBold,
+    color: colors.darkBlue,
+  });
+  
+  // Priority badge
+  const priorityLabel = getPriorityLabel(assistance.priority);
+  const badgeWidth = priorityLabel.length * 5.5 + 16;
+  const badgeX = PAGE_WIDTH - RIGHT_MARGIN - badgeWidth - 10;
+  ctx.page.drawRectangle({
+    x: badgeX,
+    y: ctx.y - 22,
+    width: badgeWidth,
+    height: 16,
+    color: rgb(priorityRgb.r, priorityRgb.g, priorityRgb.b),
+  });
+  ctx.page.drawText(priorityLabel.toUpperCase(), {
+    x: badgeX + 8,
+    y: ctx.y - 17,
+    size: 8,
+    font: helveticaBold,
+    color: rgb(1, 1, 1),
+  });
+  
+  // Title
+  const titleLines = splitTextIntoLines(assistance.title, helveticaBold, 10, CONTENT_WIDTH - 20);
+  ctx.page.drawText(titleLines[0] || "", {
+    x: LEFT_MARGIN + 10,
+    y: ctx.y - 40,
+    size: 10,
+    font: helveticaBold,
+    color: colors.text,
+  });
+  
+  ctx.y -= assistanceBoxHeight + SECTION_GAP;
   
   // === DESCRIPTION (if exists) ===
-  if (assistance.description && canFit(45)) {
-    page.drawText("DESCRICAO", {
-      x: leftMargin,
-      y,
+  if (assistance.description) {
+    const descLines = splitTextIntoLines(assistance.description, helvetica, 9, CONTENT_WIDTH - 20);
+    const descHeight = 16 + Math.min(descLines.length, 5) * 11 + 8;
+    
+    await ensureSpace(ctx, descHeight, logoImage, logoBytes);
+    
+    ctx.page.drawText("DESCRICAO", {
+      x: LEFT_MARGIN,
+      y: ctx.y,
       size: 9,
       font: helveticaBold,
-      color: primaryColor,
+      color: colors.primary,
     });
-    y -= 12;
+    ctx.y -= 12;
     
-    const descLines = splitTextIntoLines(assistance.description, helvetica, 9, contentWidth);
-    for (const line of descLines.slice(0, 3)) {
-      if (!canFit(12)) break;
-      page.drawText(line, {
-        x: leftMargin,
-        y,
+    for (const line of descLines.slice(0, 5)) {
+      await ensureSpace(ctx, 12, logoImage, logoBytes);
+      ctx.page.drawText(line, {
+        x: LEFT_MARGIN,
+        y: ctx.y,
         size: 9,
         font: helvetica,
-        color: grayColor,
+        color: colors.gray,
       });
-      y -= 11;
+      ctx.y -= 11;
     }
-    y -= 8;
+    ctx.y -= 6;
   }
   
   // === BUILDING SECTION ===
-  const buildingHeight = 58;
-  if (canFit(buildingHeight)) {
-    page.drawRectangle({
-      x: leftMargin,
-      y: y - buildingHeight,
-      width: contentWidth,
-      height: buildingHeight,
-      color: lightGray,
-      borderColor: borderGray,
-      borderWidth: 1,
-    });
-    
-    // Section indicator
-    page.drawRectangle({
-      x: leftMargin,
-      y: y - 16,
-      width: 3,
-      height: 16,
-      color: primaryColor,
-    });
-    page.drawText("EDIFICIO", {
-      x: leftMargin + 10,
-      y: y - 12,
-      size: 10,
-      font: helveticaBold,
-      color: darkBlue,
-    });
-    
-    let infoY = y - 28;
-    page.drawText(`Codigo: ${assistance.buildings?.code || "N/A"}`, {
-      x: leftMargin + 10,
+  const buildingHeight = 54;
+  await ensureSpace(ctx, buildingHeight, logoImage, logoBytes);
+  
+  ctx.page.drawRectangle({
+    x: LEFT_MARGIN,
+    y: ctx.y - buildingHeight,
+    width: CONTENT_WIDTH,
+    height: buildingHeight,
+    color: colors.lightGray,
+    borderColor: colors.borderGray,
+    borderWidth: 1,
+  });
+  
+  ctx.page.drawRectangle({
+    x: LEFT_MARGIN,
+    y: ctx.y - 14,
+    width: 3,
+    height: 14,
+    color: colors.primary,
+  });
+  ctx.page.drawText("EDIFICIO", {
+    x: LEFT_MARGIN + 8,
+    y: ctx.y - 11,
+    size: 9,
+    font: helveticaBold,
+    color: colors.darkBlue,
+  });
+  
+  let infoY = ctx.y - 26;
+  ctx.page.drawText(`Codigo: ${assistance.buildings?.code || "N/A"}`, {
+    x: LEFT_MARGIN + 8,
+    y: infoY,
+    size: 8,
+    font: helvetica,
+    color: colors.text,
+  });
+  
+  if (assistance.buildings?.nif) {
+    ctx.page.drawText(`NIF: ${assistance.buildings.nif}`, {
+      x: LEFT_MARGIN + 160,
       y: infoY,
-      size: 9,
+      size: 8,
       font: helvetica,
-      color: textColor,
+      color: colors.text,
     });
-    
-    if (assistance.buildings?.nif) {
-      page.drawText(`NIF: ${assistance.buildings.nif}`, {
-        x: leftMargin + 180,
-        y: infoY,
-        size: 9,
-        font: helvetica,
-        color: textColor,
-      });
-    }
-    
-    infoY -= 12;
-    const buildingName = assistance.buildings?.name || "N/A";
-    const nameLines = splitTextIntoLines(`Nome: ${buildingName}`, helvetica, 9, contentWidth - 20);
-    page.drawText(nameLines[0] || "", {
-      x: leftMargin + 10,
-      y: infoY,
-      size: 9,
-      font: helvetica,
-      color: textColor,
-    });
-    
-    infoY -= 12;
-    if (assistance.buildings?.address) {
-      const addrLines = splitTextIntoLines(`Morada: ${assistance.buildings.address}`, helvetica, 9, contentWidth - 20);
-      page.drawText(addrLines[0] || "", {
-        x: leftMargin + 10,
-        y: infoY,
-        size: 9,
-        font: helvetica,
-        color: textColor,
-      });
-    }
-    
-    y -= buildingHeight + SECTION_GAP;
   }
   
-  // === INTERVENTION TYPE SECTION ===
-  const interventionHeight = 38;
-  if (canFit(interventionHeight)) {
-    page.drawRectangle({
-      x: leftMargin,
-      y: y - interventionHeight,
-      width: contentWidth,
-      height: interventionHeight,
-      color: lightGray,
-      borderColor: borderGray,
-      borderWidth: 1,
-    });
-    
-    page.drawRectangle({
-      x: leftMargin,
-      y: y - 16,
-      width: 3,
-      height: 16,
-      color: rgb(0.55, 0.36, 0.75),
-    });
-    page.drawText("TIPO DE INTERVENCAO", {
-      x: leftMargin + 10,
-      y: y - 12,
-      size: 10,
-      font: helveticaBold,
-      color: darkBlue,
-    });
-    
-    const interventionText = assistance.intervention_types?.name || "N/A";
-    const categoryText = assistance.intervention_types?.category ? ` (${assistance.intervention_types.category})` : "";
-    page.drawText(`${interventionText}${categoryText}`, {
-      x: leftMargin + 10,
-      y: y - 30,
-      size: 9,
+  infoY -= 11;
+  const buildingName = assistance.buildings?.name || "N/A";
+  const nameLines = splitTextIntoLines(`Nome: ${buildingName}`, helvetica, 8, CONTENT_WIDTH - 16);
+  ctx.page.drawText(nameLines[0] || "", {
+    x: LEFT_MARGIN + 8,
+    y: infoY,
+    size: 8,
+    font: helvetica,
+    color: colors.text,
+  });
+  
+  infoY -= 11;
+  if (assistance.buildings?.address) {
+    const addrLines = splitTextIntoLines(`Morada: ${assistance.buildings.address}`, helvetica, 8, CONTENT_WIDTH - 16);
+    ctx.page.drawText(addrLines[0] || "", {
+      x: LEFT_MARGIN + 8,
+      y: infoY,
+      size: 8,
       font: helvetica,
-      color: textColor,
+      color: colors.text,
     });
-    
-    y -= interventionHeight + SECTION_GAP;
   }
+  
+  ctx.y -= buildingHeight + SECTION_GAP;
+  
+  // === INTERVENTION TYPE SECTION ===
+  const interventionHeight = 36;
+  await ensureSpace(ctx, interventionHeight, logoImage, logoBytes);
+  
+  ctx.page.drawRectangle({
+    x: LEFT_MARGIN,
+    y: ctx.y - interventionHeight,
+    width: CONTENT_WIDTH,
+    height: interventionHeight,
+    color: colors.lightGray,
+    borderColor: colors.borderGray,
+    borderWidth: 1,
+  });
+  
+  ctx.page.drawRectangle({
+    x: LEFT_MARGIN,
+    y: ctx.y - 14,
+    width: 3,
+    height: 14,
+    color: rgb(0.55, 0.36, 0.75),
+  });
+  ctx.page.drawText("TIPO DE INTERVENCAO", {
+    x: LEFT_MARGIN + 8,
+    y: ctx.y - 11,
+    size: 9,
+    font: helveticaBold,
+    color: colors.darkBlue,
+  });
+  
+  const interventionText = assistance.intervention_types?.name || "N/A";
+  const categoryText = assistance.intervention_types?.category ? ` (${assistance.intervention_types.category})` : "";
+  ctx.page.drawText(`${interventionText}${categoryText}`, {
+    x: LEFT_MARGIN + 8,
+    y: ctx.y - 28,
+    size: 8,
+    font: helvetica,
+    color: colors.text,
+  });
+  
+  ctx.y -= interventionHeight + SECTION_GAP;
   
   // === SUPPLIER SECTION (if assigned) ===
   if (assistance.suppliers) {
-    const supplierHeight = 52;
-    if (canFit(supplierHeight)) {
-      page.drawRectangle({
-        x: leftMargin,
-        y: y - supplierHeight,
-        width: contentWidth,
-        height: supplierHeight,
-        color: rgb(0.94, 0.99, 0.97),
-        borderColor: rgb(0.16, 0.73, 0.56),
-        borderWidth: 1,
-      });
-      
-      page.drawRectangle({
-        x: leftMargin,
-        y: y - 16,
-        width: 3,
-        height: 16,
-        color: rgb(0.16, 0.73, 0.56),
-      });
-      page.drawText("FORNECEDOR ATRIBUIDO", {
-        x: leftMargin + 10,
-        y: y - 12,
-        size: 10,
-        font: helveticaBold,
-        color: rgb(0.05, 0.45, 0.35),
-      });
-      
-      let suppY = y - 28;
-      page.drawText(`Nome: ${assistance.suppliers.name}`, {
-        x: leftMargin + 10,
-        y: suppY,
-        size: 9,
-        font: helveticaBold,
-        color: textColor,
-      });
-      
-      suppY -= 12;
-      if (assistance.suppliers.email) {
-        page.drawText(`Email: ${assistance.suppliers.email}`, {
-          x: leftMargin + 10,
-          y: suppY,
-          size: 9,
-          font: helvetica,
-          color: textColor,
-        });
-      }
-      
-      if (assistance.suppliers.phone) {
-        page.drawText(`Tel: ${assistance.suppliers.phone}`, {
-          x: leftMargin + 220,
-          y: suppY,
-          size: 9,
-          font: helvetica,
-          color: textColor,
-        });
-      }
-      
-      y -= supplierHeight + SECTION_GAP;
-    }
-  }
-  
-  // === STATUS AND DATES SECTION ===
-  const statusHeight = 45;
-  if (canFit(statusHeight)) {
-    page.drawRectangle({
-      x: leftMargin,
-      y: y - statusHeight,
-      width: contentWidth,
-      height: statusHeight,
-      color: lightGray,
-      borderColor: borderGray,
+    const supplierHeight = 48;
+    await ensureSpace(ctx, supplierHeight, logoImage, logoBytes);
+    
+    ctx.page.drawRectangle({
+      x: LEFT_MARGIN,
+      y: ctx.y - supplierHeight,
+      width: CONTENT_WIDTH,
+      height: supplierHeight,
+      color: rgb(0.94, 0.99, 0.97),
+      borderColor: rgb(0.16, 0.73, 0.56),
       borderWidth: 1,
     });
     
-    page.drawRectangle({
-      x: leftMargin,
-      y: y - 16,
+    ctx.page.drawRectangle({
+      x: LEFT_MARGIN,
+      y: ctx.y - 14,
       width: 3,
-      height: 16,
-      color: rgb(0.98, 0.55, 0.24),
+      height: 14,
+      color: rgb(0.16, 0.73, 0.56),
     });
-    page.drawText("ESTADO E DATAS", {
-      x: leftMargin + 10,
-      y: y - 12,
-      size: 10,
+    ctx.page.drawText("FORNECEDOR ATRIBUIDO", {
+      x: LEFT_MARGIN + 8,
+      y: ctx.y - 11,
+      size: 9,
       font: helveticaBold,
-      color: darkBlue,
+      color: rgb(0.05, 0.45, 0.35),
     });
     
-    let statusY = y - 28;
-    page.drawText(`Estado: ${getStatusLabel(assistance.status)}`, {
-      x: leftMargin + 10,
-      y: statusY,
-      size: 9,
-      font: helvetica,
-      color: textColor,
+    let suppY = ctx.y - 26;
+    ctx.page.drawText(`Nome: ${assistance.suppliers.name}`, {
+      x: LEFT_MARGIN + 8,
+      y: suppY,
+      size: 8,
+      font: helveticaBold,
+      color: colors.text,
     });
     
-    page.drawText(`Criado: ${formatDateOnly(assistance.created_at)}`, {
-      x: leftMargin + 160,
-      y: statusY,
-      size: 9,
-      font: helvetica,
-      color: textColor,
-    });
-    
-    statusY -= 12;
-    const reqQuot = assistance.requires_quotation ? "Sim" : "Nao";
-    page.drawText(`Requer orcamento: ${reqQuot}`, {
-      x: leftMargin + 10,
-      y: statusY,
-      size: 9,
-      font: helvetica,
-      color: textColor,
-    });
-    
-    if (assistance.quotation_deadline) {
-      page.drawText(`Prazo: ${formatDateOnly(assistance.quotation_deadline)}`, {
-        x: leftMargin + 160,
-        y: statusY,
-        size: 9,
+    suppY -= 11;
+    if (assistance.suppliers.email) {
+      ctx.page.drawText(`Email: ${assistance.suppliers.email}`, {
+        x: LEFT_MARGIN + 8,
+        y: suppY,
+        size: 8,
         font: helvetica,
-        color: textColor,
+        color: colors.text,
       });
     }
     
-    y -= statusHeight + SECTION_GAP;
+    if (assistance.suppliers.phone) {
+      ctx.page.drawText(`Tel: ${assistance.suppliers.phone}`, {
+        x: LEFT_MARGIN + 200,
+        y: suppY,
+        size: 8,
+        font: helvetica,
+        color: colors.text,
+      });
+    }
+    
+    ctx.y -= supplierHeight + SECTION_GAP;
   }
+  
+  // === STATUS AND DATES SECTION ===
+  const statusHeight = 42;
+  await ensureSpace(ctx, statusHeight, logoImage, logoBytes);
+  
+  ctx.page.drawRectangle({
+    x: LEFT_MARGIN,
+    y: ctx.y - statusHeight,
+    width: CONTENT_WIDTH,
+    height: statusHeight,
+    color: colors.lightGray,
+    borderColor: colors.borderGray,
+    borderWidth: 1,
+  });
+  
+  ctx.page.drawRectangle({
+    x: LEFT_MARGIN,
+    y: ctx.y - 14,
+    width: 3,
+    height: 14,
+    color: rgb(0.98, 0.55, 0.24),
+  });
+  ctx.page.drawText("ESTADO E DATAS", {
+    x: LEFT_MARGIN + 8,
+    y: ctx.y - 11,
+    size: 9,
+    font: helveticaBold,
+    color: colors.darkBlue,
+  });
+  
+  let statusY = ctx.y - 26;
+  ctx.page.drawText(`Estado: ${getStatusLabel(assistance.status)}`, {
+    x: LEFT_MARGIN + 8,
+    y: statusY,
+    size: 8,
+    font: helvetica,
+    color: colors.text,
+  });
+  
+  ctx.page.drawText(`Criado: ${formatDateOnly(assistance.created_at)}`, {
+    x: LEFT_MARGIN + 140,
+    y: statusY,
+    size: 8,
+    font: helvetica,
+    color: colors.text,
+  });
+  
+  statusY -= 11;
+  const reqQuot = assistance.requires_quotation ? "Sim" : "Nao";
+  ctx.page.drawText(`Requer orcamento: ${reqQuot}`, {
+    x: LEFT_MARGIN + 8,
+    y: statusY,
+    size: 8,
+    font: helvetica,
+    color: colors.text,
+  });
+  
+  if (assistance.quotation_deadline) {
+    ctx.page.drawText(`Prazo: ${formatDateOnly(assistance.quotation_deadline)}`, {
+      x: LEFT_MARGIN + 140,
+      y: statusY,
+      size: 8,
+      font: helvetica,
+      color: colors.text,
+    });
+  }
+  
+  ctx.y -= statusHeight + SECTION_GAP;
   
   // === MAGIC CODE SECTION (if provided) ===
   if (magicCode) {
-    const codeHeight = 55;
-    if (canFit(codeHeight)) {
-      page.drawRectangle({
-        x: leftMargin,
-        y: y - codeHeight,
-        width: contentWidth,
-        height: codeHeight,
-        color: rgb(1, 0.98, 0.92),
-        borderColor: rgb(0.96, 0.72, 0.20),
-        borderWidth: 2,
-      });
-      
-      page.drawRectangle({
-        x: leftMargin,
-        y: y - 16,
-        width: 3,
-        height: 16,
-        color: rgb(0.96, 0.72, 0.20),
-      });
-      page.drawText("CODIGO DE ACESSO AO PORTAL", {
-        x: leftMargin + 10,
-        y: y - 12,
-        size: 10,
-        font: helveticaBold,
-        color: rgb(0.65, 0.38, 0.05),
-      });
-      
-      page.drawText(magicCode, {
-        x: leftMargin + 10,
-        y: y - 36,
-        size: 18,
-        font: helveticaBold,
-        color: textColor,
-      });
-      
-      page.drawText("Portal: condo-assist.lovable.app/fornecedor", {
-        x: leftMargin + 10,
-        y: y - 50,
-        size: 8,
-        font: helvetica,
-        color: grayColor,
-      });
-      
-      y -= codeHeight + SECTION_GAP;
-    }
+    const codeHeight = 50;
+    await ensureSpace(ctx, codeHeight, logoImage, logoBytes);
+    
+    ctx.page.drawRectangle({
+      x: LEFT_MARGIN,
+      y: ctx.y - codeHeight,
+      width: CONTENT_WIDTH,
+      height: codeHeight,
+      color: rgb(1, 0.98, 0.92),
+      borderColor: rgb(0.96, 0.72, 0.20),
+      borderWidth: 1.5,
+    });
+    
+    ctx.page.drawRectangle({
+      x: LEFT_MARGIN,
+      y: ctx.y - 14,
+      width: 3,
+      height: 14,
+      color: rgb(0.96, 0.72, 0.20),
+    });
+    ctx.page.drawText("CODIGO DE ACESSO AO PORTAL", {
+      x: LEFT_MARGIN + 8,
+      y: ctx.y - 11,
+      size: 9,
+      font: helveticaBold,
+      color: rgb(0.65, 0.38, 0.05),
+    });
+    
+    ctx.page.drawText(magicCode, {
+      x: LEFT_MARGIN + 8,
+      y: ctx.y - 32,
+      size: 16,
+      font: helveticaBold,
+      color: colors.text,
+    });
+    
+    ctx.page.drawText("Portal: condo-assist.lovable.app/fornecedor", {
+      x: LEFT_MARGIN + 8,
+      y: ctx.y - 45,
+      size: 7,
+      font: helvetica,
+      color: colors.gray,
+    });
+    
+    ctx.y -= codeHeight + SECTION_GAP;
   }
   
-  // ==================== FOOTER (FIXED POSITION) ====================
-  const footerY = FOOTER_Y;
-  
-  // Footer divider
-  page.drawLine({
-    start: { x: leftMargin, y: footerY + FOOTER_HEIGHT - 5 },
-    end: { x: width - rightMargin, y: footerY + FOOTER_HEIGHT - 5 },
-    thickness: 1,
-    color: primaryColor,
-  });
-  
-  // Company info - centered
-  const companyName = "Luvimg - Administracao de Condominios, Lda";
-  page.drawText(companyName, {
-    x: (width - helveticaBold.widthOfTextAtSize(companyName, 8)) / 2,
-    y: footerY + FOOTER_HEIGHT - 18,
-    size: 8,
-    font: helveticaBold,
-    color: darkBlue,
-  });
-  
-  const address = "Praceta Pedro Manuel Pereira n. 1 - 1. esq, 2620-158 Povoa Santo Adriao";
-  page.drawText(address, {
-    x: (width - helvetica.widthOfTextAtSize(address, 7)) / 2,
-    y: footerY + FOOTER_HEIGHT - 30,
-    size: 7,
-    font: helvetica,
-    color: grayColor,
-  });
-  
-  const contacts = "Tel: +351 219 379 248 | Email: geral@luvimg.com";
-  page.drawText(contacts, {
-    x: (width - helvetica.widthOfTextAtSize(contacts, 7)) / 2,
-    y: footerY + FOOTER_HEIGHT - 42,
-    size: 7,
-    font: helvetica,
-    color: grayColor,
-  });
-  
-  const autoGen = "Documento gerado automaticamente pelo Sistema de Gestao de Assistencias";
-  page.drawText(autoGen, {
-    x: (width - helvetica.widthOfTextAtSize(autoGen, 6)) / 2,
-    y: footerY + FOOTER_HEIGHT - 55,
-    size: 6,
-    font: helvetica,
-    color: rgb(0.6, 0.6, 0.6),
-  });
+  // Update page count on all pages (if multiple pages)
+  const totalPages = pdfDoc.getPageCount();
+  if (totalPages > 1) {
+    const pages = pdfDoc.getPages();
+    for (let i = 0; i < pages.length; i++) {
+      const pageNumText = `Pagina ${i + 1} de ${totalPages}`;
+      pages[i].drawText(pageNumText, {
+        x: PAGE_WIDTH - RIGHT_MARGIN - helvetica.widthOfTextAtSize(pageNumText, 7),
+        y: 10,
+        size: 7,
+        font: helvetica,
+        color: colors.gray,
+      });
+    }
+  }
   
   return await pdfDoc.save();
 };
@@ -739,9 +843,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Assistance fetched:", assistance.title);
 
     // Get admin email from settings if not provided
-    // NOTE: Resend in test mode only allows sending to the account owner's email
-    // Once domain is verified at resend.com/domains, change this to use the actual admin email
-    let targetEmail = adminEmail || "bilal.machraa@gmail.com"; // Temporary: using Resend account email
+    let targetEmail = adminEmail || "bilal.machraa@gmail.com";
     
     if (!adminEmail) {
       const { data: setting } = await supabase
@@ -750,169 +852,162 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("key", "admin_email")
         .single();
       
-      // For now, we override with the Resend account email since domain is not verified
-      // Once luvimg.com is verified at resend.com/domains, uncomment the line below:
-      // if (setting?.value) {
-      //   targetEmail = typeof setting.value === "string" 
-      //     ? setting.value.replace(/"/g, "") 
-      //     : setting.value;
-      // }
-      
-      console.log("Admin email setting found:", setting?.value, "but using Resend account email due to unverified domain");
+      if (setting?.value) {
+        console.log("Admin email from settings:", setting.value);
+      }
     }
 
-    console.log(`Generating premium PDF for assistance #${assistance.assistance_number}`);
+    console.log("Target email for PDF:", targetEmail);
 
-    // Generate the premium PDF
+    // Generate the premium PDF with pagination
     const pdfBytes = await generateRealPDF(assistance as unknown as AssistanceData, isArchiveMode ? undefined : magicCode);
-    // Use Deno's base64 encode to avoid stack overflow with large arrays
     const pdfBase64 = base64Encode(pdfBytes);
 
-    console.log(`PDF generated, size: ${pdfBytes.length} bytes`);
+    console.log("PDF generated, size:", pdfBytes.length, "bytes");
 
     // Prepare email content
-    const subject = isArchiveMode 
-      ? `[ARQUIVO] Assistencia #${assistance.assistance_number} - ${assistance.title}`
-      : `Pedido de Assistencia #${assistance.assistance_number} - ${assistance.title}`;
-
-    const htmlContent = isArchiveMode ? `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <img src="https://condo-assist.lovable.app/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" alt="Luvimg" style="max-width: 200px; height: auto;">
-        </div>
-        <div style="background: linear-gradient(135deg, #0891b2, #0e7490); padding: 20px; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">Novo Pedido de Assistência</h1>
-          <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">Assistência #${assistance.assistance_number}</p>
-        </div>
-        <div style="border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px; padding: 20px;">
-          <h2 style="color: #0f172a; font-size: 18px; margin-top: 0;">${assistance.title}</h2>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Edifício:</td>
-              <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${assistance.buildings?.name || 'N/A'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Tipo:</td>
-              <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">${assistance.intervention_types?.name || 'N/A'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Fornecedor:</td>
-              <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${assistance.suppliers?.name || 'Não atribuído'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px 0; color: #64748b;">Prioridade:</td>
-              <td style="padding: 10px 0;">
-                <span style="background: ${assistance.priority === 'critical' ? '#dc2626' : assistance.priority === 'urgent' ? '#f59e0b' : '#0891b2'}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px;">${getPriorityLabel(assistance.priority).toUpperCase()}</span>
-              </td>
-            </tr>
-          </table>
-          <p style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px; color: #64748b; font-size: 14px;">
-            📎 PDF detalhado em anexo para arquivo ou reencaminhamento ao fornecedor.
-          </p>
-        </div>
-        <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
-          <p style="color: #94a3b8; font-size: 12px; margin: 0;">Luvimg - Administração de Condomínios, Lda</p>
-          <p style="color: #94a3b8; font-size: 11px; margin: 5px 0 0 0;">Documento gerado automaticamente</p>
-        </div>
-      </div>
-    ` : `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <img src="https://condo-assist.lovable.app/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png" alt="Luvimg" style="max-width: 200px; height: auto;">
-        </div>
-        <div style="background: linear-gradient(135deg, #0891b2, #0e7490); padding: 20px; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">Pedido de Assistência</h1>
-        </div>
-        <div style="border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px; padding: 20px;">
-          <p>Prezado(a) ${assistance.suppliers?.name || 'Fornecedor'},</p>
-          <p>${customMessage || 'Segue em anexo o pedido de assistência para a sua análise.'}</p>
-          ${magicCode ? `
-            <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 15px; margin: 20px 0; text-align: center;">
-              <p style="margin: 0 0 10px 0; color: #92400e; font-weight: bold;">Código de Acesso ao Portal:</p>
-              <p style="margin: 0; font-size: 28px; font-weight: bold; letter-spacing: 3px; color: #0f172a;">${magicCode}</p>
-              <p style="margin: 10px 0 0 0; font-size: 12px; color: #64748b;">
-                <a href="https://condo-assist.lovable.app/fornecedor" style="color: #0891b2;">condo-assist.lovable.app/fornecedor</a>
+    const assistanceNumber = assistance.assistance_number || "N/A";
+    const supplierName = (assistance as any).suppliers?.name || "Nao atribuido";
+    const buildingName = (assistance as any).buildings?.name || "N/A";
+    
+    const emailSubject = isArchiveMode 
+      ? `[Arquivo] Assistencia #${assistanceNumber} - ${assistance.title}`
+      : `Assistencia #${assistanceNumber} - ${assistance.title}`;
+    
+    const emailContent = isArchiveMode
+      ? `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 30px; border-radius: 16px;">
+          <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+            <div style="text-align: center; margin-bottom: 25px;">
+              <h1 style="color: #0891b2; margin: 0; font-size: 24px;">📋 Arquivo de Assistencia</h1>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+              <h2 style="color: #0c4a6e; margin: 0 0 8px 0; font-size: 18px;">Assistencia #${assistanceNumber}</h2>
+              <p style="color: #475569; margin: 0; font-size: 14px;">${assistance.title}</p>
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
+                  <strong style="color: #64748b;">Edificio:</strong>
+                </td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #1e293b;">
+                  ${buildingName}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
+                  <strong style="color: #64748b;">Fornecedor:</strong>
+                </td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #1e293b;">
+                  ${supplierName}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0;">
+                  <strong style="color: #64748b;">Estado:</strong>
+                </td>
+                <td style="padding: 10px 0; color: #1e293b;">
+                  ${getStatusLabel(assistance.status)}
+                </td>
+              </tr>
+            </table>
+            
+            <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+              <p style="margin: 0; color: #92400e; font-size: 13px;">
+                📎 O PDF completo da assistencia esta anexado a este email.
               </p>
             </div>
-          ` : ''}
+          </div>
+          
+          <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 20px;">
+            Luvimg - Administracao de Condominios
+          </p>
         </div>
-      </div>
-    `;
-
-    console.log(`Sending email to: ${targetEmail}`);
+      `
+      : `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 30px; border-radius: 16px;">
+          <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+            <div style="text-align: center; margin-bottom: 25px;">
+              <h1 style="color: #0891b2; margin: 0; font-size: 24px;">📧 Encaminhamento de Assistencia</h1>
+            </div>
+            
+            ${customMessage ? `
+              <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #22c55e;">
+                <p style="margin: 0; color: #166534; font-size: 14px;">${customMessage}</p>
+              </div>
+            ` : ''}
+            
+            <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+              <h2 style="color: #0c4a6e; margin: 0 0 8px 0; font-size: 18px;">Assistencia #${assistanceNumber}</h2>
+              <p style="color: #475569; margin: 0; font-size: 14px;">${assistance.title}</p>
+            </div>
+            
+            <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+              <p style="margin: 0; color: #92400e; font-size: 13px;">
+                📎 O PDF completo com o codigo de acesso esta anexado.
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
 
     // Send email with PDF attachment
-    const emailResult = await resend.emails.send({
-      from: "Luvimg <onboarding@resend.dev>",
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: "Luvimg Sistema <onboarding@resend.dev>",
       to: [targetEmail],
-      subject: subject,
-      html: htmlContent,
+      subject: emailSubject,
+      html: emailContent,
       attachments: [
         {
-          filename: `assistencia-${assistance.assistance_number || assistance.id.slice(-8)}.pdf`,
+          filename: `assistencia-${assistanceNumber}.pdf`,
           content: pdfBase64,
           content_type: "application/pdf",
         },
       ],
     });
 
-    console.log("Email sent result:", emailResult);
-
-    // Check for Resend errors
-    if (emailResult.error) {
-      console.error("Resend error:", emailResult.error);
-      
-      // Log the failed attempt
-      await supabase.from("email_logs").insert({
-        assistance_id: assistanceId,
-        supplier_id: assistance.suppliers?.id,
-        recipient_email: targetEmail,
-        subject: subject,
-        status: "failed",
-        template_used: "assistance_pdf_premium",
-        metadata: {
-          mode: mode,
-          resend_error: emailResult.error,
-        },
-      });
-      
-      throw new Error(`Email sending failed: ${JSON.stringify(emailResult.error)}`);
+    if (emailError) {
+      console.error("Resend error:", emailError);
+      throw new Error(`Failed to send email: ${emailError.message}`);
     }
 
-    // Log successful email
+    console.log("Email sent successfully:", emailData);
+
+    // Log email in database
     await supabase.from("email_logs").insert({
       assistance_id: assistanceId,
-      supplier_id: assistance.suppliers?.id,
       recipient_email: targetEmail,
-      subject: subject,
+      subject: emailSubject,
       status: "sent",
-      template_used: "assistance_pdf_premium",
-      metadata: {
-        mode: mode,
-        email_id: emailResult.data?.id,
-        pdf_size: pdfBytes.length,
+      template_used: isArchiveMode ? "archive_pdf" : "forward_pdf",
+      metadata: { 
+        mode, 
+        hasCustomMessage: !!customMessage,
+        pdfSize: pdfBytes.length,
+        emailId: emailData?.id 
       },
     });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `PDF premium enviado para ${targetEmail}`,
-        emailId: emailResult.data?.id,
+        message: "PDF enviado com sucesso",
+        emailId: emailData?.id,
+        pdfSize: pdfBytes.length 
       }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+
+  } catch (error) {
     console.error("Error in send-assistance-pdf-to-admin:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
 };
