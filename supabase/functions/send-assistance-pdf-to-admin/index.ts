@@ -40,12 +40,21 @@ interface AssistanceData {
   };
 }
 
+interface PhotoData {
+  id: string;
+  file_url: string;
+  caption?: string | null;
+  photo_type: string;
+  created_at: string;
+}
+
 interface RequestBody {
   assistanceId: string;
   adminEmail?: string;
   magicCode?: string;
   customMessage?: string;
   mode?: 'archive' | 'forward';
+  includePhotos?: boolean;
 }
 
 interface PDFContext {
@@ -82,6 +91,13 @@ const CONTENT_TOP = PAGE_HEIGHT - HEADER_HEIGHT;
 const CONTENT_BOTTOM = FOOTER_HEIGHT + 20;
 const SECTION_GAP = 12;
 
+// Photo grid constants
+const PHOTOS_PER_ROW = 2;
+const PHOTO_WIDTH = (CONTENT_WIDTH - 15) / PHOTOS_PER_ROW; // 15px gap between photos
+const PHOTO_HEIGHT = 130;
+const PHOTO_GAP = 15;
+const CAPTION_HEIGHT = 18;
+
 const getPriorityLabel = (priority: string): string => {
   const labels: Record<string, string> = {
     normal: "Normal",
@@ -111,6 +127,19 @@ const getStatusLabel = (status: string): string => {
     scheduled: "Agendada",
   };
   return labels[status] || status;
+};
+
+const getPhotoTypeLabel = (type: string): string => {
+  const labels: Record<string, string> = {
+    before: "Antes",
+    during: "Durante",
+    after: "Depois",
+    initial: "Inicial",
+    progress: "Progresso",
+    completion: "Conclusao",
+    other: "Outro",
+  };
+  return labels[type] || type;
 };
 
 const formatDate = (dateString: string): string => {
@@ -169,6 +198,38 @@ async function fetchLogoBytes(): Promise<Uint8Array | null> {
   }
 }
 
+// Fetch image from URL and return as Uint8Array
+async function fetchImageBytes(url: string): Promise<{ bytes: Uint8Array; type: 'png' | 'jpg' } | null> {
+  try {
+    console.log("Fetching image:", url);
+    const response = await fetch(url, { 
+      headers: { 'Accept': 'image/*' },
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
+    
+    if (!response.ok) {
+      console.error("Failed to fetch image:", response.status, url);
+      return null;
+    }
+    
+    const contentType = response.headers.get('content-type') || '';
+    const arrayBuffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Determine image type from content-type or URL
+    let type: 'png' | 'jpg' = 'jpg';
+    if (contentType.includes('png') || url.toLowerCase().includes('.png')) {
+      type = 'png';
+    }
+    
+    console.log("Image fetched successfully:", bytes.length, "bytes, type:", type);
+    return { bytes, type };
+  } catch (error) {
+    console.error("Error fetching image:", error, url);
+    return null;
+  }
+}
+
 // Add new page with header and footer
 async function addNewPage(ctx: PDFContext, logoImage: any, logoBytes: Uint8Array | null): Promise<void> {
   ctx.pageNumber++;
@@ -177,7 +238,6 @@ async function addNewPage(ctx: PDFContext, logoImage: any, logoBytes: Uint8Array
   
   // Draw minimal header for continuation pages
   if (ctx.pageNumber > 1) {
-    // Small logo or text
     const headerText = "LUVIMG - Relatorio de Assistencia (continuacao)";
     ctx.page.drawText(headerText, {
       x: LEFT_MARGIN,
@@ -187,7 +247,6 @@ async function addNewPage(ctx: PDFContext, logoImage: any, logoBytes: Uint8Array
       color: ctx.colors.gray,
     });
     
-    // Page number
     const pageNumText = `Pagina ${ctx.pageNumber}`;
     ctx.page.drawText(pageNumText, {
       x: PAGE_WIDTH - RIGHT_MARGIN - ctx.helvetica.widthOfTextAtSize(pageNumText, 9),
@@ -197,7 +256,6 @@ async function addNewPage(ctx: PDFContext, logoImage: any, logoBytes: Uint8Array
       color: ctx.colors.gray,
     });
     
-    // Divider
     ctx.page.drawLine({
       start: { x: LEFT_MARGIN, y: PAGE_HEIGHT - 40 },
       end: { x: PAGE_WIDTH - RIGHT_MARGIN, y: PAGE_HEIGHT - 40 },
@@ -208,14 +266,12 @@ async function addNewPage(ctx: PDFContext, logoImage: any, logoBytes: Uint8Array
     ctx.y = PAGE_HEIGHT - 55;
   }
   
-  // Draw footer on every page
   drawFooter(ctx);
 }
 
 function drawFooter(ctx: PDFContext): void {
   const footerY = 25;
   
-  // Footer divider
   ctx.page.drawLine({
     start: { x: LEFT_MARGIN, y: footerY + FOOTER_HEIGHT - 5 },
     end: { x: PAGE_WIDTH - RIGHT_MARGIN, y: footerY + FOOTER_HEIGHT - 5 },
@@ -223,7 +279,6 @@ function drawFooter(ctx: PDFContext): void {
     color: ctx.colors.primary,
   });
   
-  // Company info
   const companyName = "Luvimg - Administracao de Condominios, Lda";
   ctx.page.drawText(companyName, {
     x: (PAGE_WIDTH - ctx.helveticaBold.widthOfTextAtSize(companyName, 7)) / 2,
@@ -251,7 +306,6 @@ function drawFooter(ctx: PDFContext): void {
     color: ctx.colors.gray,
   });
   
-  // Page number at bottom right
   if (ctx.pageNumber >= 1) {
     const pageText = `${ctx.pageNumber}`;
     ctx.page.drawText(pageText, {
@@ -268,17 +322,194 @@ function drawFooter(ctx: PDFContext): void {
 async function ensureSpace(ctx: PDFContext, neededHeight: number, logoImage: any, logoBytes: Uint8Array | null): Promise<boolean> {
   if (ctx.y - neededHeight < CONTENT_BOTTOM) {
     await addNewPage(ctx, logoImage, logoBytes);
-    return true; // New page was added
+    return true;
   }
   return false;
 }
 
-const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): Promise<Uint8Array> => {
+// Draw photos in a grid layout
+async function drawPhotosSection(
+  ctx: PDFContext, 
+  photos: PhotoData[], 
+  pdfDoc: any,
+  logoImage: any, 
+  logoBytes: Uint8Array | null
+): Promise<void> {
+  if (photos.length === 0) return;
+  
+  // Section header
+  const headerHeight = 25;
+  await ensureSpace(ctx, headerHeight + PHOTO_HEIGHT + CAPTION_HEIGHT, logoImage, logoBytes);
+  
+  ctx.page.drawText("FOTOGRAFIAS", {
+    x: LEFT_MARGIN,
+    y: ctx.y,
+    size: 11,
+    font: ctx.helveticaBold,
+    color: ctx.colors.primary,
+  });
+  
+  ctx.page.drawText(`(${photos.length} ${photos.length === 1 ? 'foto' : 'fotos'})`, {
+    x: LEFT_MARGIN + ctx.helveticaBold.widthOfTextAtSize("FOTOGRAFIAS", 11) + 8,
+    y: ctx.y,
+    size: 9,
+    font: ctx.helvetica,
+    color: ctx.colors.gray,
+  });
+  
+  ctx.y -= 20;
+  
+  // Draw photos in grid
+  let photoIndex = 0;
+  const embeddedImages: { image: any; photo: PhotoData }[] = [];
+  
+  // Pre-fetch and embed all images
+  console.log(`Fetching ${photos.length} photos...`);
+  for (const photo of photos) {
+    try {
+      const imageData = await fetchImageBytes(photo.file_url);
+      if (imageData) {
+        let embeddedImage;
+        try {
+          if (imageData.type === 'png') {
+            embeddedImage = await pdfDoc.embedPng(imageData.bytes);
+          } else {
+            embeddedImage = await pdfDoc.embedJpg(imageData.bytes);
+          }
+          embeddedImages.push({ image: embeddedImage, photo });
+        } catch (embedError) {
+          console.error("Error embedding image:", embedError);
+          // Try the other format as fallback
+          try {
+            if (imageData.type === 'png') {
+              embeddedImage = await pdfDoc.embedJpg(imageData.bytes);
+            } else {
+              embeddedImage = await pdfDoc.embedPng(imageData.bytes);
+            }
+            embeddedImages.push({ image: embeddedImage, photo });
+          } catch {
+            console.error("Failed to embed image with fallback format");
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error processing photo:", photo.id, error);
+    }
+  }
+  
+  console.log(`Successfully embedded ${embeddedImages.length} of ${photos.length} photos`);
+  
+  // Draw embedded images in grid
+  while (photoIndex < embeddedImages.length) {
+    const rowHeight = PHOTO_HEIGHT + CAPTION_HEIGHT + PHOTO_GAP;
+    await ensureSpace(ctx, rowHeight, logoImage, logoBytes);
+    
+    // Draw up to PHOTOS_PER_ROW photos in this row
+    for (let col = 0; col < PHOTOS_PER_ROW && photoIndex < embeddedImages.length; col++) {
+      const { image, photo } = embeddedImages[photoIndex];
+      const x = LEFT_MARGIN + col * (PHOTO_WIDTH + PHOTO_GAP);
+      
+      // Calculate image dimensions to fit within photo box while maintaining aspect ratio
+      const originalWidth = image.width;
+      const originalHeight = image.height;
+      const aspectRatio = originalWidth / originalHeight;
+      
+      let drawWidth = PHOTO_WIDTH - 10; // Padding inside border
+      let drawHeight = drawWidth / aspectRatio;
+      
+      if (drawHeight > PHOTO_HEIGHT - 10) {
+        drawHeight = PHOTO_HEIGHT - 10;
+        drawWidth = drawHeight * aspectRatio;
+      }
+      
+      // Center image within the photo box
+      const imgX = x + (PHOTO_WIDTH - drawWidth) / 2;
+      const imgY = ctx.y - PHOTO_HEIGHT + (PHOTO_HEIGHT - drawHeight) / 2;
+      
+      // Draw photo border/background
+      ctx.page.drawRectangle({
+        x: x,
+        y: ctx.y - PHOTO_HEIGHT,
+        width: PHOTO_WIDTH,
+        height: PHOTO_HEIGHT,
+        color: ctx.colors.lightGray,
+        borderColor: ctx.colors.borderGray,
+        borderWidth: 1,
+      });
+      
+      // Draw the image
+      ctx.page.drawImage(image, {
+        x: imgX,
+        y: imgY,
+        width: drawWidth,
+        height: drawHeight,
+      });
+      
+      // Draw caption below photo
+      const captionY = ctx.y - PHOTO_HEIGHT - 12;
+      const photoTypeLabel = getPhotoTypeLabel(photo.photo_type);
+      const captionText = photo.caption 
+        ? `${photoTypeLabel}: ${photo.caption}`.substring(0, 40) + (photo.caption.length > 35 ? '...' : '')
+        : photoTypeLabel;
+      
+      // Type badge
+      const badgeWidth = ctx.helveticaBold.widthOfTextAtSize(photoTypeLabel, 7) + 8;
+      ctx.page.drawRectangle({
+        x: x,
+        y: captionY - 2,
+        width: badgeWidth,
+        height: 12,
+        color: ctx.colors.primary,
+      });
+      ctx.page.drawText(photoTypeLabel, {
+        x: x + 4,
+        y: captionY + 1,
+        size: 7,
+        font: ctx.helveticaBold,
+        color: rgb(1, 1, 1),
+      });
+      
+      // Caption text
+      if (photo.caption) {
+        const maxCaptionWidth = PHOTO_WIDTH - badgeWidth - 8;
+        const captionLines = splitTextIntoLines(photo.caption, ctx.helvetica, 7, maxCaptionWidth);
+        ctx.page.drawText(captionLines[0] || "", {
+          x: x + badgeWidth + 5,
+          y: captionY + 1,
+          size: 7,
+          font: ctx.helvetica,
+          color: ctx.colors.text,
+        });
+      }
+      
+      photoIndex++;
+    }
+    
+    ctx.y -= PHOTO_HEIGHT + CAPTION_HEIGHT + PHOTO_GAP;
+  }
+  
+  // If no photos were successfully embedded, show a message
+  if (embeddedImages.length === 0 && photos.length > 0) {
+    ctx.page.drawText("Nao foi possivel carregar as fotografias", {
+      x: LEFT_MARGIN,
+      y: ctx.y,
+      size: 9,
+      font: ctx.helvetica,
+      color: ctx.colors.gray,
+    });
+    ctx.y -= 15;
+  }
+}
+
+const generateRealPDF = async (
+  assistance: AssistanceData, 
+  magicCode?: string,
+  photos?: PhotoData[]
+): Promise<Uint8Array> => {
   const pdfDoc = await PDFDocument.create();
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   
-  // Colors
   const colors = {
     primary: rgb(0.03, 0.57, 0.70),
     darkBlue: rgb(0.07, 0.21, 0.33),
@@ -288,11 +519,9 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
     borderGray: rgb(0.88, 0.90, 0.92),
   };
   
-  // Fetch logo
   const logoBytes = await fetchLogoBytes();
   let logoImage: any = null;
   
-  // Create first page
   const firstPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   
   const ctx: PDFContext = {
@@ -310,9 +539,7 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
     colors,
   };
   
-  // ==================== HEADER (First page only - full header) ====================
-  
-  // Logo
+  // ==================== HEADER ====================
   if (logoBytes) {
     try {
       logoImage = await pdfDoc.embedPng(logoBytes);
@@ -346,7 +573,6 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
     ctx.y -= 28;
   }
   
-  // Subtitle
   const subtitle = "Administracao de Condominios";
   ctx.page.drawText(subtitle, {
     x: (PAGE_WIDTH - helvetica.widthOfTextAtSize(subtitle, 9)) / 2,
@@ -357,7 +583,6 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   });
   ctx.y -= 14;
   
-  // Divider
   ctx.page.drawLine({
     start: { x: LEFT_MARGIN + 100, y: ctx.y },
     end: { x: PAGE_WIDTH - RIGHT_MARGIN - 100, y: ctx.y },
@@ -366,7 +591,6 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   });
   ctx.y -= 14;
   
-  // Report title
   const reportTitle = "RELATORIO DE ASSISTENCIA";
   ctx.page.drawText(reportTitle, {
     x: (PAGE_WIDTH - helveticaBold.widthOfTextAtSize(reportTitle, 12)) / 2,
@@ -377,7 +601,6 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   });
   ctx.y -= 12;
   
-  // Generation date
   const genDate = `Gerado em ${formatDate(new Date().toISOString())}`;
   ctx.page.drawText(genDate, {
     x: (PAGE_WIDTH - helvetica.widthOfTextAtSize(genDate, 8)) / 2,
@@ -388,11 +611,9 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   });
   ctx.y -= 18;
   
-  // Draw footer on first page
   drawFooter(ctx);
   
   // ==================== CONTENT SECTIONS ====================
-  
   const priorityRgb = getPriorityColor(assistance.priority);
   
   // === MAIN ASSISTANCE BOX ===
@@ -409,7 +630,6 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
     borderWidth: 1.5,
   });
   
-  // Assistance number
   const assistNum = `ASSISTENCIA N. ${assistance.assistance_number || "N/A"}`;
   ctx.page.drawText(assistNum, {
     x: LEFT_MARGIN + 10,
@@ -419,7 +639,6 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
     color: colors.darkBlue,
   });
   
-  // Priority badge
   const priorityLabel = getPriorityLabel(assistance.priority);
   const badgeWidth = priorityLabel.length * 5.5 + 16;
   const badgeX = PAGE_WIDTH - RIGHT_MARGIN - badgeWidth - 10;
@@ -438,7 +657,6 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
     color: rgb(1, 1, 1),
   });
   
-  // Title
   const titleLines = splitTextIntoLines(assistance.title, helveticaBold, 10, CONTENT_WIDTH - 20);
   ctx.page.drawText(titleLines[0] || "", {
     x: LEFT_MARGIN + 10,
@@ -450,7 +668,7 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   
   ctx.y -= assistanceBoxHeight + SECTION_GAP;
   
-  // === DESCRIPTION (if exists) ===
+  // === DESCRIPTION ===
   if (assistance.description) {
     const descLines = splitTextIntoLines(assistance.description, helvetica, 9, CONTENT_WIDTH - 20);
     const descHeight = 16 + Math.min(descLines.length, 5) * 11 + 8;
@@ -553,7 +771,7 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   
   ctx.y -= buildingHeight + SECTION_GAP;
   
-  // === INTERVENTION TYPE SECTION ===
+  // === INTERVENTION TYPE ===
   const interventionHeight = 36;
   await ensureSpace(ctx, interventionHeight, logoImage, logoBytes);
   
@@ -594,7 +812,7 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   
   ctx.y -= interventionHeight + SECTION_GAP;
   
-  // === SUPPLIER SECTION (if assigned) ===
+  // === SUPPLIER SECTION ===
   if (assistance.suppliers) {
     const supplierHeight = 48;
     await ensureSpace(ctx, supplierHeight, logoImage, logoBytes);
@@ -657,7 +875,7 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
     ctx.y -= supplierHeight + SECTION_GAP;
   }
   
-  // === STATUS AND DATES SECTION ===
+  // === STATUS AND DATES ===
   const statusHeight = 42;
   await ensureSpace(ctx, statusHeight, logoImage, logoBytes);
   
@@ -725,7 +943,7 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
   
   ctx.y -= statusHeight + SECTION_GAP;
   
-  // === MAGIC CODE SECTION (if provided) ===
+  // === MAGIC CODE SECTION ===
   if (magicCode) {
     const codeHeight = 50;
     await ensureSpace(ctx, codeHeight, logoImage, logoBytes);
@@ -774,7 +992,13 @@ const generateRealPDF = async (assistance: AssistanceData, magicCode?: string): 
     ctx.y -= codeHeight + SECTION_GAP;
   }
   
-  // Update page count on all pages (if multiple pages)
+  // === PHOTOS SECTION ===
+  if (photos && photos.length > 0) {
+    ctx.y -= 10; // Extra spacing before photos section
+    await drawPhotosSection(ctx, photos, pdfDoc, logoImage, logoBytes);
+  }
+  
+  // Update page count on all pages
   const totalPages = pdfDoc.getPageCount();
   if (totalPages > 1) {
     const pages = pdfDoc.getPages();
@@ -801,16 +1025,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { assistanceId, adminEmail, magicCode, customMessage, mode = 'archive' }: RequestBody = await req.json();
+    const { 
+      assistanceId, 
+      adminEmail, 
+      magicCode, 
+      customMessage, 
+      mode = 'archive',
+      includePhotos = true 
+    }: RequestBody = await req.json();
 
     if (!assistanceId) {
       throw new Error("assistanceId is required");
     }
 
     const isArchiveMode = mode === 'archive' || !magicCode;
-    console.log(`Fetching assistance data for ID: ${assistanceId} (mode: ${isArchiveMode ? 'archive' : 'forward'})`);
+    console.log(`Fetching assistance data for ID: ${assistanceId} (mode: ${isArchiveMode ? 'archive' : 'forward'}, photos: ${includePhotos})`);
 
-    // Create Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -842,6 +1072,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Assistance fetched:", assistance.title);
 
+    // Fetch photos if requested
+    let photos: PhotoData[] = [];
+    if (includePhotos) {
+      const { data: photosData, error: photosError } = await supabase
+        .from("assistance_photos")
+        .select("id, file_url, caption, photo_type, created_at")
+        .eq("assistance_id", assistanceId)
+        .order("created_at", { ascending: true });
+      
+      if (photosError) {
+        console.error("Error fetching photos:", photosError);
+      } else {
+        photos = photosData || [];
+        console.log(`Found ${photos.length} photos for assistance`);
+      }
+    }
+
     // Get admin email from settings if not provided
     let targetEmail = adminEmail || "bilal.machraa@gmail.com";
     
@@ -859,11 +1106,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Target email for PDF:", targetEmail);
 
-    // Generate the premium PDF with pagination
-    const pdfBytes = await generateRealPDF(assistance as unknown as AssistanceData, isArchiveMode ? undefined : magicCode);
+    // Generate the PDF with photos
+    const pdfBytes = await generateRealPDF(
+      assistance as unknown as AssistanceData, 
+      isArchiveMode ? undefined : magicCode,
+      photos
+    );
     const pdfBase64 = base64Encode(pdfBytes);
 
-    console.log("PDF generated, size:", pdfBytes.length, "bytes");
+    console.log("PDF generated, size:", pdfBytes.length, "bytes, pages:", Math.ceil(pdfBytes.length / 50000));
 
     // Prepare email content
     const assistanceNumber = assistance.assistance_number || "N/A";
@@ -873,6 +1124,10 @@ const handler = async (req: Request): Promise<Response> => {
     const emailSubject = isArchiveMode 
       ? `[Arquivo] Assistencia #${assistanceNumber} - ${assistance.title}`
       : `Assistencia #${assistanceNumber} - ${assistance.title}`;
+    
+    const photosInfo = photos.length > 0 
+      ? `<p style="color: #059669; font-size: 12px; margin-top: 10px;">📷 ${photos.length} ${photos.length === 1 ? 'fotografia incluida' : 'fotografias incluidas'} no PDF</p>`
+      : '';
     
     const emailContent = isArchiveMode
       ? `
@@ -918,6 +1173,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p style="margin: 0; color: #92400e; font-size: 13px;">
                 📎 O PDF completo da assistencia esta anexado a este email.
               </p>
+              ${photosInfo}
             </div>
           </div>
           
@@ -948,6 +1204,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p style="margin: 0; color: #92400e; font-size: 13px;">
                 📎 O PDF completo com o codigo de acesso esta anexado.
               </p>
+              ${photosInfo}
             </div>
           </div>
         </div>
@@ -986,6 +1243,7 @@ const handler = async (req: Request): Promise<Response> => {
         mode, 
         hasCustomMessage: !!customMessage,
         pdfSize: pdfBytes.length,
+        photosIncluded: photos.length,
         emailId: emailData?.id 
       },
     });
@@ -995,7 +1253,8 @@ const handler = async (req: Request): Promise<Response> => {
         success: true, 
         message: "PDF enviado com sucesso",
         emailId: emailData?.id,
-        pdfSize: pdfBytes.length 
+        pdfSize: pdfBytes.length,
+        photosIncluded: photos.length
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
