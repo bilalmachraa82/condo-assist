@@ -84,22 +84,60 @@ export default function EnhancedQuotationForm({
   const totalAmount = uploadedFileUrl ? pdfAmount : materialTotal + laborCost;
 
   const handleFileUpload = async (file: File) => {
+    if (!magicCode) {
+      toast({
+        title: "Erro",
+        description: "Código de acesso é obrigatório para carregar ficheiros.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `quotation_${assistanceId}_${supplierId}_${Date.now()}.${fileExt}`;
-      const filePath = `quotations/${fileName}`;
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "Erro",
+          description: "Ficheiro demasiado grande. Máximo: 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const { error: uploadError } = await supabase.storage
-        .from('assistance-photos')
-        .upload(filePath, file);
+      // Convert file to base64
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
 
-      if (uploadError) throw uploadError;
+      // Use secure edge function for upload
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || 'https://zmpitnpmplemfozvtbam.supabase.co'}/functions/v1/upload-supplier-file`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            magicCode: magicCode.trim(),
+            assistanceId,
+            fileName: file.name,
+            fileType: file.type,
+            fileData: base64Data,
+            fileCategory: 'quotation'
+          })
+        }
+      );
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('assistance-photos')
-        .getPublicUrl(filePath);
+      const result = await response.json();
 
-      setUploadedFileUrl(publicUrl);
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed');
+      }
+
+      setUploadedFileUrl(result.signedUrl || result.filePath);
       toast({
         title: "Ficheiro carregado",
         description: "O ficheiro PDF foi carregado com sucesso.",
@@ -108,7 +146,7 @@ export default function EnhancedQuotationForm({
       console.error("Upload error:", error);
       toast({
         title: "Erro no upload",
-        description: "Erro ao carregar o ficheiro. Tente novamente.",
+        description: error instanceof Error ? error.message : "Erro ao carregar o ficheiro. Tente novamente.",
         variant: "destructive",
       });
     }
