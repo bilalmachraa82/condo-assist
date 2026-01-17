@@ -1047,6 +1047,10 @@ export type Database = {
         Args: { assistance_id_param: string }
         Returns: boolean
       }
+      check_magic_code_rate_limit: {
+        Args: { p_ip_address: unknown; p_magic_code: string }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: { p_ip: unknown; p_magic_code: string }
         Returns: boolean
@@ -1335,6 +1339,14 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      validate_magic_code_secure: {
+        Args: {
+          p_ip_address?: unknown
+          p_magic_code: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
       validate_supplier_session: {
         Args: { p_magic_code: string }
         Returns: Json
