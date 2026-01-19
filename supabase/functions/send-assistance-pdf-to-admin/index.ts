@@ -1090,9 +1090,9 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Get admin email from settings if not provided
-    let targetEmail = adminEmail || "bilal.machraa@gmail.com";
+    let targetEmail = adminEmail;
     
-    if (!adminEmail) {
+    if (!targetEmail) {
       const { data: setting } = await supabase
         .from("app_settings")
         .select("value")
@@ -1100,7 +1100,11 @@ const handler = async (req: Request): Promise<Response> => {
         .single();
       
       if (setting?.value) {
-        console.log("Admin email from settings:", setting.value);
+        targetEmail = String(setting.value);
+        console.log("Admin email from settings:", targetEmail);
+      } else {
+        targetEmail = "geral@luvimg.com";
+        console.log("Using default admin email:", targetEmail);
       }
     }
 
