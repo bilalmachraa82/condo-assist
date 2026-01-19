@@ -278,7 +278,7 @@ export default function SupplierPortal() {
               </p>
               <div className="text-sm text-muted-foreground space-y-1">
                 <p>Se esperava ver assistências aqui, contacte a administração:</p>
-                <p className="font-medium">arquivo@luvimg.com</p>
+                <p className="font-medium">geral@luvimg.com</p>
                 <p className="text-xs mt-2">Código usado: <span className="font-mono bg-muted px-1 rounded">{enteredCode}</span></p>
               </div>
             </CardContent>

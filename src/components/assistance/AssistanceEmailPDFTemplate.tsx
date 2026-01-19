@@ -358,7 +358,7 @@ export const AssistanceEmailPDFTemplate: React.FC<AssistanceEmailPDFTemplateProp
         }}
       >
         <p style={{ margin: 0 }}>
-          LUVIMG - Gestão de Condomínios | arquivo@luvimg.com
+          LUVIMG - Gestão de Condomínios | geral@luvimg.com
         </p>
         <p style={{ margin: "5px 0 0 0" }}>
           Documento gerado automaticamente pelo sistema de gestão de assistências

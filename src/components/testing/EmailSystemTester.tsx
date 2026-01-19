@@ -92,7 +92,7 @@ export function EmailSystemTester() {
             },
             portalUrl: `${window.location.origin}/supplier-portal?code=TEST1234`
           },
-          from: 'Luvimg - Administração de Condomínios <arquivo@luvimg.com>'
+          from: 'Luvimg - Administração de Condomínios <geral@luvimg.com>'
         }
       });
 

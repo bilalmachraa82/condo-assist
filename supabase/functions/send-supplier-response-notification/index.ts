@@ -153,7 +153,7 @@ const handler = async (req: Request): Promise<Response> => {
             <p style="color: #9ca3af; font-size: 13px; margin: 0; text-align: center;">
               <strong>Luvimg - Administração de Condomínios</strong><br>
               Praceta Pedro Manuel Pereira nº 1 – 1º esq, 2620-158 Póvoa Santo Adrião<br>
-              Tel: +351 219 379 248 | Email: arquivo@luvimg.com<br>
+              Tel: +351 219 379 248 | Email: geral@luvimg.com<br>
               Resposta registada em ${new Date().toLocaleString('pt-PT')}
             </p>
           </div>
@@ -170,8 +170,8 @@ const handler = async (req: Request): Promise<Response> => {
           to: [adminEmail],
           subject: emailSubject,
           html: emailHtml,
-          bcc: 'arquivo@luvimg.com',
-          from: 'Luvimg - Administração de Condomínios <arquivo@luvimg.com>'
+          bcc: 'geral@luvimg.com',
+          from: 'Luvimg - Administração de Condomínios <geral@luvimg.com>'
         }
       });
 

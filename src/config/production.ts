@@ -33,7 +33,7 @@ export const config = {
   app: {
     name: 'Luvimg - Administração de Condomínios',
     version: '1.0.0',
-    supportEmail: 'suporte@luvimg.com'
+    supportEmail: 'geral@luvimg.com'
   },
   
   // Performance configuration
