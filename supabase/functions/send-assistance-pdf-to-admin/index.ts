@@ -1216,7 +1216,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email with PDF attachment
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Luvimg Sistema <onboarding@resend.dev>",
+      from: "Luvimg - Administração de Condomínios <geral@luvimg.com>",
       to: [targetEmail],
       subject: emailSubject,
       html: emailContent,
