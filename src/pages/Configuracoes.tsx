@@ -44,7 +44,7 @@ const Configuracoes = () => {
           { value: 'direct', label: 'Direto para Fornecedor' },
           { value: 'admin_first', label: 'PDF para Administração (reencaminhar manualmente)' }
         ]},
-        { key: 'admin_email', label: 'Email da Administração', type: 'email' as const, placeholder: 'arquivo@luvimg.com', description: 'Email para receber PDFs das assistências' },
+        { key: 'admin_email', label: 'Email da Administração', type: 'email' as const, placeholder: 'geral@luvimg.com', description: 'Email para receber PDFs das assistências' },
         { key: 'notificacoes_email_ativo', label: 'Notificações por Email', type: 'switch' as const, description: 'Receber notificações por email' },
         { key: 'notificacoes_sms_ativo', label: 'Notificações por SMS', type: 'switch' as const, description: 'Receber notificações por SMS' },
         { key: 'notificacoes_nova_assistencia', label: 'Nova Assistência', type: 'switch' as const, description: 'Notificar quando uma nova assistência for criada' },

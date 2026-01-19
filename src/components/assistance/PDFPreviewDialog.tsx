@@ -52,7 +52,7 @@ export function PDFPreviewDialog({
   onOpenChange, 
   onConfirm,
   isLoading = false,
-  defaultEmail = "arquivo@luvimg.com"
+  defaultEmail = "geral@luvimg.com"
 }: PDFPreviewDialogProps) {
   const [recipientEmail, setRecipientEmail] = useState(defaultEmail);
   const [emailError, setEmailError] = useState("");
@@ -374,7 +374,7 @@ export function PDFPreviewDialog({
 
             {/* Footer Preview */}
             <div className="border-t pt-4 text-center text-xs text-muted-foreground">
-              <p>LUVIMG - Gestão de Condomínios | arquivo@luvimg.com</p>
+              <p>LUVIMG - Gestão de Condomínios | geral@luvimg.com</p>
               <p>Documento gerado automaticamente pelo sistema de gestão de assistências</p>
             </div>
           </div>

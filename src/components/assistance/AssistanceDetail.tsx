@@ -76,7 +76,7 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
 
       toast({
         title: "PDF Enviado",
-        description: `O PDF foi enviado para ${customEmail || 'arquivo@luvimg.com'} com sucesso.`,
+        description: `O PDF foi enviado para ${customEmail || 'geral@luvimg.com'} com sucesso.`,
       });
     } catch (error: any) {
       console.error("Error sending PDF:", error);
@@ -190,7 +190,7 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Enviar PDF para arquivo@luvimg.com</p>
+              <p>Enviar PDF para geral@luvimg.com</p>
             </TooltipContent>
           </Tooltip>
 

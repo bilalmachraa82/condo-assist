@@ -105,7 +105,7 @@ const handler = async (req: Request): Promise<Response> => {
             
             <div style="background: #343a40; color: white; padding: 20px; text-align: center;">
               <p style="margin: 0;">Luvimg - Administração de Condomínios</p>
-              <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">arquivo@luvimg.com</p>
+              <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">geral@luvimg.com</p>
             </div>
           </div>
         `;
@@ -148,7 +148,7 @@ const handler = async (req: Request): Promise<Response> => {
             
             <div style="background: #343a40; color: white; padding: 20px; text-align: center;">
               <p style="margin: 0;">Luvimg - Administração de Condomínios</p>
-              <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">arquivo@luvimg.com</p>
+              <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.8;">geral@luvimg.com</p>
             </div>
           </div>
         `;
@@ -168,7 +168,7 @@ const handler = async (req: Request): Promise<Response> => {
           );
 
         // For now, send to a default admin email
-        recipientEmail = "admin@luvimg.com";
+        recipientEmail = "geral@luvimg.com";
         emailSubject = `ESCALAÇÃO: Assistência Crítica Sem Resposta - ${assistance.title}`;
         emailContent = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -213,8 +213,8 @@ const handler = async (req: Request): Promise<Response> => {
         to: recipientEmail,
         subject: emailSubject,
         html: emailContent,
-        from: "Luvimg - Administração de Condomínios <arquivo@luvimg.com>",
-        bcc: type === 'assignment' ? 'arquivo@luvimg.com' : undefined
+        from: "Luvimg - Administração de Condomínios <geral@luvimg.com>",
+        bcc: type === 'assignment' ? 'geral@luvimg.com' : undefined
       }
     });
 

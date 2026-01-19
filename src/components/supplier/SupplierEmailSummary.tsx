@@ -134,14 +134,14 @@ export function SupplierEmailSummary({
                   <p style="color: #9ca3af; font-size: 13px; margin: 0; text-align: center;">
                     <strong>Luvimg - Administração de Condomínios</strong><br>
                     Praceta Pedro Manuel Pereira nº 1 – 1º esq, 2620-158 Póvoa Santo Adrião<br>
-                    Tel: +351 219 379 248 | Email: arquivo@luvimg.com<br>
+                    Tel: +351 219 379 248 | Email: geral@luvimg.com<br>
                     Este código expira automaticamente em 30 dias por motivos de segurança.
                   </p>
                 </div>
               </div>
             </div>
           `,
-          from: 'Luvimg - Administração de Condomínios <arquivo@luvimg.com>'
+          from: 'Luvimg - Administração de Condomínios <geral@luvimg.com>'
         }
       });
 

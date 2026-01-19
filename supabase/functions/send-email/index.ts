@@ -286,7 +286,7 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
                     <p style="color: #6b7280; font-size: 13px; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.4;">
                       <strong style="color: #374151;">Luvimg - Administração de Condomínios</strong><br>
                       Praceta Pedro Manuel Pereira nº 1 – 1º esq, 2620-158 Póvoa Santo Adrião<br>
-                      Tel: +351 219 379 248 | Email: arquivo@luvimg.com<br>
+                      Tel: +351 219 379 248 | Email: geral@luvimg.com<br>
                       <span style="font-size: 11px;">${assistanceDetails ? 'Este código permanece válido enquanto a assistência estiver ativa (mín. 30 dias).' : 'Este código expira automaticamente em 30 dias por motivos de segurança.'}</span>
                     </p>
                   </td>
@@ -386,7 +386,7 @@ const createPlainTextVersion = (data: any, templateType: string = 'magic_code') 
   text += `---\n`;
   text += `Luvimg - Administração de Condomínios\n`;
   text += `Praceta Pedro Manuel Pereira nº 1 – 1º esq, 2620-158 Póvoa Santo Adrião\n`;
-  text += `Tel: +351 219 379 248 | Email: arquivo@luvimg.com\n`;
+  text += `Tel: +351 219 379 248 | Email: geral@luvimg.com\n`;
   text += assistanceDetails ? `Este código permanece válido enquanto a assistência estiver ativa (mín. 30 dias).` : `Este código expira automaticamente em 30 dias por motivos de segurança.`;
   
   return text;
@@ -433,16 +433,16 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Enhanced headers for better deliverability and logo attachment
     const emailPayload: any = {
-      from: from || "Luvimg - Administração de Condomínios <arquivo@luvimg.com>",
+      from: from || "Luvimg - Administração de Condomínios <geral@luvimg.com>",
       to: Array.isArray(to) ? to : [to],
       subject: subject,
-      reply_to: "arquivo@luvimg.com",
+      reply_to: "geral@luvimg.com",
       headers: {
         'X-Entity-Ref-ID': `luvimg-${Date.now()}`,
         'X-Priority': '1', // High priority
         'Importance': 'high',
         'X-MSMail-Priority': 'High',
-        'List-Unsubscribe': '<mailto:arquivo@luvimg.com?subject=unsubscribe>',
+        'List-Unsubscribe': '<mailto:geral@luvimg.com?subject=unsubscribe>',
         'X-Mailer': 'Luvimg Portal v3.1.0'
       }
     };

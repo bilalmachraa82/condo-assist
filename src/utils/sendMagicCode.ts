@@ -69,7 +69,7 @@ export async function sendMagicCodeToSupplier(
           assistanceDetails,
           portalUrl: `${window.location.origin}/supplier-portal?code=${magicCode}`
         },
-        from: 'Luvimg - Administração de Condomínios <arquivo@luvimg.com>'
+        from: 'Luvimg - Administração de Condomínios <geral@luvimg.com>'
       }
     });
 
