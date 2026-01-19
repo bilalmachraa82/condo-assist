@@ -161,8 +161,22 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    // Send email to admins (simplified - you'd want to get actual admin emails)
-    const adminEmail = "admin@example.com"; // In production, get from admin users
+    // Get admin email from app_settings or use default
+    let adminEmail = "geral@luvimg.com";
+    try {
+      const { data: setting } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "admin_email")
+        .single();
+      
+      if (setting?.value) {
+        adminEmail = String(setting.value);
+        console.log("Admin email from settings:", adminEmail);
+      }
+    } catch (e) {
+      console.log("Using default admin email:", adminEmail);
+    }
     
     try {
       const { data: emailResponse, error: emailError } = await supabase.functions.invoke('send-email', {
