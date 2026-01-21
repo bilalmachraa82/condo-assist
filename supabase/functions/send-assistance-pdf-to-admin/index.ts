@@ -666,24 +666,38 @@ const generateRealPDF = async (
     ctx.page.drawText(item.label, {
       x: leftColX,
       y: ctx.y,
-      size: 10,
+      size: 11,
       font: helveticaBold,
       color: colors.text,
     });
     
     // Value on next line or same line depending on length
-    const labelWidth = helveticaBold.widthOfTextAtSize(item.label, 10);
-    const valueLines = splitTextIntoLines(item.value, helvetica, 10, colWidth - 5);
+    const labelWidth = helveticaBold.widthOfTextAtSize(item.label, 11);
+    const valueLines = splitTextIntoLines(item.value, helvetica, 11, colWidth - labelWidth - 10);
     
+    // First line next to label
     ctx.page.drawText(valueLines[0] || "", {
       x: leftColX + labelWidth + 4,
       y: ctx.y,
-      size: 10,
+      size: 11,
       font: helvetica,
       color: colors.text,
     });
-    
     ctx.y -= 16;
+    
+    // Additional lines below (indented)
+    for (let i = 1; i < valueLines.length; i++) {
+      ctx.page.drawText(valueLines[i], {
+        x: leftColX + 5,
+        y: ctx.y,
+        size: 11,
+        font: helvetica,
+        color: colors.text,
+      });
+      ctx.y -= 16;
+    }
+    
+    ctx.y -= 2;
   }
   
   // Right column: "Detalhes Técnicos"
@@ -712,23 +726,37 @@ const generateRealPDF = async (
     ctx.page.drawText(item.label, {
       x: rightColX,
       y: rightY,
-      size: 10,
+      size: 11,
       font: helveticaBold,
       color: colors.text,
     });
     
-    const labelWidth = helveticaBold.widthOfTextAtSize(item.label, 10);
-    const valueLines = splitTextIntoLines(item.value, helvetica, 10, colWidth - labelWidth - 10);
+    const labelWidth = helveticaBold.widthOfTextAtSize(item.label, 11);
+    const valueLines = splitTextIntoLines(item.value, helvetica, 11, colWidth - labelWidth - 10);
     
+    // First line next to label
     ctx.page.drawText(valueLines[0] || "", {
       x: rightColX + labelWidth + 4,
       y: rightY,
-      size: 10,
+      size: 11,
       font: helvetica,
       color: colors.text,
     });
-    
     rightY -= 16;
+    
+    // Additional lines below (indented)
+    for (let i = 1; i < valueLines.length; i++) {
+      ctx.page.drawText(valueLines[i], {
+        x: rightColX + 5,
+        y: rightY,
+        size: 11,
+        font: helvetica,
+        color: colors.text,
+      });
+      rightY -= 16;
+    }
+    
+    rightY -= 2;
   }
   
   // Set y to the lower of the two columns
