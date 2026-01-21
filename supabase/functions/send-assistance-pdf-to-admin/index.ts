@@ -775,17 +775,17 @@ const generateRealPDF = async (
     });
     ctx.y -= 16;
     
-    const descLines = splitTextIntoLines(assistance.description, helvetica, 9, CONTENT_WIDTH);
-    for (const line of descLines.slice(0, 10)) {
-      await ensureSpace(ctx, 14, logoImage, logoBytes);
+    const descLines = splitTextIntoLines(assistance.description, helvetica, 11, CONTENT_WIDTH);
+    for (const line of descLines.slice(0, 15)) {
+      await ensureSpace(ctx, 16, logoImage, logoBytes);
       ctx.page.drawText(line, {
         x: LEFT_MARGIN,
         y: ctx.y,
-        size: 9,
+        size: 11,
         font: helvetica,
-        color: colors.gray,
+        color: colors.text,
       });
-      ctx.y -= 13;
+      ctx.y -= 16;
     }
     ctx.y -= 10;
   }
