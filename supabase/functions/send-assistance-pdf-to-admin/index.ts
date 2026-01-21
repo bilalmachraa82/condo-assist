@@ -566,7 +566,7 @@ const generateRealPDF = async (
   if (logoBytes) {
     try {
       logoImage = await pdfDoc.embedPng(logoBytes);
-      const logoDims = logoImage.scale(0.28); // Maior que antes (era 0.18)
+      const logoDims = logoImage.scale(0.20); // Maior que antes (era 0.18)
       const logoX = (PAGE_WIDTH - logoDims.width) / 2;
       ctx.page.drawImage(logoImage, {
         x: logoX,
