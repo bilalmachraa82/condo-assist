@@ -666,24 +666,24 @@ const generateRealPDF = async (
     ctx.page.drawText(item.label, {
       x: leftColX,
       y: ctx.y,
-      size: 9,
+      size: 10,
       font: helveticaBold,
       color: colors.text,
     });
     
     // Value on next line or same line depending on length
-    const labelWidth = helveticaBold.widthOfTextAtSize(item.label, 9);
-    const valueLines = splitTextIntoLines(item.value, helvetica, 9, colWidth - 5);
+    const labelWidth = helveticaBold.widthOfTextAtSize(item.label, 10);
+    const valueLines = splitTextIntoLines(item.value, helvetica, 10, colWidth - 5);
     
     ctx.page.drawText(valueLines[0] || "", {
       x: leftColX + labelWidth + 4,
       y: ctx.y,
-      size: 9,
+      size: 10,
       font: helvetica,
       color: colors.text,
     });
     
-    ctx.y -= 14;
+    ctx.y -= 16;
   }
   
   // Right column: "Detalhes Técnicos"
@@ -712,23 +712,23 @@ const generateRealPDF = async (
     ctx.page.drawText(item.label, {
       x: rightColX,
       y: rightY,
-      size: 9,
+      size: 10,
       font: helveticaBold,
       color: colors.text,
     });
     
-    const labelWidth = helveticaBold.widthOfTextAtSize(item.label, 9);
-    const valueLines = splitTextIntoLines(item.value, helvetica, 9, colWidth - labelWidth - 10);
+    const labelWidth = helveticaBold.widthOfTextAtSize(item.label, 10);
+    const valueLines = splitTextIntoLines(item.value, helvetica, 10, colWidth - labelWidth - 10);
     
     ctx.page.drawText(valueLines[0] || "", {
       x: rightColX + labelWidth + 4,
       y: rightY,
-      size: 9,
+      size: 10,
       font: helvetica,
       color: colors.text,
     });
     
-    rightY -= 14;
+    rightY -= 16;
   }
   
   // Set y to the lower of the two columns
