@@ -160,6 +160,33 @@ const formatDateOnly = (dateString: string): string => {
   });
 };
 
+const extractPostalCode = (address?: string | null): string | null => {
+  if (!address) return null;
+  
+  const patterns = [
+    /\b\d{4}[-\s]\d{3}\b/,
+    /\b\d{4}\d{3}\b/,
+    /(\d{4})[-\s]?(\d{3})/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = address.match(pattern);
+    if (match) {
+      const fullMatch = match[0];
+      if (fullMatch.includes('-') || fullMatch.includes(' ')) {
+        return fullMatch;
+      } else if (fullMatch.length === 7) {
+        return fullMatch.substring(0, 4) + '-' + fullMatch.substring(4);
+      } else if (match[1] && match[2]) {
+        return match[1] + '-' + match[2];
+      }
+      return fullMatch;
+    }
+  }
+  
+  return null;
+};
+
 function splitTextIntoLines(text: string, font: PDFFont, fontSize: number, maxWidth: number): string[] {
   const cleanText = text.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim();
   const words = cleanText.split(' ');
@@ -270,42 +297,37 @@ async function addNewPage(ctx: PDFContext, logoImage: any, logoBytes: Uint8Array
 }
 
 function drawFooter(ctx: PDFContext): void {
-  const footerY = 25;
+  const footerY = 30;
   
+  // Linha separadora
   ctx.page.drawLine({
-    start: { x: LEFT_MARGIN, y: footerY + FOOTER_HEIGHT - 5 },
-    end: { x: PAGE_WIDTH - RIGHT_MARGIN, y: footerY + FOOTER_HEIGHT - 5 },
+    start: { x: LEFT_MARGIN, y: footerY + 45 },
+    end: { x: PAGE_WIDTH - RIGHT_MARGIN, y: footerY + 45 },
     thickness: 0.5,
-    color: ctx.colors.primary,
+    color: ctx.colors.borderGray,
   });
   
-  const companyName = "Luvimg - Administracao de Condominios, Lda";
+  // Texto central: "Luvimg Condomínios, Lda"
+  const companyName = "Luvimg Condominios, Lda";
   ctx.page.drawText(companyName, {
-    x: (PAGE_WIDTH - ctx.helveticaBold.widthOfTextAtSize(companyName, 7)) / 2,
-    y: footerY + FOOTER_HEIGHT - 16,
-    size: 7,
+    x: (PAGE_WIDTH - ctx.helveticaBold.widthOfTextAtSize(companyName, 12)) / 2,
+    y: footerY + 28,
+    size: 12,
     font: ctx.helveticaBold,
-    color: ctx.colors.darkBlue,
+    color: ctx.colors.gray,
   });
   
-  const address = "Praceta Pedro Manuel Pereira n. 1 - 1. esq, 2620-158 Povoa Santo Adriao";
-  ctx.page.drawText(address, {
-    x: (PAGE_WIDTH - ctx.helvetica.widthOfTextAtSize(address, 6)) / 2,
-    y: footerY + FOOTER_HEIGHT - 26,
-    size: 6,
+  // Mensagem automática
+  const autoMsg = "Este documento foi gerado automaticamente pelo sistema de gestao de assistencias.";
+  ctx.page.drawText(autoMsg, {
+    x: (PAGE_WIDTH - ctx.helvetica.widthOfTextAtSize(autoMsg, 8)) / 2,
+    y: footerY + 12,
+    size: 8,
     font: ctx.helvetica,
     color: ctx.colors.gray,
   });
   
-  const contacts = "Tel: +351 219 379 248 | Email: geral@luvimg.com";
-  ctx.page.drawText(contacts, {
-    x: (PAGE_WIDTH - ctx.helvetica.widthOfTextAtSize(contacts, 6)) / 2,
-    y: footerY + FOOTER_HEIGHT - 36,
-    size: 6,
-    font: ctx.helvetica,
-    color: ctx.colors.gray,
-  });
-  
+  // Número de página
   if (ctx.pageNumber >= 1) {
     const pageText = `${ctx.pageNumber}`;
     ctx.page.drawText(pageText, {
@@ -511,12 +533,12 @@ const generateRealPDF = async (
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   
   const colors = {
-    primary: rgb(0.03, 0.57, 0.70),
+    primary: rgb(0.03, 0.57, 0.70), // Cyan/teal
     darkBlue: rgb(0.07, 0.21, 0.33),
     text: rgb(0.15, 0.15, 0.15),
-    gray: rgb(0.45, 0.45, 0.45),
+    gray: rgb(0.40, 0.40, 0.40),
     lightGray: rgb(0.96, 0.97, 0.98),
-    borderGray: rgb(0.88, 0.90, 0.92),
+    borderGray: rgb(0.78, 0.80, 0.82),
   };
   
   const logoBytes = await fetchLogoBytes();
@@ -529,7 +551,7 @@ const generateRealPDF = async (
     page: firstPage,
     helvetica,
     helveticaBold,
-    y: PAGE_HEIGHT - 35,
+    y: PAGE_HEIGHT - 40,
     pageNumber: 1,
     width: PAGE_WIDTH,
     height: PAGE_HEIGHT,
@@ -539,11 +561,12 @@ const generateRealPDF = async (
     colors,
   };
   
-  // ==================== HEADER ====================
+  // ==================== HEADER (matches AssistancePDFTemplate.tsx) ====================
+  // Logo centrado - maior
   if (logoBytes) {
     try {
       logoImage = await pdfDoc.embedPng(logoBytes);
-      const logoDims = logoImage.scale(0.18);
+      const logoDims = logoImage.scale(0.28); // Maior que antes (era 0.18)
       const logoX = (PAGE_WIDTH - logoDims.width) / 2;
       ctx.page.drawImage(logoImage, {
         x: logoX,
@@ -551,141 +574,182 @@ const generateRealPDF = async (
         width: logoDims.width,
         height: logoDims.height,
       });
-      ctx.y -= logoDims.height + 6;
+      ctx.y -= logoDims.height + 12;
     } catch {
       ctx.page.drawText("LUVIMG", {
-        x: (PAGE_WIDTH - helveticaBold.widthOfTextAtSize("LUVIMG", 22)) / 2,
+        x: (PAGE_WIDTH - helveticaBold.widthOfTextAtSize("LUVIMG", 28)) / 2,
         y: ctx.y,
-        size: 22,
+        size: 28,
         font: helveticaBold,
         color: colors.primary,
       });
-      ctx.y -= 28;
+      ctx.y -= 40;
     }
   } else {
     ctx.page.drawText("LUVIMG", {
-      x: (PAGE_WIDTH - helveticaBold.widthOfTextAtSize("LUVIMG", 22)) / 2,
+      x: (PAGE_WIDTH - helveticaBold.widthOfTextAtSize("LUVIMG", 28)) / 2,
       y: ctx.y,
-      size: 22,
+      size: 28,
       font: helveticaBold,
       color: colors.primary,
     });
-    ctx.y -= 28;
+    ctx.y -= 40;
   }
   
-  const subtitle = "Administracao de Condominios";
-  ctx.page.drawText(subtitle, {
-    x: (PAGE_WIDTH - helvetica.widthOfTextAtSize(subtitle, 9)) / 2,
+  // Título centrado: "Relatório de Assistência #XXX"
+  const reportTitle = `Relatorio de Assistencia #${assistance.assistance_number || "N/A"}`;
+  ctx.page.drawText(reportTitle, {
+    x: (PAGE_WIDTH - helveticaBold.widthOfTextAtSize(reportTitle, 16)) / 2,
+    y: ctx.y,
+    size: 16,
+    font: helveticaBold,
+    color: colors.text,
+  });
+  ctx.y -= 18;
+  
+  // Data de geração centrada
+  const months = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const now = new Date();
+  const day = now.getDate();
+  const month = months[now.getMonth()];
+  const year = now.getFullYear();
+  const hours = now.getHours().toString().padStart(2, '0');
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  const genDate = `Gerado em ${day} de ${month} de ${year} as ${hours}:${minutes}`;
+  ctx.page.drawText(genDate, {
+    x: (PAGE_WIDTH - helvetica.widthOfTextAtSize(genDate, 9)) / 2,
     y: ctx.y,
     size: 9,
     font: helvetica,
     color: colors.gray,
   });
-  ctx.y -= 14;
+  ctx.y -= 20;
   
+  // Linha separadora grossa
   ctx.page.drawLine({
-    start: { x: LEFT_MARGIN + 100, y: ctx.y },
-    end: { x: PAGE_WIDTH - RIGHT_MARGIN - 100, y: ctx.y },
-    thickness: 1,
-    color: colors.primary,
+    start: { x: LEFT_MARGIN, y: ctx.y },
+    end: { x: PAGE_WIDTH - RIGHT_MARGIN, y: ctx.y },
+    thickness: 2,
+    color: colors.borderGray,
   });
-  ctx.y -= 14;
+  ctx.y -= 25;
   
-  const reportTitle = "RELATORIO DE ASSISTENCIA";
-  ctx.page.drawText(reportTitle, {
-    x: (PAGE_WIDTH - helveticaBold.widthOfTextAtSize(reportTitle, 12)) / 2,
+  drawFooter(ctx);
+  
+  // ==================== TWO COLUMNS LAYOUT ====================
+  const colWidth = (CONTENT_WIDTH - 30) / 2; // 30px gap between columns
+  const leftColX = LEFT_MARGIN;
+  const rightColX = LEFT_MARGIN + colWidth + 30;
+  
+  // Left column: "Informações Gerais"
+  const leftColStartY = ctx.y;
+  
+  ctx.page.drawText("Informacoes Gerais", {
+    x: leftColX,
     y: ctx.y,
     size: 12,
     font: helveticaBold,
-    color: colors.darkBlue,
-  });
-  ctx.y -= 12;
-  
-  const genDate = `Gerado em ${formatDate(new Date().toISOString())}`;
-  ctx.page.drawText(genDate, {
-    x: (PAGE_WIDTH - helvetica.widthOfTextAtSize(genDate, 8)) / 2,
-    y: ctx.y,
-    size: 8,
-    font: helvetica,
     color: colors.gray,
   });
   ctx.y -= 18;
   
-  drawFooter(ctx);
+  // Left column data
+  const leftData = [
+    { label: "Numero da Assistencia:", value: `#${assistance.assistance_number || "N/A"}` },
+    { label: "Titulo:", value: assistance.title },
+    { label: "Estado:", value: getStatusLabel(assistance.status) },
+    { label: "Prioridade:", value: getPriorityLabel(assistance.priority) },
+    { label: "Criado em:", value: formatDate(assistance.created_at) },
+  ];
   
-  // ==================== CONTENT SECTIONS ====================
-  const priorityRgb = getPriorityColor(assistance.priority);
-  
-  // === MAIN ASSISTANCE BOX ===
-  const assistanceBoxHeight = 52;
-  await ensureSpace(ctx, assistanceBoxHeight, logoImage, logoBytes);
-  
-  ctx.page.drawRectangle({
-    x: LEFT_MARGIN,
-    y: ctx.y - assistanceBoxHeight,
-    width: CONTENT_WIDTH,
-    height: assistanceBoxHeight,
-    color: rgb(0.97, 0.99, 1),
-    borderColor: colors.primary,
-    borderWidth: 1.5,
-  });
-  
-  const assistNum = `ASSISTENCIA N. ${assistance.assistance_number || "N/A"}`;
-  ctx.page.drawText(assistNum, {
-    x: LEFT_MARGIN + 10,
-    y: ctx.y - 18,
-    size: 14,
-    font: helveticaBold,
-    color: colors.darkBlue,
-  });
-  
-  const priorityLabel = getPriorityLabel(assistance.priority);
-  const badgeWidth = priorityLabel.length * 5.5 + 16;
-  const badgeX = PAGE_WIDTH - RIGHT_MARGIN - badgeWidth - 10;
-  ctx.page.drawRectangle({
-    x: badgeX,
-    y: ctx.y - 22,
-    width: badgeWidth,
-    height: 16,
-    color: rgb(priorityRgb.r, priorityRgb.g, priorityRgb.b),
-  });
-  ctx.page.drawText(priorityLabel.toUpperCase(), {
-    x: badgeX + 8,
-    y: ctx.y - 17,
-    size: 8,
-    font: helveticaBold,
-    color: rgb(1, 1, 1),
-  });
-  
-  const titleLines = splitTextIntoLines(assistance.title, helveticaBold, 10, CONTENT_WIDTH - 20);
-  ctx.page.drawText(titleLines[0] || "", {
-    x: LEFT_MARGIN + 10,
-    y: ctx.y - 40,
-    size: 10,
-    font: helveticaBold,
-    color: colors.text,
-  });
-  
-  ctx.y -= assistanceBoxHeight + SECTION_GAP;
-  
-  // === DESCRIPTION ===
-  if (assistance.description) {
-    const descLines = splitTextIntoLines(assistance.description, helvetica, 9, CONTENT_WIDTH - 20);
-    const descHeight = 16 + Math.min(descLines.length, 5) * 11 + 8;
-    
-    await ensureSpace(ctx, descHeight, logoImage, logoBytes);
-    
-    ctx.page.drawText("DESCRICAO", {
-      x: LEFT_MARGIN,
+  for (const item of leftData) {
+    ctx.page.drawText(item.label, {
+      x: leftColX,
       y: ctx.y,
       size: 9,
       font: helveticaBold,
-      color: colors.primary,
+      color: colors.text,
     });
-    ctx.y -= 12;
     
-    for (const line of descLines.slice(0, 5)) {
-      await ensureSpace(ctx, 12, logoImage, logoBytes);
+    // Value on next line or same line depending on length
+    const labelWidth = helveticaBold.widthOfTextAtSize(item.label, 9);
+    const valueLines = splitTextIntoLines(item.value, helvetica, 9, colWidth - 5);
+    
+    ctx.page.drawText(valueLines[0] || "", {
+      x: leftColX + labelWidth + 4,
+      y: ctx.y,
+      size: 9,
+      font: helvetica,
+      color: colors.text,
+    });
+    
+    ctx.y -= 14;
+  }
+  
+  // Right column: "Detalhes Técnicos"
+  let rightY = leftColStartY;
+  
+  ctx.page.drawText("Detalhes Tecnicos", {
+    x: rightColX,
+    y: rightY,
+    size: 12,
+    font: helveticaBold,
+    color: colors.gray,
+  });
+  rightY -= 18;
+  
+  // Right column data
+  const rightData = [
+    { label: "Edificio:", value: assistance.buildings?.name || "N/A" },
+    { label: "NIF do Condominio:", value: assistance.buildings?.nif || "N/A" },
+    { label: "Morada Completa:", value: assistance.buildings?.address || "N/A" },
+    { label: "Codigo Postal:", value: extractPostalCode(assistance.buildings?.address) || "N/A" },
+    { label: "Tipo de Intervencao:", value: assistance.intervention_types?.name || "N/A" },
+    { label: "Fornecedor:", value: assistance.suppliers?.name || "Nao atribuido" },
+  ];
+  
+  for (const item of rightData) {
+    ctx.page.drawText(item.label, {
+      x: rightColX,
+      y: rightY,
+      size: 9,
+      font: helveticaBold,
+      color: colors.text,
+    });
+    
+    const labelWidth = helveticaBold.widthOfTextAtSize(item.label, 9);
+    const valueLines = splitTextIntoLines(item.value, helvetica, 9, colWidth - labelWidth - 10);
+    
+    ctx.page.drawText(valueLines[0] || "", {
+      x: rightColX + labelWidth + 4,
+      y: rightY,
+      size: 9,
+      font: helvetica,
+      color: colors.text,
+    });
+    
+    rightY -= 14;
+  }
+  
+  // Set y to the lower of the two columns
+  ctx.y = Math.min(ctx.y, rightY) - 15;
+  
+  // ==================== DESCRIPTION SECTION ====================
+  if (assistance.description) {
+    await ensureSpace(ctx, 50, logoImage, logoBytes);
+    
+    ctx.page.drawText("Descricao", {
+      x: LEFT_MARGIN,
+      y: ctx.y,
+      size: 12,
+      font: helveticaBold,
+      color: colors.gray,
+    });
+    ctx.y -= 16;
+    
+    const descLines = splitTextIntoLines(assistance.description, helvetica, 9, CONTENT_WIDTH);
+    for (const line of descLines.slice(0, 10)) {
+      await ensureSpace(ctx, 14, logoImage, logoBytes);
       ctx.page.drawText(line, {
         x: LEFT_MARGIN,
         y: ctx.y,
@@ -693,259 +757,14 @@ const generateRealPDF = async (
         font: helvetica,
         color: colors.gray,
       });
-      ctx.y -= 11;
+      ctx.y -= 13;
     }
-    ctx.y -= 6;
+    ctx.y -= 10;
   }
   
-  // === BUILDING SECTION ===
-  const buildingHeight = 54;
-  await ensureSpace(ctx, buildingHeight, logoImage, logoBytes);
-  
-  ctx.page.drawRectangle({
-    x: LEFT_MARGIN,
-    y: ctx.y - buildingHeight,
-    width: CONTENT_WIDTH,
-    height: buildingHeight,
-    color: colors.lightGray,
-    borderColor: colors.borderGray,
-    borderWidth: 1,
-  });
-  
-  ctx.page.drawRectangle({
-    x: LEFT_MARGIN,
-    y: ctx.y - 14,
-    width: 3,
-    height: 14,
-    color: colors.primary,
-  });
-  ctx.page.drawText("EDIFICIO", {
-    x: LEFT_MARGIN + 8,
-    y: ctx.y - 11,
-    size: 9,
-    font: helveticaBold,
-    color: colors.darkBlue,
-  });
-  
-  let infoY = ctx.y - 26;
-  ctx.page.drawText(`Codigo: ${assistance.buildings?.code || "N/A"}`, {
-    x: LEFT_MARGIN + 8,
-    y: infoY,
-    size: 8,
-    font: helvetica,
-    color: colors.text,
-  });
-  
-  if (assistance.buildings?.nif) {
-    ctx.page.drawText(`NIF: ${assistance.buildings.nif}`, {
-      x: LEFT_MARGIN + 160,
-      y: infoY,
-      size: 8,
-      font: helvetica,
-      color: colors.text,
-    });
-  }
-  
-  infoY -= 11;
-  const buildingName = assistance.buildings?.name || "N/A";
-  const nameLines = splitTextIntoLines(`Nome: ${buildingName}`, helvetica, 8, CONTENT_WIDTH - 16);
-  ctx.page.drawText(nameLines[0] || "", {
-    x: LEFT_MARGIN + 8,
-    y: infoY,
-    size: 8,
-    font: helvetica,
-    color: colors.text,
-  });
-  
-  infoY -= 11;
-  if (assistance.buildings?.address) {
-    const addrLines = splitTextIntoLines(`Morada: ${assistance.buildings.address}`, helvetica, 8, CONTENT_WIDTH - 16);
-    ctx.page.drawText(addrLines[0] || "", {
-      x: LEFT_MARGIN + 8,
-      y: infoY,
-      size: 8,
-      font: helvetica,
-      color: colors.text,
-    });
-  }
-  
-  ctx.y -= buildingHeight + SECTION_GAP;
-  
-  // === INTERVENTION TYPE ===
-  const interventionHeight = 36;
-  await ensureSpace(ctx, interventionHeight, logoImage, logoBytes);
-  
-  ctx.page.drawRectangle({
-    x: LEFT_MARGIN,
-    y: ctx.y - interventionHeight,
-    width: CONTENT_WIDTH,
-    height: interventionHeight,
-    color: colors.lightGray,
-    borderColor: colors.borderGray,
-    borderWidth: 1,
-  });
-  
-  ctx.page.drawRectangle({
-    x: LEFT_MARGIN,
-    y: ctx.y - 14,
-    width: 3,
-    height: 14,
-    color: rgb(0.55, 0.36, 0.75),
-  });
-  ctx.page.drawText("TIPO DE INTERVENCAO", {
-    x: LEFT_MARGIN + 8,
-    y: ctx.y - 11,
-    size: 9,
-    font: helveticaBold,
-    color: colors.darkBlue,
-  });
-  
-  const interventionText = assistance.intervention_types?.name || "N/A";
-  const categoryText = assistance.intervention_types?.category ? ` (${assistance.intervention_types.category})` : "";
-  ctx.page.drawText(`${interventionText}${categoryText}`, {
-    x: LEFT_MARGIN + 8,
-    y: ctx.y - 28,
-    size: 8,
-    font: helvetica,
-    color: colors.text,
-  });
-  
-  ctx.y -= interventionHeight + SECTION_GAP;
-  
-  // === SUPPLIER SECTION ===
-  if (assistance.suppliers) {
-    const supplierHeight = 48;
-    await ensureSpace(ctx, supplierHeight, logoImage, logoBytes);
-    
-    ctx.page.drawRectangle({
-      x: LEFT_MARGIN,
-      y: ctx.y - supplierHeight,
-      width: CONTENT_WIDTH,
-      height: supplierHeight,
-      color: rgb(0.94, 0.99, 0.97),
-      borderColor: rgb(0.16, 0.73, 0.56),
-      borderWidth: 1,
-    });
-    
-    ctx.page.drawRectangle({
-      x: LEFT_MARGIN,
-      y: ctx.y - 14,
-      width: 3,
-      height: 14,
-      color: rgb(0.16, 0.73, 0.56),
-    });
-    ctx.page.drawText("FORNECEDOR ATRIBUIDO", {
-      x: LEFT_MARGIN + 8,
-      y: ctx.y - 11,
-      size: 9,
-      font: helveticaBold,
-      color: rgb(0.05, 0.45, 0.35),
-    });
-    
-    let suppY = ctx.y - 26;
-    ctx.page.drawText(`Nome: ${assistance.suppliers.name}`, {
-      x: LEFT_MARGIN + 8,
-      y: suppY,
-      size: 8,
-      font: helveticaBold,
-      color: colors.text,
-    });
-    
-    suppY -= 11;
-    if (assistance.suppliers.email) {
-      ctx.page.drawText(`Email: ${assistance.suppliers.email}`, {
-        x: LEFT_MARGIN + 8,
-        y: suppY,
-        size: 8,
-        font: helvetica,
-        color: colors.text,
-      });
-    }
-    
-    if (assistance.suppliers.phone) {
-      ctx.page.drawText(`Tel: ${assistance.suppliers.phone}`, {
-        x: LEFT_MARGIN + 200,
-        y: suppY,
-        size: 8,
-        font: helvetica,
-        color: colors.text,
-      });
-    }
-    
-    ctx.y -= supplierHeight + SECTION_GAP;
-  }
-  
-  // === STATUS AND DATES ===
-  const statusHeight = 42;
-  await ensureSpace(ctx, statusHeight, logoImage, logoBytes);
-  
-  ctx.page.drawRectangle({
-    x: LEFT_MARGIN,
-    y: ctx.y - statusHeight,
-    width: CONTENT_WIDTH,
-    height: statusHeight,
-    color: colors.lightGray,
-    borderColor: colors.borderGray,
-    borderWidth: 1,
-  });
-  
-  ctx.page.drawRectangle({
-    x: LEFT_MARGIN,
-    y: ctx.y - 14,
-    width: 3,
-    height: 14,
-    color: rgb(0.98, 0.55, 0.24),
-  });
-  ctx.page.drawText("ESTADO E DATAS", {
-    x: LEFT_MARGIN + 8,
-    y: ctx.y - 11,
-    size: 9,
-    font: helveticaBold,
-    color: colors.darkBlue,
-  });
-  
-  let statusY = ctx.y - 26;
-  ctx.page.drawText(`Estado: ${getStatusLabel(assistance.status)}`, {
-    x: LEFT_MARGIN + 8,
-    y: statusY,
-    size: 8,
-    font: helvetica,
-    color: colors.text,
-  });
-  
-  ctx.page.drawText(`Criado: ${formatDateOnly(assistance.created_at)}`, {
-    x: LEFT_MARGIN + 140,
-    y: statusY,
-    size: 8,
-    font: helvetica,
-    color: colors.text,
-  });
-  
-  statusY -= 11;
-  const reqQuot = assistance.requires_quotation ? "Sim" : "Nao";
-  ctx.page.drawText(`Requer orcamento: ${reqQuot}`, {
-    x: LEFT_MARGIN + 8,
-    y: statusY,
-    size: 8,
-    font: helvetica,
-    color: colors.text,
-  });
-  
-  if (assistance.quotation_deadline) {
-    ctx.page.drawText(`Prazo: ${formatDateOnly(assistance.quotation_deadline)}`, {
-      x: LEFT_MARGIN + 140,
-      y: statusY,
-      size: 8,
-      font: helvetica,
-      color: colors.text,
-    });
-  }
-  
-  ctx.y -= statusHeight + SECTION_GAP;
-  
-  // === MAGIC CODE SECTION ===
+  // ==================== MAGIC CODE SECTION ====================
   if (magicCode) {
-    const codeHeight = 50;
+    const codeHeight = 55;
     await ensureSpace(ctx, codeHeight, logoImage, logoBytes);
     
     ctx.page.drawRectangle({
@@ -958,43 +777,36 @@ const generateRealPDF = async (
       borderWidth: 1.5,
     });
     
-    ctx.page.drawRectangle({
-      x: LEFT_MARGIN,
-      y: ctx.y - 14,
-      width: 3,
-      height: 14,
-      color: rgb(0.96, 0.72, 0.20),
-    });
     ctx.page.drawText("CODIGO DE ACESSO AO PORTAL", {
-      x: LEFT_MARGIN + 8,
-      y: ctx.y - 11,
-      size: 9,
+      x: LEFT_MARGIN + 10,
+      y: ctx.y - 15,
+      size: 10,
       font: helveticaBold,
       color: rgb(0.65, 0.38, 0.05),
     });
     
     ctx.page.drawText(magicCode, {
-      x: LEFT_MARGIN + 8,
-      y: ctx.y - 32,
-      size: 16,
+      x: LEFT_MARGIN + 10,
+      y: ctx.y - 35,
+      size: 18,
       font: helveticaBold,
       color: colors.text,
     });
     
     ctx.page.drawText("Portal: condo-assist.lovable.app/fornecedor", {
-      x: LEFT_MARGIN + 8,
-      y: ctx.y - 45,
-      size: 7,
+      x: LEFT_MARGIN + 10,
+      y: ctx.y - 50,
+      size: 8,
       font: helvetica,
       color: colors.gray,
     });
     
-    ctx.y -= codeHeight + SECTION_GAP;
+    ctx.y -= codeHeight + 15;
   }
   
   // === PHOTOS SECTION ===
   if (photos && photos.length > 0) {
-    ctx.y -= 10; // Extra spacing before photos section
+    ctx.y -= 10;
     await drawPhotosSection(ctx, photos, pdfDoc, logoImage, logoBytes);
   }
   
