@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, AlertTriangle } from "lucide-react";
+import { X, Plus, AlertTriangle, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
@@ -17,6 +17,8 @@ import { useBuildings } from "@/hooks/useBuildings";
 import { useAllSuppliers } from "@/hooks/useSuppliers";
 import { sendMagicCodeToSupplier } from "@/utils/sendMagicCode";
 import { useAppSetting } from "@/hooks/useAppSettings";
+
+const FORM_STORAGE_KEY = 'assistance_form_draft';
 
 const assistanceSchema = z.object({
   title: z.string().min(3, "Título deve ter pelo menos 3 caracteres"),
@@ -38,6 +40,7 @@ interface CreateAssistanceFormProps {
 export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssistanceFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [hasDraft, setHasDraft] = useState(false);
   
   // Get email mode setting - default to 'admin_first' if not loaded or undefined
   const { data: emailModeSetting, isLoading: isLoadingEmailMode } = useAppSetting('email_mode');
@@ -65,9 +68,20 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
     },
   });
 
-  const form = useForm<AssistanceFormValues>({
-    resolver: zodResolver(assistanceSchema),
-    defaultValues: {
+  // Load saved draft from localStorage
+  const getDefaultValues = useCallback(() => {
+    try {
+      const savedData = localStorage.getItem(FORM_STORAGE_KEY);
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        console.log('[CreateAssistanceForm] Restored draft from localStorage:', parsed);
+        return parsed;
+      }
+    } catch (e) {
+      console.error('[CreateAssistanceForm] Error loading draft:', e);
+      localStorage.removeItem(FORM_STORAGE_KEY);
+    }
+    return {
       title: "",
       description: "",
       building_id: "",
@@ -75,8 +89,60 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
       priority: "normal",
       assigned_supplier_id: "",
       requires_quotation: false,
-    },
+    };
+  }, []);
+
+  const form = useForm<AssistanceFormValues>({
+    resolver: zodResolver(assistanceSchema),
+    defaultValues: getDefaultValues(),
   });
+
+  // Check if there's a saved draft on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem(FORM_STORAGE_KEY);
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        // Check if draft has meaningful data
+        if (parsed.title || parsed.description || parsed.building_id) {
+          setHasDraft(true);
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+  }, []);
+
+  // Auto-save form data to localStorage
+  useEffect(() => {
+    const subscription = form.watch((values) => {
+      // Only save if there's meaningful data
+      if (values.title || values.description || values.building_id) {
+        localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(values));
+        setHasDraft(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
+  // Clear draft handler
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(FORM_STORAGE_KEY);
+    setHasDraft(false);
+    form.reset({
+      title: "",
+      description: "",
+      building_id: "",
+      intervention_type_id: interventionTypes[0]?.id || "",
+      priority: "normal",
+      assigned_supplier_id: "",
+      requires_quotation: false,
+    });
+    toast({
+      title: "Rascunho limpo",
+      description: "O formulário foi limpo com sucesso.",
+    });
+  }, [form, interventionTypes, toast]);
 
   // Set default intervention type when data loads
   useEffect(() => {
@@ -241,6 +307,10 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
         });
       }
 
+      // Clear saved draft after successful submission
+      localStorage.removeItem(FORM_STORAGE_KEY);
+      setHasDraft(false);
+      
       queryClient.invalidateQueries({ queryKey: ["assistances"] });
       queryClient.invalidateQueries({ queryKey: ["assistance-stats"] });
       
@@ -291,13 +361,32 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <Plus className="h-5 w-5" />
-          Nova Assistência
-        </CardTitle>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            Nova Assistência
+          </CardTitle>
+          {hasDraft && (
+            <Badge variant="outline" className="text-xs">
+              Rascunho restaurado
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          {hasDraft && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={clearDraft}
+              title="Limpar rascunho"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       
       <CardContent>
