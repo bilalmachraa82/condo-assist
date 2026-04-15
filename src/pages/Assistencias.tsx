@@ -22,9 +22,13 @@ import {
   FileText,
   Euro,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  ArrowUpDown
 } from "lucide-react"
+import QuickElevatorForm from "@/components/assistance/QuickElevatorForm"
+import { useQuery } from "@tanstack/react-query"
 import { useAssistances, useAssistanceStats, useDeleteAssistance, type Assistance } from "@/hooks/useAssistances"
+import { supabase } from "@/integrations/supabase/client"
 import { useRequestQuotation, useQuotationsByAssistance } from "@/hooks/useQuotations"
 import { formatDistanceToNow, format } from "date-fns"
 import { pt } from "date-fns/locale"
@@ -188,11 +192,34 @@ export default function Assistencias() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedAssistance, setSelectedAssistance] = useState<Assistance | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [showElevatorForm, setShowElevatorForm] = useState(false)
   const [filters, setFilters] = useState<AssistanceFilters>({})
   const { data: assistances, isLoading, refetch } = useAssistances();
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+
+  // Count active elevator assistances
+  const elevatorCount = useQuery({
+    queryKey: ["elevator-count"],
+    queryFn: async () => {
+      const { data: types } = await supabase
+        .from("intervention_types")
+        .select("id")
+        .or("name.ilike.%elevador%,name.ilike.%elevator%");
+      
+      if (!types?.length) return 0;
+
+      const typeIds = types.map(t => t.id);
+      const { count } = await supabase
+        .from("assistances")
+        .select("*", { count: "exact", head: true })
+        .in("intervention_type_id", typeIds)
+        .in("status", ["pending", "in_progress", "accepted", "scheduled", "awaiting_quotation"]);
+      
+      return count || 0;
+    },
+  });
   
   const pullToRefresh = usePullToRefresh({
     refreshFunction: async () => {
@@ -344,16 +371,31 @@ export default function Assistencias() {
             </>
           )}
         </div>
-        {/* Desktop New Button - hide on mobile since we have FAB */}
+        {/* Desktop Buttons - hide on mobile since we have FAB */}
         {!isMobile && (
-          <Button 
-            className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
-            onClick={() => setShowCreateForm(true)}
-            size="default"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Assistência
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="border-warning/30 text-warning hover:bg-warning/10 relative"
+              onClick={() => setShowElevatorForm(true)}
+            >
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              Elevador
+              {(elevatorCount.data ?? 0) > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-5 min-w-5 flex items-center justify-center p-0 text-xs bg-warning text-warning-foreground">
+                  {elevatorCount.data}
+                </Badge>
+              )}
+            </Button>
+            <Button 
+              className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
+              onClick={() => setShowCreateForm(true)}
+              size="default"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Assistência
+            </Button>
+          </div>
         )}
       </div>
 
@@ -623,6 +665,9 @@ export default function Assistencias() {
         onClick={() => setShowCreateForm(true)}
         label="Nova Assistência"
       />
+
+      {/* Quick Elevator Form */}
+      <QuickElevatorForm open={showElevatorForm} onOpenChange={setShowElevatorForm} />
     </div>
   )
 }
