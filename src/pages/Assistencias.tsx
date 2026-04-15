@@ -665,6 +665,9 @@ export default function Assistencias() {
         onClick={() => setShowCreateForm(true)}
         label="Nova Assistência"
       />
+
+      {/* Quick Elevator Form */}
+      <QuickElevatorForm open={showElevatorForm} onOpenChange={setShowElevatorForm} />
     </div>
   )
 }
