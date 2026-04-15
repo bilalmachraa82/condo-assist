@@ -28,6 +28,7 @@ import {
 import QuickElevatorForm from "@/components/assistance/QuickElevatorForm"
 import { useQuery } from "@tanstack/react-query"
 import { useAssistances, useAssistanceStats, useDeleteAssistance, type Assistance } from "@/hooks/useAssistances"
+import { supabase } from "@/integrations/supabase/client"
 import { useRequestQuotation, useQuotationsByAssistance } from "@/hooks/useQuotations"
 import { formatDistanceToNow, format } from "date-fns"
 import { pt } from "date-fns/locale"
