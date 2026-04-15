@@ -191,11 +191,34 @@ export default function Assistencias() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedAssistance, setSelectedAssistance] = useState<Assistance | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [showElevatorForm, setShowElevatorForm] = useState(false)
   const [filters, setFilters] = useState<AssistanceFilters>({})
   const { data: assistances, isLoading, refetch } = useAssistances();
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+
+  // Count active elevator assistances
+  const elevatorCount = useQuery({
+    queryKey: ["elevator-count"],
+    queryFn: async () => {
+      const { data: types } = await supabase
+        .from("intervention_types")
+        .select("id")
+        .or("name.ilike.%elevador%,name.ilike.%elevator%");
+      
+      if (!types?.length) return 0;
+
+      const typeIds = types.map(t => t.id);
+      const { count } = await supabase
+        .from("assistances")
+        .select("*", { count: "exact", head: true })
+        .in("intervention_type_id", typeIds)
+        .in("status", ["pending", "in_progress", "accepted", "scheduled", "awaiting_quotation"]);
+      
+      return count || 0;
+    },
+  });
   
   const pullToRefresh = usePullToRefresh({
     refreshFunction: async () => {
