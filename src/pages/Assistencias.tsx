@@ -22,8 +22,11 @@ import {
   FileText,
   Euro,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  ArrowUpDown
 } from "lucide-react"
+import QuickElevatorForm from "@/components/assistance/QuickElevatorForm"
+import { useQuery } from "@tanstack/react-query"
 import { useAssistances, useAssistanceStats, useDeleteAssistance, type Assistance } from "@/hooks/useAssistances"
 import { useRequestQuotation, useQuotationsByAssistance } from "@/hooks/useQuotations"
 import { formatDistanceToNow, format } from "date-fns"
