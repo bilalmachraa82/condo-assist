@@ -1,0 +1,135 @@
+### REST Client test file for agent-api Edge Function
+### Usage: Install "REST Client" extension in VSCode, set variables below, click "Send Request"
+
+@API_URL = https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/agent-api
+@API_KEY = YOUR_API_KEY_HERE
+
+### ──────────────────────────────────────
+### 1. Health Check (no auth)
+### ──────────────────────────────────────
+GET {{API_URL}}/v1/health
+
+### ──────────────────────────────────────
+### 2. Health Check — should work without auth
+### ──────────────────────────────────────
+
+### ──────────────────────────────────────
+### 3. Unauthorized (no token) — expect 401
+### ──────────────────────────────────────
+GET {{API_URL}}/v1/intervention-types
+
+### ──────────────────────────────────────
+### 4. Lookup Building by Email
+### ──────────────────────────────────────
+POST {{API_URL}}/v1/lookup-building-by-email
+Authorization: Bearer {{API_KEY}}
+Content-Type: application/json
+
+{
+  "email": "joana@example.com"
+}
+
+### ──────────────────────────────────────
+### 5. List Intervention Types
+### ──────────────────────────────────────
+GET {{API_URL}}/v1/intervention-types
+Authorization: Bearer {{API_KEY}}
+
+### ──────────────────────────────────────
+### 6. List Assistances for Building
+### ──────────────────────────────────────
+GET {{API_URL}}/v1/buildings/BUILDING_UUID_HERE/assistances?status=open&limit=20
+Authorization: Bearer {{API_KEY}}
+
+### ──────────────────────────────────────
+### 7. Get Assistance Detail
+### ──────────────────────────────────────
+GET {{API_URL}}/v1/assistances/ASSISTANCE_UUID_HERE
+Authorization: Bearer {{API_KEY}}
+
+### ──────────────────────────────────────
+### 8. Create Assistance (with idempotency)
+### ──────────────────────────────────────
+POST {{API_URL}}/v1/assistances
+Authorization: Bearer {{API_KEY}}
+Content-Type: application/json
+Idempotency-Key: test-idempotency-key-001
+
+{
+  "building_id": "BUILDING_UUID_HERE",
+  "title": "Elevador parado - teste API",
+  "description": "Teste de criação via agent-api",
+  "intervention_type_id": "INTERVENTION_TYPE_UUID_HERE",
+  "priority": "urgent",
+  "source": "email_agent",
+  "triggered_by_contact_email": "joana@example.com"
+}
+
+### ──────────────────────────────────────
+### 9. Add Communication
+### ──────────────────────────────────────
+POST {{API_URL}}/v1/assistances/ASSISTANCE_UUID_HERE/communications
+Authorization: Bearer {{API_KEY}}
+Content-Type: application/json
+
+{
+  "message": "Teste de comunicação via agente AI",
+  "sender_type": "ai_agent"
+}
+
+### ──────────────────────────────────────
+### 10. Save Email Draft
+### ──────────────────────────────────────
+POST {{API_URL}}/v1/assistances/ASSISTANCE_UUID_HERE/email-log
+Authorization: Bearer {{API_KEY}}
+Content-Type: application/json
+Idempotency-Key: draft-idempotency-key-001
+
+{
+  "recipient_email": "joana@example.com",
+  "recipient_name": "Joana Silva",
+  "subject": "Re: Elevador parado",
+  "content": "Exma. Sra. Joana,\n\nA sua reclamação foi registada com o número A-2026-0046.\n\nCom os melhores cumprimentos,\nLuvim Gestão",
+  "template_used": "ai_agent_v1",
+  "source_email_id": "outlook-msg-id-123",
+  "classification": "elevador-parado"
+}
+
+### ──────────────────────────────────────
+### 11. Update Email Log Status (approve draft)
+### ──────────────────────────────────────
+PATCH {{API_URL}}/v1/email-log/EMAIL_LOG_UUID_HERE/status
+Authorization: Bearer {{API_KEY}}
+Content-Type: application/json
+
+{
+  "ai_draft_status": "approved",
+  "approved_by": "USER_PROFILE_UUID_HERE"
+}
+
+### ──────────────────────────────────────
+### 12. Import Contacts
+### ──────────────────────────────────────
+POST {{API_URL}}/v1/import-contacts
+Authorization: Bearer {{API_KEY}}
+Content-Type: application/json
+
+{
+  "contacts": [
+    {
+      "email": "joana@example.com",
+      "first_name": "Joana",
+      "last_name": "Silva",
+      "phone": "+351912345678",
+      "fraction": "2ESQ",
+      "building_code": "146",
+      "role": "owner"
+    }
+  ]
+}
+
+### ──────────────────────────────────────
+### 13. Test x-api-key header (alternative auth)
+### ──────────────────────────────────────
+GET {{API_URL}}/v1/intervention-types
+x-api-key: {{API_KEY}}

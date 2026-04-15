@@ -62,6 +62,21 @@ export type Database = {
           },
         ]
       }
+      agent_api_rate_limit: {
+        Row: {
+          api_key_hash: string
+          request_at: string
+        }
+        Insert: {
+          api_key_hash: string
+          request_at?: string
+        }
+        Update: {
+          api_key_hash?: string
+          request_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           category: string
@@ -208,6 +223,8 @@ export type Database = {
           final_cost: number | null
           follow_up_count: number | null
           id: string
+          idempotency_key: string | null
+          idempotency_key_expires_at: string | null
           intervention_type_id: string
           last_follow_up_sent: string | null
           last_quotation_follow_up_sent: string | null
@@ -223,6 +240,7 @@ export type Database = {
           scheduled_date: string | null
           scheduled_end_date: string | null
           scheduled_start_date: string | null
+          source: string | null
           status: Database["public"]["Enums"]["assistance_status"]
           supplier_notes: string | null
           title: string
@@ -251,6 +269,8 @@ export type Database = {
           final_cost?: number | null
           follow_up_count?: number | null
           id?: string
+          idempotency_key?: string | null
+          idempotency_key_expires_at?: string | null
           intervention_type_id: string
           last_follow_up_sent?: string | null
           last_quotation_follow_up_sent?: string | null
@@ -266,6 +286,7 @@ export type Database = {
           scheduled_date?: string | null
           scheduled_end_date?: string | null
           scheduled_start_date?: string | null
+          source?: string | null
           status?: Database["public"]["Enums"]["assistance_status"]
           supplier_notes?: string | null
           title: string
@@ -294,6 +315,8 @@ export type Database = {
           final_cost?: number | null
           follow_up_count?: number | null
           id?: string
+          idempotency_key?: string | null
+          idempotency_key_expires_at?: string | null
           intervention_type_id?: string
           last_follow_up_sent?: string | null
           last_quotation_follow_up_sent?: string | null
@@ -309,6 +332,7 @@ export type Database = {
           scheduled_date?: string | null
           scheduled_end_date?: string | null
           scheduled_start_date?: string | null
+          source?: string | null
           status?: Database["public"]["Enums"]["assistance_status"]
           supplier_notes?: string | null
           title?: string
@@ -418,12 +442,67 @@ export type Database = {
           },
         ]
       }
+      condominium_contacts: {
+        Row: {
+          building_id: string
+          created_at: string
+          email: string
+          first_name: string | null
+          fraction: string | null
+          id: string
+          is_primary_contact: boolean | null
+          last_name: string | null
+          phone: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          building_id: string
+          created_at?: string
+          email: string
+          first_name?: string | null
+          fraction?: string | null
+          id?: string
+          is_primary_contact?: boolean | null
+          last_name?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          building_id?: string
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          fraction?: string | null
+          id?: string
+          is_primary_contact?: boolean | null
+          last_name?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condominium_contacts_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
+          ai_draft_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           archived_at: string
           assistance_id: string | null
           email_content: string | null
           id: string
+          idempotency_key: string | null
+          idempotency_key_expires_at: string | null
           metadata: Json | null
           recipient_email: string
           sent_at: string
@@ -433,10 +512,15 @@ export type Database = {
           template_used: string | null
         }
         Insert: {
+          ai_draft_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           archived_at?: string
           assistance_id?: string | null
           email_content?: string | null
           id?: string
+          idempotency_key?: string | null
+          idempotency_key_expires_at?: string | null
           metadata?: Json | null
           recipient_email: string
           sent_at?: string
@@ -446,10 +530,15 @@ export type Database = {
           template_used?: string | null
         }
         Update: {
+          ai_draft_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           archived_at?: string
           assistance_id?: string | null
           email_content?: string | null
           id?: string
+          idempotency_key?: string | null
+          idempotency_key_expires_at?: string | null
           metadata?: Json | null
           recipient_email?: string
           sent_at?: string
@@ -459,6 +548,13 @@ export type Database = {
           template_used?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "email_logs_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "email_logs_assistance_id_fkey"
             columns: ["assistance_id"]

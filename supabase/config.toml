@@ -82,3 +82,6 @@ verify_jwt = true
 
 [functions.send-assistance-pdf-to-admin]
 verify_jwt = false
+
+[functions.agent-api]
+verify_jwt = false
