@@ -371,16 +371,31 @@ export default function Assistencias() {
             </>
           )}
         </div>
-        {/* Desktop New Button - hide on mobile since we have FAB */}
+        {/* Desktop Buttons - hide on mobile since we have FAB */}
         {!isMobile && (
-          <Button 
-            className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
-            onClick={() => setShowCreateForm(true)}
-            size="default"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Assistência
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="border-warning/30 text-warning hover:bg-warning/10 relative"
+              onClick={() => setShowElevatorForm(true)}
+            >
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              Elevador
+              {(elevatorCount.data ?? 0) > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-5 min-w-5 flex items-center justify-center p-0 text-xs bg-warning text-warning-foreground">
+                  {elevatorCount.data}
+                </Badge>
+              )}
+            </Button>
+            <Button 
+              className="bg-gradient-to-r from-primary to-primary-light hover:shadow-lg transition-all duration-300"
+              onClick={() => setShowCreateForm(true)}
+              size="default"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Assistência
+            </Button>
+          </div>
         )}
       </div>
 
