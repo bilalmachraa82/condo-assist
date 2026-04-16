@@ -161,7 +161,7 @@ export function AppSidebar() {
           {!isCollapsed && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <HelpCircle className="h-4 w-4" />
-              <span>Versão 1.0</span>
+              <span>Versão 2.0</span>
             </div>
           )}
         </div>
