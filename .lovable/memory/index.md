@@ -20,4 +20,5 @@ Use `upload-supplier-file` edge function for supplier file uploads; never use di
 - [Resend Email Configuration](mem://technical/resend-email-configuration) — Domain luvimg.com verification and 'from' address constraints
 - [Premium PDF Design Standard](mem://style/premium-pdf-design-standard) — Layout, font sizes, and layout constraints for assistance PDFs
 - [Form Data Persistence](mem://features/form-data-persistence) — Assistance form localStorage draft saving and restoration
-- [External API Access](mem://features/external-api-access) — agent-api edge function with 10 REST endpoints, dual auth, rate limiting, idempotency, condominium_contacts table
+- [External API Access](mem://features/external-api-access) — agent-api edge function with 14 REST endpoints, dual auth, rate limiting
+- [Knowledge Base](mem://features/knowledge-base) — Knowledge articles CRUD, 14 categories, /knowledge page, 4 API endpoints in agent-api
