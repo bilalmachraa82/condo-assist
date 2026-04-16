@@ -1,90 +1,46 @@
 
 
-# Plan: Knowledge Base Module — Full Implementation
+# Plan: Knowledge Base UI/UX Improvement (with adjustments)
 
 ## Summary
-Create a complete Knowledge Base module with database table, API endpoints in the existing `agent-api`, and a full CRUD frontend page — all following existing patterns exactly.
+Improve Knowledge Base visual presentation: clean excerpts, better category identity, pagination for ~800 articles, and enhanced detail view.
 
-## 1. Database Migration
+## Files to create/edit
 
-Create table `knowledge_articles` with:
-- `id` (uuid PK), `title`, `content` (markdown), `category` (text, NOT NULL)
-- `subcategory` (text, nullable), `tags` (text[], GIN index)
-- `building_id` (uuid FK → buildings, nullable), `is_global` (boolean, default false)
-- `is_published` (boolean, default true), `metadata` (jsonb, default '{}')
-- `created_by` (uuid, references auth.users), `created_at`, `updated_at`
+### 1. `src/utils/stripMarkdown.ts` — NEW
+Strip formatting syntax (`#`, `**`, `*`, `_`, `|`, `>`, `-` list markers, table delimiters) but preserve text, dates, numbers. Include inline test function that runs assertions and logs results (callable via `stripMarkdown.test()`).
 
-Indexes: GIN full-text search (Portuguese config) on `title || content`, btree on `category`, `building_id`, GIN on `tags`.
+Example: `"## Administrador\n- **Nome:** João"` → `"Administrador Nome: João"`
 
-RLS policies:
-- Authenticated users: full CRUD access
-- No public access (agent access goes through `agent-api` which uses service role key)
+### 2. `src/utils/knowledgeCategories.ts` — EDIT
+Add `bgCircleClass` property per category for the icon pill background (e.g., `"bg-purple-500/10"` for elevadores). Keep existing `bgClass`/`textClass`.
 
-Trigger: `moddatetime` on `updated_at`.
+### 3. `src/components/knowledge/KnowledgeCard.tsx` — REWRITE
+- Remove colored left border approach
+- **Category icon pill**: 24px icon inside a circular/pill div with category-tinted background at 10% opacity (e.g., `bg-purple-500/10` with `text-purple-600`)
+- Use `stripMarkdown()` for clean excerpt text
+- Move edit/delete into a `DropdownMenu` behind a `MoreHorizontal` icon button
+- Building info on its own line with `Building2` icon
+- Increase badge font from 10px to 11px
+- Show `is_global` badge more prominently
 
-**No CHECK constraint on category** — categories managed in frontend constants to stay flexible.
+### 4. `src/components/knowledge/KnowledgeFilters.tsx` — EDIT
+Add horizontal scrollable category chip bar with article counts per category. Chips are clickable to toggle category filter. Active chip gets filled background.
 
-## 2. Agent API Endpoints (edit `agent-api/index.ts`)
+### 5. `src/pages/Knowledge.tsx` — EDIT
+- Show total article count in header (e.g., "42 artigos")
+- **Pagination**: Load first 50 articles, show "Mostrar mais" button at bottom that loads next 50. Pass `limit`/`offset` or page number to the hook.
+- Pass category counts (computed from full data or a separate count query) to `KnowledgeFilters`.
 
-Add 4 routes to existing `matchRoute()` and switch statement:
+### 6. `src/hooks/useKnowledgeArticles.ts` — EDIT
+Add pagination support: accept `limit` and `page` in filters, use `.range()` in the Supabase query. Return `count` from the query (`{ count: 'exact' }`) so the page knows total.
 
-| Method | Path | Handler | Description |
-|--------|------|---------|-------------|
-| GET | `/v1/knowledge` | `searchKnowledge` | Search/list articles (params: `q`, `category`, `building_id`, `tags`, `limit`, `offset`) |
-| GET | `/v1/knowledge/:id` | `getKnowledgeArticle` | Full article with content |
-| POST | `/v1/knowledge` | `createKnowledgeArticle` | Create article |
-| PATCH | `/v1/knowledge/:id` | `updateKnowledgeArticle` | Partial update |
+### 7. `src/components/knowledge/KnowledgeDetail.tsx` — REWRITE
+- Header banner with category color background (subtle tint), large icon, and title
+- Metadata section (building, category, subcategory, tags, dates) visually separated from content
+- Better prose styling for markdown tables and headings
+- "Copiar conteúdo" button using `navigator.clipboard`
 
-All protected by existing `EXTERNAL_API_KEY` auth + rate limiting. Follows existing patterns (HttpError, maskPII, requireString, json()).
-
-## 3. OpenAPI Spec Update
-
-Add the 4 knowledge endpoints to `openapi.yaml` with full parameter and response documentation.
-
-## 4. Frontend Files
-
-### New files:
-- **`src/pages/Knowledge.tsx`** — Main page with header, filters, card grid, create/edit Sheet dialog
-- **`src/components/knowledge/KnowledgeCard.tsx`** — Article card with category badge, excerpt, tags, edit/delete
-- **`src/components/knowledge/KnowledgeForm.tsx`** — Sheet form: title, category select, building select, tags chips, markdown textarea with preview tabs, is_global toggle
-- **`src/components/knowledge/KnowledgeDetail.tsx`** — Full article dialog with rendered markdown
-- **`src/components/knowledge/KnowledgeFilters.tsx`** — Search input (debounced), category select, building select, clear button
-- **`src/hooks/useKnowledgeArticles.ts`** — React Query hooks: list, get, create, update, delete with cache invalidation and toast feedback
-
-### Categories with icons (14 total):
-```text
-procedimentos → ClipboardList (blue)
-edificios → Building2 (slate)
-elevadores → ArrowUpDown (purple)
-extintores → Flame (red)
-gas → Zap (yellow)
-seguros → Shield (indigo)
-acidentes_trabalho → AlertTriangle (orange)
-desbaratizacao → Bug (amber)
-colunas_eletricas → Bolt (cyan)
-caleiras → Droplets (teal)
-chamines → Wind (gray)
-fornecedores → Truck (emerald)
-legal → Scale (violet)
-geral → BookOpen (slate)
-```
-
-### Edits to existing files:
-- **`src/App.tsx`** — Add `/knowledge` route with ProtectedRoute + DashboardLayout
-- **`src/components/layout/AppSidebar.tsx`** — Add "Base de Conhecimento" with BookOpen icon to main menu
-
-## 5. Dependencies
-
-Install `react-markdown` and `remark-gfm` for markdown rendering in the detail/preview views.
-
-## 6. What This Does NOT Include (deferred)
-
-- **Excel seed import** — The Excel data import can be done as a separate step after the base module is working. Building a batch import UI component adds complexity; better to validate the CRUD first.
-- **Settings API panel** — The API documentation and MCP config examples can be added later as a settings tab.
-
-## Technical Notes
-- Hooks use `supabase` client directly (not edge function) for frontend CRUD — same pattern as `useBuildings.ts`
-- Agent API uses `SUPABASE_SERVICE_ROLE_KEY` (bypasses RLS) — same as all existing endpoints
-- Mobile-first responsive layout matching existing pages
-- Skeleton loaders, empty states, toast notifications on all actions
+## No content or data changes
+All existing fields, functionality, and CRUD logic preserved. Pure visual/UX pass.
 
