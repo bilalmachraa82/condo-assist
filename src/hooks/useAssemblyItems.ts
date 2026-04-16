@@ -113,6 +113,31 @@ export const useUpdateAssemblyItem = () => {
   });
 };
 
+export const useCreateAssemblyItem = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (item: Omit<AssemblyItem, "id" | "created_at" | "updated_at" | "buildings" | "knowledge_article_id" | "source_sheet">) => {
+      const { data, error } = await supabase
+        .from("assembly_items")
+        .insert(item as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assembly-items"] });
+      queryClient.invalidateQueries({ queryKey: ["assembly-status-counts"] });
+      toast({ title: "Criado", description: "Assunto criado com sucesso." });
+    },
+    onError: (error) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    },
+  });
+};
+
 export const useDeleteAssemblyItem = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();

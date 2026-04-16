@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, AlertTriangle } from "lucide-react";
+import { Building2, AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { getAssemblyCategoryConfig } from "@/utils/assemblyCategories";
 import { isUrgent } from "@/utils/assemblyParser";
 import type { AssemblyItem } from "@/hooks/useAssemblyItems";
@@ -10,6 +10,8 @@ interface Props {
   item: AssemblyItem;
   onClick: (item: AssemblyItem) => void;
   onStatusChange: (id: string, status: string) => void;
+  onEdit?: (item: AssemblyItem) => void;
+  onDelete?: (id: string) => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -19,7 +21,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   cancelled: { label: "Cancelado", color: "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800/30 dark:text-gray-300" },
 };
 
-export default function AssemblyCard({ item, onClick, onStatusChange }: Props) {
+export default function AssemblyCard({ item, onClick, onStatusChange, onEdit, onDelete }: Props) {
   const cat = item.category ? getAssemblyCategoryConfig(item.category) : null;
   const CatIcon = cat?.icon;
   const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
@@ -71,8 +73,8 @@ export default function AssemblyCard({ item, onClick, onStatusChange }: Props) {
           <p className="text-xs text-muted-foreground italic line-clamp-1">{item.status_notes}</p>
         )}
 
-        {/* Quick status change */}
-        <div onClick={(e) => e.stopPropagation()}>
+        {/* Quick status change + actions */}
+        <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
           <Select value={item.status} onValueChange={(v) => onStatusChange(item.id, v)}>
             <SelectTrigger className="h-7 text-xs w-[140px]">
               <SelectValue />
@@ -84,6 +86,18 @@ export default function AssemblyCard({ item, onClick, onStatusChange }: Props) {
               <SelectItem value="cancelled">Cancelado</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onEdit && (
+              <button onClick={() => onEdit(item)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {onDelete && (
+              <button onClick={() => onDelete(item.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
