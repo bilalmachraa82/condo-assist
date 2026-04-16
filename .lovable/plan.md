@@ -1,48 +1,82 @@
 
 
-# Plan: Add Create & Edit to Assembly Module
+# Plan: Reorganize Assembly Module — Group by Building
 
-## What's Missing
-The Assembly module currently only supports importing from Excel and viewing/updating status. It lacks:
-1. A "Create New" button to manually add assembly items
-2. Full edit capability for all fields (description, category, building, year, priority, cost, etc.)
-3. Delete action accessible from cards/detail view
+## Problem
+Currently, assembly items display as a flat grid of cards. The user wants items **grouped by building** (like the Excel structure), where each building is a collapsible section showing all its items in a table-like layout with inline status editing.
+
+## New UX Flow
+
+```text
+┌──────────────────────────────────────────────────┐
+│  Seguimento de Actas          [+ Novo] [Import]  │
+│  [Stats cards: Pendentes | Em Curso | Resolvidos]│
+│  [Search] [Ano ▾] [Status chips] [Category chips]│
+├──────────────────────────────────────────────────┤
+│                                                  │
+│  ▼ 003 — Rua Alexandre Herculano, nº3  (8 itens) │
+│  ┌────────────────────────────────────────────┐  │
+│  │ Descrição (truncada)  │ Estado │ Ações     │  │
+│  │ Limpeza caleiras...   │ 🟢 Ok │ ✏️ 🗑️    │  │
+│  │ Tapar buraco escadas..│ 🟡 Em C│ ✏️ 🗑️    │  │
+│  │ Verificar caleiras... │ 🟡 Em C│ ✏️ 🗑️    │  │
+│  │           [+ Adicionar assunto a este prédio] │
+│  └────────────────────────────────────────────┘  │
+│                                                  │
+│  ▸ 004 — Rua X, nº4  (3 itens)     [collapsed]  │
+│  ▸ 009 — Rua Y, nº9  (5 itens)     [collapsed]  │
+└──────────────────────────────────────────────────┘
+```
 
 ## Changes
 
-### 1. New: `src/components/assembly/AssemblyForm.tsx`
-Dialog form for both creating and editing assembly items. Fields:
-- **Building** — Select from buildings table (Code - Name format per memory)
-- **Year** — Number input (default current year)
-- **Description** — Textarea
-- **Category** — Select from assembly categories
-- **Status** — Select (pending/in_progress/done/cancelled)
-- **Priority** — Select (urgent/high/normal/low)
-- **Status Notes** — Textarea
-- **Assigned To** — Text input
-- **Estimated Cost** — Number input
-- **Resolution Date** — Date input
+### 1. New: `src/components/assembly/AssemblyBuildingGroup.tsx`
+Collapsible section per building using `Collapsible` from shadcn. Shows:
+- Header: building code + address + item count + pending/done progress indicator
+- Body: table/list of items with columns: Description (truncated), Category badge, Status dropdown (inline), Notes (truncated), Actions (edit/delete icons)
+- Footer: "+ Adicionar assunto" button that opens AssemblyForm pre-filled with this building
 
-When editing, pre-populate all fields from the item. When creating, defaults for status=pending, priority=normal, year=current year.
+### 2. Edit: `src/pages/Assembly.tsx`
+- After fetching items, group them by `building_code` using a `Map`
+- Sort groups by `building_code` ascending (numeric order)
+- Render `AssemblyBuildingGroup` for each group instead of flat card grid
+- Remove the card grid layout entirely
+- Pass building-specific "add" handler that pre-selects the building in AssemblyForm
+- Keep stats, filters, load-more, detail dialog, delete dialog, import, and form as-is
 
-### 2. New hook: `useCreateAssemblyItem` in `src/hooks/useAssemblyItems.ts`
-- Insert mutation that auto-resolves `building_id` and `building_address` from the selected building
-- Invalidates assembly queries on success
+### 3. Edit: `src/components/assembly/AssemblyForm.tsx`
+- Accept optional `defaultBuildingId` prop to pre-select building when adding from a building group
+- When `defaultBuildingId` is set and no `item` (create mode), auto-select that building
 
-### 3. Edit `src/pages/Assembly.tsx`
-- Add "Novo Assunto" button (with Plus icon) next to "Importar Excel"
-- Add state for create/edit form open + selected item for edit
-- Pass edit/delete handlers to AssemblyCard and AssemblyDetail
+### 4. Remove dependency on `AssemblyCard.tsx`
+- `AssemblyCard.tsx` becomes unused (can keep for potential future use but won't be imported)
 
-### 4. Edit `src/components/assembly/AssemblyCard.tsx`
-- Add edit (Pencil) and delete (Trash2) icon buttons in the card footer, visible on hover
-- Wire onEdit and onDelete callbacks
+### 5. Edit: `src/hooks/useAssemblyItems.ts`
+- Change default sort to `building_code ASC, created_at ASC` (items in order within each building)
+- Increase default limit or remove pagination in favor of loading all items (since grouping needs all data per building). Alternative: keep pagination but load more per page (e.g., 200).
 
-### 5. Edit `src/components/assembly/AssemblyDetail.tsx`
-- Add "Editar" button that opens AssemblyForm in edit mode
-- Add "Eliminar" button with confirmation
-- Make all fields in detail read-only (editing happens via the form)
+## Technical Details
+
+### Grouping logic (in Assembly.tsx)
+```typescript
+const grouped = useMemo(() => {
+  const map = new Map<number, { address: string; building_id: string | null; items: AssemblyItem[] }>();
+  for (const item of displayedItems) {
+    if (!map.has(item.building_code)) {
+      map.set(item.building_code, { address: item.building_address || "", building_id: item.building_id, items: [] });
+    }
+    map.get(item.building_code)!.items.push(item);
+  }
+  return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
+}, [displayedItems]);
+```
+
+### AssemblyBuildingGroup component
+- Uses `Collapsible`/`CollapsibleTrigger`/`CollapsibleContent`
+- Header shows: `{code} — {address}` + badges for pending/done counts + chevron
+- Table rows: description (line-clamp-2), category badge, inline status Select, edit/delete buttons
+- Each row clickable to open detail dialog
+- Mini progress bar (green portion = done items / total items)
 
 ## No database changes needed
-The table already supports all fields. Only frontend additions.
 
