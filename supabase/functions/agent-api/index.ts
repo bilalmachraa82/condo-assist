@@ -173,13 +173,14 @@ async function handleListAssistances(
   const buildingId = params.buildingId;
   const statusFilter = url.searchParams.get("status") || "open";
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "20"), 100);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
 
   let query = supabase
     .from("assistances")
-    .select("id, assistance_number, title, status, priority, created_at, updated_at, intervention_type_id, assigned_supplier_id, intervention_types(id, name), suppliers(id, name)")
+    .select("id, assistance_number, title, status, priority, created_at, updated_at, intervention_type_id, assigned_supplier_id, intervention_types(id, name), suppliers(id, name)", { count: "exact" })
     .eq("building_id", buildingId)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
 
   if (statusFilter === "open") {
     query = query.in("status", ["pending", "awaiting_quotation", "in_progress", "scheduled", "accepted"]);
@@ -198,7 +199,9 @@ async function handleListAssistances(
 
   return json({
     building_id: buildingId,
-    total: data?.length || 0,
+    total: count ?? data?.length ?? 0,
+    limit,
+    offset,
     assistances: (data || []).map((a: any) => ({
       id: a.id,
       assistance_number: a.assistance_number,

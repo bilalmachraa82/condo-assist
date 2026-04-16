@@ -1,0 +1,378 @@
+openapi: "3.1.0"
+info:
+  title: CondoAssist Agent API
+  version: "1.0.0"
+  description: |
+    REST API for AI agent integration with the CondoAssist platform.
+    All authenticated endpoints require `x-api-key` or `Authorization: Bearer <token>` header.
+    Rate limit: 100 requests/minute per API key (Postgres-backed, SHA-256 hashed).
+servers:
+  - url: https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/agent-api
+    description: Production
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+    BearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+      description: Prevents duplicate creation. 24h TTL.
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+        maximum: 100
+    Offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        default: 0
+
+paths:
+  /v1/health:
+    get:
+      operationId: health
+      summary: Health check (no auth)
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  version: { type: string, example: "1.0.0" }
+                  timestamp: { type: string, format: date-time }
+
+  /v1/lookup-building-by-email:
+    post:
+      operationId: lookupBuildingByEmail
+      summary: Find building by condómino email
+      description: |
+        POST (not GET) to avoid leaking PII in URLs/logs (RGPD compliance).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: Building found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  building_id: { type: string, format: uuid }
+                  building_code: { type: string }
+                  name: { type: string }
+                  address: { type: string }
+                  contact:
+                    type: object
+                    properties:
+                      first_name: { type: string }
+                      last_name: { type: string }
+                      fraction: { type: string }
+                      role: { type: string }
+        "400":
+          description: Missing email field
+        "404":
+          description: No building found for this email
+
+  /v1/buildings/{buildingId}/assistances:
+    get:
+      operationId: listAssistancesByBuilding
+      summary: List assistances for a building
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, closed, pending, awaiting_quotation, in_progress, scheduled, accepted, completed, cancelled]
+            default: open
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  building_id: { type: string, format: uuid }
+                  total: { type: integer }
+                  limit: { type: integer }
+                  offset: { type: integer }
+                  assistances:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        assistance_number: { type: integer }
+                        title: { type: string }
+                        status: { type: string }
+                        priority: { type: string }
+                        intervention_type: { type: object }
+                        assigned_supplier: { type: object }
+                        created_at: { type: string, format: date-time }
+                        last_update_at: { type: string, format: date-time }
+
+  /v1/assistances/{assistanceId}:
+    get:
+      operationId: getAssistanceDetail
+      summary: Full assistance detail with comms, progress, emails
+      description: Runs 4 parallel queries for performance.
+      parameters:
+        - name: assistanceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Full detail
+        "404":
+          description: Assistance not found
+
+  /v1/intervention-types:
+    get:
+      operationId: listInterventionTypes
+      summary: List all intervention types
+      responses:
+        "200":
+          description: List of types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  intervention_types:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        category: { type: string }
+                        urgency_level: { type: string, enum: [normal, urgent, critical] }
+
+  /v1/assistances:
+    post:
+      operationId: createAssistance
+      summary: Create a new assistance
+      description: Supports idempotency via Idempotency-Key header (24h TTL).
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [building_id, title, description, intervention_type_id]
+              properties:
+                building_id: { type: string, format: uuid }
+                title: { type: string, maxLength: 140 }
+                description: { type: string }
+                intervention_type_id: { type: string, format: uuid }
+                priority: { type: string, enum: [normal, urgent, critical], default: normal }
+                source: { type: string, default: email_agent }
+                assigned_supplier_id: { type: string, format: uuid }
+                triggered_by_contact_email: { type: string, format: email }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  assistance_number: { type: integer }
+        "200":
+          description: Idempotent duplicate — returns existing record
+
+  /v1/assistances/{assistanceId}/communications:
+    post:
+      operationId: addCommunication
+      summary: Add a communication log entry
+      parameters:
+        - name: assistanceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string }
+                sender_type: { type: string, default: ai_agent }
+                message_type: { type: string, default: general }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  created_at: { type: string, format: date-time }
+
+  /v1/assistances/{assistanceId}/email-log:
+    post:
+      operationId: saveEmailDraft
+      summary: Save an email draft for human review
+      description: |
+        assistance_id comes from the URL path. Supports idempotency via Idempotency-Key header.
+        Draft is created with ai_draft_status = "pending_review".
+      parameters:
+        - name: assistanceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recipient_email, subject, content]
+              properties:
+                recipient_email: { type: string, format: email }
+                subject: { type: string }
+                content: { type: string }
+                template_used: { type: string, default: ai_agent_v1 }
+                source_email_id: { type: string }
+                classification: { type: string }
+                recipient_name: { type: string }
+      responses:
+        "201":
+          description: Draft saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  ai_draft_status: { type: string, example: pending_review }
+        "200":
+          description: Idempotent duplicate
+
+  /v1/email-log/{emailLogId}/status:
+    patch:
+      operationId: updateEmailLogStatus
+      summary: Approve, reject, or mark an email draft as sent
+      parameters:
+        - name: emailLogId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ai_draft_status]
+              properties:
+                ai_draft_status:
+                  type: string
+                  enum: [approved, rejected, sent, auto_sent]
+                approved_by:
+                  type: string
+                  format: uuid
+                  description: Profile ID of the admin who approved
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  ai_draft_status: { type: string }
+
+  /v1/import-contacts:
+    post:
+      operationId: importContacts
+      summary: Bulk upsert condómino contacts
+      description: Max 500 contacts per request. Upserts by email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contacts]
+              properties:
+                contacts:
+                  type: array
+                  maxItems: 500
+                  items:
+                    type: object
+                    required: [email]
+                    properties:
+                      email: { type: string, format: email }
+                      building_id: { type: string, format: uuid }
+                      building_code: { type: string }
+                      first_name: { type: string }
+                      last_name: { type: string }
+                      phone: { type: string }
+                      fraction: { type: string }
+                      role: { type: string, default: owner }
+                      is_primary_contact: { type: boolean, default: true }
+      responses:
+        "200":
+          description: Import results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inserted: { type: integer }
+                  updated: { type: integer }
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        row: { type: integer }
+                        error: { type: string }
+        "400":
+          description: Empty or invalid contacts array
