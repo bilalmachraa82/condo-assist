@@ -512,3 +512,20 @@ paths:
                   title: { type: string }
                   category: { type: string }
                   updated_at: { type: string, format: date-time }
+    delete:
+      operationId: deleteKnowledgeArticle
+      summary: Eliminar artigo da Knowledge Base
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Artigo eliminado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }

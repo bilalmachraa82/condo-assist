@@ -116,6 +116,7 @@ function matchRoute(method: string, pathname: string): { handler: string; params
     { method: "GET", pattern: /^\/v1\/knowledge\/([^/]+)$/, handler: "getKnowledgeArticle", paramNames: ["articleId"] },
     { method: "POST", pattern: /^\/v1\/knowledge$/, handler: "createKnowledgeArticle", paramNames: [] },
     { method: "PATCH", pattern: /^\/v1\/knowledge\/([^/]+)$/, handler: "updateKnowledgeArticle", paramNames: ["articleId"] },
+    { method: "DELETE", pattern: /^\/v1\/knowledge\/([^/]+)$/, handler: "deleteKnowledgeArticle", paramNames: ["articleId"] },
   ];
 
   for (const route of routes) {
@@ -602,27 +603,25 @@ async function handleSearchKnowledge(
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "20"), 50);
   const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
 
-  let query = supabase
-    .from("knowledge_articles")
-    .select("id, title, category, subcategory, tags, building_id, is_global, created_at, updated_at", { count: "exact" })
-    .eq("is_published", true)
-    .order("updated_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+  // Use PostgreSQL full-text search function with relevance ranking
+  const { data, error } = await supabase.rpc("search_knowledge_articles", {
+    search_query: q || null,
+    filter_category: category || null,
+    filter_building_id: buildingId || null,
+    filter_tags: tags?.length ? tags : null,
+    result_limit: limit,
+    result_offset: offset,
+  });
 
-  if (q) {
-    query = query.or(`title.ilike.%${q}%,content.ilike.%${q}%`);
-  }
-  if (category) query = query.eq("category", category);
-  if (buildingId) query = query.or(`building_id.eq.${buildingId},is_global.eq.true`);
-  if (tags?.length) query = query.overlaps("tags", tags);
-
-  const { data, error, count } = await query;
   if (error) {
     console.error("Search knowledge error:", maskPII(JSON.stringify(error)));
     throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
   }
 
-  return json({ total: count ?? 0, limit, offset, articles: data || [] });
+  // Strip content from list results for performance
+  const articles = (data || []).map(({ content: _c, rank: _r, ...rest }: Record<string, unknown>) => rest);
+
+  return json({ total: articles.length, limit, offset, articles });
 }
 
 async function handleGetKnowledgeArticle(
@@ -718,6 +717,24 @@ async function handleUpdateKnowledgeArticle(
   return json(data);
 }
 
+async function handleDeleteKnowledgeArticle(
+  params: Record<string, string>,
+  supabase: ReturnType<typeof getSupabase>
+): Promise<Response> {
+  const id = params.articleId;
+  const { error } = await supabase
+    .from("knowledge_articles")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Delete knowledge article error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Failed to delete article", "INTERNAL_ERROR");
+  }
+
+  return json({ success: true });
+}
+
 // ── Main handler ──
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -775,6 +792,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         return await handleCreateKnowledgeArticle(req, supabase);
       case "updateKnowledgeArticle":
         return await handleUpdateKnowledgeArticle(req, route.params, supabase);
+      case "deleteKnowledgeArticle":
+        return await handleDeleteKnowledgeArticle(route.params, supabase);
       default:
         return errorResponse(404, "Not found", "NOT_FOUND");
     }
