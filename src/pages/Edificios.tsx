@@ -20,7 +20,8 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
-  X
+  X,
+  ArrowUpDown
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -41,6 +42,7 @@ import { HighlightText } from "@/components/ui/highlight-text";
 function BuildingAssistancesView({ building, onBack }: { building: Building; onBack: () => void }) {
   const [selectedAssistance, setSelectedAssistance] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [elevatorOnly, setElevatorOnly] = useState(false);
   const { data: allAssistances } = useAssistances();
   
   // Filter assistances for this building
@@ -56,25 +58,32 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
     assistance => CLOSED_ASSISTANCE_STATUSES.includes(assistance.status as any)
   );
 
+  // Elevator count
+  const elevatorAssistances = buildingAssistances.filter(
+    a => a.intervention_types?.name?.toLowerCase().includes('elevador')
+  );
+
+  // Elevator pre-filter
+  const applyElevatorFilter = useCallback((assistances: typeof buildingAssistances) => {
+    if (!elevatorOnly) return assistances;
+    return assistances.filter(a => a.intervention_types?.name?.toLowerCase().includes('elevador'));
+  }, [elevatorOnly]);
+
   // Search filter function
   const filterAssistances = useCallback((assistances: typeof buildingAssistances) => {
-    if (!searchTerm.trim()) return assistances;
+    let filtered = applyElevatorFilter(assistances);
+    if (!searchTerm.trim()) return filtered;
     
     const term = searchTerm.toLowerCase().trim();
-    return assistances.filter(assistance => 
-      // Título e descrição (onde está "5º esquerdo", "Garagem B2", etc.)
+    return filtered.filter(assistance => 
       assistance.title?.toLowerCase().includes(term) ||
       assistance.description?.toLowerCase().includes(term) ||
-      // Tipo de intervenção
       assistance.intervention_types?.name?.toLowerCase().includes(term) ||
-      // Fornecedor
       assistance.suppliers?.name?.toLowerCase().includes(term) ||
-      // Notas
       assistance.supplier_notes?.toLowerCase().includes(term) ||
-      // Número da assistência (suportar "#4" ou "4")
       assistance.assistance_number?.toString().includes(term.replace('#', ''))
     );
-  }, [searchTerm]);
+  }, [searchTerm, applyElevatorFilter]);
 
   // Apply filter with memoization
   const filteredOpenAssistances = useMemo(() => 
@@ -174,7 +183,7 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
       {/* Building Info */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-primary">{buildingAssistances.length}</div>
               <div className="text-sm text-muted-foreground">Total</div>
@@ -192,6 +201,21 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
                 {buildingAssistances.filter(a => a.status === 'in_progress').length}
               </div>
               <div className="text-sm text-muted-foreground">Em Progresso</div>
+            </div>
+            <div 
+              className={`text-center cursor-pointer rounded-lg p-2 transition-all ${
+                elevatorOnly 
+                  ? 'ring-2 ring-orange-500 bg-orange-500/10' 
+                  : 'hover:bg-muted/50'
+              }`}
+              onClick={() => setElevatorOnly(!elevatorOnly)}
+              title={elevatorOnly ? "Clique para remover filtro de elevador" : "Clique para ver só elevadores"}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <ArrowUpDown className="h-4 w-4 text-orange-500" />
+                <div className="text-2xl font-bold text-orange-500">{elevatorAssistances.length}</div>
+              </div>
+              <div className="text-sm text-muted-foreground">Elevador</div>
             </div>
           </div>
         </CardContent>
