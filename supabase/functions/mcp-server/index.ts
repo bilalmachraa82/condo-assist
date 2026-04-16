@@ -60,16 +60,14 @@ const mcp = new McpServer({
 });
 
 // 1. Health
-mcp.tool({
-  name: "health_check",
+mcp.tool("health_check", {
   description: "Verifica se a Agent API está operacional. Não requer parâmetros.",
   inputSchema: { type: "object", properties: {} },
   handler: async () => asText(await callAgentApi("GET", "/v1/health")),
 });
 
 // 2. Lookup building by email
-mcp.tool({
-  name: "lookup_building_by_email",
+mcp.tool("lookup_building_by_email", {
   description: "Procura o edifício/condomínio associado a um email de condómino registado. Devolve building_id, código, nome, morada e contacto.",
   inputSchema: {
     type: "object",
@@ -81,8 +79,7 @@ mcp.tool({
 });
 
 // 3. List assistances for a building
-mcp.tool({
-  name: "list_assistances",
+mcp.tool("list_assistances", {
   description: "Lista assistências de um edifício. Filtra por estado (open/closed/pending/in_progress/completed/etc). Suporta paginação.",
   inputSchema: {
     type: "object",
@@ -101,8 +98,7 @@ mcp.tool({
 });
 
 // 4. Get assistance detail
-mcp.tool({
-  name: "get_assistance",
+mcp.tool("get_assistance", {
   description: "Detalhe completo de uma assistência: dados, edifício, fornecedor, comunicações, progresso e emails.",
   inputSchema: {
     type: "object",
@@ -114,16 +110,14 @@ mcp.tool({
 });
 
 // 5. List intervention types
-mcp.tool({
-  name: "list_intervention_types",
+mcp.tool("list_intervention_types", {
   description: "Lista tipos de intervenção disponíveis (canalização, electricidade, etc). Use o id na criação de assistências.",
   inputSchema: { type: "object", properties: {} },
   handler: async () => asText(await callAgentApi("GET", "/v1/intervention-types")),
 });
 
 // 6. Create assistance
-mcp.tool({
-  name: "create_assistance",
+mcp.tool("create_assistance", {
   description: "Cria uma nova assistência para um edifício. Use idempotency_key para evitar duplicados em retries.",
   inputSchema: {
     type: "object",
@@ -147,8 +141,7 @@ mcp.tool({
 });
 
 // 7. Add communication
-mcp.tool({
-  name: "add_communication",
+mcp.tool("add_communication", {
   description: "Adiciona uma comunicação/mensagem ao log de uma assistência (sender_type default: ai_agent).",
   inputSchema: {
     type: "object",
@@ -165,8 +158,7 @@ mcp.tool({
 });
 
 // 8. Save email draft
-mcp.tool({
-  name: "save_email_draft",
+mcp.tool("save_email_draft", {
   description: "Guarda um rascunho de email gerado pelo AI para revisão admin. Estado inicial: pending_review.",
   inputSchema: {
     type: "object",
@@ -193,8 +185,7 @@ mcp.tool({
 });
 
 // 9. Update email log status
-mcp.tool({
-  name: "update_email_status",
+mcp.tool("update_email_status", {
   description: "Aprova/rejeita/marca como enviado um rascunho de email.",
   inputSchema: {
     type: "object",
@@ -210,8 +201,7 @@ mcp.tool({
 });
 
 // 10. Import contacts (bulk)
-mcp.tool({
-  name: "import_contacts",
+mcp.tool("import_contacts", {
   description: "Importa/atualiza contactos de condóminos em bulk (máx 500). Faz upsert por email.",
   inputSchema: {
     type: "object",
@@ -229,8 +219,7 @@ mcp.tool({
 });
 
 // 11. Search knowledge base
-mcp.tool({
-  name: "search_knowledge",
+mcp.tool("search_knowledge", {
   description: "Pesquisa artigos da base de conhecimento (full-text). Filtros: q, category, building_id, tags.",
   inputSchema: {
     type: "object",
@@ -257,8 +246,7 @@ mcp.tool({
 });
 
 // 12. Get knowledge article
-mcp.tool({
-  name: "get_knowledge_article",
+mcp.tool("get_knowledge_article", {
   description: "Detalhe completo de um artigo da base de conhecimento (incluindo conteúdo).",
   inputSchema: {
     type: "object",
@@ -270,8 +258,7 @@ mcp.tool({
 });
 
 // 13. Create knowledge article
-mcp.tool({
-  name: "create_knowledge_article",
+mcp.tool("create_knowledge_article", {
   description: "Cria novo artigo na base de conhecimento.",
   inputSchema: {
     type: "object",
@@ -293,8 +280,7 @@ mcp.tool({
 });
 
 // 14. Update knowledge article
-mcp.tool({
-  name: "update_knowledge_article",
+mcp.tool("update_knowledge_article", {
   description: "Atualiza artigo existente. Apenas envia os campos a alterar.",
   inputSchema: {
     type: "object",
@@ -317,8 +303,7 @@ mcp.tool({
 });
 
 // 15. Delete knowledge article
-mcp.tool({
-  name: "delete_knowledge_article",
+mcp.tool("delete_knowledge_article", {
   description: "Elimina artigo da base de conhecimento.",
   inputSchema: {
     type: "object",
