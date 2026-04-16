@@ -284,10 +284,9 @@ export default function Assistencias() {
     return matchesSearch && matchesStatus && matchesPriority && matchesBuilding && matchesSupplier && matchesAssistanceNumber && matchesDateFrom && matchesDateTo;
   })?.filter(a => {
     if (!elevatorOnly) return true;
-    const typeName = a.intervention_types?.name?.toLowerCase() || '';
-    const title = a.title?.toLowerCase() || '';
-    const description = a.description?.toLowerCase() || '';
-    return typeName.includes('elevador') || title.includes('elevador') || description.includes('elevador');
+    const isElevatorType = a.intervention_types?.name?.toLowerCase().includes('elevador');
+    const isActiveStatus = ['pending', 'in_progress', 'accepted', 'scheduled', 'awaiting_quotation'].includes(a.status);
+    return isElevatorType && isActiveStatus;
   }) || [];
 
   // Pull to refresh functionality
