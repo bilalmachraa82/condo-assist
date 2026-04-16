@@ -89,6 +89,7 @@ export const useCreateKnowledgeArticle = () => {
       metadata?: Record<string, unknown>;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
+      const { metadata: _meta, ...rest } = article;
       const { data, error } = await supabase
         .from("knowledge_articles")
         .insert({ ...article, created_by: user?.id })
