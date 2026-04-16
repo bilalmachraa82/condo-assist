@@ -588,6 +588,136 @@ async function handleImportContacts(
   return json(results);
 }
 
+// ── Knowledge Base Handlers ──
+
+async function handleSearchKnowledge(
+  url: URL,
+  supabase: ReturnType<typeof getSupabase>
+): Promise<Response> {
+  const q = url.searchParams.get("q");
+  const category = url.searchParams.get("category");
+  const buildingId = url.searchParams.get("building_id");
+  const tagsParam = url.searchParams.get("tags");
+  const tags = tagsParam?.split(",").filter(Boolean);
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "20"), 50);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
+
+  let query = supabase
+    .from("knowledge_articles")
+    .select("id, title, category, subcategory, tags, building_id, is_global, created_at, updated_at", { count: "exact" })
+    .eq("is_published", true)
+    .order("updated_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (q) {
+    query = query.or(`title.ilike.%${q}%,content.ilike.%${q}%`);
+  }
+  if (category) query = query.eq("category", category);
+  if (buildingId) query = query.or(`building_id.eq.${buildingId},is_global.eq.true`);
+  if (tags?.length) query = query.overlaps("tags", tags);
+
+  const { data, error, count } = await query;
+  if (error) {
+    console.error("Search knowledge error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  }
+
+  return json({ total: count ?? 0, limit, offset, articles: data || [] });
+}
+
+async function handleGetKnowledgeArticle(
+  params: Record<string, string>,
+  supabase: ReturnType<typeof getSupabase>
+): Promise<Response> {
+  const id = params.articleId;
+  const { data, error } = await supabase
+    .from("knowledge_articles")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Get knowledge article error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  }
+  if (!data) return errorResponse(404, "Article not found", "NOT_FOUND");
+
+  return json(data);
+}
+
+async function handleCreateKnowledgeArticle(
+  req: Request,
+  supabase: ReturnType<typeof getSupabase>
+): Promise<Response> {
+  const body = await req.json();
+  const title = requireString(body.title, "title");
+  const content = requireString(body.content, "content");
+  const category = requireString(body.category, "category");
+
+  const insertData: Record<string, unknown> = {
+    title,
+    content,
+    category,
+    subcategory: body.subcategory || null,
+    tags: body.tags || [],
+    building_id: body.building_id || null,
+    is_global: body.is_global ?? false,
+    is_published: body.is_published ?? true,
+    metadata: body.metadata || {},
+  };
+
+  const { data, error } = await supabase
+    .from("knowledge_articles")
+    .insert(insertData)
+    .select("id, title, category, created_at")
+    .single();
+
+  if (error) {
+    console.error("Create knowledge article error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Failed to create article", "INTERNAL_ERROR");
+  }
+
+  return json(data, 201);
+}
+
+async function handleUpdateKnowledgeArticle(
+  req: Request,
+  params: Record<string, string>,
+  supabase: ReturnType<typeof getSupabase>
+): Promise<Response> {
+  const id = params.articleId;
+  const body = await req.json();
+
+  const updateData: Record<string, unknown> = {};
+  if (body.title !== undefined) updateData.title = body.title;
+  if (body.content !== undefined) updateData.content = body.content;
+  if (body.category !== undefined) updateData.category = body.category;
+  if (body.subcategory !== undefined) updateData.subcategory = body.subcategory;
+  if (body.tags !== undefined) updateData.tags = body.tags;
+  if (body.building_id !== undefined) updateData.building_id = body.building_id;
+  if (body.is_global !== undefined) updateData.is_global = body.is_global;
+  if (body.is_published !== undefined) updateData.is_published = body.is_published;
+  if (body.metadata !== undefined) updateData.metadata = body.metadata;
+
+  if (Object.keys(updateData).length === 0) {
+    throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  }
+
+  const { data, error } = await supabase
+    .from("knowledge_articles")
+    .update(updateData)
+    .eq("id", id)
+    .select("id, title, category, updated_at")
+    .single();
+
+  if (error) {
+    console.error("Update knowledge article error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Failed to update article", "INTERNAL_ERROR");
+  }
+
+  return json(data);
+}
+
 // ── Main handler ──
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -637,6 +767,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
         return await handleUpdateEmailLogStatus(req, route.params, supabase);
       case "importContacts":
         return await handleImportContacts(req, supabase);
+      case "searchKnowledge":
+        return await handleSearchKnowledge(url, supabase);
+      case "getKnowledgeArticle":
+        return await handleGetKnowledgeArticle(route.params, supabase);
+      case "createKnowledgeArticle":
+        return await handleCreateKnowledgeArticle(req, supabase);
+      case "updateKnowledgeArticle":
+        return await handleUpdateKnowledgeArticle(req, route.params, supabase);
       default:
         return errorResponse(404, "Not found", "NOT_FOUND");
     }
