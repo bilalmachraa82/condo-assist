@@ -1476,6 +1476,32 @@ export type Database = {
       }
       safe_delete_supplier: { Args: { p_supplier_id: string }; Returns: Json }
       schedule_assistance_reminders: { Args: never; Returns: undefined }
+      search_knowledge_articles: {
+        Args: {
+          filter_building_id?: string
+          filter_category?: string
+          filter_tags?: string[]
+          result_limit?: number
+          result_offset?: number
+          search_query?: string
+        }
+        Returns: {
+          building_id: string
+          category: string
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          is_global: boolean
+          is_published: boolean
+          metadata: Json
+          rank: number
+          subcategory: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }[]
+      }
       text_to_bytea: { Args: { data: string }; Returns: string }
       urlencode:
         | { Args: { data: Json }; Returns: string }
