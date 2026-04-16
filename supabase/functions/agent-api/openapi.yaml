@@ -376,3 +376,139 @@ paths:
                         error: { type: string }
         "400":
           description: Empty or invalid contacts array
+
+  /v1/knowledge:
+    get:
+      operationId: searchKnowledge
+      summary: Pesquisar artigos da Knowledge Base
+      description: |
+        Pesquisa artigos por texto, categoria, edifício ou tags.
+        O agente AI deve chamar este endpoint ANTES de responder a perguntas
+        sobre procedimentos, manutenção, fornecedores ou regulamentos.
+      parameters:
+        - name: q
+          in: query
+          description: Texto livre para pesquisar em título e conteúdo
+          schema: { type: string }
+        - name: category
+          in: query
+          description: "Filtrar por categoria: procedimentos, edificios, elevadores, extintores, gas, seguros, acidentes_trabalho, desbaratizacao, colunas_eletricas, caleiras, chamines, fornecedores, legal, geral"
+          schema: { type: string }
+        - name: building_id
+          in: query
+          description: UUID do edifício — retorna artigos específicos + globais
+          schema: { type: string, format: uuid }
+        - name: tags
+          in: query
+          description: Tags separadas por vírgula
+          schema: { type: string }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Offset" }
+      responses:
+        "200":
+          description: Lista de artigos (sem campo content para performance)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  limit: { type: integer }
+                  offset: { type: integer }
+                  articles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        title: { type: string }
+                        category: { type: string }
+                        subcategory: { type: string, nullable: true }
+                        tags: { type: array, items: { type: string } }
+                        building_id: { type: string, format: uuid, nullable: true }
+                        is_global: { type: boolean }
+                        created_at: { type: string, format: date-time }
+                        updated_at: { type: string, format: date-time }
+    post:
+      operationId: createKnowledgeArticle
+      summary: Criar novo artigo na Knowledge Base
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, content, category]
+              properties:
+                title: { type: string }
+                content: { type: string, description: Markdown }
+                category: { type: string }
+                subcategory: { type: string }
+                tags: { type: array, items: { type: string } }
+                building_id: { type: string, format: uuid }
+                is_global: { type: boolean, default: false }
+                is_published: { type: boolean, default: true }
+                metadata: { type: object }
+      responses:
+        "201":
+          description: Artigo criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  title: { type: string }
+                  category: { type: string }
+                  created_at: { type: string, format: date-time }
+
+  /v1/knowledge/{articleId}:
+    get:
+      operationId: getKnowledgeArticle
+      summary: Obter artigo completo com conteúdo markdown
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Artigo completo
+        "404":
+          description: Artigo não encontrado
+    patch:
+      operationId: updateKnowledgeArticle
+      summary: Atualizar artigo existente (PATCH parcial)
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                content: { type: string }
+                category: { type: string }
+                subcategory: { type: string }
+                tags: { type: array, items: { type: string } }
+                building_id: { type: string, format: uuid, nullable: true }
+                is_global: { type: boolean }
+                is_published: { type: boolean }
+                metadata: { type: object }
+      responses:
+        "200":
+          description: Artigo atualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  title: { type: string }
+                  category: { type: string }
+                  updated_at: { type: string, format: date-time }

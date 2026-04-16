@@ -664,6 +664,62 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_articles: {
+        Row: {
+          building_id: string | null
+          category: string
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_global: boolean | null
+          is_published: boolean | null
+          metadata: Json | null
+          subcategory: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          building_id?: string | null
+          category: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_global?: boolean | null
+          is_published?: boolean | null
+          metadata?: Json | null
+          subcategory?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          building_id?: string | null
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_global?: boolean | null
+          is_published?: boolean | null
+          metadata?: Json | null
+          subcategory?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_articles_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       magic_code_attempts: {
         Row: {
           attempt_time: string | null

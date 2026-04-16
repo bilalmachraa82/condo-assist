@@ -11,7 +11,8 @@ import {
   HelpCircle,
   Euro,
   Zap,
-  TestTube
+  TestTube,
+  BookOpen,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -36,6 +37,7 @@ const menuItems = [
   { title: "Edifícios", url: "/edificios", icon: Building2 },
   { title: "Fornecedores", url: "/fornecedores", icon: Users },
   { title: "Análise e Relatórios", url: "/analytics", icon: BarChart3 },
+  { title: "Base de Conhecimento", url: "/knowledge", icon: BookOpen },
 ]
 
 const configItems = [
