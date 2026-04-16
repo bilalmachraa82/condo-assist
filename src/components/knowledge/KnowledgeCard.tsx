@@ -1,8 +1,10 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Globe } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Pencil, Trash2, Globe, Building2 } from "lucide-react";
 import { getCategoryConfig } from "@/utils/knowledgeCategories";
+import { stripMarkdown } from "@/utils/stripMarkdown";
 import type { KnowledgeArticle } from "@/hooks/useKnowledgeArticles";
 
 interface Props {
@@ -15,56 +17,81 @@ interface Props {
 export default function KnowledgeCard({ article, onEdit, onDelete, onClick }: Props) {
   const cat = getCategoryConfig(article.category);
   const Icon = cat.icon;
-  const excerpt = article.content.length > 150
-    ? article.content.substring(0, 150) + "..."
-    : article.content;
+  const plainText = stripMarkdown(article.content);
+  const excerpt = plainText.length > 160 ? plainText.substring(0, 160) + "..." : plainText;
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-shadow"
+      className="cursor-pointer hover:shadow-md transition-shadow group"
       onClick={() => onClick(article)}
     >
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className={`p-1.5 rounded ${cat.bgClass}`}>
-              <Icon className={`h-4 w-4 ${cat.textClass}`} />
-            </div>
-            <h3 className="font-semibold text-sm leading-tight truncate">{article.title}</h3>
+      <CardContent className="p-4 space-y-3">
+        {/* Header: icon pill + title + action menu */}
+        <div className="flex items-start gap-3">
+          <div className={`flex-shrink-0 p-2.5 rounded-full ${cat.bgCircleClass}`}>
+            <Icon className={`h-6 w-6 ${cat.textClass}`} />
           </div>
-          <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(article)}>
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(article.id)}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm leading-tight line-clamp-2">{article.title}</h3>
+            <Badge variant="secondary" className={`mt-1 text-[11px] ${cat.bgClass} ${cat.textClass} border-0`}>
+              {cat.label}
+            </Badge>
+          </div>
+          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEdit(article)}>
+                  <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive" onClick={() => onDelete(article.id)}>
+                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Eliminar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <p className="text-xs text-muted-foreground line-clamp-3 mb-3">{excerpt}</p>
-        <div className="flex flex-wrap gap-1.5 items-center">
-          <Badge variant="secondary" className={`text-[10px] ${cat.bgClass} ${cat.textClass} border-0`}>
-            {cat.label}
-          </Badge>
-          {article.is_global && (
-            <Badge variant="outline" className="text-[10px] gap-1">
-              <Globe className="h-2.5 w-2.5" /> Global
-            </Badge>
-          )}
-          {article.buildings && (
-            <Badge variant="outline" className="text-[10px]">
-              {article.buildings.code} - {article.buildings.name}
-            </Badge>
-          )}
-          {article.tags?.slice(0, 3).map((tag) => (
-            <Badge key={tag} variant="outline" className="text-[10px]">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-        <p className="text-[10px] text-muted-foreground mt-2">
+
+        {/* Excerpt */}
+        <p className="text-xs text-muted-foreground line-clamp-3">{excerpt}</p>
+
+        {/* Building info */}
+        {(article.buildings || article.is_global) && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {article.is_global ? (
+              <>
+                <Globe className="h-3.5 w-3.5" />
+                <span className="font-medium">Global</span>
+              </>
+            ) : article.buildings ? (
+              <>
+                <Building2 className="h-3.5 w-3.5" />
+                <span>{article.buildings.code} - {article.buildings.name}</span>
+              </>
+            ) : null}
+          </div>
+        )}
+
+        {/* Tags */}
+        {article.tags && article.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {article.tags.slice(0, 3).map((tag) => (
+              <Badge key={tag} variant="outline" className="text-[11px]">
+                {tag}
+              </Badge>
+            ))}
+            {article.tags.length > 3 && (
+              <Badge variant="outline" className="text-[11px]">+{article.tags.length - 3}</Badge>
+            )}
+          </div>
+        )}
+
+        {/* Date */}
+        <p className="text-[11px] text-muted-foreground">
           Atualizado: {new Date(article.updated_at).toLocaleDateString("pt-PT")}
         </p>
       </CardContent>

@@ -24,17 +24,25 @@ export interface KnowledgeFilters {
   category?: string;
   building_id?: string;
   tags?: string[];
+  limit?: number;
+  page?: number;
 }
 
 export const useKnowledgeArticles = (filters: KnowledgeFilters = {}) => {
+  const limit = filters.limit || 50;
+  const page = filters.page || 0;
+  const from = page * limit;
+  const to = from + limit - 1;
+
   return useQuery({
     queryKey: ["knowledge-articles", filters],
     queryFn: async () => {
       let query = supabase
         .from("knowledge_articles")
-        .select("*, buildings(id, code, name)")
+        .select("*, buildings(id, code, name)", { count: "exact" })
         .eq("is_published", true)
-        .order("updated_at", { ascending: false });
+        .order("updated_at", { ascending: false })
+        .range(from, to);
 
       if (filters.category) {
         query = query.eq("category", filters.category);
@@ -49,9 +57,28 @@ export const useKnowledgeArticles = (filters: KnowledgeFilters = {}) => {
         query = query.overlaps("tags", filters.tags);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data as unknown as KnowledgeArticle[];
+      return { articles: data as unknown as KnowledgeArticle[], count: count ?? 0 };
+    },
+  });
+};
+
+/** Fetch all category counts (lightweight — no content) */
+export const useKnowledgeCategoryCounts = () => {
+  return useQuery({
+    queryKey: ["knowledge-category-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("knowledge_articles")
+        .select("category")
+        .eq("is_published", true);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data) {
+        counts[row.category] = (counts[row.category] || 0) + 1;
+      }
+      return counts;
     },
   });
 };
@@ -101,6 +128,7 @@ export const useCreateKnowledgeArticle = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["knowledge-articles"] });
+      queryClient.invalidateQueries({ queryKey: ["knowledge-category-counts"] });
       toast({ title: "Artigo criado", description: "O artigo foi criado com sucesso." });
     },
     onError: (error) => {
@@ -128,6 +156,7 @@ export const useUpdateKnowledgeArticle = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["knowledge-articles"] });
       queryClient.invalidateQueries({ queryKey: ["knowledge-article"] });
+      queryClient.invalidateQueries({ queryKey: ["knowledge-category-counts"] });
       toast({ title: "Artigo atualizado", description: "As alterações foram guardadas." });
     },
     onError: (error) => {
@@ -150,6 +179,7 @@ export const useDeleteKnowledgeArticle = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["knowledge-articles"] });
+      queryClient.invalidateQueries({ queryKey: ["knowledge-category-counts"] });
       toast({ title: "Artigo eliminado", description: "O artigo foi removido." });
     },
     onError: (error) => {
