@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, Upload, Loader2 } from "lucide-react";
+import { ClipboardList, Upload, Loader2, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -10,6 +10,7 @@ import AssemblyFilters from "@/components/assembly/AssemblyFilters";
 import AssemblyCard from "@/components/assembly/AssemblyCard";
 import AssemblyDetail from "@/components/assembly/AssemblyDetail";
 import AssemblyImport from "@/components/assembly/AssemblyImport";
+import AssemblyForm from "@/components/assembly/AssemblyForm";
 import AssemblyStats from "@/components/assembly/AssemblyStats";
 import {
   useAssemblyItems, useAssemblyStatusCounts, useUpdateAssemblyItem, useDeleteAssemblyItem,
@@ -24,6 +25,8 @@ export default function Assembly() {
   const [viewItem, setViewItem] = useState<AssemblyItem | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editItem, setEditItem] = useState<AssemblyItem | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const { data, isLoading } = useAssemblyItems(filters);
@@ -77,9 +80,14 @@ export default function Assembly() {
             Deliberações das assembleias de condomínio
           </p>
         </div>
-        <Button variant="outline" onClick={() => setImportOpen(true)}>
-          <Upload className="h-4 w-4 mr-2" /> Importar Excel
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => { setEditItem(null); setFormOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> Novo Assunto
+          </Button>
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" /> Importar Excel
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -110,6 +118,8 @@ export default function Assembly() {
                 item={item}
                 onClick={(it) => setViewItem(it)}
                 onStatusChange={handleStatusChange}
+                onEdit={(it) => { setEditItem(it); setFormOpen(true); }}
+                onDelete={(id) => setDeleteId(id)}
               />
             ))}
           </div>
@@ -142,6 +152,15 @@ export default function Assembly() {
         item={viewItem}
         open={!!viewItem}
         onOpenChange={(open) => !open && setViewItem(null)}
+        onEdit={(it) => { setViewItem(null); setEditItem(it); setFormOpen(true); }}
+        onDelete={(id) => { setViewItem(null); setDeleteId(id); }}
+      />
+
+      {/* Create/Edit Form */}
+      <AssemblyForm
+        item={editItem}
+        open={formOpen}
+        onOpenChange={setFormOpen}
       />
 
       {/* Delete dialog */}

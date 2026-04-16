@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Calendar, Save, BookOpen } from "lucide-react";
+import { Building2, Calendar, Save, BookOpen, Pencil, Trash2 } from "lucide-react";
 import { getAssemblyCategoryConfig } from "@/utils/assemblyCategories";
 import { useUpdateAssemblyItem, type AssemblyItem } from "@/hooks/useAssemblyItems";
 import { useCreateKnowledgeArticle } from "@/hooks/useKnowledgeArticles";
@@ -14,6 +14,8 @@ interface Props {
   item: AssemblyItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: (item: AssemblyItem) => void;
+  onDelete?: (id: string) => void;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -23,7 +25,7 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
-export default function AssemblyDetail({ item, open, onOpenChange }: Props) {
+export default function AssemblyDetail({ item, open, onOpenChange, onEdit, onDelete }: Props) {
   const updateMutation = useUpdateAssemblyItem();
   const createKBArticle = useCreateKnowledgeArticle();
   const { toast } = useToast();
@@ -151,6 +153,16 @@ export default function AssemblyDetail({ item, open, onOpenChange }: Props) {
             <Button size="sm" variant="outline" onClick={handleCreateKBArticle} disabled={createKBArticle.isPending}>
               <BookOpen className="h-3.5 w-3.5 mr-1" /> Criar artigo KB
             </Button>
+            {onEdit && item && (
+              <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); onEdit(item); }}>
+                <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+              </Button>
+            )}
+            {onDelete && item && (
+              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => { onOpenChange(false); onDelete(item.id); }}>
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
