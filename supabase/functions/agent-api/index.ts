@@ -199,7 +199,9 @@ async function handleListAssistances(
 
   return json({
     building_id: buildingId,
-    total: data?.length || 0,
+    total: count ?? data?.length ?? 0,
+    limit,
+    offset,
     assistances: (data || []).map((a: any) => ({
       id: a.id,
       assistance_number: a.assistance_number,
