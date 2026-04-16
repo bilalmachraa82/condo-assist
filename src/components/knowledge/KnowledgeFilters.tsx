@@ -98,11 +98,6 @@ export default function KnowledgeFilters({ filters, onChange, categoryCounts }: 
               >
                 <Icon className="h-3.5 w-3.5" />
                 {cat.label}
-                <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] ${
-                  isActive ? "bg-background/30" : "bg-background"
-                }`}>
-                  {count}
-                </span>
               </button>
             );
           })}
