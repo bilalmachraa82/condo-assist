@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, BookOpen } from "lucide-react";
+import { Plus, BookOpen, Upload } from "lucide-react";
+import KnowledgeImport from "@/components/knowledge/KnowledgeImport";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
@@ -29,6 +30,7 @@ export default function Knowledge() {
   const [editArticle, setEditArticle] = useState<KnowledgeArticle | null>(null);
   const [viewArticle, setViewArticle] = useState<KnowledgeArticle | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: articles, isLoading } = useKnowledgeArticles(filters);
   const deleteMutation = useDeleteKnowledgeArticle();
@@ -59,9 +61,14 @@ export default function Knowledge() {
             Artigos, procedimentos e informação de manutenção
           </p>
         </div>
-        <Button onClick={handleNew}>
-          <Plus className="h-4 w-4 mr-2" /> Novo Artigo
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" /> Importar Excel
+          </Button>
+          <Button onClick={handleNew}>
+            <Plus className="h-4 w-4 mr-2" /> Novo Artigo
+          </Button>
+        </div>
       </div>
 
       <KnowledgeFilters filters={filters} onChange={setFilters} />
