@@ -112,6 +112,10 @@ function matchRoute(method: string, pathname: string): { handler: string; params
     { method: "POST", pattern: /^\/v1\/assistances\/([^/]+)\/email-log$/, handler: "saveEmailDraft", paramNames: ["assistanceId"] },
     { method: "PATCH", pattern: /^\/v1\/email-log\/([^/]+)\/status$/, handler: "updateEmailLogStatus", paramNames: ["emailLogId"] },
     { method: "POST", pattern: /^\/v1\/import-contacts$/, handler: "importContacts", paramNames: [] },
+    { method: "GET", pattern: /^\/v1\/knowledge$/, handler: "searchKnowledge", paramNames: [] },
+    { method: "GET", pattern: /^\/v1\/knowledge\/([^/]+)$/, handler: "getKnowledgeArticle", paramNames: ["articleId"] },
+    { method: "POST", pattern: /^\/v1\/knowledge$/, handler: "createKnowledgeArticle", paramNames: [] },
+    { method: "PATCH", pattern: /^\/v1\/knowledge\/([^/]+)$/, handler: "updateKnowledgeArticle", paramNames: ["articleId"] },
   ];
 
   for (const route of routes) {
