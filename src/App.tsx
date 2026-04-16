@@ -19,6 +19,7 @@ import EmailTesting from "./pages/EmailTesting";
 import FollowUps from "./pages/FollowUps";
 import FollowUpTesting from "./pages/FollowUpTesting";
 import Knowledge from "./pages/Knowledge";
+import Assembly from "./pages/Assembly";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
 import NotFound from "./pages/NotFound";
@@ -178,6 +179,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <DashboardLayout><Knowledge /></DashboardLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/assembly" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout><Assembly /></DashboardLayout>
                   </ProtectedRoute>
                 } 
               />

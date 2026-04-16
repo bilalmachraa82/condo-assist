@@ -107,6 +107,81 @@ export type Database = {
         }
         Relationships: []
       }
+      assembly_items: {
+        Row: {
+          assigned_to: string | null
+          building_address: string | null
+          building_code: number
+          building_id: string | null
+          category: string | null
+          created_at: string
+          description: string
+          estimated_cost: number | null
+          id: string
+          knowledge_article_id: string | null
+          priority: string | null
+          resolution_date: string | null
+          source_sheet: string | null
+          status: string
+          status_notes: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          assigned_to?: string | null
+          building_address?: string | null
+          building_code: number
+          building_id?: string | null
+          category?: string | null
+          created_at?: string
+          description: string
+          estimated_cost?: number | null
+          id?: string
+          knowledge_article_id?: string | null
+          priority?: string | null
+          resolution_date?: string | null
+          source_sheet?: string | null
+          status?: string
+          status_notes?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Update: {
+          assigned_to?: string | null
+          building_address?: string | null
+          building_code?: number
+          building_id?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string
+          estimated_cost?: number | null
+          id?: string
+          knowledge_article_id?: string | null
+          priority?: string | null
+          resolution_date?: string | null
+          source_sheet?: string | null
+          status?: string
+          status_notes?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_items_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembly_items_knowledge_article_id_fkey"
+            columns: ["knowledge_article_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assistance_photos: {
         Row: {
           assistance_id: string
