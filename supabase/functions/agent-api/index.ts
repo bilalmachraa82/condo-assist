@@ -717,6 +717,24 @@ async function handleUpdateKnowledgeArticle(
   return json(data);
 }
 
+async function handleDeleteKnowledgeArticle(
+  params: Record<string, string>,
+  supabase: ReturnType<typeof getSupabase>
+): Promise<Response> {
+  const id = params.articleId;
+  const { error } = await supabase
+    .from("knowledge_articles")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Delete knowledge article error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Failed to delete article", "INTERNAL_ERROR");
+  }
+
+  return json({ success: true });
+}
+
 // ── Main handler ──
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
