@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ClipboardList, Upload, Loader2, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,7 +7,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import AssemblyFilters from "@/components/assembly/AssemblyFilters";
-import AssemblyCard from "@/components/assembly/AssemblyCard";
+import AssemblyBuildingGroup from "@/components/assembly/AssemblyBuildingGroup";
 import AssemblyDetail from "@/components/assembly/AssemblyDetail";
 import AssemblyImport from "@/components/assembly/AssemblyImport";
 import AssemblyForm from "@/components/assembly/AssemblyForm";
@@ -17,7 +17,7 @@ import {
   type AssemblyItem, type AssemblyFilters as Filters,
 } from "@/hooks/useAssemblyItems";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 200;
 
 export default function Assembly() {
   const [filters, setFilters] = useState<Filters>({ limit: PAGE_SIZE, page: 0 });
@@ -27,6 +27,7 @@ export default function Assembly() {
   const [importOpen, setImportOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<AssemblyItem | null>(null);
+  const [defaultBuildingId, setDefaultBuildingId] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const { data, isLoading } = useAssemblyItems(filters);
@@ -39,6 +40,18 @@ export default function Assembly() {
   const totalCount = data?.count ?? 0;
   const displayedItems = currentPage === 0 ? items : [...allItems.slice(0, currentPage * PAGE_SIZE), ...items];
   const hasMore = displayedItems.length < totalCount;
+
+  // Group items by building_code
+  const grouped = useMemo(() => {
+    const map = new Map<number, { address: string; building_id: string | null; items: AssemblyItem[] }>();
+    for (const item of displayedItems) {
+      if (!map.has(item.building_code)) {
+        map.set(item.building_code, { address: item.building_address || "", building_id: item.building_id, items: [] });
+      }
+      map.get(item.building_code)!.items.push(item);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
+  }, [displayedItems]);
 
   const handleLoadMore = () => {
     const nextPage = currentPage + 1;
@@ -64,6 +77,12 @@ export default function Assembly() {
     }
   };
 
+  const handleAddForBuilding = (buildingId: string | null) => {
+    setEditItem(null);
+    setDefaultBuildingId(buildingId);
+    setFormOpen(true);
+  };
+
   return (
     <div className="space-y-6 overflow-x-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -81,7 +100,7 @@ export default function Assembly() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => { setEditItem(null); setFormOpen(true); }}>
+          <Button onClick={() => { setEditItem(null); setDefaultBuildingId(null); setFormOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" /> Novo Assunto
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
@@ -102,24 +121,28 @@ export default function Assembly() {
         categoryCounts={counts?.categoryCounts}
       />
 
-      {/* List */}
+      {/* Grouped list */}
       {isLoading && currentPage === 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-48 rounded-lg" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 rounded-lg" />
           ))}
         </div>
-      ) : displayedItems.length > 0 ? (
+      ) : grouped.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayedItems.map((item) => (
-              <AssemblyCard
-                key={item.id}
-                item={item}
-                onClick={(it) => setViewItem(it)}
+          <div className="space-y-2">
+            {grouped.map(([code, group]) => (
+              <AssemblyBuildingGroup
+                key={code}
+                buildingCode={code}
+                address={group.address}
+                items={group.items}
+                onViewItem={setViewItem}
+                onEditItem={(it) => { setEditItem(it); setDefaultBuildingId(null); setFormOpen(true); }}
+                onDeleteItem={(id) => setDeleteId(id)}
                 onStatusChange={handleStatusChange}
-                onEdit={(it) => { setEditItem(it); setFormOpen(true); }}
-                onDelete={(id) => setDeleteId(id)}
+                onAddItem={() => handleAddForBuilding(group.building_id)}
+                defaultOpen={grouped.length <= 5}
               />
             ))}
           </div>
@@ -152,7 +175,7 @@ export default function Assembly() {
         item={viewItem}
         open={!!viewItem}
         onOpenChange={(open) => !open && setViewItem(null)}
-        onEdit={(it) => { setViewItem(null); setEditItem(it); setFormOpen(true); }}
+        onEdit={(it) => { setViewItem(null); setEditItem(it); setDefaultBuildingId(null); setFormOpen(true); }}
         onDelete={(id) => { setViewItem(null); setDeleteId(id); }}
       />
 
@@ -161,6 +184,7 @@ export default function Assembly() {
         item={editItem}
         open={formOpen}
         onOpenChange={setFormOpen}
+        defaultBuildingId={defaultBuildingId}
       />
 
       {/* Delete dialog */}

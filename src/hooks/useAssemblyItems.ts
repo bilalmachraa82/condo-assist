@@ -46,7 +46,7 @@ export const useAssemblyItems = (filters: AssemblyFilters = {}) => {
         .from("assembly_items")
         .select("*, buildings(id, code, name)", { count: "exact" })
         .order("building_code", { ascending: true })
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: true })
         .range(from, to);
 
       if (filters.status) query = query.eq("status", filters.status);
