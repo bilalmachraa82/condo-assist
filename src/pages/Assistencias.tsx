@@ -193,6 +193,7 @@ export default function Assistencias() {
   const [selectedAssistance, setSelectedAssistance] = useState<Assistance | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showElevatorForm, setShowElevatorForm] = useState(false)
+  const [elevatorOnly, setElevatorOnly] = useState(false)
   const [filters, setFilters] = useState<AssistanceFilters>({})
   const { data: assistances, isLoading, refetch } = useAssistances();
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
