@@ -31,7 +31,7 @@ const PRIORITY_OPTIONS = [
   { value: "low", label: "Baixa" },
 ];
 
-export default function AssemblyForm({ item, open, onOpenChange }: Props) {
+export default function AssemblyForm({ item, open, onOpenChange, defaultBuildingId }: Props) {
   const { data: buildings } = useBuildings();
   const createMutation = useCreateAssemblyItem();
   const updateMutation = useUpdateAssemblyItem();
@@ -66,7 +66,7 @@ export default function AssemblyForm({ item, open, onOpenChange }: Props) {
       });
     } else if (open && !item) {
       setForm({
-        building_id: "",
+        building_id: defaultBuildingId || "",
         year: new Date().getFullYear(),
         description: "",
         category: "",
@@ -78,7 +78,7 @@ export default function AssemblyForm({ item, open, onOpenChange }: Props) {
         resolution_date: "",
       });
     }
-  }, [open, item]);
+  }, [open, item, defaultBuildingId]);
 
   const handleSubmit = () => {
     const building = buildings?.find((b) => b.id === form.building_id);
