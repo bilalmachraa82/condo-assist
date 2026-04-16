@@ -14,11 +14,17 @@ interface Props {
   onClick: (article: KnowledgeArticle) => void;
 }
 
+/** Strip "Cond. '006" prefix from titles → "006 - ..." */
+function formatTitle(title: string): string {
+  return title.replace(/^Cond\.\s*'?\s*/i, "");
+}
+
 export default function KnowledgeCard({ article, onEdit, onDelete, onClick }: Props) {
   const cat = getCategoryConfig(article.category);
   const Icon = cat.icon;
   const plainText = stripMarkdown(article.content);
   const excerpt = plainText.length > 160 ? plainText.substring(0, 160) + "..." : plainText;
+  const displayTitle = formatTitle(article.title);
 
   return (
     <Card
@@ -32,7 +38,7 @@ export default function KnowledgeCard({ article, onEdit, onDelete, onClick }: Pr
             <Icon className={`h-6 w-6 ${cat.textClass}`} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm leading-tight line-clamp-2">{article.title}</h3>
+            <h3 className="font-semibold text-sm leading-tight line-clamp-2">{displayTitle}</h3>
             <Badge variant="secondary" className={`mt-1 text-[11px] ${cat.bgClass} ${cat.textClass} border-0`}>
               {cat.label}
             </Badge>

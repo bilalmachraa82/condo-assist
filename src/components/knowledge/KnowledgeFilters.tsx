@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+
 import { Search, X } from "lucide-react";
 import { KNOWLEDGE_CATEGORIES } from "@/utils/knowledgeCategories";
 import { useBuildings } from "@/hooks/useBuildings";
@@ -80,36 +80,33 @@ export default function KnowledgeFilters({ filters, onChange, categoryCounts }: 
 
       {/* Category chips */}
       {categoryCounts && (
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-2 pb-2">
-            {KNOWLEDGE_CATEGORIES.map((cat) => {
-              const count = categoryCounts[cat.value] || 0;
-              if (count === 0) return null;
-              const isActive = filters.category === cat.value;
-              const Icon = cat.icon;
-              return (
-                <button
-                  key={cat.value}
-                  onClick={() => toggleCategory(cat.value)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
-                    isActive
-                      ? `${cat.bgClass} ${cat.textClass}`
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {cat.label}
-                  <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] ${
-                    isActive ? "bg-background/30" : "bg-background"
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        <div className="flex flex-wrap gap-2">
+          {KNOWLEDGE_CATEGORIES.map((cat) => {
+            const count = categoryCounts[cat.value] || 0;
+            if (count === 0) return null;
+            const isActive = filters.category === cat.value;
+            const Icon = cat.icon;
+            return (
+              <button
+                key={cat.value}
+                onClick={() => toggleCategory(cat.value)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  isActive
+                    ? `${cat.bgClass} ${cat.textClass}`
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {cat.label}
+                <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                  isActive ? "bg-background/30" : "bg-background"
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       )}
     </div>
   );

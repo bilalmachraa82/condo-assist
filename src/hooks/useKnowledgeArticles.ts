@@ -41,7 +41,7 @@ export const useKnowledgeArticles = (filters: KnowledgeFilters = {}) => {
         .from("knowledge_articles")
         .select("*, buildings(id, code, name)", { count: "exact" })
         .eq("is_published", true)
-        .order("updated_at", { ascending: false })
+        .order("title", { ascending: true })
         .range(from, to);
 
       if (filters.category) {

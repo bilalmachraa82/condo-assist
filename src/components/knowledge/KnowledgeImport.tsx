@@ -82,7 +82,7 @@ function parseListaGeral(rows: unknown[][]): ArticleDraft[] {
     if (admin) lines.push(`- **Administração:** ${admin}`);
 
     articles.push({
-      title: `${code} - Informação Geral`,
+      title: `${normalizeCode(code)} - Informação Geral`,
       content: lines.join("\n"),
       category: "edificios",
       building_code: normalizeCode(code),
