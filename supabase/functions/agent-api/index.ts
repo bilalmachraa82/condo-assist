@@ -74,7 +74,6 @@ function extractToken(req: Request): string | null {
 
 function validateToken(token: string | null): void {
   const expected = Deno.env.get("EXTERNAL_API_KEY");
-  console.log("DEBUG_AUTH: token_len=" + (token?.length ?? "null") + " expected_len=" + (expected?.length ?? "null") + " match=" + (token === expected));
   if (!token || !expected || token !== expected) {
     throw new HttpError(401, "Unauthorized", "UNAUTHORIZED");
   }
