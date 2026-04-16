@@ -90,9 +90,10 @@ export const useCreateKnowledgeArticle = () => {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const { metadata: _meta, ...rest } = article;
+      const insertData = { ...rest, created_by: user?.id, metadata: (_meta ?? {}) as Record<string, unknown> };
       const { data, error } = await supabase
         .from("knowledge_articles")
-        .insert({ ...article, created_by: user?.id })
+        .insert(insertData as any)
         .select()
         .single();
       if (error) throw error;
@@ -113,10 +114,11 @@ export const useUpdateKnowledgeArticle = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<KnowledgeArticle> & { id: string }) => {
+    mutationFn: async ({ id, buildings: _b, ...updates }: Partial<KnowledgeArticle> & { id: string }) => {
+      const { metadata: _meta, ...rest } = updates;
       const { data, error } = await supabase
         .from("knowledge_articles")
-        .update(updates)
+        .update({ ...rest, ...((_meta !== undefined) ? { metadata: _meta as any } : {}) } as any)
         .eq("id", id)
         .select()
         .single();
