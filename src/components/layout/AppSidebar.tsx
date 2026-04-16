@@ -13,6 +13,7 @@ import {
   Zap,
   TestTube,
   BookOpen,
+  ClipboardList,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -38,6 +39,7 @@ const menuItems = [
   { title: "Fornecedores", url: "/fornecedores", icon: Users },
   { title: "Análise e Relatórios", url: "/analytics", icon: BarChart3 },
   { title: "Base de Conhecimento", url: "/knowledge", icon: BookOpen },
+  { title: "Seguimento Actas", url: "/assembly", icon: ClipboardList },
 ]
 
 const configItems = [
