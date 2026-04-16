@@ -1,0 +1,3 @@
+email,building_code,first_name,last_name,phone,fraction,role,is_primary_contact
+joao@exemplo.pt,LUVIM-001,João,Silva,+351911222333,1ºA,owner,true
+maria@exemplo.pt,LUVIM-001,Maria,Santos,+351912334455,2ºB,owner,true
