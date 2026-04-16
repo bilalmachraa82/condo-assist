@@ -404,9 +404,10 @@ export default function Assistencias() {
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {statsLoading ? (
           <>
+            <Skeleton className="h-20" />
             <Skeleton className="h-20" />
             <Skeleton className="h-20" />
             <Skeleton className="h-20" />
@@ -454,6 +455,20 @@ export default function Assistencias() {
                   <div>
                     <p className="text-2xl font-bold text-success">{stats?.completed || 0}</p>
                     <p className="text-xs text-muted-foreground">Concluídas</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card 
+              className={`bg-gradient-to-br from-warning/10 to-warning/5 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${elevatorOnly ? 'ring-2 ring-warning shadow-lg' : ''}`}
+              onClick={() => setElevatorOnly(!elevatorOnly)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className={`h-5 w-5 text-warning ${elevatorOnly ? 'animate-pulse' : ''}`} />
+                  <div>
+                    <p className="text-2xl font-bold text-warning">{elevatorCount.data ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Elevador</p>
                   </div>
                 </div>
               </CardContent>
