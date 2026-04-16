@@ -136,6 +136,8 @@ export default function Knowledge() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <KnowledgeImport open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }
