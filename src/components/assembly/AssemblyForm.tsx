@@ -14,6 +14,7 @@ interface Props {
   item?: AssemblyItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultBuildingId?: string | null;
 }
 
 const STATUS_OPTIONS = [
