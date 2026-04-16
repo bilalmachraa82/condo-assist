@@ -118,7 +118,7 @@ function parseAdministradores(rows: unknown[][]): ArticleDraft[] {
     if (obs) lines.push(`\n### Observações\n${obs}`);
 
     articles.push({
-      title: `${code} - Administrador`,
+      title: `${normalizeCode(code)} - Administrador`,
       content: lines.join("\n"),
       category: "procedimentos",
       building_code: normalizeCode(code),
@@ -148,7 +148,7 @@ function parseEmpresaLimpeza(rows: unknown[][]): ArticleDraft[] {
     if (cellStr(r[7]) && cellStr(r[7]) !== "-") lines.push(`- **Lavagens/Ano:** ${cellStr(r[7])}`);
 
     articles.push({
-      title: `${code} - Empresa de Limpeza`,
+      title: `${normalizeCode(code)} - Empresa de Limpeza`,
       content: lines.join("\n"),
       category: "geral",
       building_code: normalizeCode(code),
@@ -180,7 +180,7 @@ function parseElevadores(rows: unknown[][]): ArticleDraft[] {
     if (cellStr(r[9])) lines.push(`\n### Observações\n${cellStr(r[9])}`);
 
     articles.push({
-      title: `${code} - Elevadores`,
+      title: `${normalizeCode(code)} - Elevadores`,
       content: lines.join("\n"),
       category: "elevadores",
       building_code: normalizeCode(code),
@@ -208,7 +208,7 @@ function parseExtintores(rows: unknown[][]): ArticleDraft[] {
     if (cellStr(r[5])) lines.push(`\n### Observações\n${cellStr(r[5])}`);
 
     articles.push({
-      title: `${code} - Extintores`,
+      title: `${normalizeCode(code)} - Extintores`,
       content: lines.join("\n"),
       category: "extintores",
       building_code: normalizeCode(code),
@@ -233,7 +233,7 @@ function parseGas(rows: unknown[][]): ArticleDraft[] {
     if (cellStr(r[2])) lines.push(`\n### Observações\n${cellStr(r[2])}`);
 
     articles.push({
-      title: `${code} - Gás`,
+      title: `${normalizeCode(code)} - Gás`,
       content: lines.join("\n"),
       category: "gas",
       building_code: normalizeCode(code),
@@ -273,7 +273,7 @@ function parseSeguros(rows: unknown[][], sheetName: string): ArticleDraft[] {
     }
 
     articles.push({
-      title: `${code} - Seguro${suffix}`,
+      title: `${normalizeCode(code)} - Seguro${suffix}`,
       content: lines.join("\n"),
       category: "seguros",
       building_code: normalizeCode(code),
@@ -301,7 +301,7 @@ function parseAcidentesTrabalho(rows: unknown[][]): ArticleDraft[] {
     if (cellStr(r[5])) lines.push(`\n### Observações\n${cellStr(r[5])}`);
 
     articles.push({
-      title: `${code} - Acidentes Trabalho`,
+      title: `${normalizeCode(code)} - Acidentes Trabalho`,
       content: lines.join("\n"),
       category: "acidentes_trabalho",
       building_code: normalizeCode(code),
@@ -329,7 +329,7 @@ function parseDesbaratizacao(rows: unknown[][]): ArticleDraft[] {
     if (cellStr(r[5])) lines.push(`- **Visitas/Ano:** ${cellStr(r[5])}`);
 
     articles.push({
-      title: `${code} - Desbaratização`,
+      title: `${normalizeCode(code)} - Desbaratização`,
       content: lines.join("\n"),
       category: "desbaratizacao",
       building_code: normalizeCode(code),
@@ -359,7 +359,7 @@ function parseColunasEletricas(rows: unknown[][]): ArticleDraft[] {
     yearData.forEach((d) => lines.push(`| ${d.year} | ${d.status} |`));
 
     articles.push({
-      title: `${code} - Colunas Elétricas`,
+      title: `${normalizeCode(code)} - Colunas Elétricas`,
       content: lines.join("\n"),
       category: "colunas_eletricas",
       building_code: normalizeCode(code),
@@ -388,7 +388,7 @@ function parseCaleirasOrChamines(rows: unknown[][], category: string, label: str
     yearData.forEach((d) => lines.push(`| ${d.year} | ${d.status} |`));
 
     articles.push({
-      title: `${code} - ${label}`,
+      title: `${normalizeCode(code)} - ${label}`,
       content: lines.join("\n"),
       category,
       building_code: normalizeCode(code),
