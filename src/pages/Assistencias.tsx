@@ -282,6 +282,9 @@ export default function Assistencias() {
     const matchesDateTo = !filters.dateTo || createdDate <= new Date(filters.dateTo + 'T23:59:59');
 
     return matchesSearch && matchesStatus && matchesPriority && matchesBuilding && matchesSupplier && matchesAssistanceNumber && matchesDateFrom && matchesDateTo;
+  })?.filter(a => {
+    if (!elevatorOnly) return true;
+    return a.intervention_types?.name?.toLowerCase().includes('elevador');
   }) || [];
 
   // Pull to refresh functionality
