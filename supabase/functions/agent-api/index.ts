@@ -117,6 +117,37 @@ function matchRoute(method: string, pathname: string): { handler: string; params
     { method: "POST", pattern: /^\/v1\/knowledge$/, handler: "createKnowledgeArticle", paramNames: [] },
     { method: "PATCH", pattern: /^\/v1\/knowledge\/([^/]+)$/, handler: "updateKnowledgeArticle", paramNames: ["articleId"] },
     { method: "DELETE", pattern: /^\/v1\/knowledge\/([^/]+)$/, handler: "deleteKnowledgeArticle", paramNames: ["articleId"] },
+    // Buildings CRUD
+    { method: "GET", pattern: /^\/v1\/buildings$/, handler: "listBuildings", paramNames: [] },
+    { method: "GET", pattern: /^\/v1\/buildings\/([^/]+)$/, handler: "getBuilding", paramNames: ["buildingId"] },
+    { method: "POST", pattern: /^\/v1\/buildings$/, handler: "createBuilding", paramNames: [] },
+    { method: "PATCH", pattern: /^\/v1\/buildings\/([^/]+)$/, handler: "updateBuilding", paramNames: ["buildingId"] },
+    { method: "GET", pattern: /^\/v1\/buildings\/([^/]+)\/contacts$/, handler: "listBuildingContacts", paramNames: ["buildingId"] },
+    // Assistances extra
+    { method: "PATCH", pattern: /^\/v1\/assistances\/([^/]+)$/, handler: "updateAssistance", paramNames: ["assistanceId"] },
+    { method: "GET", pattern: /^\/v1\/assistances\/([^/]+)\/communications$/, handler: "listAssistanceCommunications", paramNames: ["assistanceId"] },
+    { method: "GET", pattern: /^\/v1\/assistances\/([^/]+)\/photos$/, handler: "listAssistancePhotos", paramNames: ["assistanceId"] },
+    { method: "GET", pattern: /^\/v1\/assistances\/([^/]+)\/progress$/, handler: "listAssistanceProgress", paramNames: ["assistanceId"] },
+    // Suppliers
+    { method: "GET", pattern: /^\/v1\/suppliers$/, handler: "listSuppliers", paramNames: [] },
+    { method: "GET", pattern: /^\/v1\/suppliers\/([^/]+)$/, handler: "getSupplier", paramNames: ["supplierId"] },
+    { method: "POST", pattern: /^\/v1\/suppliers$/, handler: "createSupplier", paramNames: [] },
+    { method: "PATCH", pattern: /^\/v1\/suppliers\/([^/]+)$/, handler: "updateSupplier", paramNames: ["supplierId"] },
+    // Assembly items (Actas)
+    { method: "GET", pattern: /^\/v1\/assembly-items$/, handler: "listAssemblyItems", paramNames: [] },
+    { method: "GET", pattern: /^\/v1\/assembly-items\/([^/]+)$/, handler: "getAssemblyItem", paramNames: ["itemId"] },
+    { method: "POST", pattern: /^\/v1\/assembly-items$/, handler: "createAssemblyItem", paramNames: [] },
+    { method: "PATCH", pattern: /^\/v1\/assembly-items\/([^/]+)$/, handler: "updateAssemblyItem", paramNames: ["itemId"] },
+    { method: "DELETE", pattern: /^\/v1\/assembly-items\/([^/]+)$/, handler: "deleteAssemblyItem", paramNames: ["itemId"] },
+    // Quotations
+    { method: "GET", pattern: /^\/v1\/quotations$/, handler: "listQuotations", paramNames: [] },
+    { method: "GET", pattern: /^\/v1\/quotations\/([^/]+)$/, handler: "getQuotation", paramNames: ["quotationId"] },
+    // Follow-ups & Notifications
+    { method: "GET", pattern: /^\/v1\/follow-ups$/, handler: "listFollowUps", paramNames: [] },
+    { method: "GET", pattern: /^\/v1\/notifications$/, handler: "listNotifications", paramNames: [] },
+    // Intervention types CRUD
+    { method: "POST", pattern: /^\/v1\/intervention-types$/, handler: "createInterventionType", paramNames: [] },
+    { method: "PATCH", pattern: /^\/v1\/intervention-types\/([^/]+)$/, handler: "updateInterventionType", paramNames: ["typeId"] },
   ];
 
   for (const route of routes) {
