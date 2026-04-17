@@ -1267,6 +1267,61 @@ Deno.serve(async (req: Request): Promise<Response> => {
         return await handleUpdateKnowledgeArticle(req, route.params, supabase);
       case "deleteKnowledgeArticle":
         return await handleDeleteKnowledgeArticle(route.params, supabase);
+      // Buildings
+      case "listBuildings":
+        return await handleListBuildings(url, supabase);
+      case "getBuilding":
+        return await handleGetBuilding(route.params, supabase);
+      case "createBuilding":
+        return await handleCreateBuilding(req, supabase);
+      case "updateBuilding":
+        return await handleUpdateBuilding(req, route.params, supabase);
+      case "listBuildingContacts":
+        return await handleListBuildingContacts(route.params, supabase);
+      // Assistances extra
+      case "updateAssistance":
+        return await handleUpdateAssistance(req, route.params, supabase);
+      case "listAssistanceCommunications":
+        return await handleListAssistanceCommunications(route.params, supabase);
+      case "listAssistancePhotos":
+        return await handleListAssistancePhotos(route.params, supabase);
+      case "listAssistanceProgress":
+        return await handleListAssistanceProgress(route.params, supabase);
+      // Suppliers
+      case "listSuppliers":
+        return await handleListSuppliers(url, supabase);
+      case "getSupplier":
+        return await handleGetSupplier(route.params, supabase);
+      case "createSupplier":
+        return await handleCreateSupplier(req, supabase);
+      case "updateSupplier":
+        return await handleUpdateSupplier(req, route.params, supabase);
+      // Assembly items
+      case "listAssemblyItems":
+        return await handleListAssemblyItems(url, supabase);
+      case "getAssemblyItem":
+        return await handleGetAssemblyItem(route.params, supabase);
+      case "createAssemblyItem":
+        return await handleCreateAssemblyItem(req, supabase);
+      case "updateAssemblyItem":
+        return await handleUpdateAssemblyItem(req, route.params, supabase);
+      case "deleteAssemblyItem":
+        return await handleDeleteAssemblyItem(route.params, supabase);
+      // Quotations
+      case "listQuotations":
+        return await handleListQuotations(url, supabase);
+      case "getQuotation":
+        return await handleGetQuotation(route.params, supabase);
+      // Follow-ups & Notifications
+      case "listFollowUps":
+        return await handleListFollowUps(url, supabase);
+      case "listNotifications":
+        return await handleListNotifications(url, supabase);
+      // Intervention types CRUD
+      case "createInterventionType":
+        return await handleCreateInterventionType(req, supabase);
+      case "updateInterventionType":
+        return await handleUpdateInterventionType(req, route.params, supabase);
       default:
         return errorResponse(404, "Not found", "NOT_FOUND");
     }
