@@ -398,6 +398,56 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ---- Authentication: block anonymous callers ----
+  // Accept either:
+  //  (a) a valid Supabase user JWT (admin only), or
+  //  (b) the service role key (used by other edge functions invoking this one)
+  try {
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: missing bearer token" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Fast path: server-to-server call with service role key
+    const isServiceRole = serviceRoleKey && token === serviceRoleKey;
+
+    if (!isServiceRole) {
+      // Validate user JWT and confirm caller is an admin
+      const authClient = createClient(supabaseUrl, serviceRoleKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const { data: userData, error: userError } = await authClient.auth.getUser(token);
+      if (userError || !userData?.user) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized: invalid token" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      const { data: isAdminRow, error: roleError } = await authClient.rpc("is_admin", {
+        _user_id: userData.user.id,
+      });
+      if (roleError || isAdminRow !== true) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden: admin role required" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+  } catch (authErr) {
+    console.error("Auth check failed in send-email:", authErr);
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+  }
+
   try {
     const requestData: EmailRequest = await req.json();
     const { to, subject, html, text, from, template, data, bcc } = requestData;
