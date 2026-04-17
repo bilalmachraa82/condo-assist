@@ -1,61 +1,72 @@
 
 
-# Auditoria — Agent API + MCP Server
+# Plan: Expandir Agent API + MCP para acesso completo à app
 
-## Resultados dos testes em produção
+## Objectivo
+Garantir que **tudo o que se consulta ou cria na app** está acessível via Agent API REST e via MCP (Claude Desktop). Actualmente faltam: Seguimento de Actas, Fornecedores, Orçamentos, Edifícios (CRUD), Follow-ups, Notificações, Fotos, Listagem de comunicações/contactos, e update de assistências.
 
-| Verificação | Status |
-|---|---|
-| `agent-api` deployment + boot | ✅ Vivo, sem erros nos logs |
-| `GET /agent-api/v1/health` | ✅ 200 OK (`status: ok`, version 1.0.0) |
-| `mcp-server` deployment + boot | ✅ Vivo, sem logs de erro |
-| `GET /mcp-server/info` | ✅ 200 OK (15 tools, transport streamable-http) |
-| `POST /mcp-server` sem auth | ✅ 401 (auth obrigatória correctamente aplicada) |
-| Secret `EXTERNAL_API_KEY` configurado | ✅ Presente |
-| Tabelas DB (`condominium_contacts`, `agent_api_rate_limit`, `assembly_items`) | ✅ Existem |
-| `config.toml` (`verify_jwt=false` para ambas) | ✅ Correcto |
-| CORS headers (mcp-session-id exposto, x-api-key permitido) | ✅ Correcto |
-| Hashing SHA-256 de API key no rate limit | ✅ Correcto |
-| PII masking nos logs de erro | ✅ Aplicado em todos os handlers |
-| Idempotency em POST /assistances + /email-log | ✅ TTL 24h, race condition tratada |
-| Validação UUID + strings nos inputs | ✅ Aplicada |
+## Alterações em `supabase/functions/agent-api/index.ts`
 
-## Problemas detectados
+Adicionar **22 novos endpoints** REST (segue padrão existente: `matchRoute` + handler + validação UUID + PII masking + idempotency onde aplicável):
 
-**Nenhum bloqueador.** Sistema operacional. Apenas observações menores:
+### Edifícios
+- `GET /v1/buildings` — listar (filtros: q, is_active, limit, offset)
+- `GET /v1/buildings/:id` — detalhe
+- `POST /v1/buildings` — criar (idempotent)
+- `PATCH /v1/buildings/:id` — actualizar
 
-1. **Lint Supabase (informativo, não relacionado com API/MCP):**
-   - 2× "RLS Enabled No Policy" (info) — provavelmente `agent_api_rate_limit` e outra tabela utilitária com deny-all implícito; não afecta funcionalidade
-   - 2× "Extension in Public" (warn) — pré-existente
-   - "Leaked Password Protection Disabled" (warn) — config Auth, não API
-   - "Postgres patches available" (warn) — manutenção
+### Assistências (complementar)
+- `PATCH /v1/assistances/:id` — actualizar (status, supplier, dates, priority, description, etc.)
+- `GET /v1/assistances/:id/communications` — listar log
+- `GET /v1/assistances/:id/photos` — listar fotos (com signed URLs)
+- `GET /v1/assistances/:id/progress` — timeline de progresso
 
-2. **MCP server sem logs históricos** — significa que ainda ninguém o invocou em produção desde o deploy. Esperado.
+### Fornecedores
+- `GET /v1/suppliers` — listar (filtros: q, specialization, is_active)
+- `GET /v1/suppliers/:id` — detalhe
+- `POST /v1/suppliers` — criar
+- `PATCH /v1/suppliers/:id` — actualizar
 
-3. **Pequena melhoria opcional no `mcp-server/index.ts`:** o import `z` (zod) é declarado mas não usado. Removível sem impacto.
+### Seguimento de Actas (assembly_items)
+- `GET /v1/assembly-items` — listar (filtros: building_id, building_code, status, category, year, q)
+- `GET /v1/assembly-items/:id` — detalhe
+- `POST /v1/assembly-items` — criar (idempotent)
+- `PATCH /v1/assembly-items/:id` — actualizar
+- `DELETE /v1/assembly-items/:id` — eliminar
 
-## Conclusão
+### Orçamentos
+- `GET /v1/quotations` — listar (filtros: assistance_id, supplier_id, status)
+- `GET /v1/quotations/:id` — detalhe
 
-✅ **API e MCP estão correctamente configurados, sem erros e prontos para uso.**
+### Contactos
+- `GET /v1/buildings/:id/contacts` — listar contactos do edifício
 
-- Agent API responde a `/v1/health` em < 100ms
-- MCP server aceita auth via `x-api-key`, Bearer token, ou query param `?api_key=`
-- Todas as 15 tools MCP fazem proxy correcto para os 15 endpoints REST
-- Rate limit (100 req/min), idempotency (24h TTL) e PII masking activos
-- CORS preparado para Claude Desktop e MCP Inspector
+### Follow-ups & Notificações
+- `GET /v1/follow-ups` — listar agendamentos
+- `GET /v1/notifications` — listar (filtro: assistance_id, supplier_id)
 
-## Próximo passo recomendado
+### Tipos de intervenção (CRUD)
+- `POST /v1/intervention-types` — criar
+- `PATCH /v1/intervention-types/:id` — actualizar
 
-Testar end-to-end com **MCP Inspector** usando a `EXTERNAL_API_KEY` real:
+## Alterações em `supabase/functions/mcp-server/index.ts`
 
-```bash
-npx @modelcontextprotocol/inspector
-```
-- Transport: **Streamable HTTP**
-- URL: `https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server`
-- Header: `x-api-key: <EXTERNAL_API_KEY>`
+Adicionar uma **MCP tool por endpoint** novo (~22 tools), seguindo o padrão `mcp.tool("name", { description PT, inputSchema, handler → callAgentApi })`. Total final: **~37 tools**.
 
-Confirmar que aparecem as 15 ferramentas e invocar `health_check` + `list_intervention_types`.
+Agrupar por área no description (ex: `[Fornecedores]`, `[Actas]`, `[Orçamentos]`) para Claude as encontrar facilmente.
 
-Não é necessário fazer alterações ao código. Se quiseres, posso aplicar a limpeza opcional do import `z` não usado e adicionar uma página em Configurações com a configuração JSON pronta para copiar/colar no Claude Desktop.
+## Atualizações de documentação
+
+- `supabase/functions/agent-api/openapi.yaml` — adicionar specs dos 22 endpoints novos
+- `supabase/functions/mcp-server/README.md` — listar novas tools por categoria
+- `mem://features/mcp-server` — actualizar contagem (15 → 37) e lista de áreas cobertas
+
+## Sem alterações de DB
+Todas as tabelas já existem e têm RLS. A Agent API usa service_role (bypass RLS), o que é o comportamento já estabelecido e auditado.
+
+## Validação pós-deploy
+- Curl `/v1/health` para confirmar deploy
+- Curl 2-3 endpoints novos (ex: `GET /v1/suppliers`, `GET /v1/assembly-items`) com `x-api-key`
+- `GET /mcp-server/info` — confirmar `tools: 37`
+- Sem alterações ao auth, rate-limit, idempotency ou CORS (mantêm-se)
 
