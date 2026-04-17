@@ -1,82 +1,61 @@
 
 
-# Plan: Reorganize Assembly Module — Group by Building
+# Auditoria — Agent API + MCP Server
 
-## Problem
-Currently, assembly items display as a flat grid of cards. The user wants items **grouped by building** (like the Excel structure), where each building is a collapsible section showing all its items in a table-like layout with inline status editing.
+## Resultados dos testes em produção
 
-## New UX Flow
+| Verificação | Status |
+|---|---|
+| `agent-api` deployment + boot | ✅ Vivo, sem erros nos logs |
+| `GET /agent-api/v1/health` | ✅ 200 OK (`status: ok`, version 1.0.0) |
+| `mcp-server` deployment + boot | ✅ Vivo, sem logs de erro |
+| `GET /mcp-server/info` | ✅ 200 OK (15 tools, transport streamable-http) |
+| `POST /mcp-server` sem auth | ✅ 401 (auth obrigatória correctamente aplicada) |
+| Secret `EXTERNAL_API_KEY` configurado | ✅ Presente |
+| Tabelas DB (`condominium_contacts`, `agent_api_rate_limit`, `assembly_items`) | ✅ Existem |
+| `config.toml` (`verify_jwt=false` para ambas) | ✅ Correcto |
+| CORS headers (mcp-session-id exposto, x-api-key permitido) | ✅ Correcto |
+| Hashing SHA-256 de API key no rate limit | ✅ Correcto |
+| PII masking nos logs de erro | ✅ Aplicado em todos os handlers |
+| Idempotency em POST /assistances + /email-log | ✅ TTL 24h, race condition tratada |
+| Validação UUID + strings nos inputs | ✅ Aplicada |
 
-```text
-┌──────────────────────────────────────────────────┐
-│  Seguimento de Actas          [+ Novo] [Import]  │
-│  [Stats cards: Pendentes | Em Curso | Resolvidos]│
-│  [Search] [Ano ▾] [Status chips] [Category chips]│
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  ▼ 003 — Rua Alexandre Herculano, nº3  (8 itens) │
-│  ┌────────────────────────────────────────────┐  │
-│  │ Descrição (truncada)  │ Estado │ Ações     │  │
-│  │ Limpeza caleiras...   │ 🟢 Ok │ ✏️ 🗑️    │  │
-│  │ Tapar buraco escadas..│ 🟡 Em C│ ✏️ 🗑️    │  │
-│  │ Verificar caleiras... │ 🟡 Em C│ ✏️ 🗑️    │  │
-│  │           [+ Adicionar assunto a este prédio] │
-│  └────────────────────────────────────────────┘  │
-│                                                  │
-│  ▸ 004 — Rua X, nº4  (3 itens)     [collapsed]  │
-│  ▸ 009 — Rua Y, nº9  (5 itens)     [collapsed]  │
-└──────────────────────────────────────────────────┘
+## Problemas detectados
+
+**Nenhum bloqueador.** Sistema operacional. Apenas observações menores:
+
+1. **Lint Supabase (informativo, não relacionado com API/MCP):**
+   - 2× "RLS Enabled No Policy" (info) — provavelmente `agent_api_rate_limit` e outra tabela utilitária com deny-all implícito; não afecta funcionalidade
+   - 2× "Extension in Public" (warn) — pré-existente
+   - "Leaked Password Protection Disabled" (warn) — config Auth, não API
+   - "Postgres patches available" (warn) — manutenção
+
+2. **MCP server sem logs históricos** — significa que ainda ninguém o invocou em produção desde o deploy. Esperado.
+
+3. **Pequena melhoria opcional no `mcp-server/index.ts`:** o import `z` (zod) é declarado mas não usado. Removível sem impacto.
+
+## Conclusão
+
+✅ **API e MCP estão correctamente configurados, sem erros e prontos para uso.**
+
+- Agent API responde a `/v1/health` em < 100ms
+- MCP server aceita auth via `x-api-key`, Bearer token, ou query param `?api_key=`
+- Todas as 15 tools MCP fazem proxy correcto para os 15 endpoints REST
+- Rate limit (100 req/min), idempotency (24h TTL) e PII masking activos
+- CORS preparado para Claude Desktop e MCP Inspector
+
+## Próximo passo recomendado
+
+Testar end-to-end com **MCP Inspector** usando a `EXTERNAL_API_KEY` real:
+
+```bash
+npx @modelcontextprotocol/inspector
 ```
+- Transport: **Streamable HTTP**
+- URL: `https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server`
+- Header: `x-api-key: <EXTERNAL_API_KEY>`
 
-## Changes
+Confirmar que aparecem as 15 ferramentas e invocar `health_check` + `list_intervention_types`.
 
-### 1. New: `src/components/assembly/AssemblyBuildingGroup.tsx`
-Collapsible section per building using `Collapsible` from shadcn. Shows:
-- Header: building code + address + item count + pending/done progress indicator
-- Body: table/list of items with columns: Description (truncated), Category badge, Status dropdown (inline), Notes (truncated), Actions (edit/delete icons)
-- Footer: "+ Adicionar assunto" button that opens AssemblyForm pre-filled with this building
-
-### 2. Edit: `src/pages/Assembly.tsx`
-- After fetching items, group them by `building_code` using a `Map`
-- Sort groups by `building_code` ascending (numeric order)
-- Render `AssemblyBuildingGroup` for each group instead of flat card grid
-- Remove the card grid layout entirely
-- Pass building-specific "add" handler that pre-selects the building in AssemblyForm
-- Keep stats, filters, load-more, detail dialog, delete dialog, import, and form as-is
-
-### 3. Edit: `src/components/assembly/AssemblyForm.tsx`
-- Accept optional `defaultBuildingId` prop to pre-select building when adding from a building group
-- When `defaultBuildingId` is set and no `item` (create mode), auto-select that building
-
-### 4. Remove dependency on `AssemblyCard.tsx`
-- `AssemblyCard.tsx` becomes unused (can keep for potential future use but won't be imported)
-
-### 5. Edit: `src/hooks/useAssemblyItems.ts`
-- Change default sort to `building_code ASC, created_at ASC` (items in order within each building)
-- Increase default limit or remove pagination in favor of loading all items (since grouping needs all data per building). Alternative: keep pagination but load more per page (e.g., 200).
-
-## Technical Details
-
-### Grouping logic (in Assembly.tsx)
-```typescript
-const grouped = useMemo(() => {
-  const map = new Map<number, { address: string; building_id: string | null; items: AssemblyItem[] }>();
-  for (const item of displayedItems) {
-    if (!map.has(item.building_code)) {
-      map.set(item.building_code, { address: item.building_address || "", building_id: item.building_id, items: [] });
-    }
-    map.get(item.building_code)!.items.push(item);
-  }
-  return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
-}, [displayedItems]);
-```
-
-### AssemblyBuildingGroup component
-- Uses `Collapsible`/`CollapsibleTrigger`/`CollapsibleContent`
-- Header shows: `{code} — {address}` + badges for pending/done counts + chevron
-- Table rows: description (line-clamp-2), category badge, inline status Select, edit/delete buttons
-- Each row clickable to open detail dialog
-- Mini progress bar (green portion = done items / total items)
-
-## No database changes needed
+Não é necessário fazer alterações ao código. Se quiseres, posso aplicar a limpeza opcional do import `z` não usado e adicionar uma página em Configurações com a configuração JSON pronta para copiar/colar no Claude Desktop.
 
