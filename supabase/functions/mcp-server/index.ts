@@ -5,7 +5,6 @@
 
 import { Hono } from "hono";
 import { McpServer, StreamableHttpTransport } from "mcp-lite";
-import { z } from "zod";
 
 const AGENT_API_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1/agent-api`;
 const EXTERNAL_API_KEY = Deno.env.get("EXTERNAL_API_KEY") ?? "";
