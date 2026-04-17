@@ -313,6 +313,456 @@ mcp.tool("delete_knowledge_article", {
     asText(await callAgentApi("DELETE", `/v1/knowledge/${article_id}`)),
 });
 
+// ═══════════ BUILDINGS ═══════════
+
+mcp.tool("list_buildings", {
+  description: "[Edifícios] Lista edifícios/condomínios. Filtros: q (code/name/address), is_active, limit (max 200), offset.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      q: { type: "string" },
+      is_active: { type: "boolean" },
+      limit: { type: "number" },
+      offset: { type: "number" },
+    },
+  },
+  handler: async ({ q, is_active, limit, offset }: Record<string, unknown>) =>
+    asText(await callAgentApi("GET", "/v1/buildings", {
+      query: { q: q as string, is_active: is_active !== undefined ? String(is_active) : undefined, limit: (limit as number)?.toString(), offset: (offset as number)?.toString() },
+    })),
+});
+
+mcp.tool("get_building", {
+  description: "[Edifícios] Detalhe completo de um edifício.",
+  inputSchema: {
+    type: "object",
+    properties: { building_id: { type: "string" } },
+    required: ["building_id"],
+  },
+  handler: async ({ building_id }: { building_id: string }) =>
+    asText(await callAgentApi("GET", `/v1/buildings/${building_id}`)),
+});
+
+mcp.tool("create_building", {
+  description: "[Edifícios] Cria novo edifício. Campos: code, name, address, nif, cadastral_code, admin_notes, is_active.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      code: { type: "string" },
+      name: { type: "string" },
+      address: { type: "string" },
+      nif: { type: "string" },
+      cadastral_code: { type: "string" },
+      admin_notes: { type: "string" },
+      is_active: { type: "boolean" },
+    },
+    required: ["code", "name"],
+  },
+  handler: async (body: Record<string, unknown>) =>
+    asText(await callAgentApi("POST", "/v1/buildings", { body })),
+});
+
+mcp.tool("update_building", {
+  description: "[Edifícios] Atualiza edifício existente.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      building_id: { type: "string" },
+      code: { type: "string" },
+      name: { type: "string" },
+      address: { type: "string" },
+      nif: { type: "string" },
+      cadastral_code: { type: "string" },
+      admin_notes: { type: "string" },
+      is_active: { type: "boolean" },
+    },
+    required: ["building_id"],
+  },
+  handler: async ({ building_id, ...body }: { building_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("PATCH", `/v1/buildings/${building_id}`, { body })),
+});
+
+mcp.tool("list_building_contacts", {
+  description: "[Edifícios] Lista contactos de condóminos de um edifício.",
+  inputSchema: {
+    type: "object",
+    properties: { building_id: { type: "string" } },
+    required: ["building_id"],
+  },
+  handler: async ({ building_id }: { building_id: string }) =>
+    asText(await callAgentApi("GET", `/v1/buildings/${building_id}/contacts`)),
+});
+
+// ═══════════ ASSISTÊNCIAS (complementar) ═══════════
+
+mcp.tool("update_assistance", {
+  description: "[Assistências] Atualiza campos de uma assistência: status, priority, supplier, datas, notas, custos, etc.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      assistance_id: { type: "string" },
+      title: { type: "string" },
+      description: { type: "string" },
+      status: { type: "string", enum: ["pending", "awaiting_quotation", "quotation_rejected", "in_progress", "completed", "cancelled", "accepted", "scheduled"] },
+      priority: { type: "string", enum: ["normal", "urgent", "critical"] },
+      assigned_supplier_id: { type: "string" },
+      intervention_type_id: { type: "string" },
+      scheduled_start_date: { type: "string" },
+      scheduled_end_date: { type: "string" },
+      actual_start_date: { type: "string" },
+      actual_end_date: { type: "string" },
+      completed_date: { type: "string" },
+      admin_notes: { type: "string" },
+      supplier_notes: { type: "string" },
+      progress_notes: { type: "string" },
+      estimated_cost: { type: "number" },
+      final_cost: { type: "number" },
+      estimated_duration_hours: { type: "number" },
+      requires_quotation: { type: "boolean" },
+      requires_validation: { type: "boolean" },
+      expected_completion_date: { type: "string" },
+    },
+    required: ["assistance_id"],
+  },
+  handler: async ({ assistance_id, ...body }: { assistance_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("PATCH", `/v1/assistances/${assistance_id}`, { body })),
+});
+
+mcp.tool("list_assistance_communications", {
+  description: "[Assistências] Lista completa do log de comunicações de uma assistência.",
+  inputSchema: {
+    type: "object",
+    properties: { assistance_id: { type: "string" } },
+    required: ["assistance_id"],
+  },
+  handler: async ({ assistance_id }: { assistance_id: string }) =>
+    asText(await callAgentApi("GET", `/v1/assistances/${assistance_id}/communications`)),
+});
+
+mcp.tool("list_assistance_photos", {
+  description: "[Assistências] Lista fotos associadas a uma assistência.",
+  inputSchema: {
+    type: "object",
+    properties: { assistance_id: { type: "string" } },
+    required: ["assistance_id"],
+  },
+  handler: async ({ assistance_id }: { assistance_id: string }) =>
+    asText(await callAgentApi("GET", `/v1/assistances/${assistance_id}/photos`)),
+});
+
+mcp.tool("list_assistance_progress", {
+  description: "[Assistências] Timeline de progresso de uma assistência.",
+  inputSchema: {
+    type: "object",
+    properties: { assistance_id: { type: "string" } },
+    required: ["assistance_id"],
+  },
+  handler: async ({ assistance_id }: { assistance_id: string }) =>
+    asText(await callAgentApi("GET", `/v1/assistances/${assistance_id}/progress`)),
+});
+
+// ═══════════ FORNECEDORES ═══════════
+
+mcp.tool("list_suppliers", {
+  description: "[Fornecedores] Lista fornecedores. Filtros: q, specialization, is_active.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      q: { type: "string" },
+      specialization: { type: "string" },
+      is_active: { type: "boolean" },
+      limit: { type: "number" },
+      offset: { type: "number" },
+    },
+  },
+  handler: async ({ q, specialization, is_active, limit, offset }: Record<string, unknown>) =>
+    asText(await callAgentApi("GET", "/v1/suppliers", {
+      query: { q: q as string, specialization: specialization as string, is_active: is_active !== undefined ? String(is_active) : undefined, limit: (limit as number)?.toString(), offset: (offset as number)?.toString() },
+    })),
+});
+
+mcp.tool("get_supplier", {
+  description: "[Fornecedores] Detalhe de um fornecedor.",
+  inputSchema: {
+    type: "object",
+    properties: { supplier_id: { type: "string" } },
+    required: ["supplier_id"],
+  },
+  handler: async ({ supplier_id }: { supplier_id: string }) =>
+    asText(await callAgentApi("GET", `/v1/suppliers/${supplier_id}`)),
+});
+
+mcp.tool("create_supplier", {
+  description: "[Fornecedores] Cria novo fornecedor.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      name: { type: "string" },
+      email: { type: "string" },
+      phone: { type: "string" },
+      address: { type: "string" },
+      nif: { type: "string" },
+      specialization: { type: "string" },
+      admin_notes: { type: "string" },
+      is_active: { type: "boolean" },
+    },
+    required: ["name"],
+  },
+  handler: async (body: Record<string, unknown>) =>
+    asText(await callAgentApi("POST", "/v1/suppliers", { body })),
+});
+
+mcp.tool("update_supplier", {
+  description: "[Fornecedores] Atualiza fornecedor.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      supplier_id: { type: "string" },
+      name: { type: "string" },
+      email: { type: "string" },
+      phone: { type: "string" },
+      address: { type: "string" },
+      nif: { type: "string" },
+      specialization: { type: "string" },
+      admin_notes: { type: "string" },
+      is_active: { type: "boolean" },
+      rating: { type: "number" },
+    },
+    required: ["supplier_id"],
+  },
+  handler: async ({ supplier_id, ...body }: { supplier_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("PATCH", `/v1/suppliers/${supplier_id}`, { body })),
+});
+
+// ═══════════ ACTAS (assembly_items) ═══════════
+
+mcp.tool("list_assembly_items", {
+  description: "[Actas] Lista itens de seguimento de actas. Filtros: building_id, building_code, status, category, year, q.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      building_id: { type: "string" },
+      building_code: { type: "number" },
+      status: { type: "string" },
+      category: { type: "string" },
+      year: { type: "number" },
+      q: { type: "string" },
+      limit: { type: "number" },
+      offset: { type: "number" },
+    },
+  },
+  handler: async ({ building_id, building_code, status, category, year, q, limit, offset }: Record<string, unknown>) =>
+    asText(await callAgentApi("GET", "/v1/assembly-items", {
+      query: {
+        building_id: building_id as string,
+        building_code: (building_code as number)?.toString(),
+        status: status as string,
+        category: category as string,
+        year: (year as number)?.toString(),
+        q: q as string,
+        limit: (limit as number)?.toString(),
+        offset: (offset as number)?.toString(),
+      },
+    })),
+});
+
+mcp.tool("get_assembly_item", {
+  description: "[Actas] Detalhe de um item de acta.",
+  inputSchema: {
+    type: "object",
+    properties: { item_id: { type: "string" } },
+    required: ["item_id"],
+  },
+  handler: async ({ item_id }: { item_id: string }) =>
+    asText(await callAgentApi("GET", `/v1/assembly-items/${item_id}`)),
+});
+
+mcp.tool("create_assembly_item", {
+  description: "[Actas] Cria novo item de seguimento de acta.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      description: { type: "string" },
+      building_code: { type: "number", description: "Código numérico do edifício (obrigatório)" },
+      building_id: { type: "string" },
+      building_address: { type: "string" },
+      category: { type: "string" },
+      status: { type: "string", description: "Default: pending" },
+      status_notes: { type: "string" },
+      priority: { type: "string", description: "Default: normal" },
+      year: { type: "number" },
+      assigned_to: { type: "string" },
+      estimated_cost: { type: "number" },
+      resolution_date: { type: "string" },
+      source_sheet: { type: "string" },
+      knowledge_article_id: { type: "string" },
+    },
+    required: ["description", "building_code"],
+  },
+  handler: async (body: Record<string, unknown>) =>
+    asText(await callAgentApi("POST", "/v1/assembly-items", { body })),
+});
+
+mcp.tool("update_assembly_item", {
+  description: "[Actas] Atualiza item de acta (status, notas, custos, etc).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      item_id: { type: "string" },
+      description: { type: "string" },
+      building_id: { type: "string" },
+      building_code: { type: "number" },
+      building_address: { type: "string" },
+      category: { type: "string" },
+      status: { type: "string" },
+      status_notes: { type: "string" },
+      priority: { type: "string" },
+      year: { type: "number" },
+      assigned_to: { type: "string" },
+      estimated_cost: { type: "number" },
+      resolution_date: { type: "string" },
+      source_sheet: { type: "string" },
+      knowledge_article_id: { type: "string" },
+    },
+    required: ["item_id"],
+  },
+  handler: async ({ item_id, ...body }: { item_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("PATCH", `/v1/assembly-items/${item_id}`, { body })),
+});
+
+mcp.tool("delete_assembly_item", {
+  description: "[Actas] Elimina item de acta.",
+  inputSchema: {
+    type: "object",
+    properties: { item_id: { type: "string" } },
+    required: ["item_id"],
+  },
+  handler: async ({ item_id }: { item_id: string }) =>
+    asText(await callAgentApi("DELETE", `/v1/assembly-items/${item_id}`)),
+});
+
+// ═══════════ ORÇAMENTOS ═══════════
+
+mcp.tool("list_quotations", {
+  description: "[Orçamentos] Lista orçamentos. Filtros: assistance_id, supplier_id, status.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      assistance_id: { type: "string" },
+      supplier_id: { type: "string" },
+      status: { type: "string" },
+      limit: { type: "number" },
+      offset: { type: "number" },
+    },
+  },
+  handler: async ({ assistance_id, supplier_id, status, limit, offset }: Record<string, unknown>) =>
+    asText(await callAgentApi("GET", "/v1/quotations", {
+      query: {
+        assistance_id: assistance_id as string,
+        supplier_id: supplier_id as string,
+        status: status as string,
+        limit: (limit as number)?.toString(),
+        offset: (offset as number)?.toString(),
+      },
+    })),
+});
+
+mcp.tool("get_quotation", {
+  description: "[Orçamentos] Detalhe de um orçamento.",
+  inputSchema: {
+    type: "object",
+    properties: { quotation_id: { type: "string" } },
+    required: ["quotation_id"],
+  },
+  handler: async ({ quotation_id }: { quotation_id: string }) =>
+    asText(await callAgentApi("GET", `/v1/quotations/${quotation_id}`)),
+});
+
+// ═══════════ FOLLOW-UPS & NOTIFICAÇÕES ═══════════
+
+mcp.tool("list_follow_ups", {
+  description: "[Follow-ups] Lista agendamentos de follow-up. Filtros: assistance_id, supplier_id, status.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      assistance_id: { type: "string" },
+      supplier_id: { type: "string" },
+      status: { type: "string" },
+      limit: { type: "number" },
+      offset: { type: "number" },
+    },
+  },
+  handler: async ({ assistance_id, supplier_id, status, limit, offset }: Record<string, unknown>) =>
+    asText(await callAgentApi("GET", "/v1/follow-ups", {
+      query: {
+        assistance_id: assistance_id as string,
+        supplier_id: supplier_id as string,
+        status: status as string,
+        limit: (limit as number)?.toString(),
+        offset: (offset as number)?.toString(),
+      },
+    })),
+});
+
+mcp.tool("list_notifications", {
+  description: "[Notificações] Lista notificações agendadas/enviadas.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      assistance_id: { type: "string" },
+      supplier_id: { type: "string" },
+      status: { type: "string" },
+      limit: { type: "number" },
+      offset: { type: "number" },
+    },
+  },
+  handler: async ({ assistance_id, supplier_id, status, limit, offset }: Record<string, unknown>) =>
+    asText(await callAgentApi("GET", "/v1/notifications", {
+      query: {
+        assistance_id: assistance_id as string,
+        supplier_id: supplier_id as string,
+        status: status as string,
+        limit: (limit as number)?.toString(),
+        offset: (offset as number)?.toString(),
+      },
+    })),
+});
+
+// ═══════════ TIPOS DE INTERVENÇÃO (CRUD) ═══════════
+
+mcp.tool("create_intervention_type", {
+  description: "[Tipos Intervenção] Cria novo tipo de intervenção.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      name: { type: "string" },
+      category: { type: "string" },
+      description: { type: "string" },
+      urgency_level: { type: "string", enum: ["normal", "urgent", "critical"] },
+    },
+    required: ["name"],
+  },
+  handler: async (body: Record<string, unknown>) =>
+    asText(await callAgentApi("POST", "/v1/intervention-types", { body })),
+});
+
+mcp.tool("update_intervention_type", {
+  description: "[Tipos Intervenção] Atualiza tipo de intervenção.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      type_id: { type: "string" },
+      name: { type: "string" },
+      category: { type: "string" },
+      description: { type: "string" },
+      urgency_level: { type: "string", enum: ["normal", "urgent", "critical"] },
+    },
+    required: ["type_id"],
+  },
+  handler: async ({ type_id, ...body }: { type_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("PATCH", `/v1/intervention-types/${type_id}`, { body })),
+});
+
 // ── HTTP transport (Hono) ──
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -335,7 +785,7 @@ app.use("*", async (c, next) => {
       name: "condo-assist-mcp",
       version: "1.0.0",
       transport: "streamable-http",
-      tools: 15,
+      tools: 37,
     }, 200, corsHeaders);
   }
 
