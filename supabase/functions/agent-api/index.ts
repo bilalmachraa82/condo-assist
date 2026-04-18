@@ -1223,6 +1223,339 @@ async function handleUpdateInterventionType(req: Request, params: Record<string,
   return json(data);
 }
 
+
+// ── Photos handlers ──
+async function handleUploadAssistancePhoto(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const assistanceId = requireUUID(params.assistanceId, "assistanceId");
+  const body = await req.json();
+  const photoType = requireString(body.photo_type, "photo_type");
+  if (!["before", "during", "after", "other"].includes(photoType)) {
+    throw new HttpError(400, "photo_type must be 'before', 'during', 'after', or 'other'", "INVALID_INPUT");
+  }
+  const file = body.file;
+  if (!file || typeof file !== "object" || !file.data || !file.name) {
+    throw new HttpError(400, "file is required (object with name + data base64)", "INVALID_INPUT");
+  }
+
+  // Idempotency
+  const idempotencyKey = req.headers.get("idempotency-key");
+  if (idempotencyKey) {
+    const { data: existing } = await supabase
+      .from("activity_log")
+      .select("id, metadata")
+      .eq("action", "photo_uploaded_via_api")
+      .eq("assistance_id", assistanceId)
+      .filter("metadata->>idempotency_key", "eq", idempotencyKey)
+      .maybeSingle();
+    if (existing && existing.metadata && (existing.metadata as any).photo_id) {
+      const { data: ph } = await supabase.from("assistance_photos").select("*").eq("id", (existing.metadata as any).photo_id).maybeSingle();
+      if (ph) return json(ph, 200);
+    }
+  }
+
+  // Decode base64
+  const base64Data = String(file.data).split(",")[1] || String(file.data);
+  let fileData: Uint8Array;
+  try {
+    fileData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+  } catch {
+    throw new HttpError(400, "file.data must be valid base64", "INVALID_INPUT");
+  }
+  if (fileData.length > 10 * 1024 * 1024) {
+    throw new HttpError(400, "file too large (max 10MB)", "INVALID_INPUT");
+  }
+
+  const timestamp = new Date().toISOString().replace(/[:.-]/g, "");
+  const ext = String(file.name).split(".").pop() || "jpg";
+  const fileName = `${assistanceId}/${photoType}_${timestamp}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("assistance-photos")
+    .upload(fileName, fileData, { contentType: file.type || "image/jpeg", upsert: false });
+
+  if (uploadError) {
+    console.error("Photo upload error:", maskPII(JSON.stringify(uploadError)));
+    throw new HttpError(500, "Failed to upload photo", "INTERNAL_ERROR");
+  }
+
+  const { data: photoRecord, error: dbError } = await supabase
+    .from("assistance_photos")
+    .insert({
+      assistance_id: assistanceId,
+      photo_type: photoType,
+      file_url: fileName,
+      caption: body.caption || null,
+    })
+    .select("*")
+    .single();
+
+  if (dbError) {
+    await supabase.storage.from("assistance-photos").remove([fileName]);
+    console.error("Photo DB error:", maskPII(JSON.stringify(dbError)));
+    throw new HttpError(500, "Failed to save photo", "INTERNAL_ERROR");
+  }
+
+  await supabase.from("activity_log").insert({
+    assistance_id: assistanceId,
+    action: "photo_uploaded_via_api",
+    details: `Foto ${photoType} carregada via API`,
+    metadata: { photo_id: photoRecord.id, file_name: file.name, idempotency_key: idempotencyKey || null },
+  });
+
+  return json(photoRecord, 201);
+}
+
+async function handleDeleteAssistancePhoto(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const photoId = requireUUID(params.photoId, "photoId");
+  const { data: photo, error: fetchErr } = await supabase
+    .from("assistance_photos")
+    .select("id, file_url, assistance_id")
+    .eq("id", photoId)
+    .maybeSingle();
+  if (fetchErr) {
+    console.error("Photo fetch error:", maskPII(JSON.stringify(fetchErr)));
+    throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  }
+  if (!photo) return errorResponse(404, "Photo not found", "NOT_FOUND");
+
+  await supabase.storage.from("assistance-photos").remove([photo.file_url]);
+  const { error } = await supabase.from("assistance_photos").delete().eq("id", photoId);
+  if (error) {
+    console.error("Photo delete error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Failed to delete photo", "INTERNAL_ERROR");
+  }
+  return json({ success: true });
+}
+
+// ── Quotations write handlers ──
+async function handleCreateQuotation(req: Request, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const body = await req.json();
+  const assistanceId = requireUUID(body.assistance_id, "assistance_id");
+  const supplierId = requireUUID(body.supplier_id, "supplier_id");
+  const amount = Number(body.amount);
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new HttpError(400, "amount must be a non-negative number", "INVALID_INPUT");
+  }
+
+  const idempotencyKey = req.headers.get("idempotency-key");
+  if (idempotencyKey) {
+    // Best-effort: use notes JSON not available; rely on combination assistance+supplier+amount
+    const { data: existing } = await supabase
+      .from("quotations")
+      .select("id, status, amount")
+      .eq("assistance_id", assistanceId)
+      .eq("supplier_id", supplierId)
+      .eq("amount", amount)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing) return json(existing, 200);
+  }
+
+  const insertData: Record<string, unknown> = {
+    assistance_id: assistanceId,
+    supplier_id: supplierId,
+    amount,
+    description: body.description || null,
+    notes: body.notes || null,
+    validity_days: body.validity_days ?? 30,
+    status: body.status || "submitted",
+    is_requested: body.is_requested ?? true,
+    submitted_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase.from("quotations").insert(insertData).select("*").single();
+  if (error) {
+    console.error("Create quotation error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Failed to create quotation", "INTERNAL_ERROR");
+  }
+  return json(data, 201);
+}
+
+async function handleUpdateQuotation(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const quotationId = requireUUID(params.quotationId, "quotationId");
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["amount", "description", "notes", "validity_days", "status", "is_requested"]) {
+    if (body[k] !== undefined) updateData[k] = body[k];
+  }
+  if (body.status === "approved") {
+    updateData.approved_at = new Date().toISOString();
+    if (body.approved_by) updateData.approved_by = body.approved_by;
+  }
+  if (Object.keys(updateData).length === 0) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+
+  if (updateData.status && !["pending", "submitted", "approved", "rejected", "expired"].includes(updateData.status as string)) {
+    throw new HttpError(400, "invalid status", "INVALID_INPUT");
+  }
+
+  const { data, error } = await supabase.from("quotations").update(updateData).eq("id", quotationId).select("*").single();
+  if (error) {
+    console.error("Update quotation error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Failed to update quotation", "INTERNAL_ERROR");
+  }
+  return json(data);
+}
+
+async function handleDeleteQuotation(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const quotationId = requireUUID(params.quotationId, "quotationId");
+  const { error } = await supabase.from("quotations").delete().eq("id", quotationId);
+  if (error) {
+    console.error("Delete quotation error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Failed to delete quotation", "INTERNAL_ERROR");
+  }
+  return json({ success: true });
+}
+
+// ── Supplier responses handlers ──
+async function handleSubmitSupplierResponse(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const assistanceId = requireUUID(params.assistanceId, "assistanceId");
+  const body = await req.json();
+  const supplierId = requireUUID(body.supplier_id, "supplier_id");
+  const responseType = requireString(body.response_type, "response_type");
+  if (!["accepted", "declined", "needs_info"].includes(responseType)) {
+    throw new HttpError(400, "response_type must be 'accepted', 'declined', or 'needs_info'", "INVALID_INPUT");
+  }
+
+  const insertData: Record<string, unknown> = {
+    assistance_id: assistanceId,
+    supplier_id: supplierId,
+    response_type: responseType,
+    response_date: new Date().toISOString(),
+    decline_reason: body.decline_reason || null,
+    notes: body.notes || null,
+    response_comments: body.response_comments || null,
+    estimated_completion_date: body.estimated_completion_date || null,
+    estimated_duration_hours: body.estimated_duration_hours ?? null,
+    scheduled_start_date: body.scheduled_start_date || null,
+    scheduled_end_date: body.scheduled_end_date || null,
+  };
+
+  const { data, error } = await supabase.from("supplier_responses").insert(insertData).select("*").single();
+  if (error) {
+    console.error("Submit supplier response error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Failed to submit response", "INTERNAL_ERROR");
+  }
+
+  // Reflect in assistance status when applicable
+  if (responseType === "accepted") {
+    const update: Record<string, unknown> = { status: "accepted" };
+    if (body.scheduled_start_date) {
+      update.scheduled_start_date = body.scheduled_start_date;
+      update.status = "scheduled";
+    }
+    if (body.scheduled_end_date) update.scheduled_end_date = body.scheduled_end_date;
+    await supabase.from("assistances").update(update).eq("id", assistanceId);
+  } else if (responseType === "declined") {
+    await supabase.from("activity_log").insert({
+      assistance_id: assistanceId,
+      supplier_id: supplierId,
+      action: "supplier_declined_via_api",
+      details: body.decline_reason || "Fornecedor recusou via API",
+    });
+  }
+
+  return json(data, 201);
+}
+
+async function handleListSupplierResponses(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const assistanceId = requireUUID(params.assistanceId, "assistanceId");
+  const { data, error } = await supabase
+    .from("supplier_responses")
+    .select("*, suppliers(id, name)")
+    .eq("assistance_id", assistanceId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("List supplier responses error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  }
+  return json({ assistance_id: assistanceId, responses: data || [] });
+}
+
+// ── Notifications & Follow-ups write ──
+async function handleUpdateNotification(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const notificationId = requireUUID(params.notificationId, "notificationId");
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["status", "scheduled_for", "sent_at", "metadata", "priority"]) {
+    if (body[k] !== undefined) updateData[k] = body[k];
+  }
+  if (Object.keys(updateData).length === 0) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+
+  const { data, error } = await supabase.from("notifications").update(updateData).eq("id", notificationId).select("*").single();
+  if (error) {
+    console.error("Update notification error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Failed to update notification", "INTERNAL_ERROR");
+  }
+  return json(data);
+}
+
+async function handleCreateFollowUp(req: Request, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const body = await req.json();
+  const assistanceId = requireUUID(body.assistance_id, "assistance_id");
+  const followUpType = requireString(body.follow_up_type, "follow_up_type");
+  const scheduledFor = requireString(body.scheduled_for, "scheduled_for");
+
+  const idempotencyKey = req.headers.get("idempotency-key");
+  if (idempotencyKey) {
+    const { data: existing } = await supabase
+      .from("follow_up_schedules")
+      .select("id, status")
+      .eq("assistance_id", assistanceId)
+      .eq("follow_up_type", followUpType)
+      .eq("scheduled_for", scheduledFor)
+      .maybeSingle();
+    if (existing) return json(existing, 200);
+  }
+
+  const insertData: Record<string, unknown> = {
+    assistance_id: assistanceId,
+    follow_up_type: followUpType,
+    scheduled_for: scheduledFor,
+    priority: body.priority || "normal",
+    supplier_id: body.supplier_id || null,
+    max_attempts: body.max_attempts ?? 3,
+    metadata: body.metadata || null,
+    status: body.status || "pending",
+    next_attempt_at: body.next_attempt_at || scheduledFor,
+  };
+
+  const { data, error } = await supabase.from("follow_up_schedules").insert(insertData).select("*").single();
+  if (error) {
+    console.error("Create follow-up error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Failed to create follow-up", "INTERNAL_ERROR");
+  }
+  return json(data, 201);
+}
+
+// ── Activity log read ──
+async function handleListActivityLog(url: URL, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const assistanceId = url.searchParams.get("assistance_id");
+  const supplierId = url.searchParams.get("supplier_id");
+  const userId = url.searchParams.get("user_id");
+  const action = url.searchParams.get("action");
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 200);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
+
+  let query = supabase
+    .from("activity_log")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (assistanceId) query = query.eq("assistance_id", assistanceId);
+  if (supplierId) query = query.eq("supplier_id", supplierId);
+  if (userId) query = query.eq("user_id", userId);
+  if (action) query = query.eq("action", action);
+
+  const { data, error, count } = await query;
+  if (error) {
+    console.error("List activity log error:", maskPII(JSON.stringify(error)));
+    throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  }
+  return json({ total: count ?? 0, limit, offset, entries: data || [] });
+}
+
 // ── Main handler ──
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
