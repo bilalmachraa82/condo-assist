@@ -1670,6 +1670,31 @@ Deno.serve(async (req: Request): Promise<Response> => {
         return await handleCreateInterventionType(req, supabase);
       case "updateInterventionType":
         return await handleUpdateInterventionType(req, route.params, supabase);
+      // Photos
+      case "uploadAssistancePhoto":
+        return await handleUploadAssistancePhoto(req, route.params, supabase);
+      case "deleteAssistancePhoto":
+        return await handleDeleteAssistancePhoto(route.params, supabase);
+      // Quotations write
+      case "createQuotation":
+        return await handleCreateQuotation(req, supabase);
+      case "updateQuotation":
+        return await handleUpdateQuotation(req, route.params, supabase);
+      case "deleteQuotation":
+        return await handleDeleteQuotation(route.params, supabase);
+      // Supplier responses
+      case "submitSupplierResponse":
+        return await handleSubmitSupplierResponse(req, route.params, supabase);
+      case "listSupplierResponses":
+        return await handleListSupplierResponses(route.params, supabase);
+      // Notifications & Follow-ups write
+      case "updateNotification":
+        return await handleUpdateNotification(req, route.params, supabase);
+      case "createFollowUp":
+        return await handleCreateFollowUp(req, supabase);
+      // Activity log
+      case "listActivityLog":
+        return await handleListActivityLog(url, supabase);
       default:
         return errorResponse(404, "Not found", "NOT_FOUND");
     }
