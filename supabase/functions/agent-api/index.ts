@@ -148,6 +148,21 @@ function matchRoute(method: string, pathname: string): { handler: string; params
     // Intervention types CRUD
     { method: "POST", pattern: /^\/v1\/intervention-types$/, handler: "createInterventionType", paramNames: [] },
     { method: "PATCH", pattern: /^\/v1\/intervention-types\/([^/]+)$/, handler: "updateInterventionType", paramNames: ["typeId"] },
+    // Photos
+    { method: "POST", pattern: /^\/v1\/assistances\/([^/]+)\/photos$/, handler: "uploadAssistancePhoto", paramNames: ["assistanceId"] },
+    { method: "DELETE", pattern: /^\/v1\/photos\/([^/]+)$/, handler: "deleteAssistancePhoto", paramNames: ["photoId"] },
+    // Quotations write
+    { method: "POST", pattern: /^\/v1\/quotations$/, handler: "createQuotation", paramNames: [] },
+    { method: "PATCH", pattern: /^\/v1\/quotations\/([^/]+)$/, handler: "updateQuotation", paramNames: ["quotationId"] },
+    { method: "DELETE", pattern: /^\/v1\/quotations\/([^/]+)$/, handler: "deleteQuotation", paramNames: ["quotationId"] },
+    // Supplier responses
+    { method: "POST", pattern: /^\/v1\/assistances\/([^/]+)\/supplier-response$/, handler: "submitSupplierResponse", paramNames: ["assistanceId"] },
+    { method: "GET", pattern: /^\/v1\/assistances\/([^/]+)\/supplier-responses$/, handler: "listSupplierResponses", paramNames: ["assistanceId"] },
+    // Notifications & Follow-ups write
+    { method: "PATCH", pattern: /^\/v1\/notifications\/([^/]+)$/, handler: "updateNotification", paramNames: ["notificationId"] },
+    { method: "POST", pattern: /^\/v1\/follow-ups$/, handler: "createFollowUp", paramNames: [] },
+    // Activity log
+    { method: "GET", pattern: /^\/v1\/activity-log$/, handler: "listActivityLog", paramNames: [] },
   ];
 
   for (const route of routes) {
