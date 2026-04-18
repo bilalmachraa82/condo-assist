@@ -763,6 +763,198 @@ mcp.tool("update_intervention_type", {
     asText(await callAgentApi("PATCH", `/v1/intervention-types/${type_id}`, { body })),
 });
 
+// ═══════════ FOTOS ═══════════
+
+mcp.tool("upload_assistance_photo", {
+  description: "[Fotos] Faz upload de uma foto associada a uma assistência. Body inclui file (base64) + photo_type (before/during/after/other) + caption opcional. Tamanho máx 10MB.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      assistance_id: { type: "string" },
+      photo_type: { type: "string", enum: ["before", "during", "after", "other"] },
+      caption: { type: "string" },
+      file: {
+        type: "object",
+        description: "{ name: string, type?: string (mime), data: string (base64, com ou sem data: prefix) }",
+      },
+      idempotency_key: { type: "string", description: "Chave única para evitar duplicação (TTL via activity_log)" },
+    },
+    required: ["assistance_id", "photo_type", "file"],
+  },
+  handler: async ({ assistance_id, idempotency_key, ...body }: { assistance_id: string; idempotency_key?: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("POST", `/v1/assistances/${assistance_id}/photos`, { body, idempotencyKey: idempotency_key })),
+});
+
+mcp.tool("delete_assistance_photo", {
+  description: "[Fotos] Elimina uma foto (storage + registo). Apenas admin.",
+  inputSchema: {
+    type: "object",
+    properties: { photo_id: { type: "string" } },
+    required: ["photo_id"],
+  },
+  handler: async ({ photo_id }: { photo_id: string }) =>
+    asText(await callAgentApi("DELETE", `/v1/photos/${photo_id}`)),
+});
+
+// ═══════════ ORÇAMENTOS (write) ═══════════
+
+mcp.tool("create_quotation", {
+  description: "[Orçamentos] Submete novo orçamento de um fornecedor para uma assistência.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      assistance_id: { type: "string" },
+      supplier_id: { type: "string" },
+      amount: { type: "number" },
+      description: { type: "string" },
+      notes: { type: "string" },
+      validity_days: { type: "number", description: "Default 30" },
+      status: { type: "string", enum: ["pending", "submitted", "approved", "rejected", "expired"], description: "Default submitted" },
+      is_requested: { type: "boolean" },
+      idempotency_key: { type: "string" },
+    },
+    required: ["assistance_id", "supplier_id", "amount"],
+  },
+  handler: async ({ idempotency_key, ...body }: { idempotency_key?: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("POST", "/v1/quotations", { body, idempotencyKey: idempotency_key })),
+});
+
+mcp.tool("update_quotation", {
+  description: "[Orçamentos] Atualiza orçamento (aprovar/rejeitar/alterar valor). Quando status=approved, aplica approved_at e approved_by.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      quotation_id: { type: "string" },
+      amount: { type: "number" },
+      description: { type: "string" },
+      notes: { type: "string" },
+      validity_days: { type: "number" },
+      status: { type: "string", enum: ["pending", "submitted", "approved", "rejected", "expired"] },
+      is_requested: { type: "boolean" },
+      approved_by: { type: "string", description: "UUID do profile (apenas usado se status=approved)" },
+    },
+    required: ["quotation_id"],
+  },
+  handler: async ({ quotation_id, ...body }: { quotation_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("PATCH", `/v1/quotations/${quotation_id}`, { body })),
+});
+
+mcp.tool("delete_quotation", {
+  description: "[Orçamentos] Elimina orçamento (admin).",
+  inputSchema: {
+    type: "object",
+    properties: { quotation_id: { type: "string" } },
+    required: ["quotation_id"],
+  },
+  handler: async ({ quotation_id }: { quotation_id: string }) =>
+    asText(await callAgentApi("DELETE", `/v1/quotations/${quotation_id}`)),
+});
+
+// ═══════════ RESPOSTAS DE FORNECEDOR ═══════════
+
+mcp.tool("submit_supplier_response", {
+  description: "[Respostas] Regista resposta de fornecedor a uma assistência (accepted/declined/needs_info). Quando accepted+scheduled_start_date, marca a assistência como 'scheduled'.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      assistance_id: { type: "string" },
+      supplier_id: { type: "string" },
+      response_type: { type: "string", enum: ["accepted", "declined", "needs_info"] },
+      decline_reason: { type: "string" },
+      notes: { type: "string" },
+      response_comments: { type: "string" },
+      estimated_completion_date: { type: "string" },
+      estimated_duration_hours: { type: "number" },
+      scheduled_start_date: { type: "string" },
+      scheduled_end_date: { type: "string" },
+    },
+    required: ["assistance_id", "supplier_id", "response_type"],
+  },
+  handler: async ({ assistance_id, ...body }: { assistance_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("POST", `/v1/assistances/${assistance_id}/supplier-response`, { body })),
+});
+
+mcp.tool("list_supplier_responses", {
+  description: "[Respostas] Histórico de respostas de fornecedores para uma assistência.",
+  inputSchema: {
+    type: "object",
+    properties: { assistance_id: { type: "string" } },
+    required: ["assistance_id"],
+  },
+  handler: async ({ assistance_id }: { assistance_id: string }) =>
+    asText(await callAgentApi("GET", `/v1/assistances/${assistance_id}/supplier-responses`)),
+});
+
+// ═══════════ NOTIFICAÇÕES & FOLLOW-UPS (write) ═══════════
+
+mcp.tool("update_notification", {
+  description: "[Notificações] Atualiza notificação (status sent/cancelled/failed, sent_at, etc).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      notification_id: { type: "string" },
+      status: { type: "string" },
+      scheduled_for: { type: "string" },
+      sent_at: { type: "string" },
+      priority: { type: "string" },
+      metadata: { type: "object" },
+    },
+    required: ["notification_id"],
+  },
+  handler: async ({ notification_id, ...body }: { notification_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("PATCH", `/v1/notifications/${notification_id}`, { body })),
+});
+
+mcp.tool("create_follow_up", {
+  description: "[Follow-ups] Agenda manualmente um follow-up para uma assistência.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      assistance_id: { type: "string" },
+      follow_up_type: { type: "string", description: "Ex: quotation_reminder, work_reminder, completion_check" },
+      scheduled_for: { type: "string", description: "ISO timestamp" },
+      priority: { type: "string", enum: ["normal", "urgent", "critical"] },
+      supplier_id: { type: "string" },
+      max_attempts: { type: "number", description: "Default 3" },
+      metadata: { type: "object" },
+      status: { type: "string", description: "Default pending" },
+      next_attempt_at: { type: "string" },
+      idempotency_key: { type: "string" },
+    },
+    required: ["assistance_id", "follow_up_type", "scheduled_for"],
+  },
+  handler: async ({ idempotency_key, ...body }: { idempotency_key?: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("POST", "/v1/follow-ups", { body, idempotencyKey: idempotency_key })),
+});
+
+// ═══════════ ACTIVITY LOG ═══════════
+
+mcp.tool("list_activity_log", {
+  description: "[Audit] Lista entradas do registo de actividade. Filtros: assistance_id, supplier_id, user_id, action.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      assistance_id: { type: "string" },
+      supplier_id: { type: "string" },
+      user_id: { type: "string" },
+      action: { type: "string" },
+      limit: { type: "number" },
+      offset: { type: "number" },
+    },
+  },
+  handler: async ({ assistance_id, supplier_id, user_id, action, limit, offset }: Record<string, unknown>) =>
+    asText(await callAgentApi("GET", "/v1/activity-log", {
+      query: {
+        assistance_id: assistance_id as string,
+        supplier_id: supplier_id as string,
+        user_id: user_id as string,
+        action: action as string,
+        limit: (limit as number)?.toString(),
+        offset: (offset as number)?.toString(),
+      },
+    })),
+});
+
 // ── HTTP transport (Hono) ──
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
