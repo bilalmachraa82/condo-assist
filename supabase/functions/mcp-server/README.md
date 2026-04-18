@@ -23,25 +23,33 @@ Usa a mesma `EXTERNAL_API_KEY` da Agent API. Aceita:
 - Header: `Authorization: Bearer <KEY>`
 - Query param: `?api_key=<KEY>`
 
-## Ferramentas expostas (15)
+## Ferramentas expostas (48)
 
-| Ferramenta | Descrição |
-|-----------|-----------|
-| `health_check` | Verifica se a Agent API está operacional |
-| `lookup_building_by_email` | Procura edifício pelo email do condómino |
-| `list_assistances` | Lista assistências de um edifício (com filtros) |
-| `get_assistance` | Detalhe completo de uma assistência |
-| `list_intervention_types` | Lista tipos de intervenção disponíveis |
-| `create_assistance` | Cria nova assistência (com idempotência) |
-| `add_communication` | Adiciona comunicação ao log |
-| `save_email_draft` | Guarda rascunho de email para revisão |
-| `update_email_status` | Aprova/rejeita/marca rascunho como enviado |
-| `import_contacts` | Bulk upsert de contactos de condóminos |
-| `search_knowledge` | Pesquisa full-text na base de conhecimento |
-| `get_knowledge_article` | Detalhe de artigo da KB |
-| `create_knowledge_article` | Cria artigo na KB |
-| `update_knowledge_article` | Atualiza artigo existente |
-| `delete_knowledge_article` | Elimina artigo |
+Paridade completa com a app web — read e write em todas as áreas.
+
+**Core (5):** `health_check`, `lookup_building_by_email`, `list_intervention_types`, `create_intervention_type`, `update_intervention_type`
+
+**Assistências (10):** `list_assistances`, `get_assistance`, `create_assistance`, `update_assistance`, `add_communication`, `list_assistance_communications`, `list_assistance_photos`, `list_assistance_progress`, `save_email_draft`, `update_email_status`
+
+**Edifícios (5):** `list_buildings`, `get_building`, `create_building`, `update_building`, `list_building_contacts`
+
+**Fornecedores (4):** `list_suppliers`, `get_supplier`, `create_supplier`, `update_supplier`
+
+**Actas (5):** `list_assembly_items`, `get_assembly_item`, `create_assembly_item`, `update_assembly_item`, `delete_assembly_item`
+
+**Orçamentos (5):** `list_quotations`, `get_quotation`, `create_quotation`, `update_quotation`, `delete_quotation`
+
+**Knowledge Base (5):** `search_knowledge`, `get_knowledge_article`, `create_knowledge_article`, `update_knowledge_article`, `delete_knowledge_article`
+
+**Fotos (2):** `upload_assistance_photo`, `delete_assistance_photo`
+
+**Respostas Fornecedor (2):** `submit_supplier_response`, `list_supplier_responses`
+
+**Follow-ups & Notificações (4):** `list_follow_ups`, `create_follow_up`, `list_notifications`, `update_notification`
+
+**Activity Log (1):** `list_activity_log`
+
+**Contactos (1):** `import_contacts`
 
 ## Conectar ao Claude Desktop
 
@@ -95,7 +103,7 @@ usa o adaptador oficial `mcp-remote`:
 ### Verificar conexão
 
 1. No Claude Desktop, abre uma nova conversa.
-2. Clica no ícone do martelo 🔨 (ferramentas) — deves ver as 15 ferramentas listadas.
+2. Clica no ícone do martelo 🔨 (ferramentas) — deves ver as 48 ferramentas listadas.
 3. Pergunta: *"Faz health check ao servidor condo-assist."* — Claude deve invocar `health_check`.
 4. Pergunta: *"Lista os tipos de intervenção disponíveis."*
 

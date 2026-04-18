@@ -1,18 +1,18 @@
 ---
 name: Agent API for External AI
-description: Edge function agent-api with 32 REST endpoints for AI agent integration covering full app — assistances, buildings, suppliers, assembly items, quotations, contacts, follow-ups, notifications, knowledge base
+description: Edge function agent-api with 43 REST endpoints — full read/write parity with website covering assistances, buildings, suppliers, assembly items, quotations, contacts, follow-ups, notifications, knowledge base, photos, supplier responses, activity log
 type: feature
 ---
 
 ## Edge Functions for External API Access
 
-### agent-api (AI agent integration — 32 endpoints under `/v1/`)
+### agent-api (AI agent integration — 43 endpoints under `/v1/`)
 
 **Authentication:** Dual headers — `Authorization: Bearer <key>` or `x-api-key: <key>`, validated against `EXTERNAL_API_KEY` secret.
 
 **Rate limiting:** Postgres-backed via `agent_api_rate_limit` table, SHA-256 hashed key, 100 req/min.
 
-**Idempotency:** `Idempotency-Key` header on POST /assistances and POST /email-log, 24h TTL.
+**Idempotency:** `Idempotency-Key` header on POST /assistances, /email-log, /photos, /quotations, /follow-ups (24h TTL).
 
 **PII masking:** All console.error calls use maskPII() helper.
 
@@ -37,6 +37,10 @@ type: feature
 - POST /v1/assistances/:id/email-log (idempotent)
 - PATCH /v1/email-log/:id/status
 
+**Photos**
+- POST /v1/assistances/:id/photos (idempotent, base64 upload, máx 10MB) — uses `assistance-photos` storage bucket
+- DELETE /v1/photos/:id (admin)
+
 **Buildings**
 - GET /v1/buildings
 - GET /v1/buildings/:id
@@ -50,6 +54,10 @@ type: feature
 - POST /v1/suppliers
 - PATCH /v1/suppliers/:id
 
+**Supplier Responses**
+- POST /v1/assistances/:id/supplier-response (response_type accepted/declined/needs_info; auto-promotes assistance to 'scheduled' if accepted+scheduled_start_date)
+- GET /v1/assistances/:id/supplier-responses
+
 **Assembly Items (Actas)**
 - GET /v1/assembly-items (filtros: building_id, building_code, status, category, year, q)
 - GET /v1/assembly-items/:id
@@ -60,10 +68,15 @@ type: feature
 **Quotations**
 - GET /v1/quotations
 - GET /v1/quotations/:id
+- POST /v1/quotations (idempotent)
+- PATCH /v1/quotations/:id (status approved auto-sets approved_at)
+- DELETE /v1/quotations/:id
 
 **Follow-ups & Notifications**
 - GET /v1/follow-ups
+- POST /v1/follow-ups (idempotent)
 - GET /v1/notifications
+- PATCH /v1/notifications/:id
 
 **Knowledge Base**
 - GET /v1/knowledge (full-text search)
@@ -71,6 +84,9 @@ type: feature
 - POST /v1/knowledge
 - PATCH /v1/knowledge/:id
 - DELETE /v1/knowledge/:id
+
+**Activity Log**
+- GET /v1/activity-log (filtros: assistance_id, supplier_id, user_id, action)
 
 **Contacts**
 - POST /v1/import-contacts (bulk upsert by email, max 500)
