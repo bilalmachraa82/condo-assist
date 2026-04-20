@@ -228,7 +228,7 @@ export default function RevisaoDatas() {
                     {item.title}
                     <Badge variant="secondary" className="text-xs">{item.category}</Badge>
                     {item.status === "kept" && <Badge className="bg-success text-success-foreground">Mantida</Badge>}
-                    {item.status === "swapped" && <Badge className="bg-info text-info-foreground">Trocada</Badge>}
+                    {item.status === "swapped" && <Badge className="bg-primary text-primary-foreground">Trocada</Badge>}
                   </CardTitle>
                   <Link
                     to={`/knowledge?article=${item.id}`}
