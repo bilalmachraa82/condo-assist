@@ -408,7 +408,9 @@ function parseWorkbook(wb: XLSX.WorkBook): ArticleDraft[] {
   for (const sheetName of wb.SheetNames) {
     const ws = wb.Sheets[sheetName];
     if (!ws || !SHEET_MAP[sheetName]) continue;
-    const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
+    // raw:true → datas vêm como Date nativo (graças a cellDates:true em XLSX.read),
+    // não como string pré-formatada com locale do ficheiro.
+    const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true });
     if (rows.length < 3) continue;
 
     switch (sheetName) {
@@ -467,12 +469,14 @@ export default function KnowledgeImport({ open, onOpenChange }: Props) {
   const [articles, setArticles] = useState<ArticleDraft[]>([]);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState({ created: 0, errors: 0 });
+  const [ambiguousDates, setAmbiguousDates] = useState<string[]>([]);
 
   const resetState = useCallback(() => {
     setPhase("idle");
     setArticles([]);
     setProgress(0);
     setResult({ created: 0, errors: 0 });
+    setAmbiguousDates([]);
   }, []);
 
   const handleFileChange = useCallback(
@@ -483,6 +487,7 @@ export default function KnowledgeImport({ open, onOpenChange }: Props) {
       const reader = new FileReader();
       reader.onload = (ev) => {
         try {
+          __ambiguousDates = [];
           const data = new Uint8Array(ev.target?.result as ArrayBuffer);
           const wb = XLSX.read(data, { type: "array", cellDates: true });
           const drafts = parseWorkbook(wb);
@@ -498,6 +503,7 @@ export default function KnowledgeImport({ open, onOpenChange }: Props) {
           }
 
           setArticles(drafts);
+          setAmbiguousDates([...new Set(__ambiguousDates)]);
           setPhase("preview");
         } catch (err) {
           toast({
