@@ -184,6 +184,14 @@ const App = () => (
                 } 
               />
               <Route 
+                path="/admin/revisao-datas" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout><RevisaoDatas /></DashboardLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/assembly" 
                 element={
                   <ProtectedRoute>
