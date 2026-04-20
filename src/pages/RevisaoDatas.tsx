@@ -287,11 +287,11 @@ export default function RevisaoDatas() {
   );
 }
 
-function StatCard({ label, value, tone }: { label: string; value: number; tone?: "warning" | "success" | "info" }) {
+function StatCard({ label, value, tone }: { label: string; value: number; tone?: "warning" | "success" | "primary" }) {
   const toneClass =
     tone === "warning" ? "text-warning"
     : tone === "success" ? "text-success"
-    : tone === "info" ? "text-info"
+    : tone === "primary" ? "text-primary"
     : "text-foreground";
   return (
     <Card>
