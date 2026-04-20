@@ -1,55 +1,46 @@
 
 
 ## Objectivo
-Resolver automaticamente as 102 datas ambíguas usando análise crítica em vez de exigir revisão manual.
+Validação cruzada (Fase B) usando os 2 ficheiros Excel originais que o utilizador acabou de enviar, para confirmar 100% de certeza nas correcções de datas já aplicadas.
 
-## Estratégias de auditoria (em cascata, da mais fiável à menos)
+## O que vou fazer
 
-### 1. Comparação com o backup pré-correcção
-A tabela `_backup_dates_20260420` tem o `content` original tal como veio do Excel. Para cada data ambígua:
-- Comparar a posição da data no backup vs. no estado actual.
-- Se o Excel já gerou `m/d/yy`, o backup tem essa pista; se gerou `d/m/yy`, idem.
-- Cruzar com o **padrão dominante do mesmo artigo**: se 80% das datas não-ambíguas no mesmo artigo são `d/m/y`, assumir o mesmo para as ambíguas.
+### 1. Parsing fiável dos Excel originais
+- Copiar `Assuntos_actas_a_resolver-2.xlsx` e `Listagem_Geral_de_Manutenção-3.xlsx` para `/tmp/`.
+- Ler com Python + `openpyxl` (`data_only=True`) que devolve `datetime` nativo para células de data — sem ambiguidade nenhuma.
+- Extrair todas as datas + texto de cada linha → ground truth absoluta.
 
-### 2. Análise do Excel original (se reenviado)
-Ler o ficheiro com `cellDates: true` + `raw: true` → recebemos `Date` nativo, sem ambiguidade nenhuma. Comparar com as 102 entradas e resolver 100%.
+### 2. Comparar com o estado actual da BD
+- Para cada artigo importado nos batches afectados (knowledge_articles + assembly_items), procurar as datas correspondentes no Excel original.
+- Verificar 3 casos:
+  - ✅ **Match**: data na BD === data no Excel → correcção OK.
+  - ⚠️ **Mismatch**: data na BD ≠ Excel → erro residual, precisa correcção.
+  - ❓ **Não encontrado**: linha do Excel não bate com nenhum artigo (provavelmente normal, mas reportar).
 
-### 3. Heurística contextual por artigo
-Mesmo sem o Excel, dentro de cada artigo:
-- Se o artigo tem datas `15/3/25` e `5/8/25`, a primeira força interpretação `d/m/y` → aplicar à segunda.
-- Se a data ambígua aparece numa série cronológica (ex: linha de "última inspecção"), inferir pelo contexto temporal das outras datas do bloco.
+### 3. Relatório de auditoria
+Gerar 2 ficheiros em `/mnt/documents/`:
+- `auditoria_datas_final.csv` — linha-a-linha com: artigo_id, data_excel, data_bd, status (OK/MISMATCH).
+- `auditoria_datas_resumo.pdf` — sumário executivo: total verificado, % match, lista de mismatches, conclusão de confiança final.
 
-### 4. Padrão temporal global
-Verificar `created_at` dos artigos: importações feitas no mesmo batch usaram o mesmo Excel → mesmo locale → mesma convenção. Se 90% das datas não-ambíguas desse batch são `d/m/y`, aplicar a todas as ambíguas desse batch.
+### 4. Correcção dos mismatches (se existirem)
+- Se encontrar discrepâncias, gerar migration SQL com os UPDATEs específicos.
+- Backup `_backup_dates_20260420_v3` antes de aplicar.
+- Re-executar verificação até 100% match.
 
-## Plano de execução
+### 5. Conclusão para o cliente
+Entregar relatório PDF com:
+- Total de datas auditadas vs Excel original.
+- % de correspondência exacta.
+- Lista de eventuais correcções residuais aplicadas.
+- Grau de confiança final (esperado: 100% após Fase B).
 
-**Fase A — Auditoria automática (sem Excel):**
-1. Para cada uma das 102 entradas ambíguas, extrair `article_id` e ler `content` actual + `content` do backup.
-2. Calcular o "score de formato" do artigo: contar datas não-ambíguas → determinar formato dominante (`d/m/y` vs `m/d/y`).
-3. Agrupar artigos por janela de importação (mesmo `created_at` ±5 min) e calcular score do batch.
-4. Para cada ambígua, decidir:
-   - Se score do artigo é claro (>70% num formato) → aplicar.
-   - Senão, usar score do batch.
-   - Senão, marcar como "verdadeiramente irresolúvel" (deve ser <10 casos).
-5. Gerar relatório CSV com: data ambígua | decisão | confiança | razão.
-6. Aplicar `UPDATE` em batch, com novo backup `_backup_dates_20260420_v2`.
+## Pré-requisitos técnicos
+- Python `openpyxl` (já disponível no sandbox).
+- Acesso `psql` à BD (já configurado).
+- Backup automático antes de qualquer UPDATE adicional.
 
-**Fase B — Validação cruzada com Excel (recomendada):**
-- Pedir ao utilizador para reenviar o Excel original como confirmação.
-- Reparsear com `raw: true` e comparar com as decisões da Fase A.
-- Discrepâncias → corrigir e adicionar ao relatório.
-
-**Fase C — Atualizar UI `/admin/revisao-datas`:**
-- Mostrar as decisões automáticas com badge "Auto-resolvido (confiança: alta/média)".
-- Permitir override manual nos casos de baixa confiança.
-- Marcar lista como concluída quando todos resolvidos.
-
-## Pergunta antes de avançar
-
-Para maximizar a precisão, qual destas opções preferes?
-
-1. **Avançar já com Fase A** (auditoria automática usando backup + heurísticas, sem Excel). Resolve provavelmente 90+ casos com alta confiança; ~10 ficam para revisão manual.
-2. **Reenviar o Excel original primeiro** e fazer Fase B directamente — resolve 100% com certeza absoluta.
-3. **Fase A + Fase B combinadas** — máxima robustez, usa heurística como validação cruzada do Excel.
+## Resultado esperado
+- Confirmação de que as 182 correcções da Fase A estão alinhadas com o Excel original.
+- Eventuais mismatches residuais corrigidos.
+- Relatório PDF entregável ao cliente com confiança 100%.
 
