@@ -218,6 +218,18 @@ export default function AssemblyImport({ open, onOpenChange }: Props) {
               )}
             </div>
 
+            {ambiguousDates.length > 0 && (
+              <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-3 text-xs space-y-1">
+                <p className="font-medium flex items-center gap-1 text-yellow-700 dark:text-yellow-400">
+                  <AlertCircle className="h-3.5 w-3.5" /> {ambiguousDates.length} data(s) ambígua(s)
+                </p>
+                <p className="text-muted-foreground">
+                  Não foi possível determinar formato (dd/mm vs mm/dd) em:{" "}
+                  <span className="font-mono">{ambiguousDates.slice(0, 3).join(", ")}</span>
+                </p>
+              </div>
+            )}
+
             <DialogFooter>
               <Button variant="outline" onClick={resetState}>Cancelar</Button>
               <Button onClick={handleImport}>Importar {items.length} assuntos</Button>
