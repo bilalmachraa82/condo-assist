@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      _audit_excel_truth: {
+        Row: {
+          building_code: string
+          col_header: string | null
+          dd_mm_yyyy: string
+          id: number
+          sheet: string
+        }
+        Insert: {
+          building_code: string
+          col_header?: string | null
+          dd_mm_yyyy: string
+          id?: number
+          sheet: string
+        }
+        Update: {
+          building_code?: string
+          col_header?: string | null
+          dd_mm_yyyy?: string
+          id?: number
+          sheet?: string
+        }
+        Relationships: []
+      }
       _backup_dates_20260420: {
         Row: {
           backed_up_at: string | null
@@ -36,6 +60,27 @@ export type Database = {
         Relationships: []
       }
       _backup_dates_20260420_v2: {
+        Row: {
+          backed_up_at: string | null
+          content: string | null
+          id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          backed_up_at?: string | null
+          content?: string | null
+          id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          backed_up_at?: string | null
+          content?: string | null
+          id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      _backup_dates_20260420_v3: {
         Row: {
           backed_up_at: string | null
           content: string | null
