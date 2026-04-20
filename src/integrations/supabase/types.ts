@@ -35,6 +35,27 @@ export type Database = {
         }
         Relationships: []
       }
+      _backup_dates_20260420_v2: {
+        Row: {
+          backed_up_at: string | null
+          content: string | null
+          id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          backed_up_at?: string | null
+          content?: string | null
+          id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          backed_up_at?: string | null
+          content?: string | null
+          id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       activity_log: {
         Row: {
           action: string
