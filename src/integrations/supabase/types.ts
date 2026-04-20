@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      _backup_dates_20260420: {
+        Row: {
+          backed_up_at: string | null
+          content: string | null
+          id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          backed_up_at?: string | null
+          content?: string | null
+          id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          backed_up_at?: string | null
+          content?: string | null
+          id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       activity_log: {
         Row: {
           action: string
@@ -1545,6 +1566,7 @@ export type Database = {
       }
       magic_code_valid_days: { Args: never; Returns: number }
       process_pending_followups: { Args: never; Returns: number }
+      pt_normalize_dates: { Args: { input: string }; Returns: string }
       purge_supplier_non_critical: {
         Args: { p_supplier_id: string }
         Returns: Json
