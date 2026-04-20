@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useBuildings } from "@/hooks/useBuildings";
 import { supabase } from "@/integrations/supabase/client";
 import { parseStatus, detectCategory, extractAmount, isUrgent } from "@/utils/assemblyParser";
+import { cellStr as cellStrShared } from "@/utils/excelCellFormat";
 import * as XLSX from "xlsx";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -30,10 +31,10 @@ interface ItemDraft {
 
 type Phase = "idle" | "preview" | "importing" | "done";
 
+let __ambiguousDates: string[] = [];
+
 function cellStr(v: unknown): string {
-  if (v == null) return "";
-  if (v instanceof Date) return v.toLocaleDateString("pt-PT");
-  return String(v).trim();
+  return cellStrShared(v, __ambiguousDates);
 }
 
 function parseSheet(rows: unknown[][], sheetName: string): ItemDraft[] {
@@ -89,12 +90,14 @@ export default function AssemblyImport({ open, onOpenChange }: Props) {
   const [items, setItems] = useState<ItemDraft[]>([]);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState({ created: 0, errors: 0 });
+  const [ambiguousDates, setAmbiguousDates] = useState<string[]>([]);
 
   const resetState = useCallback(() => {
     setPhase("idle");
     setItems([]);
     setProgress(0);
     setResult({ created: 0, errors: 0 });
+    setAmbiguousDates([]);
   }, []);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,6 +107,7 @@ export default function AssemblyImport({ open, onOpenChange }: Props) {
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
+        __ambiguousDates = [];
         const data = new Uint8Array(ev.target?.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: "array", cellDates: true });
 
@@ -111,7 +115,8 @@ export default function AssemblyImport({ open, onOpenChange }: Props) {
         for (const sheetName of wb.SheetNames) {
           const ws = wb.Sheets[sheetName];
           if (!ws) continue;
-          const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
+          // raw:true para datas chegarem como Date nativo
+          const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true });
           if (rows.length < 2) continue;
           allItems.push(...parseSheet(rows, sheetName));
         }
@@ -127,6 +132,7 @@ export default function AssemblyImport({ open, onOpenChange }: Props) {
         }
 
         setItems(allItems);
+        setAmbiguousDates([...new Set(__ambiguousDates)]);
         setPhase("preview");
       } catch (err) {
         toast({ title: "Erro ao ler ficheiro", description: String(err), variant: "destructive" });

@@ -649,6 +649,18 @@ export default function KnowledgeImport({ open, onOpenChange }: Props) {
               </div>
             </div>
 
+            {ambiguousDates.length > 0 && (
+              <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-3 text-xs space-y-1">
+                <p className="font-medium flex items-center gap-1 text-yellow-700 dark:text-yellow-400">
+                  <AlertCircle className="h-3.5 w-3.5" /> {ambiguousDates.length} data(s) ambígua(s) detectada(s)
+                </p>
+                <p className="text-muted-foreground">
+                  Não foi possível determinar com certeza se as datas estão em formato dd/mm/aaaa ou mm/dd/aaaa
+                  (ex: <span className="font-mono">{ambiguousDates.slice(0, 3).join(", ")}</span>). Reveja após importar.
+                </p>
+              </div>
+            )}
+
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => { resetState(); }}>
                 Cancelar
