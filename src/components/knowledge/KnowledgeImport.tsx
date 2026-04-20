@@ -16,7 +16,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useBuildings } from "@/hooks/useBuildings";
 import { supabase } from "@/integrations/supabase/client";
 import { getCategoryConfig, KNOWLEDGE_CATEGORIES } from "@/utils/knowledgeCategories";
+import { cellStr as cellStrShared } from "@/utils/excelCellFormat";
 import * as XLSX from "xlsx";
+
+// Buffer global de strings ambíguas detectadas (preenchido durante o parse).
+let __ambiguousDates: string[] = [];
 
 // ── Sheet → category mapping ──
 const SHEET_MAP: Record<string, string> = {
@@ -48,9 +52,7 @@ type ImportPhase = "idle" | "preview" | "importing" | "done";
 
 // ── Cell value helpers ──
 function cellStr(v: unknown): string {
-  if (v == null) return "";
-  if (v instanceof Date) return v.toLocaleDateString("pt-PT");
-  return String(v).trim();
+  return cellStrShared(v, __ambiguousDates);
 }
 
 function isCondoCode(v: unknown): boolean {
@@ -406,7 +408,9 @@ function parseWorkbook(wb: XLSX.WorkBook): ArticleDraft[] {
   for (const sheetName of wb.SheetNames) {
     const ws = wb.Sheets[sheetName];
     if (!ws || !SHEET_MAP[sheetName]) continue;
-    const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
+    // raw:true → datas vêm como Date nativo (graças a cellDates:true em XLSX.read),
+    // não como string pré-formatada com locale do ficheiro.
+    const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true });
     if (rows.length < 3) continue;
 
     switch (sheetName) {
@@ -465,12 +469,14 @@ export default function KnowledgeImport({ open, onOpenChange }: Props) {
   const [articles, setArticles] = useState<ArticleDraft[]>([]);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState({ created: 0, errors: 0 });
+  const [ambiguousDates, setAmbiguousDates] = useState<string[]>([]);
 
   const resetState = useCallback(() => {
     setPhase("idle");
     setArticles([]);
     setProgress(0);
     setResult({ created: 0, errors: 0 });
+    setAmbiguousDates([]);
   }, []);
 
   const handleFileChange = useCallback(
@@ -481,6 +487,7 @@ export default function KnowledgeImport({ open, onOpenChange }: Props) {
       const reader = new FileReader();
       reader.onload = (ev) => {
         try {
+          __ambiguousDates = [];
           const data = new Uint8Array(ev.target?.result as ArrayBuffer);
           const wb = XLSX.read(data, { type: "array", cellDates: true });
           const drafts = parseWorkbook(wb);
@@ -496,6 +503,7 @@ export default function KnowledgeImport({ open, onOpenChange }: Props) {
           }
 
           setArticles(drafts);
+          setAmbiguousDates([...new Set(__ambiguousDates)]);
           setPhase("preview");
         } catch (err) {
           toast({
@@ -640,6 +648,18 @@ export default function KnowledgeImport({ open, onOpenChange }: Props) {
                 )}
               </div>
             </div>
+
+            {ambiguousDates.length > 0 && (
+              <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-3 text-xs space-y-1">
+                <p className="font-medium flex items-center gap-1 text-yellow-700 dark:text-yellow-400">
+                  <AlertCircle className="h-3.5 w-3.5" /> {ambiguousDates.length} data(s) ambígua(s) detectada(s)
+                </p>
+                <p className="text-muted-foreground">
+                  Não foi possível determinar com certeza se as datas estão em formato dd/mm/aaaa ou mm/dd/aaaa
+                  (ex: <span className="font-mono">{ambiguousDates.slice(0, 3).join(", ")}</span>). Reveja após importar.
+                </p>
+              </div>
+            )}
 
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => { resetState(); }}>
