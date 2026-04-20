@@ -16,7 +16,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useBuildings } from "@/hooks/useBuildings";
 import { supabase } from "@/integrations/supabase/client";
 import { getCategoryConfig, KNOWLEDGE_CATEGORIES } from "@/utils/knowledgeCategories";
+import { cellStr as cellStrShared } from "@/utils/excelCellFormat";
 import * as XLSX from "xlsx";
+
+// Buffer global de strings ambíguas detectadas (preenchido durante o parse).
+let __ambiguousDates: string[] = [];
 
 // ── Sheet → category mapping ──
 const SHEET_MAP: Record<string, string> = {
@@ -48,9 +52,7 @@ type ImportPhase = "idle" | "preview" | "importing" | "done";
 
 // ── Cell value helpers ──
 function cellStr(v: unknown): string {
-  if (v == null) return "";
-  if (v instanceof Date) return v.toLocaleDateString("pt-PT");
-  return String(v).trim();
+  return cellStrShared(v, __ambiguousDates);
 }
 
 function isCondoCode(v: unknown): boolean {
