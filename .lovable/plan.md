@@ -1,64 +1,51 @@
 
 
-# Plano: Fechar lacunas de paridade MCP/API ↔ site
+## Diagnóstico confirmado
 
-Adicionar 8 endpoints REST + 8 tools MCP correspondentes para garantir paridade total entre o que o utilizador faz no site e o que um agente IA pode fazer via MCP/API.
+O erro está nos parsers de Excel (`KnowledgeImport.tsx` e `AssemblyImport.tsx`). Ambos usam `XLSX.read(data, { cellDates: true })` + `sheet_to_json(..., { raw: false })`.
 
-## 1. Photos (assistências) — upload e delete
+**O problema:** com `raw: false`, a biblioteca SheetJS converte datas para string usando o **locale do servidor de origem do ficheiro Excel** (frequentemente `m/d/yy` em ficheiros vindos de versões EN-US do Office). Resultado: `01/06/2026` (1 de Junho) é gravado no conteúdo como `"6/1/26"` — o utilizador lê isto como 6 de Janeiro.
 
-**REST** (`agent-api/index.ts`):
-- `POST /v1/assistances/:id/photos` — upload de foto (multipart ou base64 + caption + photo_type) → reusa lógica de `upload-assistance-photo`
-- `DELETE /v1/photos/:id` — eliminar foto (admin)
+Confirmei na BD: artigos importados a 2026-04-16 nas categorias `extintores`, `elevadores` e seguimento de actas têm dezenas de datas no formato `m/d/yy` embebidas no campo `content` (markdown).
 
-**MCP**: `upload_assistance_photo`, `delete_assistance_photo`
+## Plano de resolução (2 partes)
 
-## 2. Quotations — write completo
+### Parte 1 — Corrigir o código (prevenir futuros erros)
 
-**REST**:
-- `POST /v1/quotations` — submeter orçamento (assistance_id, supplier_id, amount, description, validity_days)
-- `PATCH /v1/quotations/:id` — actualizar status (approved/rejected/pending), notes, approved_by
-- `DELETE /v1/quotations/:id` — eliminar (admin)
+**Ficheiros a alterar:**
+1. `src/components/knowledge/KnowledgeImport.tsx`
+2. `src/components/assembly/AssemblyImport.tsx`
 
-**MCP**: `create_quotation`, `update_quotation`, `delete_quotation`
+**Mudanças:**
+- Trocar `sheet_to_json(ws, { raw: false, ... })` para `raw: true` para receber `Date` nativo em vez de string pré-formatada.
+- Reescrever helper `cellStr` para:
+  - Se for `Date` → formatar como `dd/MM/yyyy` (pt-PT) com `date-fns`.
+  - Se for número de série Excel (típico quando `cellDates:false`) → converter via `XLSX.SSF.parse_date_code`.
+  - Se for string que parece data ambígua (`m/d/yy` ou `d/m/yy`) → tentar detetar e normalizar para `dd/MM/yyyy`.
+- Adicionar aviso visual no preview quando datas ambíguas forem detectadas, antes de o utilizador confirmar a importação.
 
-## 3. Supplier responses — aceitar/recusar assistência
+### Parte 2 — Corrigir dados já importados
 
-**REST**:
-- `POST /v1/assistances/:id/supplier-response` — registar resposta (response_type: accepted/declined, decline_reason, scheduled dates)
-- `GET /v1/assistances/:id/supplier-responses` — listar histórico
+Criar script de migração one-shot que:
+1. Faz `SELECT id, content, created_at FROM knowledge_articles WHERE created_at >= '2026-04-10'` (filtro pelas últimas importações afectadas).
+2. Para cada artigo, aplica regex `\b(\d{1,2})/(\d{1,2})/(\d{2,4})\b` ao `content`.
+3. Decisão de troca:
+   - Se `primeiro > 12` → já é `d/m/y`, deixar.
+   - Se `segundo > 12` → é claramente `m/d/y`, **trocar** para `d/m/y` e normalizar para `dd/MM/yyyy`.
+   - Se ambos ≤ 12 → **ambíguo**: marcar para revisão manual (lista exportada para CSV em `/mnt/documents/`).
+4. Aplica os mesmos passos a `assembly_items.description` e `assembly_items.status_notes`.
+5. Faz `UPDATE` em batch via migration SQL (gerada pelo script com os IDs e novos valores).
+6. Cria backup das colunas afectadas numa tabela `_backup_dates_20260420` antes de qualquer escrita.
 
-**MCP**: `submit_supplier_response`, `list_supplier_responses`
+### Validação pós-fix
 
-## 4. Notifications & Follow-ups — write básico
+- Importar de novo um ficheiro de teste e confirmar que datas aparecem `dd/MM/yyyy` no preview e na BD.
+- Verificar 5 artigos amostrais que estavam errados (ex: artigo 143 do screenshot) e confirmar correcção.
+- Revisar manualmente a lista de "ambíguos" exportada.
 
-**REST**:
-- `PATCH /v1/notifications/:id` — actualizar status (sent/cancelled)
-- `POST /v1/follow-ups` — agendar follow-up manual
+## Detalhes técnicos relevantes
 
-**MCP**: `update_notification`, `create_follow_up`
-
-## 5. Activity log — read
-
-**REST**: `GET /v1/activity-log` (filtros: assistance_id, supplier_id, user_id, limit, offset)
-**MCP**: `list_activity_log`
-
-## Padrão a seguir
-- Mesmo padrão dos endpoints existentes: `matchRoute` + handler + validação Zod-like + PII masking + `EXTERNAL_API_KEY` auth + rate limit
-- Idempotency-Key em todos os novos POST
-- MCP tools agrupadas por área no description (`[Fotos]`, `[Orçamentos]`, `[Respostas]`)
-
-## Sem alterações de DB
-Todas as tabelas, RLS e edge functions auxiliares (`upload-assistance-photo`, `sign-assistance-photos`) já existem.
-
-## Documentação
-- Actualizar `openapi.yaml` (+10 endpoints)
-- Actualizar `mcp-server/README.md` (37 → 47 tools)
-- Actualizar memória `mem://features/external-api-access` e `mem://features/mcp-server`
-
-## Validação pós-deploy
-- `curl POST /v1/quotations` com `x-api-key` → confirma criação
-- `GET /mcp-server/info` → confirma `tools: 47`
-- Testar via MCP Inspector: `create_quotation` + `update_quotation` + `submit_supplier_response`
-
-**Total final**: 42 endpoints REST + 47 tools MCP — paridade completa com o site.
+- `xlsx@0.18.x` (SheetJS) — usar `XLSX.SSF.format("dd/mm/yyyy", value)` é a alternativa robusta se mantivermos `raw:false`.
+- Sem alteração de schema, apenas updates de conteúdo.
+- Migração precisa de aprovação (UPDATE em massa).
 
