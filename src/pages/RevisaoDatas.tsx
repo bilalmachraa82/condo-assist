@@ -179,7 +179,7 @@ export default function RevisaoDatas() {
         <StatCard label="Total" value={stats.total} />
         <StatCard label="Pendentes" value={stats.pending} tone="warning" />
         <StatCard label="Mantidas" value={stats.kept} tone="success" />
-        <StatCard label="Trocadas" value={stats.swapped} tone="info" />
+        <StatCard label="Trocadas" value={stats.swapped} tone="primary" />
       </div>
 
       <div className="flex flex-col md:flex-row gap-3">
