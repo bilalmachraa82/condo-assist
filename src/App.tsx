@@ -19,6 +19,7 @@ import EmailTesting from "./pages/EmailTesting";
 import FollowUps from "./pages/FollowUps";
 import FollowUpTesting from "./pages/FollowUpTesting";
 import Knowledge from "./pages/Knowledge";
+import RevisaoDatas from "./pages/RevisaoDatas";
 import Assembly from "./pages/Assembly";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
