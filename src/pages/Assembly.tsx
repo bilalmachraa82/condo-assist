@@ -11,7 +11,7 @@ import AssemblyBuildingGroup from "@/components/assembly/AssemblyBuildingGroup";
 import AssemblyDetail from "@/components/assembly/AssemblyDetail";
 import AssemblyImport from "@/components/assembly/AssemblyImport";
 import AssemblyForm from "@/components/assembly/AssemblyForm";
-import AssemblyStats from "@/components/assembly/AssemblyStats";
+import AssemblyPDFExportButton from "@/components/assembly/AssemblyPDFExportButton";
 import {
   useAssemblyItems, useAssemblyStatusCounts, useUpdateAssemblyItem, useDeleteAssemblyItem,
   type AssemblyItem, type AssemblyFilters as Filters,
@@ -99,20 +99,21 @@ export default function Assembly() {
             Deliberações das assembleias de condomínio
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button onClick={() => { setEditItem(null); setDefaultBuildingId(null); setFormOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" /> Novo Assunto
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-2" /> Importar Excel
           </Button>
+          <AssemblyPDFExportButton
+            groups={grouped.map(([code, g]) => ({ buildingCode: code, address: g.address, items: g.items }))}
+            year={filters.year}
+            category={filters.category}
+            status={filters.status}
+          />
         </div>
       </div>
-
-      {/* Stats */}
-      {counts && (
-        <AssemblyStats statusCounts={counts.statusCounts} total={counts.total} />
-      )}
 
       {/* Filters */}
       <AssemblyFilters
