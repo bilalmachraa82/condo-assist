@@ -14,6 +14,8 @@ interface AssemblyPDFExportButtonProps {
   year?: number;
   category?: string;
   status?: string;
+  search?: string;
+  buildingLabel?: string;
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm" | "icon";
   label?: string;
@@ -21,6 +23,15 @@ interface AssemblyPDFExportButtonProps {
   iconOnly?: boolean;
 }
 
+// Same labels as in AssemblyFilters STATUS_CHIPS (with emoji prefix)
+const STATUS_CHIP_LABEL: Record<string, string> = {
+  pending: "📋 Pendentes",
+  in_progress: "🔧 Em Curso",
+  done: "✅ Resolvidos",
+  cancelled: "🚫 Cancelados",
+};
+
+// Plain status label used inside table rows (no emoji, matches STATUS_CONFIG in row)
 const STATUS_LABEL: Record<string, string> = {
   pending: "Pendente",
   in_progress: "Em Curso",
@@ -47,6 +58,8 @@ export const AssemblyPDFExportButton = ({
   year,
   category,
   status,
+  search,
+  buildingLabel,
   variant = "outline",
   size = "default",
   label = "Imprimir PDF",
@@ -79,11 +92,48 @@ export const AssemblyPDFExportButton = ({
       ? `Prédio ${String(groups[0].buildingCode).padStart(3, "0")}`
       : `${yearLabel}`;
 
-    const filtersHtml = (category || status)
+    // Build active filter chips mirroring the UI
+    const activeChips: { label: string; bg: string; color: string }[] = [];
+    if (year) {
+      activeChips.push({ label: `Ano: ${year}`, bg: "#e0e7ff", color: "#1e3a8a" });
+    }
+    if (buildingLabel) {
+      activeChips.push({ label: `Edifício: ${buildingLabel}`, bg: "#e0e7ff", color: "#1e3a8a" });
+    }
+    if (category) {
+      const cat = getAssemblyCategoryConfig(category);
+      activeChips.push({ label: `Categoria: ${cat.label}`, bg: "#ede9fe", color: "#5b21b6" });
+    }
+    if (status) {
+      const chipBg =
+        status === "pending" ? "#fee2e2" :
+        status === "in_progress" ? "#fef3c7" :
+        status === "done" ? "#dcfce7" :
+        "#f3f4f6";
+      const chipColor =
+        status === "pending" ? "#991b1b" :
+        status === "in_progress" ? "#92400e" :
+        status === "done" ? "#166534" :
+        "#374151";
+      activeChips.push({
+        label: `Estado: ${STATUS_CHIP_LABEL[status] || STATUS_LABEL[status] || status}`,
+        bg: chipBg,
+        color: chipColor,
+      });
+    }
+    if (search) {
+      activeChips.push({ label: `Pesquisa: "${search}"`, bg: "#f3f4f6", color: "#374151" });
+    }
+
+    const filtersHtml = activeChips.length > 0
       ? `<div class="filters">
-           <strong>Filtros:</strong>
-           ${category ? `<span class="chip">Categoria: ${escapeHtml(getAssemblyCategoryConfig(category).label)}</span>` : ""}
-           ${status ? `<span class="chip">Estado: ${escapeHtml(STATUS_LABEL[status] || status)}</span>` : ""}
+           <strong>Filtros activos:</strong>
+           ${activeChips
+             .map(
+               (c) =>
+                 `<span class="chip" style="background:${c.bg};color:${c.color}">${escapeHtml(c.label)}</span>`,
+             )
+             .join("")}
          </div>`
       : "";
 
@@ -186,8 +236,27 @@ export const AssemblyPDFExportButton = ({
   .cover .subtitle { font-size: 13px; color: #6b7280; margin-top: 6px; }
   .cover .meta { font-size: 11px; color: #9ca3af; margin-top: 16px; }
 
-  .filters { margin: 12px 0 18px; padding: 10px 12px; background: #f9fafb; border-left: 3px solid #1e3a8a; border-radius: 4px; font-size: 11px; }
-  .chip { display: inline-block; margin-left: 8px; padding: 2px 8px; background: #e0e7ff; color: #1e3a8a; border-radius: 10px; font-size: 10px; font-weight: 500; }
+  .filters {
+    margin: 12px 0 18px;
+    padding: 10px 12px;
+    background: #f9fafb;
+    border-left: 3px solid #1e3a8a;
+    border-radius: 4px;
+    font-size: 11px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .filters strong { margin-right: 6px; color: #374151; }
+  .chip {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.3;
+  }
 
   .global-summary {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px;

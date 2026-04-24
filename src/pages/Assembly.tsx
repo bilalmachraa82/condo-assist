@@ -16,6 +16,7 @@ import {
   useAssemblyItems, useAssemblyStatusCounts, useUpdateAssemblyItem, useDeleteAssemblyItem,
   type AssemblyItem, type AssemblyFilters as Filters,
 } from "@/hooks/useAssemblyItems";
+import { useBuildings } from "@/hooks/useBuildings";
 
 const PAGE_SIZE = 200;
 
@@ -32,8 +33,16 @@ export default function Assembly() {
 
   const { data, isLoading } = useAssemblyItems(filters);
   const { data: counts } = useAssemblyStatusCounts();
+  const { data: buildings } = useBuildings();
   const updateMutation = useUpdateAssemblyItem();
   const deleteMutation = useDeleteAssemblyItem();
+
+  const selectedBuilding = filters.building_id
+    ? buildings?.find((b) => b.id === filters.building_id)
+    : undefined;
+  const buildingLabel = selectedBuilding
+    ? `${selectedBuilding.code} - ${selectedBuilding.name}`
+    : undefined;
 
   const currentPage = filters.page || 0;
   const items = data?.items ?? [];
@@ -111,6 +120,8 @@ export default function Assembly() {
             year={filters.year}
             category={filters.category}
             status={filters.status}
+            search={filters.search}
+            buildingLabel={buildingLabel}
           />
         </div>
       </div>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, ChevronRight, Plus, Pencil, Trash2, Check, Loader2 } from "lucide-react";
+import { Building2, ChevronRight, Plus, Pencil, Trash2, Check, Loader2, AlertCircle, RotateCw } from "lucide-react";
 import { getAssemblyCategoryConfig } from "@/utils/assemblyCategories";
 import AssemblyPDFExportButton from "./AssemblyPDFExportButton";
 import { useUpdateAssemblyItem, type AssemblyItem } from "@/hooks/useAssemblyItems";
@@ -29,20 +29,27 @@ const STATUS_CONFIG: Record<string, { label: string; dot: string }> = {
   cancelled: { label: "Cancelado", dot: "bg-gray-400" },
 };
 
-type SaveState = "idle" | "saving" | "saved";
+type SaveState = "idle" | "saving" | "saved" | "error";
 
 function InlineNotes({ item }: { item: AssemblyItem }) {
   const [value, setValue] = useState(item.status_notes || "");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const updateMutation = useUpdateAssemblyItem();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const savedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedRef = useRef(item.status_notes || "");
+  const pendingValueRef = useRef<string | null>(null);
 
-  // Re-sync if item updates externally
+  // Re-sync if item updates externally — but never overwrite an unsaved/erroring local edit
   useEffect(() => {
     const incoming = item.status_notes || "";
-    if (incoming !== lastSavedRef.current && incoming !== value) {
+    if (
+      incoming !== lastSavedRef.current &&
+      incoming !== value &&
+      saveState !== "error" &&
+      saveState !== "saving"
+    ) {
       setValue(incoming);
       lastSavedRef.current = incoming;
     }
@@ -51,15 +58,20 @@ function InlineNotes({ item }: { item: AssemblyItem }) {
 
   const persist = async (next: string) => {
     if (next === lastSavedRef.current) return;
+    pendingValueRef.current = next;
     setSaveState("saving");
+    setErrorMsg(null);
     try {
       await updateMutation.mutateAsync({ id: item.id, status_notes: next || null });
       lastSavedRef.current = next;
+      pendingValueRef.current = null;
       setSaveState("saved");
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
       savedTimerRef.current = setTimeout(() => setSaveState("idle"), 1500);
-    } catch {
-      setSaveState("idle");
+    } catch (err) {
+      // Keep the user's value intact, surface error + retry option
+      setSaveState("error");
+      setErrorMsg(err instanceof Error ? err.message : "Falha ao guardar");
     }
   };
 
@@ -77,6 +89,10 @@ function InlineNotes({ item }: { item: AssemblyItem }) {
     persist(value);
   };
 
+  const handleRetry = () => {
+    persist(pendingValueRef.current ?? value);
+  };
+
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
       <Textarea
@@ -85,7 +101,9 @@ function InlineNotes({ item }: { item: AssemblyItem }) {
         onBlur={handleBlur}
         placeholder="Notas / informações sobre este assunto…"
         rows={2}
-        className="min-h-[44px] text-xs resize-y bg-muted/30 border-dashed focus-visible:bg-background focus-visible:border-solid"
+        className={`min-h-[44px] text-xs resize-y bg-muted/30 border-dashed focus-visible:bg-background focus-visible:border-solid ${
+          saveState === "error" ? "border-destructive border-solid" : ""
+        }`}
       />
       <div className="absolute right-2 top-1.5 pointer-events-none flex items-center gap-1 text-[10px] text-muted-foreground">
         {saveState === "saving" && (
@@ -101,6 +119,30 @@ function InlineNotes({ item }: { item: AssemblyItem }) {
           </>
         )}
       </div>
+      {saveState === "error" && (
+        <div
+          className="mt-1 flex items-center justify-between gap-2 rounded border border-destructive/40 bg-destructive/5 px-2 py-1 text-[10px] text-destructive"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-1.5 min-w-0">
+            <AlertCircle className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate" title={errorMsg ?? undefined}>
+              Não foi possível guardar. As alterações estão preservadas.
+            </span>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={handleRetry}
+            disabled={updateMutation.isPending}
+          >
+            <RotateCw className={`h-3 w-3 mr-1 ${updateMutation.isPending ? "animate-spin" : ""}`} />
+            Tentar de novo
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
