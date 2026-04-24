@@ -120,6 +120,8 @@ export default function Assembly() {
             year={filters.year}
             category={filters.category}
             status={filters.status}
+            search={filters.search}
+            buildingLabel={buildingLabel}
           />
         </div>
       </div>
