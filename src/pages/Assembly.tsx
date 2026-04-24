@@ -16,6 +16,7 @@ import {
   useAssemblyItems, useAssemblyStatusCounts, useUpdateAssemblyItem, useDeleteAssemblyItem,
   type AssemblyItem, type AssemblyFilters as Filters,
 } from "@/hooks/useAssemblyItems";
+import { useBuildings } from "@/hooks/useBuildings";
 
 const PAGE_SIZE = 200;
 
