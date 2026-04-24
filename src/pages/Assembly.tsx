@@ -33,8 +33,16 @@ export default function Assembly() {
 
   const { data, isLoading } = useAssemblyItems(filters);
   const { data: counts } = useAssemblyStatusCounts();
+  const { data: buildings } = useBuildings();
   const updateMutation = useUpdateAssemblyItem();
   const deleteMutation = useDeleteAssemblyItem();
+
+  const selectedBuilding = filters.building_id
+    ? buildings?.find((b) => b.id === filters.building_id)
+    : undefined;
+  const buildingLabel = selectedBuilding
+    ? `${selectedBuilding.code} - ${selectedBuilding.name}`
+    : undefined;
 
   const currentPage = filters.page || 0;
   const items = data?.items ?? [];
