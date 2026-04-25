@@ -300,9 +300,6 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
     </tr>
   </table>
   
-  <!-- Tracking pixel for analytics -->
-  <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="1" height="1" style="display: none;">
-  
 </body>
 </html>`;
 };
