@@ -289,6 +289,9 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
                       Tel: +351 219 379 248 | Email: geral@luvimg.com<br>
                       <span style="font-size: 11px;">${assistanceDetails ? 'Este código permanece válido enquanto a assistência estiver ativa (mín. 30 dias).' : 'Este código expira automaticamente em 30 dias por motivos de segurança.'}</span>
                     </p>
+                    <p style="color: #9ca3af; font-size: 11px; margin: 12px 0 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.4;">
+                      Se este email caiu na pasta de Lixo, marque como "Não é lixo" e adicione <strong>geral@luvimg.com</strong> aos remetentes seguros.
+                    </p>
                   </td>
                 </tr>
               </table>
