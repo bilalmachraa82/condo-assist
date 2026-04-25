@@ -478,20 +478,70 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Missing 'html' or 'text' field. At least one is required.");
     }
 
-    // Enhanced headers for better deliverability and logo attachment
+    // ---- Suppression check + unsubscribe token ----
+    // Resolve primary recipient address (string)
+    const primaryRecipient = Array.isArray(to) ? to[0] : to;
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL") || "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
+    );
+
+    // Block if user previously unsubscribed
+    let unsubscribeToken: string | null = null;
+    try {
+      const { data: existing } = await adminClient
+        .from("email_unsubscribes")
+        .select("token, unsubscribed_at")
+        .eq("email", primaryRecipient)
+        .maybeSingle();
+
+      if (existing?.unsubscribed_at) {
+        console.log(`Recipient ${primaryRecipient} previously unsubscribed — skipping send.`);
+        return new Response(
+          JSON.stringify({ skipped: true, reason: "unsubscribed", recipient: primaryRecipient }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      if (existing?.token) {
+        unsubscribeToken = existing.token;
+      } else {
+        // Create a stable token for this address
+        unsubscribeToken = crypto.randomUUID().replace(/-/g, "");
+        const { error: upErr } = await adminClient
+          .from("email_unsubscribes")
+          .upsert({ email: primaryRecipient, token: unsubscribeToken }, { onConflict: "email" });
+        if (upErr) {
+          console.error("Failed to upsert unsubscribe token:", upErr);
+          unsubscribeToken = null;
+        }
+      }
+    } catch (suppErr) {
+      console.error("Suppression/unsubscribe lookup failed:", suppErr);
+    }
+
+    const unsubscribeBaseUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/email-unsubscribe`;
+    const unsubscribeUrl = unsubscribeToken
+      ? `${unsubscribeBaseUrl}?token=${unsubscribeToken}`
+      : null;
+
+    // Headers — limpos: sem prioridade artificial, sem X-Mailer, com List-Unsubscribe RFC 8058
+    const headers: Record<string, string> = {
+      'X-Entity-Ref-ID': `luvimg-${Date.now()}`,
+    };
+    if (unsubscribeUrl) {
+      headers['List-Unsubscribe'] = `<${unsubscribeUrl}>, <mailto:geral@luvimg.com?subject=unsubscribe>`;
+      headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+    } else {
+      headers['List-Unsubscribe'] = '<mailto:geral@luvimg.com?subject=unsubscribe>';
+    }
+
     const emailPayload: any = {
       from: from || "Luvimg - Administração de Condomínios <geral@luvimg.com>",
       to: Array.isArray(to) ? to : [to],
       subject: subject,
       reply_to: "geral@luvimg.com",
-      headers: {
-        'X-Entity-Ref-ID': `luvimg-${Date.now()}`,
-        'X-Priority': '1', // High priority
-        'Importance': 'high',
-        'X-MSMail-Priority': 'High',
-        'List-Unsubscribe': '<mailto:geral@luvimg.com?subject=unsubscribe>',
-        'X-Mailer': 'Luvimg Portal v3.1.0'
-      }
+      headers,
     };
 
     // Optional BCC
