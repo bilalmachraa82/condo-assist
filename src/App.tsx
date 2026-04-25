@@ -22,6 +22,7 @@ import Knowledge from "./pages/Knowledge";
 import Assembly from "./pages/Assembly";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
+import Unsubscribe from "./pages/Unsubscribe";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -62,6 +63,7 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/supplier-portal" element={<SupplierPortal />} />
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
               <Route 
                 path="/" 
                 element={

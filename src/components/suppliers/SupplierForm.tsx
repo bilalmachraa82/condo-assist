@@ -112,6 +112,10 @@ export function SupplierForm({ supplier, onSuccess, onCancel }: SupplierFormProp
                 <FormControl>
                   <Input type="email" placeholder="email@exemplo.com" {...field} />
                 </FormControl>
+                <p className="text-xs text-muted-foreground mt-1">
+                  💡 Avise o fornecedor para adicionar <strong>geral@luvimg.com</strong> aos remetentes seguros do Outlook
+                  para garantir a recepção dos emails automáticos.
+                </p>
                 <FormMessage />
               </FormItem>
             )}
