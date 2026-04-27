@@ -491,11 +491,13 @@ export default function Edificios() {
   const { data: buildings, isLoading } = useBuildings();
   const { data: assistances } = useAssistances();
   const deleteBuilding = useDeleteBuilding();
+  const updateBuilding = useUpdateBuilding();
+  const { data: deleteDeps, isLoading: depsLoading } = useBuildingDependencies(buildingToDelete?.id);
   const { toast } = useToast();
 
   const handleDelete = async () => {
     if (!buildingToDelete) return;
-    
+
     try {
       await deleteBuilding.mutateAsync(buildingToDelete.id);
       toast({
@@ -503,14 +505,41 @@ export default function Edificios() {
         description: "O edifício foi eliminado com sucesso.",
       });
       setBuildingToDelete(null);
-    } catch (error) {
+    } catch (error: any) {
+      // Postgres FK violation → registos associados (assistências, actas)
+      const code = error?.code ?? error?.cause?.code;
+      const msg =
+        code === "23503"
+          ? 'Não é possível eliminar: o prédio tem assistências ou actas associadas. Use "Desativar" para preservar o histórico.'
+          : (error?.message && typeof error.message === "string"
+              ? error.message
+              : "Erro desconhecido ao eliminar o edifício.");
       toast({
-        title: "Erro",
-        description: "Erro ao eliminar edifício. Tente novamente.",
+        title: "Erro ao eliminar",
+        description: msg,
         variant: "destructive",
       });
     }
   };
+
+  const handleDeactivate = async () => {
+    if (!buildingToDelete) return;
+    try {
+      await updateBuilding.mutateAsync({ id: buildingToDelete.id, is_active: false });
+      toast({
+        title: "Edifício desativado",
+        description: "O histórico foi preservado. Pode reativar mais tarde.",
+      });
+      setBuildingToDelete(null);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao desativar",
+        description: error?.message ?? "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   const getBuildingAssistanceCount = (buildingId: string) => {
     return assistances?.filter(assistance => assistance.building_id === buildingId).length || 0;
