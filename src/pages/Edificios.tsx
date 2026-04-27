@@ -765,20 +765,72 @@ export default function Edificios() {
       <AlertDialog open={!!buildingToDelete} onOpenChange={() => setBuildingToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar Edifício</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja eliminar o edifício "{buildingToDelete?.name}"? 
-              Esta ação não pode ser desfeita e todas as assistências associadas também serão afetadas.
+            <AlertDialogTitle>Eliminar edifício</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Edifício: <strong>{buildingToDelete?.code} — {buildingToDelete?.name}</strong>
+                </p>
+
+                {depsLoading ? (
+                  <p className="text-sm text-muted-foreground">A verificar dependências…</p>
+                ) : deleteDeps && (deleteDeps.assistancesTotal > 0 || deleteDeps.assemblyItems > 0 || deleteDeps.contacts > 0 || deleteDeps.knowledgeArticles > 0) ? (
+                  <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm space-y-2">
+                    <p className="font-medium text-warning-foreground">
+                      Este edifício tem registos associados:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-0.5 text-foreground">
+                      {deleteDeps.assistancesTotal > 0 && (
+                        <li>
+                          <strong>{deleteDeps.assistancesTotal}</strong> assistência{deleteDeps.assistancesTotal !== 1 ? "s" : ""}
+                          {deleteDeps.assistancesOpen > 0 && ` (${deleteDeps.assistancesOpen} em aberto)`}
+                        </li>
+                      )}
+                      {deleteDeps.assemblyItems > 0 && (
+                        <li><strong>{deleteDeps.assemblyItems}</strong> assunto{deleteDeps.assemblyItems !== 1 ? "s" : ""} de actas</li>
+                      )}
+                      {deleteDeps.contacts > 0 && (
+                        <li><strong>{deleteDeps.contacts}</strong> contacto{deleteDeps.contacts !== 1 ? "s" : ""} de condóminos</li>
+                      )}
+                      {deleteDeps.knowledgeArticles > 0 && (
+                        <li><strong>{deleteDeps.knowledgeArticles}</strong> artigo{deleteDeps.knowledgeArticles !== 1 ? "s" : ""} de conhecimento</li>
+                      )}
+                    </ul>
+                    {!deleteDeps.canDeletePermanently && (
+                      <p className="text-xs text-muted-foreground pt-1">
+                        Não é possível <strong>eliminar permanentemente</strong> enquanto existirem assistências ou actas. Recomendamos <strong>desativar</strong> o edifício — o histórico fica preservado e o prédio deixa de aparecer nas listas activas.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Sem registos associados. Pode eliminar com segurança — esta ação não pode ser desfeita.
+                  </p>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            {buildingToDelete?.is_active && (
+              <Button
+                variant="secondary"
+                onClick={handleDeactivate}
+                disabled={updateBuilding.isPending}
+              >
+                {updateBuilding.isPending ? "A desativar…" : "Desativar (preservar histórico)"}
+              </Button>
+            )}
+            <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive hover:bg-destructive/90"
-              disabled={deleteBuilding.isPending}
+              disabled={
+                deleteBuilding.isPending ||
+                depsLoading ||
+                (deleteDeps ? !deleteDeps.canDeletePermanently : false)
+              }
             >
-              {deleteBuilding.isPending ? "A eliminar..." : "Eliminar"}
+              {deleteBuilding.isPending ? "A eliminar…" : "Eliminar permanentemente"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
