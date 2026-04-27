@@ -26,6 +26,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useBuildings, useCreateBuilding, useUpdateBuilding, useDeleteBuilding, type Building } from "@/hooks/useBuildings";
+import { useBuildingDependencies } from "@/hooks/useBuildingDependencies";
 import { useAssistances } from "@/hooks/useAssistances";
 import { BuildingForm } from "@/components/buildings/BuildingForm";
 import { format } from "date-fns";
