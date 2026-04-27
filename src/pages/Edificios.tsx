@@ -26,6 +26,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useBuildings, useCreateBuilding, useUpdateBuilding, useDeleteBuilding, type Building } from "@/hooks/useBuildings";
+import { useBuildingDependencies } from "@/hooks/useBuildingDependencies";
 import { useAssistances } from "@/hooks/useAssistances";
 import { BuildingForm } from "@/components/buildings/BuildingForm";
 import { format } from "date-fns";
@@ -491,11 +492,13 @@ export default function Edificios() {
   const { data: buildings, isLoading } = useBuildings();
   const { data: assistances } = useAssistances();
   const deleteBuilding = useDeleteBuilding();
+  const updateBuilding = useUpdateBuilding();
+  const { data: deleteDeps, isLoading: depsLoading } = useBuildingDependencies(buildingToDelete?.id);
   const { toast } = useToast();
 
   const handleDelete = async () => {
     if (!buildingToDelete) return;
-    
+
     try {
       await deleteBuilding.mutateAsync(buildingToDelete.id);
       toast({
@@ -503,14 +506,41 @@ export default function Edificios() {
         description: "O edifício foi eliminado com sucesso.",
       });
       setBuildingToDelete(null);
-    } catch (error) {
+    } catch (error: any) {
+      // Postgres FK violation → registos associados (assistências, actas)
+      const code = error?.code ?? error?.cause?.code;
+      const msg =
+        code === "23503"
+          ? 'Não é possível eliminar: o prédio tem assistências ou actas associadas. Use "Desativar" para preservar o histórico.'
+          : (error?.message && typeof error.message === "string"
+              ? error.message
+              : "Erro desconhecido ao eliminar o edifício.");
       toast({
-        title: "Erro",
-        description: "Erro ao eliminar edifício. Tente novamente.",
+        title: "Erro ao eliminar",
+        description: msg,
         variant: "destructive",
       });
     }
   };
+
+  const handleDeactivate = async () => {
+    if (!buildingToDelete) return;
+    try {
+      await updateBuilding.mutateAsync({ id: buildingToDelete.id, is_active: false });
+      toast({
+        title: "Edifício desativado",
+        description: "O histórico foi preservado. Pode reativar mais tarde.",
+      });
+      setBuildingToDelete(null);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao desativar",
+        description: error?.message ?? "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   const getBuildingAssistanceCount = (buildingId: string) => {
     return assistances?.filter(assistance => assistance.building_id === buildingId).length || 0;
@@ -735,20 +765,72 @@ export default function Edificios() {
       <AlertDialog open={!!buildingToDelete} onOpenChange={() => setBuildingToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar Edifício</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja eliminar o edifício "{buildingToDelete?.name}"? 
-              Esta ação não pode ser desfeita e todas as assistências associadas também serão afetadas.
+            <AlertDialogTitle>Eliminar edifício</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Edifício: <strong>{buildingToDelete?.code} — {buildingToDelete?.name}</strong>
+                </p>
+
+                {depsLoading ? (
+                  <p className="text-sm text-muted-foreground">A verificar dependências…</p>
+                ) : deleteDeps && (deleteDeps.assistancesTotal > 0 || deleteDeps.assemblyItems > 0 || deleteDeps.contacts > 0 || deleteDeps.knowledgeArticles > 0) ? (
+                  <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm space-y-2">
+                    <p className="font-medium text-warning-foreground">
+                      Este edifício tem registos associados:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-0.5 text-foreground">
+                      {deleteDeps.assistancesTotal > 0 && (
+                        <li>
+                          <strong>{deleteDeps.assistancesTotal}</strong> assistência{deleteDeps.assistancesTotal !== 1 ? "s" : ""}
+                          {deleteDeps.assistancesOpen > 0 && ` (${deleteDeps.assistancesOpen} em aberto)`}
+                        </li>
+                      )}
+                      {deleteDeps.assemblyItems > 0 && (
+                        <li><strong>{deleteDeps.assemblyItems}</strong> assunto{deleteDeps.assemblyItems !== 1 ? "s" : ""} de actas</li>
+                      )}
+                      {deleteDeps.contacts > 0 && (
+                        <li><strong>{deleteDeps.contacts}</strong> contacto{deleteDeps.contacts !== 1 ? "s" : ""} de condóminos</li>
+                      )}
+                      {deleteDeps.knowledgeArticles > 0 && (
+                        <li><strong>{deleteDeps.knowledgeArticles}</strong> artigo{deleteDeps.knowledgeArticles !== 1 ? "s" : ""} de conhecimento</li>
+                      )}
+                    </ul>
+                    {!deleteDeps.canDeletePermanently && (
+                      <p className="text-xs text-muted-foreground pt-1">
+                        Não é possível <strong>eliminar permanentemente</strong> enquanto existirem assistências ou actas. Recomendamos <strong>desativar</strong> o edifício — o histórico fica preservado e o prédio deixa de aparecer nas listas activas.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Sem registos associados. Pode eliminar com segurança — esta ação não pode ser desfeita.
+                  </p>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            {buildingToDelete?.is_active && (
+              <Button
+                variant="secondary"
+                onClick={handleDeactivate}
+                disabled={updateBuilding.isPending}
+              >
+                {updateBuilding.isPending ? "A desativar…" : "Desativar (preservar histórico)"}
+              </Button>
+            )}
+            <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive hover:bg-destructive/90"
-              disabled={deleteBuilding.isPending}
+              disabled={
+                deleteBuilding.isPending ||
+                depsLoading ||
+                (deleteDeps ? !deleteDeps.canDeletePermanently : false)
+              }
             >
-              {deleteBuilding.isPending ? "A eliminar..." : "Eliminar"}
+              {deleteBuilding.isPending ? "A eliminar…" : "Eliminar permanentemente"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

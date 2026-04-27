@@ -266,11 +266,18 @@ export const AssemblyPDFExportButton = ({
   .global-stat .l { font-size: 10px; color: #6b7280; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
 
   .building-section {
+    page-break-before: always;
+    break-before: page;
     page-break-inside: avoid;
+    break-inside: avoid;
     margin-bottom: 22px;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
     overflow: hidden;
+  }
+  .building-section:first-of-type {
+    page-break-before: auto;
+    break-before: auto;
   }
   .building-header {
     display: flex; justify-content: space-between; align-items: center;
