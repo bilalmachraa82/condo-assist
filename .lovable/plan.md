@@ -1,88 +1,65 @@
-# Bugs reportados no WhatsApp — Plano de resolução
+## Diagnóstico
 
-## O que o cliente disse
+Pelo screenshot e pelo código, há dois problemas diferentes:
 
-A imagem mostra **dois problemas**:
+1. **Não dá para eliminar permanentemente porque o edifício tem histórico ligado**
+   - Isto está correto do ponto de vista de dados: existem assistências/assuntos de actas ligados ao edifício, e a base de dados bloqueia a eliminação para não perder histórico.
+   - O fluxo correto deve ser **Desativar**, não eliminar permanentemente.
 
-1. **Impressão de actas** — *"Cada prédio teria que sair numa folha apenas"* (atualmente vários prédios partilham a mesma folha A4).
-2. **Eliminar prédio** — botão devolve um toast de erro e o cliente vê algo como `[object Object]` em vez de uma mensagem útil.
+2. **O diálogo está desformatado**
+   - O botão “Eliminar permanentemente” aparece visualmente ativo mesmo quando está `disabled`, porque a classe destrutiva força o vermelho apesar do estado desativado.
+   - O rodapé usa 3 botões em linha, e no tamanho atual do ecrã o layout fica apertado/fora da caixa.
+   - A área de aviso está larga demais visualmente e encosta/parece transbordar.
 
----
+## Plano de resolução
 
-## Diagnóstico (já confirmado)
+### 1. Corrigir o layout do diálogo
+- Aumentar ligeiramente a largura máxima do diálogo e garantir `overflow-hidden`/`max-w` correto.
+- Trocar o rodapé para layout responsivo:
+  - em desktop: botões alinhados sem sobrepor;
+  - em mobile/tablet: botões empilhados ou em grelha para não partir o modal.
+- Fazer o botão recomendado (“Desativar”) ocupar destaque claro.
 
-### Bug 1 — PDF de actas
+### 2. Corrigir o botão “Eliminar permanentemente”
+- Quando existirem dependências fortes, manter o botão desativado mas com aparência realmente desativada (`opacity`, `cursor-not-allowed`, sem vermelho forte).
+- Alterar o texto/tooltip/mensagem para deixar claro: “Bloqueado por histórico”.
+- Evitar confusão entre “não funciona” e “está bloqueado por segurança”.
 
-Em `AssemblyPDFExportButton.tsx`, cada bloco de prédio tem `page-break-inside: avoid` mas **não tem `page-break-before`**. O browser empilha vários prédios na mesma folha sempre que cabem.
+### 3. Tornar “Desativar” o fluxo principal
+- Quando houver assistências ou actas, mostrar uma mensagem direta:
+  - “Este edifício não pode ser eliminado porque tem histórico. Use Desativar.”
+- Ao clicar **Desativar**, fechar o modal e remover o edifício das listas ativas.
+- Ajustar a listagem de edifícios para, por defeito, mostrar apenas edifícios ativos. Assim, quando desativa, o edifício desaparece da lista principal como esperado.
 
-### Bug 2 — Eliminar prédio
+### 4. Manter acesso a edifícios inativos para gestão
+- Adicionar filtro simples na página de Edifícios:
+  - “Ativos”
+  - “Inativos”
+  - “Todos”
+- Mostrar badge “Inativo” nos cartões quando aplicável.
+- Permitir reativar via edição, mantendo o histórico.
 
-Inspecionei a base de dados:
+### 5. Melhorar robustez técnica
+- Invalidar também a query de dependências após eliminar/desativar.
+- Garantir que erros de Supabase aparecem como texto legível e nunca como `[object Object]`.
+- Remover `console.log` desnecessários do hook de edifícios.
 
-- O edifício **121 (Cond. Rua Beatriz Ângelo, Nº 10)** tem **7 assistências** + **1 acta** ligadas.
-- As FKs `assistances.building_id` e `assembly_items.building_id` **não têm `ON DELETE CASCADE`** → PostgreSQL devolve erro `23503 foreign_key_violation`.
-- O `catch` em `Edificios.tsx` mostra "Erro ao eliminar edifício. Tente novamente." mas **algures** o objeto de erro está a ser convertido em string e aparece `[object Object]` (provavelmente toast duplicado, ou o `useDeleteBuilding` faz `throw error` sem `.message`).
-- UX: o card "7 Total / 0 Abertas" leva o cliente a achar que pode eliminar, e o sistema bloqueia sem explicar porquê. Não devemos eliminar registos críticos em cascade — o histórico de assistências tem de ser preservado.
+## Resultado esperado
 
----
+Depois da correção:
 
-## Resolução
+- Edifícios com assistências/actas **não serão eliminados permanentemente** por segurança.
+- O utilizador conseguirá clicar em **Desativar (preservar histórico)**.
+- O edifício desativado deixará de aparecer na lista ativa.
+- O modal ficará visualmente alinhado e sem botões sobrepostos.
+- Se um edifício não tiver histórico, aí sim poderá ser eliminado permanentemente.
 
-### Fix 1 — 1 prédio = 1 folha A4
+## Ficheiros a alterar
 
-Ficheiro: `src/components/assembly/AssemblyPDFExportButton.tsx`
+- `src/pages/Edificios.tsx`
+- `src/hooks/useBuildings.ts`
+- possivelmente `src/hooks/useBuildingDependencies.ts` para invalidação/ajuste fino
 
-CSS:
+## Nota importante
 
-```css
-.building-section {
-  page-break-before: always;   /* nova folha por prédio */
-  break-before: page;
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
-.building-section:first-of-type {
-  page-break-before: auto;     /* primeiro prédio segue a capa */
-  break-before: auto;
-}
-```
-
-### Fix 2 — Eliminação segura, com mensagens claras
-
-**2a. Mensagem de erro real no toast** (`Edificios.tsx`):
-
-```ts
-catch (error: any) {
-  const msg = error?.code === '23503'
-    ? 'Não é possível eliminar: o prédio tem assistências ou actas associadas. Use "Desativar" para preservar o histórico.'
-    : (error?.message ?? 'Erro desconhecido ao eliminar.');
-  toast({ title: 'Erro', description: msg, variant: 'destructive' });
-}
-```
-
-**2b. Pré-validação antes do diálogo de confirmação**:
-
-Criar `useBuildingDependencies(buildingId)` que conta `assistances` + `assembly_items` + `condominium_contacts` ligados.
-
-No `AlertDialog` de confirmação, mostrar:
-- Lista das dependências encontradas.
-- Botão **"Desativar prédio"** (set `is_active=false`) — sempre disponível, recomendado.
-- Botão **"Eliminar permanentemente"** — só ativo se 0 assistências e 0 actas.
-
-**2c. NÃO mexer nas FKs** (não introduzir CASCADE em `assistances`/`assembly_items` — perda de histórico).
-
----
-
-## Esforço
-
-| Fix | Esforço | Risco |
-|---|---|---|
-| 1 — CSS PDF | 5 min | nenhum |
-| 2a — toast com mensagem real | 10 min | nenhum |
-| 2b — diálogo seguro com dependências | 30 min | baixo |
-
-**Total: ~45 min.** Resolve os dois pontos do WhatsApp e melhora a gestão de prédios sem risco de perder histórico.
-
----
-
-Aprova para eu implementar?
+Para o caso do edifício mostrado no screenshot, o comportamento correto não é “eliminar”; é **desativar**, porque há registos associados. A correção principal é tornar isto claro e garantir que o botão de desativar funciona e que a UI não fica desformatada.

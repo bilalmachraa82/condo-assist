@@ -483,12 +483,13 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
 
 export default function Edificios() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active");
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedBuildingForEdit, setSelectedBuildingForEdit] = useState<Building | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [buildingToDelete, setBuildingToDelete] = useState<Building | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'assistances'>('list');
-  
+
   const { data: buildings, isLoading } = useBuildings();
   const { data: assistances } = useAssistances();
   const deleteBuilding = useDeleteBuilding();
@@ -554,10 +555,18 @@ export default function Edificios() {
     ).length || 0;
   };
 
-  const filteredBuildings = buildings?.filter(building => 
-    building.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (building.code || '').toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredBuildings = (buildings ?? []).filter(building => {
+    const matchesSearch =
+      building.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (building.code || '').toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+    if (statusFilter === "active") return building.is_active;
+    if (statusFilter === "inactive") return !building.is_active;
+    return true;
+  });
+
+  const activeCount = buildings?.filter(b => b.is_active).length ?? 0;
+  const inactiveCount = buildings?.filter(b => !b.is_active).length ?? 0;
 
   // Show building assistances view
   if (viewMode === 'assistances' && selectedBuilding) {
@@ -595,6 +604,29 @@ export default function Edificios() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-full sm:w-80"
             />
+          </div>
+          <div className="flex gap-1 rounded-md border bg-muted/30 p-1">
+            <Button
+              size="sm"
+              variant={statusFilter === "active" ? "default" : "ghost"}
+              onClick={() => setStatusFilter("active")}
+            >
+              Ativos ({activeCount})
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === "inactive" ? "default" : "ghost"}
+              onClick={() => setStatusFilter("inactive")}
+            >
+              Inativos ({inactiveCount})
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === "all" ? "default" : "ghost"}
+              onClick={() => setStatusFilter("all")}
+            >
+              Todos
+            </Button>
           </div>
         </div>
         <div className="flex gap-2">
@@ -640,11 +672,16 @@ export default function Edificios() {
             const openAssistances = getOpenAssistanceCount(building.id);
             
             return (
-              <Card key={building.id} className="hover:shadow-lg transition-all duration-300">
+              <Card key={building.id} className={`hover:shadow-lg transition-all duration-300 ${!building.is_active ? "opacity-70 border-dashed" : ""}`}>
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-lg">{building.name}</CardTitle>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <CardTitle className="text-lg">{building.name}</CardTitle>
+                        {!building.is_active && (
+                          <Badge variant="outline" className="text-xs">Inativo</Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground mt-1">
                         Código: {building.code || 'N/A'}
                       </p>
@@ -674,12 +711,31 @@ export default function Edificios() {
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        {!building.is_active && (
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              try {
+                                await updateBuilding.mutateAsync({ id: building.id, is_active: true });
+                                toast({ title: "Edifício reativado" });
+                              } catch (e: any) {
+                                toast({
+                                  title: "Erro ao reativar",
+                                  description: e?.message ?? "Tente novamente.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Reativar
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
                           onClick={() => setBuildingToDelete(building)}
                           className="text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Eliminar
+                          {building.is_active ? "Eliminar / Desativar" : "Eliminar"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -763,12 +819,14 @@ export default function Edificios() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!buildingToDelete} onOpenChange={() => setBuildingToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar edifício</AlertDialogTitle>
+            <AlertDialogTitle>
+              {buildingToDelete?.is_active ? "Eliminar ou desativar edifício" : "Eliminar edifício"}
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
-                <p>
+                <p className="text-foreground">
                   Edifício: <strong>{buildingToDelete?.code} — {buildingToDelete?.name}</strong>
                 </p>
 
@@ -776,7 +834,7 @@ export default function Edificios() {
                   <p className="text-sm text-muted-foreground">A verificar dependências…</p>
                 ) : deleteDeps && (deleteDeps.assistancesTotal > 0 || deleteDeps.assemblyItems > 0 || deleteDeps.contacts > 0 || deleteDeps.knowledgeArticles > 0) ? (
                   <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm space-y-2">
-                    <p className="font-medium text-warning-foreground">
+                    <p className="font-medium text-foreground">
                       Este edifício tem registos associados:
                     </p>
                     <ul className="list-disc pl-5 space-y-0.5 text-foreground">
@@ -798,7 +856,9 @@ export default function Edificios() {
                     </ul>
                     {!deleteDeps.canDeletePermanently && (
                       <p className="text-xs text-muted-foreground pt-1">
-                        Não é possível <strong>eliminar permanentemente</strong> enquanto existirem assistências ou actas. Recomendamos <strong>desativar</strong> o edifício — o histórico fica preservado e o prédio deixa de aparecer nas listas activas.
+                        Eliminação permanente bloqueada para preservar o histórico.
+                        Recomendamos <strong>desativar</strong> o edifício — deixa de aparecer
+                        nas listas ativas mas mantém todo o histórico.
                       </p>
                     )}
                   </div>
@@ -810,28 +870,36 @@ export default function Edificios() {
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-2">
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col-reverse sm:flex-col-reverse sm:space-x-0 gap-2">
             {buildingToDelete?.is_active && (
               <Button
-                variant="secondary"
+                variant="default"
                 onClick={handleDeactivate}
                 disabled={updateBuilding.isPending}
+                className="w-full"
               >
-                {updateBuilding.isPending ? "A desativar…" : "Desativar (preservar histórico)"}
+                {updateBuilding.isPending ? "A desativar…" : "Desativar (preservar histórico) — recomendado"}
               </Button>
             )}
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive hover:bg-destructive/90"
-              disabled={
-                deleteBuilding.isPending ||
-                depsLoading ||
-                (deleteDeps ? !deleteDeps.canDeletePermanently : false)
-              }
-            >
-              {deleteBuilding.isPending ? "A eliminar…" : "Eliminar permanentemente"}
-            </AlertDialogAction>
+            {(() => {
+              const blocked = deleteDeps ? !deleteDeps.canDeletePermanently : false;
+              return (
+                <Button
+                  variant={blocked ? "outline" : "destructive"}
+                  onClick={handleDelete}
+                  disabled={deleteBuilding.isPending || depsLoading || blocked}
+                  className="w-full"
+                  title={blocked ? "Bloqueado: existem assistências ou actas associadas" : undefined}
+                >
+                  {deleteBuilding.isPending
+                    ? "A eliminar…"
+                    : blocked
+                      ? "Eliminar permanentemente (bloqueado)"
+                      : "Eliminar permanentemente"}
+                </Button>
+              );
+            })()}
+            <AlertDialogCancel className="w-full mt-0">Cancelar</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

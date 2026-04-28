@@ -80,52 +80,43 @@ export const useCreateBuilding = () => {
 
 export const useUpdateBuilding = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Building> & { id: string }) => {
-      console.log('Updating building:', { id, updates });
-      
       const { data, error } = await supabase
         .from("buildings")
         .update(updates)
         .eq("id", id)
         .select()
         .single();
-      
-      if (error) {
-        console.error('Error updating building:', error);
-        throw error;
-      }
-      
-      console.log('Building updated successfully:', data);
+
+      if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
-      console.log('Update mutation successful, invalidating queries');
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["buildings"] });
       queryClient.invalidateQueries({ queryKey: ["building-stats"] });
-    },
-    onError: (error) => {
-      console.error('Update mutation failed:', error);
+      queryClient.invalidateQueries({ queryKey: ["building-dependencies"] });
     },
   });
 };
 
 export const useDeleteBuilding = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("buildings")
         .delete()
         .eq("id", id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["buildings"] });
       queryClient.invalidateQueries({ queryKey: ["building-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["building-dependencies"] });
     },
   });
 };
