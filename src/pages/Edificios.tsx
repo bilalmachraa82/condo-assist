@@ -711,12 +711,31 @@ export default function Edificios() {
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        {!building.is_active && (
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              try {
+                                await updateBuilding.mutateAsync({ id: building.id, is_active: true });
+                                toast({ title: "Edifício reativado" });
+                              } catch (e: any) {
+                                toast({
+                                  title: "Erro ao reativar",
+                                  description: e?.message ?? "Tente novamente.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Reativar
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
                           onClick={() => setBuildingToDelete(building)}
                           className="text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Eliminar
+                          {building.is_active ? "Eliminar / Desativar" : "Eliminar"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
