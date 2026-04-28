@@ -488,6 +488,7 @@ export default function Edificios() {
   const [selectedBuildingForEdit, setSelectedBuildingForEdit] = useState<Building | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [buildingToDelete, setBuildingToDelete] = useState<Building | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [viewMode, setViewMode] = useState<'list' | 'assistances'>('list');
 
   const { data: buildings, isLoading } = useBuildings();
@@ -497,25 +498,38 @@ export default function Edificios() {
   const { data: deleteDeps, isLoading: depsLoading } = useBuildingDependencies(buildingToDelete?.id);
   const { toast } = useToast();
 
+  // Reset confirmation text whenever the dialog target changes
+  const openDeleteDialog = (building: Building | null) => {
+    setBuildingToDelete(building);
+    setDeleteConfirmText("");
+  };
+
   const handleDelete = async () => {
     if (!buildingToDelete) return;
 
+    // Snapshot impact info BEFORE delete (deps query is cleared on success)
+    const impact = deleteDeps;
+    const buildingLabel = `${buildingToDelete.code} — ${buildingToDelete.name}`;
+
     try {
       await deleteBuilding.mutateAsync(buildingToDelete.id);
+
+      const parts: string[] = [];
+      if (impact?.assistancesTotal) parts.push(`${impact.assistancesTotal} assistência${impact.assistancesTotal !== 1 ? "s" : ""}`);
+      if (impact?.assemblyItems) parts.push(`${impact.assemblyItems} assunto${impact.assemblyItems !== 1 ? "s" : ""} de actas`);
+      if (impact?.contacts) parts.push(`${impact.contacts} contacto${impact.contacts !== 1 ? "s" : ""}`);
+
       toast({
         title: "Edifício eliminado",
-        description: "O edifício foi eliminado com sucesso.",
+        description: parts.length > 0
+          ? `${buildingLabel} foi eliminado, juntamente com ${parts.join(", ")}.`
+          : `${buildingLabel} foi eliminado com sucesso.`,
       });
-      setBuildingToDelete(null);
+      openDeleteDialog(null);
     } catch (error: any) {
-      // Postgres FK violation → registos associados (assistências, actas)
-      const code = error?.code ?? error?.cause?.code;
-      const msg =
-        code === "23503"
-          ? 'Não é possível eliminar: o prédio tem assistências ou actas associadas. Use "Desativar" para preservar o histórico.'
-          : (error?.message && typeof error.message === "string"
-              ? error.message
-              : "Erro desconhecido ao eliminar o edifício.");
+      const msg = error?.message && typeof error.message === "string"
+        ? error.message
+        : "Erro desconhecido ao eliminar o edifício.";
       toast({
         title: "Erro ao eliminar",
         description: msg,
