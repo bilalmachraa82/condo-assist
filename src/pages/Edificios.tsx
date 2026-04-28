@@ -555,10 +555,18 @@ export default function Edificios() {
     ).length || 0;
   };
 
-  const filteredBuildings = buildings?.filter(building => 
-    building.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (building.code || '').toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredBuildings = (buildings ?? []).filter(building => {
+    const matchesSearch =
+      building.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (building.code || '').toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+    if (statusFilter === "active") return building.is_active;
+    if (statusFilter === "inactive") return !building.is_active;
+    return true;
+  });
+
+  const activeCount = buildings?.filter(b => b.is_active).length ?? 0;
+  const inactiveCount = buildings?.filter(b => !b.is_active).length ?? 0;
 
   // Show building assistances view
   if (viewMode === 'assistances' && selectedBuilding) {
