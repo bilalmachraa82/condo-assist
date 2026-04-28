@@ -39,6 +39,7 @@ export const useBuildingDependencies = (buildingId: string | undefined) => {
           contacts: 0,
           knowledgeArticles: 0,
           canDeletePermanently: true,
+          hasHistory: false,
         };
       }
 
@@ -82,7 +83,8 @@ export const useBuildingDependencies = (buildingId: string | undefined) => {
         assemblyItems,
         contacts: contactsRes.count ?? 0,
         knowledgeArticles: articlesRes.count ?? 0,
-        canDeletePermanently: assistancesTotal === 0 && assemblyItems === 0,
+        canDeletePermanently: true,
+        hasHistory: assistancesTotal > 0 || assemblyItems > 0,
       };
     },
   });
