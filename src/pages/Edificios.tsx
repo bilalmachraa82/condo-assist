@@ -488,6 +488,7 @@ export default function Edificios() {
   const [selectedBuildingForEdit, setSelectedBuildingForEdit] = useState<Building | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [buildingToDelete, setBuildingToDelete] = useState<Building | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [viewMode, setViewMode] = useState<'list' | 'assistances'>('list');
 
   const { data: buildings, isLoading } = useBuildings();
@@ -497,25 +498,38 @@ export default function Edificios() {
   const { data: deleteDeps, isLoading: depsLoading } = useBuildingDependencies(buildingToDelete?.id);
   const { toast } = useToast();
 
+  // Reset confirmation text whenever the dialog target changes
+  const openDeleteDialog = (building: Building | null) => {
+    setBuildingToDelete(building);
+    setDeleteConfirmText("");
+  };
+
   const handleDelete = async () => {
     if (!buildingToDelete) return;
 
+    // Snapshot impact info BEFORE delete (deps query is cleared on success)
+    const impact = deleteDeps;
+    const buildingLabel = `${buildingToDelete.code} — ${buildingToDelete.name}`;
+
     try {
       await deleteBuilding.mutateAsync(buildingToDelete.id);
+
+      const parts: string[] = [];
+      if (impact?.assistancesTotal) parts.push(`${impact.assistancesTotal} assistência${impact.assistancesTotal !== 1 ? "s" : ""}`);
+      if (impact?.assemblyItems) parts.push(`${impact.assemblyItems} assunto${impact.assemblyItems !== 1 ? "s" : ""} de actas`);
+      if (impact?.contacts) parts.push(`${impact.contacts} contacto${impact.contacts !== 1 ? "s" : ""}`);
+
       toast({
         title: "Edifício eliminado",
-        description: "O edifício foi eliminado com sucesso.",
+        description: parts.length > 0
+          ? `${buildingLabel} foi eliminado, juntamente com ${parts.join(", ")}.`
+          : `${buildingLabel} foi eliminado com sucesso.`,
       });
-      setBuildingToDelete(null);
+      openDeleteDialog(null);
     } catch (error: any) {
-      // Postgres FK violation → registos associados (assistências, actas)
-      const code = error?.code ?? error?.cause?.code;
-      const msg =
-        code === "23503"
-          ? 'Não é possível eliminar: o prédio tem assistências ou actas associadas. Use "Desativar" para preservar o histórico.'
-          : (error?.message && typeof error.message === "string"
-              ? error.message
-              : "Erro desconhecido ao eliminar o edifício.");
+      const msg = error?.message && typeof error.message === "string"
+        ? error.message
+        : "Erro desconhecido ao eliminar o edifício.";
       toast({
         title: "Erro ao eliminar",
         description: msg,
@@ -532,7 +546,7 @@ export default function Edificios() {
         title: "Edifício desativado",
         description: "O histórico foi preservado. Pode reativar mais tarde.",
       });
-      setBuildingToDelete(null);
+      openDeleteDialog(null);
     } catch (error: any) {
       toast({
         title: "Erro ao desativar",
@@ -731,7 +745,7 @@ export default function Edificios() {
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
-                          onClick={() => setBuildingToDelete(building)}
+                          onClick={() => openDeleteDialog(building)}
                           className="text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -818,7 +832,7 @@ export default function Edificios() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!buildingToDelete} onOpenChange={() => setBuildingToDelete(null)}>
+      <AlertDialog open={!!buildingToDelete} onOpenChange={() => openDeleteDialog(null)}>
         <AlertDialogContent className="max-w-xl">
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -832,11 +846,12 @@ export default function Edificios() {
 
                 {depsLoading ? (
                   <p className="text-sm text-muted-foreground">A verificar dependências…</p>
-                ) : deleteDeps && (deleteDeps.assistancesTotal > 0 || deleteDeps.assemblyItems > 0 || deleteDeps.contacts > 0 || deleteDeps.knowledgeArticles > 0) ? (
-                  <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm space-y-2">
-                    <p className="font-medium text-foreground">
-                      Este edifício tem registos associados:
+                ) : deleteDeps && deleteDeps.hasHistory ? (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm space-y-2">
+                    <p className="font-medium text-destructive">
+                      Atenção: a eliminação é destrutiva e irreversível.
                     </p>
+                    <p className="text-foreground">Serão também apagados:</p>
                     <ul className="list-disc pl-5 space-y-0.5 text-foreground">
                       {deleteDeps.assistancesTotal > 0 && (
                         <li>
@@ -851,16 +866,26 @@ export default function Edificios() {
                         <li><strong>{deleteDeps.contacts}</strong> contacto{deleteDeps.contacts !== 1 ? "s" : ""} de condóminos</li>
                       )}
                       {deleteDeps.knowledgeArticles > 0 && (
-                        <li><strong>{deleteDeps.knowledgeArticles}</strong> artigo{deleteDeps.knowledgeArticles !== 1 ? "s" : ""} de conhecimento</li>
+                        <li>
+                          <strong>{deleteDeps.knowledgeArticles}</strong> artigo{deleteDeps.knowledgeArticles !== 1 ? "s" : ""} de conhecimento
+                          <span className="text-muted-foreground"> (preservados, sem ligação ao prédio)</span>
+                        </li>
                       )}
                     </ul>
-                    {!deleteDeps.canDeletePermanently && (
-                      <p className="text-xs text-muted-foreground pt-1">
-                        Eliminação permanente bloqueada para preservar o histórico.
-                        Recomendamos <strong>desativar</strong> o edifício — deixa de aparecer
-                        nas listas ativas mas mantém todo o histórico.
-                      </p>
-                    )}
+                    <p className="text-xs text-muted-foreground pt-1">
+                      Para preservar o histórico, recomendamos <strong>Desativar</strong> em vez de eliminar.
+                    </p>
+                    <div className="pt-2 space-y-1">
+                      <label className="text-xs font-medium text-foreground">
+                        Para confirmar, escreva o código do edifício: <code className="bg-muted px-1 py-0.5 rounded">{buildingToDelete?.code}</code>
+                      </label>
+                      <Input
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder={buildingToDelete?.code ?? ""}
+                        autoComplete="off"
+                      />
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
@@ -882,19 +907,20 @@ export default function Edificios() {
               </Button>
             )}
             {(() => {
-              const blocked = deleteDeps ? !deleteDeps.canDeletePermanently : false;
+              const requiresTyping = !!deleteDeps?.hasHistory;
+              const typingOk = !requiresTyping || deleteConfirmText.trim() === (buildingToDelete?.code ?? "");
+              const disabled = deleteBuilding.isPending || depsLoading || !typingOk;
               return (
                 <Button
-                  variant={blocked ? "outline" : "destructive"}
+                  variant="destructive"
                   onClick={handleDelete}
-                  disabled={deleteBuilding.isPending || depsLoading || blocked}
+                  disabled={disabled}
                   className="w-full"
-                  title={blocked ? "Bloqueado: existem assistências ou actas associadas" : undefined}
                 >
                   {deleteBuilding.isPending
                     ? "A eliminar…"
-                    : blocked
-                      ? "Eliminar permanentemente (bloqueado)"
+                    : requiresTyping
+                      ? "Eliminar permanentemente e todo o histórico"
                       : "Eliminar permanentemente"}
                 </Button>
               );
