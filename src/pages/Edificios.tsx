@@ -672,11 +672,16 @@ export default function Edificios() {
             const openAssistances = getOpenAssistanceCount(building.id);
             
             return (
-              <Card key={building.id} className="hover:shadow-lg transition-all duration-300">
+              <Card key={building.id} className={`hover:shadow-lg transition-all duration-300 ${!building.is_active ? "opacity-70 border-dashed" : ""}`}>
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-lg">{building.name}</CardTitle>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <CardTitle className="text-lg">{building.name}</CardTitle>
+                        {!building.is_active && (
+                          <Badge variant="outline" className="text-xs">Inativo</Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground mt-1">
                         Código: {building.code || 'N/A'}
                       </p>
