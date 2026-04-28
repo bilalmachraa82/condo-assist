@@ -483,12 +483,13 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
 
 export default function Edificios() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active");
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedBuildingForEdit, setSelectedBuildingForEdit] = useState<Building | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [buildingToDelete, setBuildingToDelete] = useState<Building | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'assistances'>('list');
-  
+
   const { data: buildings, isLoading } = useBuildings();
   const { data: assistances } = useAssistances();
   const deleteBuilding = useDeleteBuilding();
