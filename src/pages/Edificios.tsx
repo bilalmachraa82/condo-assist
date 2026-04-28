@@ -819,12 +819,14 @@ export default function Edificios() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!buildingToDelete} onOpenChange={() => setBuildingToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar edifício</AlertDialogTitle>
+            <AlertDialogTitle>
+              {buildingToDelete?.is_active ? "Eliminar ou desativar edifício" : "Eliminar edifício"}
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
-                <p>
+                <p className="text-foreground">
                   Edifício: <strong>{buildingToDelete?.code} — {buildingToDelete?.name}</strong>
                 </p>
 
@@ -832,7 +834,7 @@ export default function Edificios() {
                   <p className="text-sm text-muted-foreground">A verificar dependências…</p>
                 ) : deleteDeps && (deleteDeps.assistancesTotal > 0 || deleteDeps.assemblyItems > 0 || deleteDeps.contacts > 0 || deleteDeps.knowledgeArticles > 0) ? (
                   <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm space-y-2">
-                    <p className="font-medium text-warning-foreground">
+                    <p className="font-medium text-foreground">
                       Este edifício tem registos associados:
                     </p>
                     <ul className="list-disc pl-5 space-y-0.5 text-foreground">
@@ -854,7 +856,9 @@ export default function Edificios() {
                     </ul>
                     {!deleteDeps.canDeletePermanently && (
                       <p className="text-xs text-muted-foreground pt-1">
-                        Não é possível <strong>eliminar permanentemente</strong> enquanto existirem assistências ou actas. Recomendamos <strong>desativar</strong> o edifício — o histórico fica preservado e o prédio deixa de aparecer nas listas activas.
+                        Eliminação permanente bloqueada para preservar o histórico.
+                        Recomendamos <strong>desativar</strong> o edifício — deixa de aparecer
+                        nas listas ativas mas mantém todo o histórico.
                       </p>
                     )}
                   </div>
@@ -866,28 +870,36 @@ export default function Edificios() {
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-2">
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col-reverse sm:flex-col-reverse sm:space-x-0 gap-2">
             {buildingToDelete?.is_active && (
               <Button
-                variant="secondary"
+                variant="default"
                 onClick={handleDeactivate}
                 disabled={updateBuilding.isPending}
+                className="w-full"
               >
-                {updateBuilding.isPending ? "A desativar…" : "Desativar (preservar histórico)"}
+                {updateBuilding.isPending ? "A desativar…" : "Desativar (preservar histórico) — recomendado"}
               </Button>
             )}
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive hover:bg-destructive/90"
-              disabled={
-                deleteBuilding.isPending ||
-                depsLoading ||
-                (deleteDeps ? !deleteDeps.canDeletePermanently : false)
-              }
-            >
-              {deleteBuilding.isPending ? "A eliminar…" : "Eliminar permanentemente"}
-            </AlertDialogAction>
+            {(() => {
+              const blocked = deleteDeps ? !deleteDeps.canDeletePermanently : false;
+              return (
+                <Button
+                  variant={blocked ? "outline" : "destructive"}
+                  onClick={handleDelete}
+                  disabled={deleteBuilding.isPending || depsLoading || blocked}
+                  className="w-full"
+                  title={blocked ? "Bloqueado: existem assistências ou actas associadas" : undefined}
+                >
+                  {deleteBuilding.isPending
+                    ? "A eliminar…"
+                    : blocked
+                      ? "Eliminar permanentemente (bloqueado)"
+                      : "Eliminar permanentemente"}
+                </Button>
+              );
+            })()}
+            <AlertDialogCancel className="w-full mt-0">Cancelar</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
