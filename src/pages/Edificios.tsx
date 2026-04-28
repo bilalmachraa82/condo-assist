@@ -546,7 +546,7 @@ export default function Edificios() {
         title: "Edifício desativado",
         description: "O histórico foi preservado. Pode reativar mais tarde.",
       });
-      setBuildingToDelete(null);
+      openDeleteDialog(null);
     } catch (error: any) {
       toast({
         title: "Erro ao desativar",
@@ -745,7 +745,7 @@ export default function Edificios() {
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
-                          onClick={() => setBuildingToDelete(building)}
+                          onClick={() => openDeleteDialog(building)}
                           className="text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
