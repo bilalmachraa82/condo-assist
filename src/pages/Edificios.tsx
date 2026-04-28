@@ -605,6 +605,29 @@ export default function Edificios() {
               className="pl-10 w-full sm:w-80"
             />
           </div>
+          <div className="flex gap-1 rounded-md border bg-muted/30 p-1">
+            <Button
+              size="sm"
+              variant={statusFilter === "active" ? "default" : "ghost"}
+              onClick={() => setStatusFilter("active")}
+            >
+              Ativos ({activeCount})
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === "inactive" ? "default" : "ghost"}
+              onClick={() => setStatusFilter("inactive")}
+            >
+              Inativos ({inactiveCount})
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === "all" ? "default" : "ghost"}
+              onClick={() => setStatusFilter("all")}
+            >
+              Todos
+            </Button>
+          </div>
         </div>
         <div className="flex gap-2">
           <PDFExportButton 
