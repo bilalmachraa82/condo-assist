@@ -9,20 +9,21 @@ export interface BuildingDependencies {
   assemblyItems: number;
   contacts: number;
   knowledgeArticles: number;
+  /** Always true now — permanent delete is allowed but cascades to history. */
   canDeletePermanently: boolean;
+  /** True when there is history that will be cascade-deleted. */
+  hasHistory: boolean;
 }
 
 /**
- * Counts all records that reference a given building, so the UI can decide
- * whether to allow a permanent delete or recommend deactivating instead.
+ * Counts all records that reference a given building, used to inform the user
+ * about the impact of a permanent delete (which now cascades).
  *
- * Hard blockers (FK without ON DELETE CASCADE → DB returns 23503):
- *   - assistances
- *   - assembly_items
- *
- * Soft (handled by the FK):
- *   - condominium_contacts (CASCADE)
- *   - knowledge_articles (SET NULL)
+ * Cascade behavior on building delete:
+ *   - assistances        → CASCADE (deleted with the building)
+ *   - assembly_items     → CASCADE (deleted with the building)
+ *   - condominium_contacts → CASCADE (deleted with the building)
+ *   - knowledge_articles → SET NULL (kept, reference cleared)
  */
 export const useBuildingDependencies = (buildingId: string | undefined) => {
   return useQuery({
