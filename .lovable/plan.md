@@ -1,65 +1,77 @@
-## Diagnóstico
+## Objetivo
 
-Pelo screenshot e pelo código, há dois problemas diferentes:
+Permitir ao cliente apagar um prédio mesmo quando este tem histórico (assistências, atas, contactos, artigos de conhecimento), mantendo proteção contra cliques acidentais.
 
-1. **Não dá para eliminar permanentemente porque o edifício tem histórico ligado**
-   - Isto está correto do ponto de vista de dados: existem assistências/assuntos de actas ligados ao edifício, e a base de dados bloqueia a eliminação para não perder histórico.
-   - O fluxo correto deve ser **Desativar**, não eliminar permanentemente.
+## Situação atual
 
-2. **O diálogo está desformatado**
-   - O botão “Eliminar permanentemente” aparece visualmente ativo mesmo quando está `disabled`, porque a classe destrutiva força o vermelho apesar do estado desativado.
-   - O rodapé usa 3 botões em linha, e no tamanho atual do ecrã o layout fica apertado/fora da caixa.
-   - A área de aviso está larga demais visualmente e encosta/parece transbordar.
+As foreign keys que apontam para `buildings` estão configuradas assim:
 
-## Plano de resolução
+| Tabela referenciadora | Regra ON DELETE | Comportamento |
+|---|---|---|
+| `assistances` | NO ACTION | **Bloqueia** o delete (erro 23503) |
+| `assembly_items` | NO ACTION | **Bloqueia** o delete (erro 23503) |
+| `condominium_contacts` | CASCADE | Apaga em conjunto |
+| `knowledge_articles` | SET NULL | Mantém artigo, limpa referência |
 
-### 1. Corrigir o layout do diálogo
-- Aumentar ligeiramente a largura máxima do diálogo e garantir `overflow-hidden`/`max-w` correto.
-- Trocar o rodapé para layout responsivo:
-  - em desktop: botões alinhados sem sobrepor;
-  - em mobile/tablet: botões empilhados ou em grelha para não partir o modal.
-- Fazer o botão recomendado (“Desativar”) ocupar destaque claro.
+Por isso, hoje o botão "Eliminar permanentemente" aparece desativado quando existe qualquer assistência ou item de ata. Foi uma decisão para "preservar histórico", mas o cliente quer poder forçar.
 
-### 2. Corrigir o botão “Eliminar permanentemente”
-- Quando existirem dependências fortes, manter o botão desativado mas com aparência realmente desativada (`opacity`, `cursor-not-allowed`, sem vermelho forte).
-- Alterar o texto/tooltip/mensagem para deixar claro: “Bloqueado por histórico”.
-- Evitar confusão entre “não funciona” e “está bloqueado por segurança”.
+## Proposta
 
-### 3. Tornar “Desativar” o fluxo principal
-- Quando houver assistências ou actas, mostrar uma mensagem direta:
-  - “Este edifício não pode ser eliminado porque tem histórico. Use Desativar.”
-- Ao clicar **Desativar**, fechar o modal e remover o edifício das listas ativas.
-- Ajustar a listagem de edifícios para, por defeito, mostrar apenas edifícios ativos. Assim, quando desativa, o edifício desaparece da lista principal como esperado.
+Dar ao utilizador uma opção explícita de **eliminação forçada** com dupla confirmação. O histórico (assistências, atas) será apagado em conjunto com o prédio.
 
-### 4. Manter acesso a edifícios inativos para gestão
-- Adicionar filtro simples na página de Edifícios:
-  - “Ativos”
-  - “Inativos”
-  - “Todos”
-- Mostrar badge “Inativo” nos cartões quando aplicável.
-- Permitir reativar via edição, mantendo o histórico.
+### 1. Migração de base de dados
 
-### 5. Melhorar robustez técnica
-- Invalidar também a query de dependências após eliminar/desativar.
-- Garantir que erros de Supabase aparecem como texto legível e nunca como `[object Object]`.
-- Remover `console.log` desnecessários do hook de edifícios.
+Alterar as FKs `assistances.building_id` e `assembly_items.building_id` para `ON DELETE CASCADE`. Assim, ao apagar o prédio, o Postgres apaga automaticamente as linhas dependentes em vez de bloquear.
 
-## Resultado esperado
+```sql
+ALTER TABLE assistances
+  DROP CONSTRAINT assistances_building_id_fkey,
+  ADD CONSTRAINT assistances_building_id_fkey
+    FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE CASCADE;
 
-Depois da correção:
+ALTER TABLE assembly_items
+  DROP CONSTRAINT assembly_items_building_id_fkey,
+  ADD CONSTRAINT assembly_items_building_id_fkey
+    FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE CASCADE;
+```
 
-- Edifícios com assistências/actas **não serão eliminados permanentemente** por segurança.
-- O utilizador conseguirá clicar em **Desativar (preservar histórico)**.
-- O edifício desativado deixará de aparecer na lista ativa.
-- O modal ficará visualmente alinhado e sem botões sobrepostos.
-- Se um edifício não tiver histórico, aí sim poderá ser eliminado permanentemente.
+Nota: outras tabelas que referenciam assistências (fotos, comunicações, cotações, etc.) já devem ter cascade próprio — vou verificar e, se necessário, ajustar para garantir que tudo desaparece de forma limpa, sem deixar órfãos.
 
-## Ficheiros a alterar
+### 2. Alterações na UI (`src/pages/Edificios.tsx`)
 
-- `src/pages/Edificios.tsx`
-- `src/hooks/useBuildings.ts`
-- possivelmente `src/hooks/useBuildingDependencies.ts` para invalidação/ajuste fino
+No diálogo de eliminação, em vez de desativar o botão de "Eliminar permanentemente", passamos a:
 
-## Nota importante
+1. Mostrar **aviso destacado** com a contagem exata do que vai ser apagado:
+   - X assistências (Y abertas, Z fechadas)
+   - W itens de ata
+   - N contactos
+   - Artigos de conhecimento ficam preservados (referência limpa)
+2. Pedir ao utilizador para **escrever o código do prédio** (ex: "GAL") para confirmar — padrão usado em ferramentas tipo GitHub para evitar enganos.
+3. Só então o botão "Eliminar permanentemente e todo o histórico" fica ativo (variante destrutiva, vermelho).
+4. Manter "Desativar (preservar histórico)" como ação **recomendada e em destaque**, para o caso comum.
 
-Para o caso do edifício mostrado no screenshot, o comportamento correto não é “eliminar”; é **desativar**, porque há registos associados. A correção principal é tornar isto claro e garantir que o botão de desativar funciona e que a UI não fica desformatada.
+### 3. Hook `useBuildingDependencies.ts`
+
+Manter o cálculo de contagens (continua útil para mostrar o impacto), mas remover o flag `canDeletePermanently` — já não bloqueia, apenas informa.
+
+### 4. Toast de sucesso
+
+Após eliminação forçada, mostrar mensagem clara: "Prédio X eliminado, juntamente com N assistências e M itens de ata."
+
+## Ficheiros afetados
+
+- Migração SQL (nova)
+- `src/hooks/useBuildingDependencies.ts` — remover flag de bloqueio
+- `src/pages/Edificios.tsx` — novo diálogo com confirmação por digitação
+- `src/hooks/useBuildings.ts` — mensagem de sucesso mais detalhada
+
+## Riscos e mitigação
+
+- **Risco:** perda irreversível de histórico de assistências.
+  **Mitigação:** confirmação por digitação do código + opção "Desativar" continua a ser a recomendada.
+- **Risco:** fotos em storage ficarem órfãs após cascade.
+  **Mitigação:** verificar se existe trigger/cleanup; se não, manter como nota para o utilizador (storage pode ser limpo posteriormente).
+
+## Pergunta antes de avançar
+
+Confirmas que queres mesmo permitir eliminação destrutiva (apaga assistências e atas em conjunto)? A alternativa mais segura seria manter a "Desativação" como única opção e esconder o prédio das listagens — mas pelo que disseste, queres a eliminação real.
