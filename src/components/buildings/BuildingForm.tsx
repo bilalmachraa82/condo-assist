@@ -10,7 +10,7 @@ import { useCreateBuilding, useUpdateBuilding, type Building } from "@/hooks/use
 import { useToast } from "@/hooks/use-toast"
 
 const buildingSchema = z.object({
-  code: z.string().min(1, "Código é obrigatório"),
+  code: z.string().optional(),
   name: z.string().min(1, "Nome é obrigatório"),
   address: z.string().optional(),
   nif: z.string().optional().refine((val) => !val || /^\d{9}$/.test(val), {
@@ -47,10 +47,32 @@ export function BuildingForm({ building, onSuccess, onCancel }: BuildingFormProp
     },
   })
 
+  const generateNextCode = async (): Promise<string> => {
+    const { supabase } = await import("@/integrations/supabase/client")
+    const { data: rows } = await supabase.from("buildings").select("code")
+    const used = new Set((rows ?? []).map((r: any) => String(r.code)))
+    let maxNum = 0
+    used.forEach((c) => {
+      const n = parseInt(c, 10)
+      if (!isNaN(n) && n > maxNum) maxNum = n
+    })
+    let next = maxNum + 1
+    let candidate = String(next).padStart(3, "0")
+    while (used.has(candidate) || used.has(String(next))) {
+      next += 1
+      candidate = String(next).padStart(3, "0")
+    }
+    return candidate
+  }
+
   const onSubmit = async (data: BuildingFormData) => {
     try {
+      const finalCode = data.code?.trim()
+        ? data.code.trim()
+        : building?.code ?? (await generateNextCode())
+
       const processedData = {
-        code: data.code,
+        code: finalCode,
         name: data.name,
         address: data.address || null,
         nif: data.nif || null,
@@ -87,9 +109,13 @@ export function BuildingForm({ building, onSuccess, onCancel }: BuildingFormProp
             name="code"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Código *</FormLabel>
+                <FormLabel>Código</FormLabel>
                 <FormControl>
-                  <Input placeholder="ex: ED001" {...field} />
+                  <Input
+                    placeholder="Auto (deixe vazio para gerar)"
+                    autoComplete="off"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
