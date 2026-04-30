@@ -485,6 +485,17 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
           </Card>
         </div>
       </div>
+
+      <CreatePendencyDialog
+        open={pendencyOpen}
+        onOpenChange={setPendencyOpen}
+        defaults={{
+          building_id: assistance.building_id,
+          assistance_id: assistance.id,
+          supplier_id: assistance.assigned_supplier_id ?? undefined,
+          title: `Pendência: ${assistance.title}`,
+        }}
+      />
     </div>
   );
 }
