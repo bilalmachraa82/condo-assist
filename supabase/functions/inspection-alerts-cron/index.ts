@@ -18,7 +18,7 @@ interface StatusRow {
   inspection_date: string | null;
   next_due_date: string | null;
   days_until_due: number | null;
-  status: "ok" | "due_soon_30" | "due_soon_15" | "overdue" | "missing";
+  status: "ok" | "due_soon_30" | "due_soon_15" | "overdue" | "missing" | "pending";
   company_name: string | null;
 }
 
