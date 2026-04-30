@@ -1,78 +1,101 @@
-## Problema
+## Auditoria do menu Follow-up
 
-Ao criar uma assistência de elevador (ex: #793, #789), nenhum email é enviado.
+Após rever `FollowUpDashboard.tsx`, `PendencyRemindersTab.tsx`, `FollowUps.tsx` e os hooks associados, identifiquei pontos de fricção concretos. Abaixo está o que está a confundir o admin, o que vou remover e o que vou melhorar.
 
-**Causa-raiz:** O envio de email em `CreateAssistanceForm.tsx` está condicionado a `assistance.assigned_supplier_id`. Como nas assistências de elevador raramente se escolhe o fornecedor manualmente (cada edifício tem um contrato anual com um fornecedor específico — Ascensoeleva, TecniAbrantes, Schindler, Orona, etc.), o campo fica vazio e nada é enviado.
+### Problemas detectados (estado atual)
 
-**Dados disponíveis na KB:** Para quase todos os edifícios existe um artigo `knowledge_articles` com `category = 'elevadores'` contendo o nome da empresa e o email de contacto (ex: `ascensoeleva.lda@sapo.pt`, `tecniabrantes.geral@gmail.com`, `sandra.ribeiro@schindler.com`, `lisboa@orona.pt`, etc.).
+**Header e ações duplicadas**
+- 3 botões no topo (`Disparar lembretes manuais`, `Processar Devidos`, `Processar Todos Agora`) sem hierarquia clara — o admin não sabe qual carregar.
+- "Processar Todos Agora" é perigoso (envia tudo, ignorando agendamento) e está como botão secundário sem confirmação.
+- Aba `Pendências email` tem um botão `Processar agora` separado, com lógica idêntica mas UI diferente.
 
-## Solução
+**Cards de estatísticas pouco accionáveis**
+- 4 cards estáticos (Total, Pendentes, Enviados, Falhados) sem possibilidade de clicar para filtrar.
+- "Devidos agora" só existe na aba pendências — falta em assistências, embora o dado já exista (`stats.due_now`).
 
-Aproveitar a KB para resolver automaticamente o fornecedor de elevador do edifício e atribuí-lo na criação, garantindo que o email é sempre disparado.
+**Filtros e listas**
+- Filtro de Tipo está dentro de um `<Card>` separado dos status tabs — duas zonas de filtragem desligadas.
+- Não há barra de pesquisa por nº de assistência / fornecedor / edifício.
+- Não há ordenação (mais antigos primeiro vs. mais urgentes).
+- Sem paginação ou "carregar mais" — listas longas tornam-se ilegíveis.
 
-### 1. Novas colunas na KB de elevadores (sem migrar dados)
+**Cards de follow-up**
+- Tentativa "1 de 3" aparece sempre, mesmo em itens enviados/cancelados (ruído).
+- Em itens `sent`/`cancelled`/`failed` os botões Reagendar/Cancelar somem mas não aparece nenhuma alternativa (ex.: "Ver email enviado", "Reenviar").
+- "Em atraso" e "Pendente" mostram-se em paralelo — visualmente redundante.
+- Em assistências, falta link "Abrir assistência" (na aba pendências já existe "Abrir pendência").
 
-Adicionar à tabela `knowledge_articles` dois campos opcionais já preenchíveis para `category='elevadores'`:
-- `supplier_id uuid` (FK para `suppliers`, nullable) — fornecedor canónico
-- Reaproveitar `metadata jsonb` para guardar `{ company_name, contact_email, phone }` extraídos
+**Cards "Por Tipo" / "Por Prioridade"**
+- Apenas mostram contagem — não são filtros. Ocupam espaço sem ação.
 
-### 2. Migração + seeding inicial
+**Inconsistências entre as duas abas**
+- Aba "Assistências" tem cards de "Por Tipo / Por Prioridade", a aba "Pendências" não.
+- Ações primárias usam estilos diferentes (variant `secondary` vs `default`).
+- "Encaminhar a fornecedor" só aparece em manuais — bom, mas sem tooltip a explicar.
 
-- Migration: adicionar coluna `elevator_supplier_id uuid` em `buildings` (mais direto que percorrer KB em runtime)
-- Script de seeding (one-shot via insert tool):
-  1. Para cada edifício com artigo `category='elevadores'`, fazer parse do markdown (regex `Empresa:` + `Email:`)
-  2. Encontrar/criar `supplier` correspondente (se já existir empresa pelo nome ou email, reutiliza; senão cria novo com `specialization='Elevadores'` e o email real da KB — não `geral@luvimg.com`)
-  3. Gravar `buildings.elevator_supplier_id`
-  4. Relatório no fim: edifícios resolvidos vs sem KB
+**Empty states fracos**
+- "Nenhum follow-up encontrado" sem CTA. Não orienta o admin.
 
-### 3. Pré-seleção automática no formulário
+---
 
-Em `CreateAssistanceForm.tsx`:
-- Quando o utilizador seleciona um edifício **e** um `intervention_type` cuja `name ILIKE '%elevad%'`, fazer `setValue('assigned_supplier_id', building.elevator_supplier_id)` automaticamente
-- Mostrar um aviso visível: *"Fornecedor de elevador deste edifício pré-selecionado: Ascensoeleva (ascensoeleva.lda@sapo.pt). Pode alterar."*
-- Permanece editável (override manual)
+### Plano de melhorias
 
-### 4. Fallback robusto no `onSuccess`
+**1. Header unificado (em ambas as abas)**
+- Título único: "Follow-ups e Lembretes" + subtítulo curto que muda por aba.
+- Ação primária única: **`Processar agora`** (= modo `due`, o seguro) — mesmo botão nas duas abas.
+- Mover `Processar Todos Agora` e `Disparar lembretes manuais` para um menu `…` (DropdownMenu) com:
+  - "Forçar envio de todos (ignora agendamento)" + `AlertDialog` de confirmação a explicar consequências.
+  - "Disparar varredura de lembretes manuais".
 
-Se mesmo assim `assigned_supplier_id` ficar `null`:
-- Para tipos de elevador, em vez de não enviar nada, despachar `send-assistance-pdf-to-admin` com `mode='archive'` para `geral@luvimg.com`, para a administração reencaminhar manualmente
-- Toast claro: *"Assistência criada. Sem fornecedor de elevador associado ao edifício — PDF enviado para geral@luvimg.com."*
+**2. Stat cards interactivos**
+- Adicionar card "Devidos agora" também na aba assistências (dado já existe).
+- Cards passam a ser **clicáveis** → aplicam o filtro de status correspondente (Pendentes → tab `pending`, Falhados → tab `failed`, etc.).
+- Card activo ganha `ring-2 ring-primary` para feedback visual.
+- "Em atraso" passa a contador destacado dentro do card "Pendentes" (badge vermelho), não card próprio.
 
-### 5. UI: gestão do fornecedor de elevador no edifício
+**3. Remover cards "Por Tipo" / "Por Prioridade"**
+- Substituir por **chips de filtro rápido** acima da lista (ex.: `Todos | Orçamento (3) | Confirmação (1) | Trabalho (5)`), que funcionam como filtros + mostram a contagem. Resolve dois problemas (espaço + acionabilidade).
 
-Na página de detalhe do edifício, adicionar um pequeno card "Fornecedor de Elevador" com:
-- Nome + email atuais (lidos de `buildings.elevator_supplier_id`)
-- Botão "Alterar" que abre dropdown com fornecedores `specialization='Elevadores'`
-- Link "Sincronizar a partir da KB" que volta a fazer parse do artigo
+**4. Barra de filtros consolidada**
+- Linha única acima da lista: `[🔎 Pesquisar nº/edifício/fornecedor]  [Tipo ▾]  [Ordenar ▾: Mais urgentes / Mais antigos / Recentes]`.
+- Status tabs ficam logo abaixo (mantém o padrão atual).
+- Pesquisa local (client-side) sobre o array já carregado — sem alterar hooks.
 
-## Detalhes técnicos
+**5. Cards de follow-up melhorados**
+- Esconder "Tentativa X de Y" em itens `sent`/`cancelled` (só relevante para `pending`/`failed`).
+- Substituir badge dupla "Pendente + Em atraso" por **"Em atraso"** sozinha quando aplicável (vermelha) — mais legível.
+- Adicionar botão **"Abrir assistência"** (link para `/assistencias/:id`) em todos os cards da aba assistências, espelhando "Abrir pendência".
+- Em itens `failed`: botão **"Tentar novamente"** (reusa `processFollowUps` com filtro por id; se hook não suporta, usar `rescheduleFollowUp` para `now()`).
+- Tooltips nos botões de ícone (Reagendar, Cancelar, Encaminhar) com `<TooltipProvider>` já existente no projeto.
 
-```text
-buildings
-  └─ elevator_supplier_id ──► suppliers (specialization='Elevadores')
-                                  ▲
-knowledge_articles (category='elevadores')
-  ──[seed script: regex Empresa/Email]──► cria/atualiza supplier + grava FK
-```
+**6. Empty state com CTA**
+- Quando não há resultados:
+  - Se filtros ativos → "Sem resultados para estes filtros" + botão **"Limpar filtros"**.
+  - Se realmente vazio → "Tudo em dia ✅. Não há follow-ups pendentes." + link "Criar pendência email" / "Ver assistências".
 
-**Regex parse**: `/\*\*Empresa:\*\*\s*([^\n]+)/i` e `/\*\*Email:\*\*\s*([^\s\n]+)/i` (separar múltiplos emails por `//` ou `,`)
+**7. Feedback visual durante ações**
+- Botão `Processar agora`: ao terminar, mostrar `toast` com resumo ("3 enviados, 1 falhado") em vez do toast genérico atual.
+- Card alvo de uma ação (cancelar, reagendar) recebe transição visual breve (fade) para confirmar.
+- Loading skeletons em vez do spinner único — substitui o "A carregar follow-ups..." por 3 `Skeleton` com formato de card.
 
-**Order de operações no formulário** (`useEffect` reagindo a `building_id` + `intervention_type_id`):
-1. Se já há `assigned_supplier_id` definido pelo utilizador → não mexer
-2. Se `intervention_type.name` matches `/elevad/i` e `building.elevator_supplier_id` existe → set automático
-3. Caso contrário → deixar vazio
+**8. Navegação entre abas com contadores no badge da sidebar**
+- A sidebar (`AppSidebar.tsx`) recebe um badge total `(stats.due_now + pendencyStats.due_now)` no item "Follow-up" — admin vê de imediato se há trabalho sem entrar.
 
-**Sem alterações** ao fluxo de envio existente (`request-quotation-email`, `sendMagicCodeToSupplier`, `send-assistance-pdf-to-admin`) — só passa a haver `assigned_supplier_id` mais frequentemente.
+---
 
-## Ficheiros afetados
+### Ficheiros a alterar
 
-- `supabase/migrations/...` — adicionar `buildings.elevator_supplier_id`
-- Script SQL de seeding (one-shot via insert tool, não migration)
-- `src/components/assistance/CreateAssistanceForm.tsx` — pré-selecção + fallback admin
-- `src/components/buildings/BuildingDetail.tsx` (ou equivalente) — card "Fornecedor de Elevador"
-- `src/integrations/supabase/types.ts` — auto-regenerado
+- `src/components/followups/FollowUpDashboard.tsx` — header, stat cards interactivos, chips de tipo, barra de filtros, empty state, card melhorado.
+- `src/components/followups/PendencyRemindersTab.tsx` — espelhar mesma estrutura para consistência total entre abas.
+- `src/components/layout/AppSidebar.tsx` — badge com contador "devidos agora" no item Follow-up.
+- (Opcional) extrair um `<FollowUpStatsCards>` partilhado pelas duas abas para garantir consistência futura.
 
-## Fora deste plano
+### Fora do âmbito (não tocar agora)
 
-- Generalizar para outras categorias (gás, extintores, seguros) — mesma KB existe; pode ser feito num passo seguinte se aprovares
-- Editar/criar nova UI para gerir contratos anuais de fornecedores (apenas o link rápido por edifício)
+- Hooks (`useFollowUpSchedules`, `usePendencyReminders`) e edge functions — mantêm-se. Toda a melhoria é UI/UX sobre dados que já existem.
+- Lógica de envio, cron, RLS — sem alterações.
+- Esquema da BD — sem alterações.
+
+### Resultado esperado
+
+O admin abre `/follow-ups`, vê de imediato quantos itens precisam de atenção (cards + badge na sidebar), tem **um** botão claro para processar, pode pesquisar/filtrar/ordenar numa barra única, e cada card mostra apenas a informação e ações relevantes ao seu estado.

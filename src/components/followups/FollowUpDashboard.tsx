@@ -1,54 +1,94 @@
-
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Clock, 
-  Send, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Clock,
+  Send,
+  AlertTriangle,
+  CheckCircle,
   XCircle,
   Calendar,
   Bell,
-  TrendingUp,
   Play,
   Pause,
   RotateCcw,
-  Info
+  Forward,
+  Mail,
+  MoreHorizontal,
+  Search,
+  ExternalLink,
+  RefreshCw,
 } from "lucide-react";
-import { 
-  useFollowUpSchedules, 
-  useFollowUpStats, 
+import {
+  useFollowUpSchedules,
+  useFollowUpStats,
   useProcessFollowUps,
   useCancelFollowUp,
   useRescheduleFollowUp,
   useTriggerManualReminders,
-  type FollowUpWithDetails 
+  type FollowUpWithDetails,
 } from "@/hooks/useFollowUpSchedules";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import ForwardToSupplierDialog from "./ForwardToSupplierDialog";
 import PendencyRemindersTab from "./PendencyRemindersTab";
-import { Forward, Mail } from "lucide-react";
+import FollowUpStatsCards from "./FollowUpStatsCards";
+import FollowUpEmptyState from "./FollowUpEmptyState";
+import FollowUpCardSkeleton from "./FollowUpCardSkeleton";
 import { usePendencyRemindersStats } from "@/hooks/usePendencyReminders";
+import { cn } from "@/lib/utils";
 
 const followUpTypeLabels: Record<string, string> = {
-  quotation_reminder: "Lembrete de Orçamento",
-  date_confirmation: "Confirmação de Data",
-  work_reminder: "Lembrete de Trabalho",
-  completion_reminder: "Lembrete de Conclusão",
-  manual_reminder: "Lembrete manual",
+  quotation_reminder: "Orçamento",
+  date_confirmation: "Confirmação de data",
+  work_reminder: "Trabalho",
+  completion_reminder: "Conclusão",
+  manual_reminder: "Manual",
 };
 
-const statusLabels = {
+const statusLabels: Record<string, string> = {
   pending: "Pendente",
   sent: "Enviado",
   failed: "Falhado",
@@ -56,37 +96,43 @@ const statusLabels = {
   processing: "Processando",
 };
 
-const statusIcons = {
-  pending: <Clock className="h-4 w-4" />,
-  sent: <CheckCircle className="h-4 w-4" />,
-  failed: <XCircle className="h-4 w-4" />,
-  cancelled: <Pause className="h-4 w-4" />,
-  processing: <Send className="h-4 w-4" />,
+const statusIcons: Record<string, JSX.Element> = {
+  pending: <Clock className="h-3.5 w-3.5" />,
+  sent: <CheckCircle className="h-3.5 w-3.5" />,
+  failed: <XCircle className="h-3.5 w-3.5" />,
+  cancelled: <Pause className="h-3.5 w-3.5" />,
+  processing: <Send className="h-3.5 w-3.5" />,
 };
 
-const statusColors = {
-  pending: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-  sent: "bg-green-500/10 text-green-600 border-green-500/20",
-  failed: "bg-red-500/10 text-red-600 border-red-500/20",
+const statusColors: Record<string, string> = {
+  pending: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
+  sent: "bg-green-500/10 text-green-700 border-green-500/20",
+  failed: "bg-red-500/10 text-red-700 border-red-500/20",
   cancelled: "bg-gray-500/10 text-gray-600 border-gray-500/20",
-  processing: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  processing: "bg-blue-500/10 text-blue-700 border-blue-500/20",
 };
 
-const priorityColors = {
-  critical: "bg-red-500/10 text-red-600 border-red-500/20",
-  urgent: "bg-orange-500/10 text-orange-600 border-orange-500/20",
-  normal: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+const priorityColors: Record<string, string> = {
+  critical: "bg-red-500/10 text-red-700 border-red-500/20",
+  urgent: "bg-orange-500/10 text-orange-700 border-orange-500/20",
+  normal: "bg-blue-500/10 text-blue-700 border-blue-500/20",
 };
+
+type SortKey = "urgency" | "oldest" | "recent";
 
 export default function FollowUpDashboard() {
+  const [activeOrigin, setActiveOrigin] = useState<string>("assistances");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortKey>("urgency");
   const [forwardTarget, setForwardTarget] = useState<FollowUpWithDetails | null>(null);
   const [rescheduleData, setRescheduleData] = useState<{
     followUpId: string;
     currentDate: string;
     newDate: string;
   } | null>(null);
+  const [confirmForceAll, setConfirmForceAll] = useState(false);
 
   const { data: stats, isLoading: statsLoading } = useFollowUpStats();
   const { data: pendencyStats } = usePendencyRemindersStats();
@@ -99,7 +145,6 @@ export default function FollowUpDashboard() {
   const cancelFollowUp = useCancelFollowUp();
   const rescheduleFollowUp = useRescheduleFollowUp();
   const triggerManualReminders = useTriggerManualReminders();
-  const [activeOrigin, setActiveOrigin] = useState<string>("assistances");
 
   const handleReschedule = async () => {
     if (rescheduleData) {
@@ -111,311 +156,378 @@ export default function FollowUpDashboard() {
     }
   };
 
-  if (statsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">A carregar dashboard de follow-ups...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleRetry = (followUp: FollowUpWithDetails) => {
+    rescheduleFollowUp.mutate({
+      followUpId: followUp.id,
+      newDate: new Date().toISOString(),
+    });
+  };
+
+  const filteredFollowUps = useMemo(() => {
+    if (!followUps) return [];
+    const q = search.trim().toLowerCase();
+    let list = followUps.filter((f) => {
+      if (!q) return true;
+      const num = f.assistances?.assistance_number?.toString() ?? "";
+      const title = f.assistances?.title?.toLowerCase() ?? "";
+      const supplier = f.suppliers?.name?.toLowerCase() ?? "";
+      const building = `${f.assistances?.buildings?.code ?? ""} ${
+        f.assistances?.buildings?.name ?? ""
+      }`.toLowerCase();
+      return (
+        num.includes(q) ||
+        title.includes(q) ||
+        supplier.includes(q) ||
+        building.includes(q)
+      );
+    });
+
+    const priorityRank: Record<string, number> = { critical: 0, urgent: 1, normal: 2 };
+    list = [...list].sort((a, b) => {
+      if (sortBy === "urgency") {
+        const pa = priorityRank[a.priority] ?? 9;
+        const pb = priorityRank[b.priority] ?? 9;
+        if (pa !== pb) return pa - pb;
+        return new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime();
+      }
+      if (sortBy === "oldest") {
+        return new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime();
+      }
+      return new Date(b.scheduled_for).getTime() - new Date(a.scheduled_for).getTime();
+    });
+    return list;
+  }, [followUps, search, sortBy]);
+
+  const hasFilters = !!(selectedStatus || selectedType || search.trim());
+  const clearFilters = () => {
+    setSelectedStatus("");
+    setSelectedType("");
+    setSearch("");
+  };
 
   return (
-    <div className="space-y-6">
-      <Tabs value={activeOrigin} onValueChange={setActiveOrigin} className="space-y-6">
-        <TabsList className="grid w-full max-w-xl grid-cols-2">
-          <TabsTrigger value="assistances" className="gap-2">
-            <Bell className="h-4 w-4" />
-            Assistências
-            {(stats?.pending ?? 0) > 0 && (
-              <Badge variant="secondary" className="ml-1">{stats?.pending}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="pendencies" className="gap-2">
-            <Mail className="h-4 w-4" />
-            Pendências email
-            {(pendencyStats?.pending ?? 0) > 0 && (
-              <Badge variant="secondary" className="ml-1">{pendencyStats?.pending}</Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="assistances" className="space-y-6">
-          {/* Header com botões de processar */}
-          <div className="flex items-center justify-between">
+    <TooltipProvider delayDuration={250}>
+      <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold">Dashboard de Follow-ups</h2>
-          <p className="text-muted-foreground">
-            Monitore e gerencie todos os lembretes automáticos
+          <h1 className="text-2xl font-bold">Follow-ups e Lembretes</h1>
+          <p className="text-muted-foreground text-sm">
+            Centro de controlo de comunicações pendentes para fornecedores e condomínios.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            onClick={() => triggerManualReminders.mutate()}
-            disabled={triggerManualReminders.isPending}
-            variant="secondary"
-            className="gap-2"
-          >
-            <Bell className="h-4 w-4" />
-            {triggerManualReminders.isPending ? "A enviar..." : "Disparar lembretes manuais"}
-          </Button>
-          <Button 
-            onClick={() => processFollowUps.mutate({ mode: 'due' })}
-            disabled={processFollowUps.isPending}
-            className="gap-2"
-          >
-            <Play className="h-4 w-4" />
-            {processFollowUps.isPending ? "Processando..." : "Processar Devidos"}
-          </Button>
-          <Button 
-            onClick={() => processFollowUps.mutate({ mode: 'all' })}
-            disabled={processFollowUps.isPending}
-            variant="outline"
-            className="gap-2"
-          >
-            <AlertTriangle className="h-4 w-4" />
-            Processar Todos Agora
-          </Button>
-        </div>
-      </div>
 
-      {/* Alert informativo sobre follow-ups */}
-      {stats && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            {stats.pending > 0 ? (
-              <>
-                Existem {stats.pending} follow-ups pendentes ({stats.due_now} devidos agora). 
-                O botão "Processar Devidos" envia apenas os que chegaram à hora agendada. 
-                Use "Processar Todos Agora" para enviar todos independentemente do horário agendado.
-              </>
-            ) : (
-              "Não há follow-ups pendentes no momento."
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Follow-ups</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.total || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.overdue || 0} em atraso
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats?.pending || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Aguardam processamento
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Enviados</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats?.sent || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Emails enviados com sucesso
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Falhados</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats?.failed || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Requerem atenção
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Estatísticas por tipo e prioridade */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Por Tipo de Follow-up
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(stats?.byType || {}).map(([type, count]) => (
-                <div key={type} className="flex items-center justify-between">
-                  <span className="text-sm">{followUpTypeLabels[type as keyof typeof followUpTypeLabels]}</span>
-                  <Badge variant="outline">{count}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Por Prioridade
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(stats?.byPriority || {}).map(([priority, count]) => (
-                <div key={priority} className="flex items-center justify-between">
-                  <span className="text-sm capitalize">{priority === 'critical' ? 'Crítica' : priority === 'urgent' ? 'Urgente' : 'Normal'}</span>
-                  <Badge className={priorityColors[priority as keyof typeof priorityColors]}>
-                    {count}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Lista de follow-ups */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Follow-ups Agendados
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            <div className="flex-1">
-              <Label className="text-xs text-muted-foreground">Tipo</Label>
-              <Select value={selectedType || "all"} onValueChange={(v) => setSelectedType(v === "all" ? "" : v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-                  <SelectItem value="manual_reminder">🔔 Lembretes manuais</SelectItem>
-                  <SelectItem value="quotation_reminder">Lembrete de Orçamento</SelectItem>
-                  <SelectItem value="date_confirmation">Confirmação de Data</SelectItem>
-                  <SelectItem value="work_reminder">Lembrete de Trabalho</SelectItem>
-                  <SelectItem value="completion_reminder">Lembrete de Conclusão</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Tabs value={selectedStatus} onValueChange={setSelectedStatus}>
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="">Todos</TabsTrigger>
-              <TabsTrigger value="pending">Pendentes</TabsTrigger>
-              <TabsTrigger value="sent">Enviados</TabsTrigger>
-              <TabsTrigger value="failed">Falhados</TabsTrigger>
-              <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value={selectedStatus} className="space-y-4 mt-6">
-              {followUpsLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-                  <p className="text-sm text-muted-foreground">A carregar follow-ups...</p>
-                </div>
-              ) : !followUps || followUps.length === 0 ? (
-                <div className="text-center py-8">
-                  <Calendar className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-muted-foreground">Nenhum follow-up encontrado</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {followUps.map((followUp) => (
-                    <FollowUpCard 
-                      key={followUp.id} 
-                      followUp={followUp}
-                      onCancel={() => cancelFollowUp.mutate(followUp.id)}
-                      onForward={() => setForwardTarget(followUp)}
-                      onReschedule={() => setRescheduleData({
-                        followUpId: followUp.id,
-                        currentDate: followUp.scheduled_for,
-                        newDate: followUp.scheduled_for,
-                      })}
-                    />
-                  ))}
-                </div>
+        <Tabs value={activeOrigin} onValueChange={setActiveOrigin} className="space-y-6">
+          <TabsList className="grid w-full max-w-xl grid-cols-2">
+            <TabsTrigger value="assistances" className="gap-2">
+              <Bell className="h-4 w-4" />
+              Assistências
+              {(stats?.due_now ?? 0) > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 px-1.5">
+                  {stats?.due_now}
+                </Badge>
               )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            </TabsTrigger>
+            <TabsTrigger value="pendencies" className="gap-2">
+              <Mail className="h-4 w-4" />
+              Pendências email
+              {(pendencyStats?.due_now ?? 0) > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 px-1.5">
+                  {pendencyStats?.due_now}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-      <ForwardToSupplierDialog
-        open={!!forwardTarget}
-        onOpenChange={(o) => !o && setForwardTarget(null)}
-        followUp={forwardTarget}
-      />
+          <TabsContent value="assistances" className="space-y-6">
+            {/* Header de ações */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h2 className="text-lg font-semibold">Follow-ups de assistências</h2>
+                <p className="text-sm text-muted-foreground">
+                  Lembretes automáticos enviados aos fornecedores conforme o ciclo da assistência.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => processFollowUps.mutate({ mode: "due" })}
+                  disabled={processFollowUps.isPending}
+                  className="gap-2"
+                >
+                  <Play className="h-4 w-4" />
+                  {processFollowUps.isPending ? "A processar..." : "Processar agora"}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" aria-label="Mais ações">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-72">
+                    <DropdownMenuLabel>Ações avançadas</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => triggerManualReminders.mutate()}
+                      disabled={triggerManualReminders.isPending}
+                    >
+                      <Bell className="h-4 w-4 mr-2" />
+                      Disparar lembretes manuais
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setConfirmForceAll(true)}
+                      className="text-red-600 focus:text-red-700"
+                    >
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      Forçar envio de todos
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
 
-      {/* Dialog para reagendar */}
-      <Dialog open={!!rescheduleData} onOpenChange={() => setRescheduleData(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reagendar Follow-up</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="current-date">Data Atual</Label>
-              <Input
-                id="current-date"
-                type="datetime-local"
-                value={rescheduleData?.currentDate ? format(new Date(rescheduleData.currentDate), "yyyy-MM-dd'T'HH:mm") : ""}
-                disabled
+            {/* Stat cards interactivos */}
+            {statsLoading ? (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="p-6 space-y-3">
+                      <div className="h-4 bg-muted rounded animate-pulse" />
+                      <div className="h-8 w-16 bg-muted rounded animate-pulse" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <FollowUpStatsCards
+                stats={stats}
+                activeStatus={selectedStatus || ""}
+                onSelectStatus={(s) =>
+                  setSelectedStatus((prev) => (prev === s ? "" : s))
+                }
               />
-            </div>
-            <div>
-              <Label htmlFor="new-date">Nova Data</Label>
-              <Input
-                id="new-date"
-                type="datetime-local"
-                value={rescheduleData?.newDate ? format(new Date(rescheduleData.newDate), "yyyy-MM-dd'T'HH:mm") : ""}
-                onChange={(e) => setRescheduleData(prev => 
-                  prev ? { ...prev, newDate: new Date(e.target.value).toISOString() } : null
-                )}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setRescheduleData(null)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleReschedule} disabled={rescheduleFollowUp.isPending}>
-                {rescheduleFollowUp.isPending ? "Reagendando..." : "Reagendar"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-        </TabsContent>
+            )}
 
-        <TabsContent value="pendencies" className="space-y-6">
-          <PendencyRemindersTab />
-        </TabsContent>
-      </Tabs>
-    </div>
+            {/* Chips de tipo */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground mr-1">Tipo:</span>
+              <TypeChip
+                label="Todos"
+                count={stats?.total ?? 0}
+                active={!selectedType}
+                onClick={() => setSelectedType("")}
+              />
+              {Object.entries(stats?.byType ?? {}).map(([key, count]) => (
+                <TypeChip
+                  key={key}
+                  label={followUpTypeLabels[key] ?? key}
+                  count={count}
+                  active={selectedType === key}
+                  onClick={() =>
+                    setSelectedType((prev) => (prev === key ? "" : key))
+                  }
+                />
+              ))}
+            </div>
+
+            {/* Lista + filtros */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Follow-ups
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Pesquisar por nº, edifício ou fornecedor..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+                    <SelectTrigger className="sm:w-[200px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="urgency">Mais urgentes primeiro</SelectItem>
+                      <SelectItem value="oldest">Mais antigos primeiro</SelectItem>
+                      <SelectItem value="recent">Mais recentes primeiro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Tabs value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <TabsList className="grid w-full grid-cols-5">
+                    <TabsTrigger value="">Todos</TabsTrigger>
+                    <TabsTrigger value="pending">Pendentes</TabsTrigger>
+                    <TabsTrigger value="sent">Enviados</TabsTrigger>
+                    <TabsTrigger value="failed">Falhados</TabsTrigger>
+                    <TabsTrigger value="cancelled">Cancelados</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value={selectedStatus} className="space-y-3 mt-6">
+                    {followUpsLoading ? (
+                      <FollowUpCardSkeleton />
+                    ) : filteredFollowUps.length === 0 ? (
+                      <FollowUpEmptyState
+                        hasFilters={hasFilters}
+                        onClearFilters={clearFilters}
+                      />
+                    ) : (
+                      filteredFollowUps.map((followUp) => (
+                        <FollowUpCard
+                          key={followUp.id}
+                          followUp={followUp}
+                          onCancel={() => cancelFollowUp.mutate(followUp.id)}
+                          onForward={() => setForwardTarget(followUp)}
+                          onRetry={() => handleRetry(followUp)}
+                          onReschedule={() =>
+                            setRescheduleData({
+                              followUpId: followUp.id,
+                              currentDate: followUp.scheduled_for,
+                              newDate: followUp.scheduled_for,
+                            })
+                          }
+                        />
+                      ))
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            <ForwardToSupplierDialog
+              open={!!forwardTarget}
+              onOpenChange={(o) => !o && setForwardTarget(null)}
+              followUp={forwardTarget}
+            />
+
+            {/* Reagendar */}
+            <Dialog open={!!rescheduleData} onOpenChange={() => setRescheduleData(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Reagendar follow-up</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="current-date">Data atual</Label>
+                    <Input
+                      id="current-date"
+                      type="datetime-local"
+                      value={
+                        rescheduleData?.currentDate
+                          ? format(new Date(rescheduleData.currentDate), "yyyy-MM-dd'T'HH:mm")
+                          : ""
+                      }
+                      disabled
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="new-date">Nova data</Label>
+                    <Input
+                      id="new-date"
+                      type="datetime-local"
+                      value={
+                        rescheduleData?.newDate
+                          ? format(new Date(rescheduleData.newDate), "yyyy-MM-dd'T'HH:mm")
+                          : ""
+                      }
+                      onChange={(e) =>
+                        setRescheduleData((prev) =>
+                          prev
+                            ? { ...prev, newDate: new Date(e.target.value).toISOString() }
+                            : null
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setRescheduleData(null)}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleReschedule}
+                      disabled={rescheduleFollowUp.isPending}
+                    >
+                      {rescheduleFollowUp.isPending ? "A reagendar..." : "Reagendar"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Confirmação forçar todos */}
+            <AlertDialog open={confirmForceAll} onOpenChange={setConfirmForceAll}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Forçar envio de todos os follow-ups?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação ignora a data de agendamento e envia <b>todos</b> os
+                    follow-ups pendentes imediatamente. Use apenas se souber que o cron
+                    falhou ou em situação excepcional.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      processFollowUps.mutate({ mode: "all" });
+                      setConfirmForceAll(false);
+                    }}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Sim, enviar agora
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </TabsContent>
+
+          <TabsContent value="pendencies" className="space-y-6">
+            <PendencyRemindersTab />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+function TypeChip({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+        active
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-background hover:bg-muted text-foreground border-border"
+      )}
+    >
+      <span>{label}</span>
+      <span
+        className={cn(
+          "rounded-full px-1.5 text-[10px] font-medium",
+          active
+            ? "bg-primary-foreground/20 text-primary-foreground"
+            : "bg-muted text-muted-foreground"
+        )}
+      >
+        {count}
+      </span>
+    </button>
   );
 }
 
@@ -424,56 +536,120 @@ interface FollowUpCardProps {
   onCancel: () => void;
   onReschedule: () => void;
   onForward: () => void;
+  onRetry: () => void;
 }
 
-function FollowUpCard({ followUp, onCancel, onReschedule, onForward }: FollowUpCardProps) {
-  const isOverdue = followUp.status === 'pending' && new Date(followUp.scheduled_for) < new Date();
-  const isManual = followUp.follow_up_type === 'manual_reminder';
+function FollowUpCard({
+  followUp,
+  onCancel,
+  onReschedule,
+  onForward,
+  onRetry,
+}: FollowUpCardProps) {
+  const isPending = followUp.status === "pending";
+  const isFailed = followUp.status === "failed";
+  const isOverdue = isPending && new Date(followUp.scheduled_for) < new Date();
+  const isManual = followUp.follow_up_type === "manual_reminder";
   const note = (followUp.metadata as any)?.note as string | undefined;
   const building = followUp.assistances?.buildings;
   const buildingLabel = building
     ? `${building.code ? `${building.code} - ` : ""}${building.name}`
     : "Sem edifício";
+  const assistanceId = followUp.assistances?.id ?? followUp.assistance_id;
 
   return (
-    <div className={`border rounded-lg p-4 ${isOverdue ? 'border-red-200 bg-red-50/30' : 'hover:bg-muted/30'} transition-colors`}>
+    <div
+      className={cn(
+        "border rounded-lg p-4 transition-all",
+        isOverdue
+          ? "border-red-300 bg-red-50/40"
+          : "hover:bg-muted/30 hover:border-primary/30"
+      )}
+    >
       <div className="flex items-start justify-between mb-3 gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge className={statusColors[followUp.status as keyof typeof statusColors]}>
-            {statusIcons[followUp.status as keyof typeof statusIcons]}
-            <span className="ml-1">{statusLabels[followUp.status as keyof typeof statusLabels]}</span>
-          </Badge>
-          <Badge variant="outline" className={isManual ? "border-amber-300 bg-amber-50 text-amber-800" : ""}>
-            {isManual && "🔔 "}
-            {followUpTypeLabels[followUp.follow_up_type] ?? followUp.follow_up_type}
-          </Badge>
-          <Badge className={priorityColors[followUp.priority as keyof typeof priorityColors]}>
-            {followUp.priority === 'critical' ? 'Crítica' : followUp.priority === 'urgent' ? 'Urgente' : 'Normal'}
-          </Badge>
-          {isOverdue && (
-            <Badge className="bg-red-500/10 text-red-600 border-red-500/20">
+          {/* Único badge de status: "Em atraso" tem prioridade */}
+          {isOverdue ? (
+            <Badge className="bg-red-500/10 text-red-700 border-red-500/20">
               <AlertTriangle className="h-3 w-3 mr-1" />
               Em atraso
             </Badge>
+          ) : (
+            <Badge className={statusColors[followUp.status]}>
+              {statusIcons[followUp.status]}
+              <span className="ml-1">{statusLabels[followUp.status]}</span>
+            </Badge>
           )}
+          <Badge
+            variant="outline"
+            className={isManual ? "border-amber-300 bg-amber-50 text-amber-800" : ""}
+          >
+            {isManual && "🔔 "}
+            {followUpTypeLabels[followUp.follow_up_type] ?? followUp.follow_up_type}
+          </Badge>
+          <Badge className={priorityColors[followUp.priority]}>
+            {followUp.priority === "critical"
+              ? "Crítica"
+              : followUp.priority === "urgent"
+              ? "Urgente"
+              : "Normal"}
+          </Badge>
         </div>
-        <div className="flex items-center gap-2">
-          {isManual && (
-            <Button variant="default" size="sm" onClick={onForward} className="gap-1">
-              <Forward className="h-3 w-3" />
-              Encaminhar a fornecedor
-            </Button>
+
+        <div className="flex items-center gap-1">
+          {assistanceId && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild variant="ghost" size="sm" className="h-8">
+                  <Link to={`/assistencias/${assistanceId}`}>
+                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                    Abrir
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Abrir assistência</TooltipContent>
+            </Tooltip>
           )}
-          {followUp.status === 'pending' && (
+          {isManual && isPending && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="default" size="sm" onClick={onForward} className="h-8 gap-1">
+                  <Forward className="h-3.5 w-3.5" />
+                  Encaminhar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Encaminhar a fornecedor agora</TooltipContent>
+            </Tooltip>
+          )}
+          {isFailed && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={onRetry} className="h-8">
+                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                  Tentar de novo
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Reagendar para agora</TooltipContent>
+            </Tooltip>
+          )}
+          {isPending && (
             <>
-              <Button variant="outline" size="sm" onClick={onReschedule}>
-                <RotateCcw className="h-3 w-3 mr-1" />
-                Reagendar
-              </Button>
-              <Button variant="outline" size="sm" onClick={onCancel}>
-                <Pause className="h-3 w-3 mr-1" />
-                Cancelar
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={onReschedule} className="h-8 w-8">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Reagendar</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={onCancel} className="h-8 w-8">
+                    <Pause className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Cancelar</TooltipContent>
+              </Tooltip>
             </>
           )}
         </div>
@@ -481,7 +657,9 @@ function FollowUpCard({ followUp, onCancel, onReschedule, onForward }: FollowUpC
 
       <div className="space-y-2">
         <h4 className="font-medium">
-          {followUp.assistances?.assistance_number ? `#${followUp.assistances.assistance_number} ` : ""}
+          {followUp.assistances?.assistance_number
+            ? `#${followUp.assistances.assistance_number} `
+            : ""}
           {followUp.assistances?.title}
         </h4>
         <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
@@ -506,18 +684,28 @@ function FollowUpCard({ followUp, onCancel, onReschedule, onForward }: FollowUpC
         </div>
         {isManual && note && (
           <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            <span className="font-medium">Nota: </span>{note}
+            <span className="font-medium">Nota: </span>
+            {note}
           </div>
         )}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Tentativa {followUp.attempt_count + 1} de {followUp.max_attempts}</span>
-          {followUp.next_attempt_at && followUp.status === 'failed' && (
-            <>
-              <span>•</span>
-              <span>Próxima: {format(new Date(followUp.next_attempt_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
-            </>
-          )}
-        </div>
+        {(isPending || isFailed) && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>
+              Tentativa {followUp.attempt_count + 1} de {followUp.max_attempts}
+            </span>
+            {followUp.next_attempt_at && isFailed && (
+              <>
+                <span>•</span>
+                <span>
+                  Próxima:{" "}
+                  {format(new Date(followUp.next_attempt_at), "dd/MM/yyyy HH:mm", {
+                    locale: ptBR,
+                  })}
+                </span>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

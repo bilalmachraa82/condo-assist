@@ -32,6 +32,9 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { Badge } from "@/components/ui/badge"
+import { useFollowUpStats } from "@/hooks/useFollowUpSchedules"
+import { usePendencyRemindersStats } from "@/hooks/usePendencyReminders"
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: Home },
@@ -63,6 +66,10 @@ export function AppSidebar() {
   const location = useLocation()
   const currentPath = location.pathname
   const isCollapsed = state === "collapsed"
+
+  const { data: followUpStats } = useFollowUpStats()
+  const { data: pendencyStats } = usePendencyRemindersStats()
+  const followUpDueCount = (followUpStats?.due_now ?? 0) + (pendencyStats?.due_now ?? 0)
 
   const isActive = (path: string) => currentPath === path
   const isMainExpanded = menuItems.some((i) => isActive(i.url))
@@ -111,16 +118,30 @@ export function AppSidebar() {
 
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-10">
-                    <NavLink to={item.url} end className={getNavCls(item.url)}>
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {!isCollapsed && <span className="ml-3">{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) => {
+                const showBadge =
+                  item.url === "/follow-ups" && !isCollapsed && followUpDueCount > 0
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild className="h-10">
+                      <NavLink to={item.url} end className={getNavCls(item.url)}>
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        {!isCollapsed && (
+                          <span className="ml-3 flex-1">{item.title}</span>
+                        )}
+                        {showBadge && (
+                          <Badge
+                            variant="destructive"
+                            className="ml-auto h-5 px-1.5 text-[10px]"
+                          >
+                            {followUpDueCount}
+                          </Badge>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
