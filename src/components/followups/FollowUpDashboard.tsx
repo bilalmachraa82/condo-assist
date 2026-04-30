@@ -26,6 +26,7 @@ import {
   useProcessFollowUps,
   useCancelFollowUp,
   useRescheduleFollowUp,
+  useTriggerManualReminders,
   type FollowUpWithDetails 
 } from "@/hooks/useFollowUpSchedules";
 import { format } from "date-fns";
@@ -33,12 +34,16 @@ import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ForwardToSupplierDialog from "./ForwardToSupplierDialog";
+import { Forward } from "lucide-react";
 
-const followUpTypeLabels = {
+const followUpTypeLabels: Record<string, string> = {
   quotation_reminder: "Lembrete de Orçamento",
   date_confirmation: "Confirmação de Data",
   work_reminder: "Lembrete de Trabalho",
   completion_reminder: "Lembrete de Conclusão",
+  manual_reminder: "Lembrete manual",
 };
 
 const statusLabels = {
