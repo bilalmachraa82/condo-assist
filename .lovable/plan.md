@@ -1,133 +1,57 @@
-## Objetivo (revisto)
+## Diagnóstico do erro 400
 
-Mini-CRM de **Pendências Email** ligado a edifícios/assistências/fornecedores, com **importação manual do PDF do email** (drag-and-drop), estados, notas internas, anexos e timeline. Sem geração automática de PDF — o utilizador faz "Print to PDF" no cliente de email e arrasta para a app.
+Logs Postgres: `tuple to be updated was already modified by an operation triggered by the current command`.
 
-## User journey otimizado (best practice CRM 2026)
+**Causa**: ao mudar o estado da pendência, há uma cascata recursiva:
+1. `UPDATE email_pendencies SET status=...`
+2. `BEFORE UPDATE` → `log_pendency_status_change` insere uma nota com `note_type='status_change'`
+3. `AFTER INSERT` em `email_pendency_notes` → `bump_pendency_activity` faz `UPDATE` na **mesma linha** que ainda está a ser actualizada → erro.
 
-**Cenário típico:** Admin envia email a fornecedor → faz "Print → Save as PDF" no Outlook/Gmail → arrasta PDF para a app → cria pendência em 3 cliques.
+## Plano
 
-```
-1. Sidebar → "Pendências Email" 
-2. Botão "+ Nova pendência" (ou drag PDF direto na página → cria automaticamente)
-3. Dialog pré-preenche título do PDF, pede: edifício* · assistência (opt) · fornecedor (opt) · prioridade · estado inicial
-4. Submit → abre detalhe com PDF já anexado e visível em preview
-```
+### Parte 1 — Corrigir o erro 400 (bloqueante)
 
-**Atalhos de fluxo (reduzir fricção):**
-- **Drag-to-create global**: largar PDF em qualquer sítio da página `/pendencias-email` abre o dialog com o ficheiro já carregado
-- **Quick-create a partir de assistência**: botão em `AssistanceDetail` "Criar pendência" pré-preenche edifício+assistência+fornecedor
-- **Quick-create a partir do `ForwardToSupplierDialog`**: após enviar email, checkbox "Criar pendência de seguimento" — abre dialog em modal sobreposto a pedir só o PDF (resto pré-preenchido a partir do contexto do email enviado)
-- **Atalhos teclado**: `N` nova pendência, `/` foco busca, `J/K` navegar lista, `E` editar estado
+Migration na BD:
 
-## Reaproveitamento do que já existe
+- `bump_pendency_activity` passa a ignorar `note_type='status_change'` (o trigger de status já actualiza `last_activity_at` no `NEW`, não precisa de bump).
+- `log_pendency_status_change` e `bump_pendency_activity` ficam `SECURITY DEFINER` com `SET search_path=public` para passar RLS de forma fiável.
 
-| Existente | Como é reaproveitado |
-|---|---|
-| `ForwardToSupplierDialog` | Adiciona checkbox "Criar pendência" + opção de anexar PDF |
-| `HighlightText` + padrão de busca | Busca em título/descrição/notas |
-| `StatusBadge`/`PriorityBadge` | Mapeamento dos novos estados aos mesmos tons (warning/primary/success/destructive) |
-| `manual-reminders-cron` | Estendido para incluir digest de pendências SLA-vencido (não cria nova função) |
-| Padrão `upload-supplier-file` | Base do novo `upload-pendency-file` (validação MIME, rate limit, storage) |
-| `email_logs` | Timeline puxa também emails enviados ligados ao edifício/assistência |
-| `activity_log` | Mudanças de estado e anexos também registados aqui (consistência) |
-| Layout sidebar/`DashboardLayout` | Item adicionado no grupo Principal |
-| Mobile cards pattern (Assistencias.tsx) | Mesmo padrão para lista mobile |
-| `format(...,'dd/MM/yyyy', { locale: ptBR })` | Mesma formatação de datas |
-| Building "CODE - Name" (memória core) | Sempre aplicado |
+### Parte 2 — Lembretes/Follow-up: como funciona e como unificar
 
-## Modelo de dados (3 tabelas + bucket, RLS admin-only)
+**Como configurar lembretes hoje (já implementado):**
 
-**`email_pendencies`**
-- `id`, `title`, `description`, `subject` (assunto do email), `email_sent_at` (data do email original — opcional, default `created_at`)
-- `building_id` (FK), `assistance_id` (FK opt), `supplier_id` (FK opt)
-- `status` enum: `aberto` | `aguarda_resposta` | `resposta_recebida` | `precisa_decisao` | `escalado` | `resolvido` | `cancelado`
-- `priority` (reutiliza `assistance_priority`)
-- `assigned_to` (uuid → profile), `due_date`, `last_activity_at`
-- `created_by`, `created_at`, `updated_at`
+1. **Data limite (`due_date`)** no separador *Resumo* da pendência — apenas indicador visual.
+2. **Lembretes manuais** no separador *Lembretes* da pendência ou no toggle "Agendar lembrete" ao criar — escolhes data/hora + nota e recebes email em `geral@luvimg.com` à hora marcada (com contador de tentativas; re-envia +2 dias até esgotar `max_attempts=3`).
+3. **Lembretes SLA automáticos** — quando passas a *Aguarda resposta*, são criados automaticamente 3 lembretes (3, 7 e 14 dias após `email_sent_at` ou criação). São cancelados se passares a *Resolvido* / *Cancelado*.
 
-**`email_pendency_notes`** — append-only (notas + log automático de mudanças de estado)
-- `id`, `pendency_id`, `author_id`, `body`, `note_type` ('manual'|'status_change'|'system'), `created_at`
+**Unificação no dashboard Follow-ups (nova):**
 
-**`email_pendency_attachments`**
-- `id`, `pendency_id`, `file_name`, `file_path`, `file_size`, `mime_type`, `kind` ('email_pdf'|'reply_pdf'|'attachment'|'other'), `description`, `uploaded_by`, `created_at`
+Em vez de duplicar tabelas, mantemos `pendency_reminders` (mais ricas: tipo, SLA step, attempt counter por pendência) mas espelhamos a vista no dashboard Follow-ups para teres tudo num só sítio:
 
-**Bucket privado** `email-pendencies` (RLS: admin) + trigger `update_last_activity` (atualiza `last_activity_at` em insert de notas/anexos/update de status).
+- Adicionar separador **"Pendências Email"** ao `FollowUpDashboard` ao lado de *Pendentes / Enviadas / Falhadas*.
+- Esse separador lista `pendency_reminders` com colunas idênticas: edifício, fornecedor, tipo (Manual / SLA auto), agendado para, tentativa X/Y, estado, ações (cancelar, abrir pendência).
+- KPIs no topo do dashboard incluem contagem de lembretes de pendência pendentes/vencidos.
+- Botão **"Processar agora"** invoca `pendency-reminders-cron` (já existe), tal como o existente para `manual-reminders-cron`.
+- Cada cartão tem botão "Abrir pendência" que abre o `PendencyDetail` no separador *Lembretes*.
 
-## SLA visual (consistente com sistema atual)
+**Por que não fundir tudo numa só tabela `follow_up_schedules`:** as pendências têm tipos próprios (`sla_auto` step 1/2/3, link a `pendency_id` em vez de `assistance_id`) e o cron já existe e funciona; fundir obrigaria a alterar muitas constraints e edge functions estáveis. A unificação visual no dashboard dá-te a melhor experiência sem risco. Best practice 2026 (linear-style ops): "single pane of glass" para o utilizador, dados na origem certa.
 
-Chip junto ao estado:
-- 🟢 Verde — actividade < 3 dias
-- 🟡 Amarelo — 3-7 dias sem actividade em estado "aguarda_resposta"/"escalado"
-- 🔴 Vermelho — > 7 dias
+### Parte 3 — Pequenos ajustes UX
 
-Digest diário 08:30 Lisboa para `geral@luvimg.com` com pendências SLA-vencido (estende cron existente).
+- No `PendencyDetail` separador *Resumo*, ao guardar `due_date`, oferecer atalho **"Agendar lembrete para esta data"** que cria automaticamente um lembrete manual 09:00 desse dia.
+- Badge no sidebar Follow-ups mostra total de lembretes pendentes (assistência + pendência) com SLA vencido.
 
-## UI / Componentes (todos novos exceto integrações)
+## Ficheiros tocados
 
-**Página:** `src/pages/EmailPendencies.tsx`
-- Header: título + KPIs (Abertas / Aguarda resposta / Escaladas / SLA vencido) + botão "+ Nova"
-- Toggle Lista ↔ Kanban (Lista por defeito em mobile, Kanban em ≥md)
-- Filtros: edifício · estado (multi) · responsável · SLA · pesquisa global
-- Drop-zone invisível em toda a página (drag PDF → abre create dialog com ficheiro)
+- **DB migration** (corrigir 400 + tornar triggers `SECURITY DEFINER`).
+- `src/hooks/usePendencyReminders.ts` — adicionar `useAllPendencyReminders()` + `useTriggerPendencyReminders()`.
+- `src/components/followups/FollowUpDashboard.tsx` — novo separador "Pendências Email" + KPI.
+- `src/components/followups/PendencyRemindersTab.tsx` — novo componente listando lembretes de pendência.
+- `src/components/pendencies/PendencyDetail.tsx` — atalho "Agendar lembrete para data limite".
+- `src/components/layout/AppSidebar.tsx` — badge contagem (opcional).
 
-**Componentes:** `src/components/pendencies/`
-- `PendencyList.tsx` — tabela densa desktop + cards mobile (padrão Assistencias)
-- `PendencyKanban.tsx` — 6 colunas, drag-to-update status (usa `@dnd-kit` se já presente, senão fallback botões)
-- `PendencyCard.tsx` — usado em lista mobile e kanban
-- `PendencyDetail.tsx` — Sheet lateral (não dialog full screen, melhor UX): cabeçalho + tabs **Resumo · Timeline · Anexos · Notas**
-- `CreatePendencyDialog.tsx` — formulário com drag-and-drop PDF inicial, edifício obrigatório, resto opcional
-- `PendencyAttachments.tsx` — lista de anexos com preview PDF inline (`<iframe>` em signed URL), drag-to-add, badge de data e tipo
-- `PendencyTimeline.tsx` — feed unificado: notas + mudanças estado + anexos + emails de `email_logs` ligados
-- `PendencyStatusSelect.tsx` — selector de estado com cores consistentes
-- `PendencyAssignSelect.tsx` — selector responsável (lista profiles admin)
+## Resultado para ti
 
-**Hooks:** `src/hooks/usePendencies.ts` (list, get, create, update, addNote, uploadAttachment, deleteAttachment, changeStatus, assign)
-
-## Edge function
-
-`supabase/functions/upload-pendency-file/index.ts` — segue padrão `upload-supplier-file` mas autentica via JWT admin (não magic code):
-- Valida MIME: `application/pdf`, `image/png`, `image/jpeg`, `message/rfc822` (.eml)
-- Max 15MB
-- Gera signed URL para preview imediato
-- Regista em `activity_log`
-
-## Sidebar
-
-Adicionar entre "Follow-ups" e "Edifícios":
-```ts
-{ title: "Pendências Email", url: "/pendencias-email", icon: MailQuestion }
-```
-
-## Integrações pontuais
-
-1. **`ForwardToSupplierDialog.tsx`** — checkbox "📎 Criar pendência de seguimento (anexar PDF do email)" → ao submeter, abre `CreatePendencyDialog` em segundo passo já pré-preenchido (assistência, fornecedor, edifício, assunto), pedindo apenas o PDF
-2. **`AssistanceDetail.tsx`** — nova secção "Pendências relacionadas" mostrando pendências com `assistance_id = X` + botão "+ Nova pendência"
-3. **`manual-reminders-cron`** — append section "Pendências com SLA vencido" no email diário
-
-## Migration SQL (resumo)
-
-```sql
-create type pendency_status as enum (...);
-create table email_pendencies (...);
-create table email_pendency_notes (...);
-create table email_pendency_attachments (...);
-create policy "Admins manage pendencies" on email_pendencies for all using (is_admin(auth.uid()));
--- (mesmas policies admin-only para notes/attachments)
-create function update_pendency_last_activity() returns trigger ...;
-create trigger ... on email_pendency_notes ...;
-create trigger ... on email_pendency_attachments ...;
-create trigger ... on email_pendencies (when status changes) ...;
-insert into storage.buckets (id, name, public) values ('email-pendencies', 'email-pendencies', false);
-create policy "Admins manage pendency files" on storage.objects ...;
-```
-
-## Fora de âmbito
-
-- Sincronização IMAP/Gmail automática
-- OCR do PDF anexado (procura full-text dentro do PDF)
-- Templates de resposta
-- Atribuição multi-utilizador em tempo real
-
----
-
-**Confirmas para implementar tudo?** Ou queres faseado (Fase 1: tabelas + página + CRUD + upload PDF · Fase 2: kanban + integrações + cron)?
+- Mudanças de estado deixam de dar erro 400 e timeline regista corretamente.
+- Configuras follow-ups das pendências exatamente como nas assistências (data, nota, atalhos +1d/+3d/+1sem).
+- Vês todos os lembretes (assistências + pendências) no mesmo dashboard Follow-ups, com filtros por origem, estado, vencidos, e ação rápida "Processar agora".
