@@ -6,7 +6,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, Building2, User, Calendar, Clock, Settings, Trash2, Edit, Mail, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, User, Calendar, Clock, Settings, Trash2, Edit, Mail, Loader2, MailQuestion } from "lucide-react";
+import CreatePendencyDialog from "@/components/pendencies/CreatePendencyDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StatusBadge, PriorityBadge } from "@/components/ui/status-badges";
@@ -54,6 +55,7 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
   const [isEditing, setIsEditing] = useState(false);
   const [isSendingPdf, setIsSendingPdf] = useState(false);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [pendencyOpen, setPendencyOpen] = useState(false);
   const updateStatusMutation = useUpdateAssistanceStatus();
   const deleteAssistanceMutation = useDeleteAssistance();
   const { toast } = useToast();
@@ -202,6 +204,15 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
             isLoading={isSendingPdf}
           />
           
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="sm" onClick={() => setPendencyOpen(true)}>
+                <MailQuestion className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Criar pendência de email</p></TooltipContent>
+          </Tooltip>
+
           <Button
             variant="outline"
             size="sm"
