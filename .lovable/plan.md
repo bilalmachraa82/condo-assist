@@ -1,119 +1,59 @@
+## Auditoria — onde estão os dados
 
-# Plano: Inspeções Periódicas + Alertas (App & Email)
+Os `admin_notes` dos edifícios estão vazios, mas todo o histórico de inspeções existe na tabela **`knowledge_articles`**, organizado por categoria (uma entrada por edifício e tipo). Total: **213 artigos com dados úteis** distribuídos por 83 edifícios.
 
-## Diagnóstico
+| Categoria KB | Artigos | Formato | Significado da data |
+|---|---|---|---|
+| `gas` | 79 | `Inspecionado em DD/MM/YYYY` | **Última** inspeção (passado) |
+| `elevadores` | 48 | `Data Inspeção: DD/MM/YYYY` | **Próxima** devida (futuro) |
+| `extintores` | 29 | `Data: DD/MM/YYYY` | **Próxima** devida (futuro) |
+| `colunas_eletricas` | 57 | Tabela `Ano \| ok` | **Anos cobertos** pela última inspeção |
 
-Hoje **não existe** estrutura para guardar datas de inspeção (elevador, gás, extintor, coluna eléctrica, etc.). As poucas datas que existem vivem em texto markdown em `_backup_dates_*`. Sem dados estruturados, não há como gerar alertas fiáveis.
+Confirmação cruzada com o que disseste:
+- Prédio **003** colunas eléctricas: cobertura 2026+2027 → última inspeção em **2025**, próxima em 2028. ✓
+- Prédio **126** colunas eléctricas: cobertura 2026+2027+2028 → última inspeção em **2026**, próxima em 2029. ✓
 
-A Coluna Eléctrica tem regra clara: **inspecção válida 3 anos**. Exemplo: prédio 003 com último OK em 2025 → próximo 2028; prédio 126 com OK em 2026 → próximo 2029.
+## O que vou fazer
 
-## Best practices que faltam (resumo)
+### 1. Edge function de importação (one-shot) `import-inspections-from-kb`
+Faz parse de cada artigo segundo a sua categoria e insere em `building_inspections`:
 
-1. **Dados estruturados** (datas, não texto livre) — fonte única de verdade.
-2. **Categorias normalizadas** (enum: coluna_electrica, gas, elevador, extintor, ave, ite, para_raios…).
-3. **Cadência por categoria** (cada tipo tem a sua periodicidade legal: gás 3a, elevador 2a, extintor 1a, coluna eléctrica 3a, ITE 8a, etc.).
-4. **Próxima data calculada** (`next_due = last_inspection + interval`), não inserida à mão.
-5. **Estados visuais** (OK / a vencer 30d / a vencer 15d / vencido / em falta).
-6. **Múltiplos canais de alerta** (badge na app + email com agregação diária).
-7. **Idempotência** (não enviar 2x o mesmo alerta no mesmo dia).
-8. **Histórico** (cada inspecção fica registada — auditoria).
-9. **Anexar certificado/PDF** à inspecção (opcional fase 2).
-10. **Dashboard de compliance** com semáforo por edifício.
+- **Gás** (validade 3 anos) — usa a data extraída como `inspection_date`. Trigger calcula `next_due_date` automaticamente (+3 anos).
+- **Elevadores** (validade 2 anos) — a data é a próxima devida; calculo `inspection_date = data − 2 anos`.
+- **Extintores** (validade 1 ano) — a data é a próxima; `inspection_date = data − 1 ano`.
+- **Coluna Eléctrica** (validade 3 anos) — extraio o ano máximo da tabela; `inspection_date = (ano_max − 2)/06/30`. (Ex.: 003 com max 2027 → última 2025-06-30; 126 com max 2028 → última 2026-06-30.)
+- Casos sem data ("Já foi solicitada", contactos sem datas) → ignorados (ficam como `missing` no dashboard, que é o correcto).
+- Empresa/contacto extraídos para `company_name` / `company_contact`.
+- Idempotente: corre `DELETE FROM building_inspections WHERE notes LIKE 'Importado de KB%'` antes de inserir, para poder re-correr sem duplicar.
 
----
+### 2. Validação pós-importação
+Query de auditoria que mostra:
+- Quantas inspeções por categoria foram importadas
+- Distribuição final do dashboard (`ok` / `due_soon_30` / `due_soon_15` / `overdue` / `missing`)
+- Lista dos casos `missing` por categoria para sabermos o que falta cobrir manualmente
 
-## Arquitectura proposta
+### 3. Pequeno fix UX no dashboard `/inspecoes`
+- Mostrar a contagem total e percentagem de cobertura por categoria (ex.: "Gás: 79/83 prédios cobertos").
+- Banner discreto a indicar a data da última importação.
 
-### 1. Novas tabelas
+### 4. (Opcional, depois) Seed continuo
+Se quiseres manter sincronia futura entre knowledge_articles e inspections, podemos adicionar um trigger — mas por agora basta o one-shot.
 
-**`inspection_categories`** (catálogo, seed inicial)
-- `id`, `key` (enum-like: `coluna_electrica`, `gas`, `elevador`, `extintor`, `ave`, `ite`, `para_raios`)
-- `label`, `validity_years` (3, 2, 1, 8…), `legal_reference`, `color`, `icon`
-- `alert_days` (default `[30, 15]`)
+## O que NÃO vou tocar
 
-**`building_inspections`** (uma linha por inspecção realizada)
-- `id`, `building_id` (FK), `category_id` (FK)
-- `inspection_date` (date) — quando foi feita
-- `result` (`ok` | `nok_minor` | `nok_major` | `pending_works`)
-- `next_due_date` (date, gerado: `inspection_date + validity_years`)
-- `company_name`, `company_contact`, `certificate_url` (storage)
-- `notes`, `created_by`, timestamps
-- Index em `(building_id, category_id, inspection_date desc)`
+- Não vou apagar nem modificar os `knowledge_articles` (continuam a ser a "fonte humana" editável).
+- Não vou alterar o schema (já está correcto).
+- Não vou enviar emails de teste — o cron diário às 08:00 já está activo e vai disparar com os novos dados naturalmente.
 
-**`inspection_alerts_log`** (idempotência)
-- `id`, `inspection_id`, `alert_type` (`30d` | `15d` | `overdue`), `sent_at`, `recipient_email`
-- UNIQUE (`inspection_id`, `alert_type`) — impede duplicados
+## Resultado esperado
 
-**View `building_inspection_status`** (computed)
-- Para cada `(building, category)` devolve a inspecção mais recente, `next_due_date`, `days_until_due`, `status` (`ok` | `due_soon_30` | `due_soon_15` | `overdue` | `missing`).
-- Edifícios sem inspecção numa categoria aparecem como `missing` → caso da Coluna Eléctrica para os prédios sem OK.
+Depois de correr, o dashboard `/inspecoes` deve mostrar (estimativa):
+- ~213 inspeções importadas
+- Maioria em estado `ok` (datas entre 2026-2027)
+- Alguns `due_soon_30/15` (próximos 45 dias)
+- Alguns `overdue` (gás de 2022 já passou os 3 anos)
+- Restantes `missing` para os edifícios sem registo no KB
 
-### 2. RLS
-Mesmo padrão das outras tabelas: `is_admin(auth.uid())` para tudo. Categorias legíveis a authenticated.
+E recebes o digest amanhã às 08:00 em `geral@luvimg.com` com a lista real de pendências.
 
-### 3. Edge function `inspection-alerts-cron`
-Corre diariamente (pg_cron 08:00 Lisboa):
-1. Faz `SELECT` na view filtrando `status IN ('due_soon_30','due_soon_15','overdue')`.
-2. Agrupa por edifício e prioridade.
-3. Envia **um email digest** para `geral@luvimg.com` com tabela: edifício, categoria, próxima data, dias restantes, empresa, link para a app.
-4. Insere em `inspection_alerts_log` para não repetir no mesmo ciclo.
-5. Cria também um registo em `notifications` para aparecer no sino da app.
-
-Para "vencido" → email com cabeçalho vermelho, repete semanalmente até ser resolvido (nova inspecção criada).
-
-### 4. UI (app)
-
-**Nova página `/inspecoes`** (item no sidebar com ícone ShieldCheck):
-- Tabs: **Visão geral** | **Por edifício** | **Por categoria** | **Histórico**
-- **Visão geral**: cards KPI (Em dia / A vencer 30d / A vencer 15d / Vencidos / Em falta) com cores semáforo (verde/âmbar/laranja/vermelho/cinza).
-- Tabela compliance com filtros (categoria, status, edifício) — cada linha mostra badge colorido + dias restantes + acção rápida "Registar inspecção".
-- **Botão "Registar inspecção"** abre modal: edifício, categoria, data, resultado, empresa, notas, upload certificado. `next_due_date` calculado em tempo real e mostrado ao utilizador ("Próxima inspecção: 12/03/2029").
-
-**Página de Edifício** ganha secção **"Inspeções"** com mini-semáforo por categoria + timeline.
-
-**Sino de notificações** (já existe `RealtimeNotificationCenter`) passa a mostrar alertas de inspecção.
-
-**Configurações → Notificações**: toggle por categoria + edição dos dias de alerta (default 30/15) + email destinatário (default `geral@luvimg.com`, multi-email opcional).
-
-### 5. Coluna Eléctrica — caso especial pedido
-
-Após criar a tabela, fazer **seed inicial** das inspecções conhecidas baseado nos OKs do Excel/notas (ex.: prédio 003 → `inspection_date 2025-XX-XX` → `next_due 2028`; prédio 126 → 2026 → 2029). Para os prédios **sem OK conhecido**, não inserimos nada — eles aparecem automaticamente como `missing` na view e geram alerta imediato "Coluna eléctrica em falta".
-
-Vou pedir-te para confirmar/colar a lista de OKs conhecidos por prédio antes de fazer o seed (ou faço a partir do que conseguir extrair da pasta `_backup_dates_*` + apresento para validares).
-
-### 6. Email design
-
-- Template React Email coerente com a marca (azul Luvimg, logo, footer `geral@luvimg.com`).
-- Assunto: `[Luvimg] 5 inspeções a vencer nos próximos 30 dias`.
-- Corpo: tabela responsiva, agrupada por urgência, CTA "Abrir painel de inspecções".
-- Versão texto plano para compatibilidade.
-
----
-
-## Entregáveis por fase
-
-**Fase 1 — Fundação (este PR)**
-- Migração: tabelas + view + RLS + seed de `inspection_categories` (7 categorias com validades legais PT).
-- Página `/inspecoes` completa (KPIs + tabela + modal registar).
-- Secção "Inspeções" no detalhe de Edifício.
-- Settings de notificações.
-
-**Fase 2 — Automação**
-- Edge function `inspection-alerts-cron` + pg_cron diário.
-- Template de email digest + envio via `send-transactional-email` (Lovable Emails) para `geral@luvimg.com`.
-- Integração com sino in-app.
-
-**Fase 3 — Seed & migração de dados**
-- Importar OKs históricos da Coluna Eléctrica (depois de validares a lista).
-- Importar outras datas existentes em `_backup_dates_*`.
-
----
-
-## Perguntas antes de avançar
-
-1. Confirmas as **periodicidades legais** (gás 3a, elevador 2a, extintor 1a, coluna eléctrica 3a, ITE 8a, AVAC 2a, pára-raios 3a)? Queres adicionar/remover categorias?
-2. Para além de `geral@luvimg.com`, queres copiar mais alguém (ex.: gestor responsável pelo edifício)?
-3. Frequência do email: **digest diário às 08:00** (recomendado) ou imediato a cada alerta?
-4. Para vencidos, repetir alerta **semanalmente** até resolver — ok?
-
-Se aprovares, implemento a Fase 1 + Fase 2 num só ciclo e depois pedimos a lista para o seed.
+Se preferires, em vez de eu inferir tudo a partir do KB, podes mandar o Excel original e eu importo a partir daí — mais limpo, mas mais demorado. Diz-me como queres avançar.
