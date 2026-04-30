@@ -23,8 +23,11 @@ import {
   Euro,
   Trash2,
   RefreshCw,
-  ArrowUpDown
+  ArrowUpDown,
+  BellRing
 } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAssistanceReminders } from "@/hooks/useAssistanceReminders"
 import QuickElevatorForm from "@/components/assistance/QuickElevatorForm"
 import { useQuery } from "@tanstack/react-query"
 import { useAssistances, useAssistanceStats, useDeleteAssistance, type Assistance } from "@/hooks/useAssistances"
