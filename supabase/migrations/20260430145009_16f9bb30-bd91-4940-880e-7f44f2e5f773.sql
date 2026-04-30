@@ -1,0 +1,1 @@
+ALTER VIEW public.building_inspection_status SET (security_invoker = true);
