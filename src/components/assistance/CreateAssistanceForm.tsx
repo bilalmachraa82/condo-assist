@@ -377,10 +377,44 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
           });
         }
       } else {
-        toast({
-          title: "Sucesso",
-          description: "Assistência criada com sucesso!",
-        });
+        // No supplier assigned. For elevator interventions, fall back to admin PDF
+        // so the office can forward manually instead of silently doing nothing.
+        const interventionType = interventionTypes.find(i => i.id === assistance.intervention_type_id);
+        const isElevator = !!interventionType?.name && /elevad/i.test(interventionType.name);
+
+        if (isElevator) {
+          try {
+            console.log('[CreateAssistanceForm] Elevator without supplier — sending PDF to admin as fallback');
+            const pdfResponse = await supabase.functions.invoke('send-assistance-pdf-to-admin', {
+              body: { assistanceId: assistance.id, mode: 'archive' },
+            });
+            if (pdfResponse.error) {
+              console.error('[CreateAssistanceForm] Admin PDF fallback error:', pdfResponse.error);
+              toast({
+                title: 'Sucesso com Aviso',
+                description: 'Assistência criada, mas falhou envio do PDF para administração. Atribui um fornecedor de elevador ao edifício.',
+                variant: 'default',
+              });
+            } else {
+              toast({
+                title: 'Sucesso',
+                description: 'Assistência criada. Sem fornecedor de elevador no edifício — PDF enviado para geral@luvimg.com.',
+              });
+            }
+          } catch (err) {
+            console.error('[CreateAssistanceForm] Admin PDF fallback exception:', err);
+            toast({
+              title: 'Sucesso com Aviso',
+              description: 'Assistência criada, mas houve erro a notificar a administração.',
+              variant: 'default',
+            });
+          }
+        } else {
+          toast({
+            title: 'Sucesso',
+            description: 'Assistência criada com sucesso!',
+          });
+        }
       }
 
       // Clear saved draft after successful submission
