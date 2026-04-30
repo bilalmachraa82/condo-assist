@@ -181,6 +181,3 @@ export default function ForwardToSupplierDialog({ open, onOpenChange, followUp }
     </Dialog>
   );
 }
-    </Dialog>
-  );
-}
