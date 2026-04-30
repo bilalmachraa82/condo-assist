@@ -394,21 +394,29 @@ interface FollowUpCardProps {
   followUp: FollowUpWithDetails;
   onCancel: () => void;
   onReschedule: () => void;
+  onForward: () => void;
 }
 
-function FollowUpCard({ followUp, onCancel, onReschedule }: FollowUpCardProps) {
+function FollowUpCard({ followUp, onCancel, onReschedule, onForward }: FollowUpCardProps) {
   const isOverdue = followUp.status === 'pending' && new Date(followUp.scheduled_for) < new Date();
-  
+  const isManual = followUp.follow_up_type === 'manual_reminder';
+  const note = (followUp.metadata as any)?.note as string | undefined;
+  const building = followUp.assistances?.buildings;
+  const buildingLabel = building
+    ? `${building.code ? `${building.code} - ` : ""}${building.name}`
+    : "Sem edifício";
+
   return (
     <div className={`border rounded-lg p-4 ${isOverdue ? 'border-red-200 bg-red-50/30' : 'hover:bg-muted/30'} transition-colors`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between mb-3 gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge className={statusColors[followUp.status as keyof typeof statusColors]}>
             {statusIcons[followUp.status as keyof typeof statusIcons]}
             <span className="ml-1">{statusLabels[followUp.status as keyof typeof statusLabels]}</span>
           </Badge>
-          <Badge variant="outline">
-            {followUpTypeLabels[followUp.follow_up_type as keyof typeof followUpTypeLabels]}
+          <Badge variant="outline" className={isManual ? "border-amber-300 bg-amber-50 text-amber-800" : ""}>
+            {isManual && "🔔 "}
+            {followUpTypeLabels[followUp.follow_up_type] ?? followUp.follow_up_type}
           </Badge>
           <Badge className={priorityColors[followUp.priority as keyof typeof priorityColors]}>
             {followUp.priority === 'critical' ? 'Crítica' : followUp.priority === 'urgent' ? 'Urgente' : 'Normal'}
@@ -421,6 +429,12 @@ function FollowUpCard({ followUp, onCancel, onReschedule }: FollowUpCardProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {isManual && (
+            <Button variant="default" size="sm" onClick={onForward} className="gap-1">
+              <Forward className="h-3 w-3" />
+              Encaminhar a fornecedor
+            </Button>
+          )}
           {followUp.status === 'pending' && (
             <>
               <Button variant="outline" size="sm" onClick={onReschedule}>
@@ -437,19 +451,35 @@ function FollowUpCard({ followUp, onCancel, onReschedule }: FollowUpCardProps) {
       </div>
 
       <div className="space-y-2">
-        <h4 className="font-medium">{followUp.assistances?.title}</h4>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span>{followUp.suppliers?.name}</span>
-          <span>•</span>
-          <span>{followUp.assistances?.buildings?.name}</span>
+        <h4 className="font-medium">
+          {followUp.assistances?.assistance_number ? `#${followUp.assistances.assistance_number} ` : ""}
+          {followUp.assistances?.title}
+        </h4>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+          {followUp.suppliers?.name ? (
+            <>
+              <span>{followUp.suppliers.name}</span>
+              <span>•</span>
+            </>
+          ) : isManual ? (
+            <>
+              <span className="italic">Lembrete interno (geral@luvimg.com)</span>
+              <span>•</span>
+            </>
+          ) : null}
+          <span>{buildingLabel}</span>
           <span>•</span>
           <span>
-            {followUp.sent_at 
+            {followUp.sent_at
               ? `Enviado: ${format(new Date(followUp.sent_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}`
-              : `Agendado: ${format(new Date(followUp.scheduled_for), "dd/MM/yyyy HH:mm", { locale: ptBR })}`
-            }
+              : `Agendado: ${format(new Date(followUp.scheduled_for), "dd/MM/yyyy HH:mm", { locale: ptBR })}`}
           </span>
         </div>
+        {isManual && note && (
+          <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <span className="font-medium">Nota: </span>{note}
+          </div>
+        )}
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>Tentativa {followUp.attempt_count + 1} de {followUp.max_attempts}</span>
           {followUp.next_attempt_at && followUp.status === 'failed' && (
