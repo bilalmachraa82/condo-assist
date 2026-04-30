@@ -121,6 +121,16 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     if (file && created?.id) {
       await upload.mutateAsync({ pendencyId: created.id, file, kind: "email_pdf" });
     }
+    if (reminderEnabled && reminderWhen && created?.id) {
+      try {
+        await createReminder.mutateAsync({
+          pendency_id: created.id,
+          scheduled_for: new Date(reminderWhen).toISOString(),
+          note: reminderNote || null,
+          reminder_type: "manual",
+        });
+      } catch {/* toast handled inside */}
+    }
     onCreated?.(created.id);
     onOpenChange(false);
   };
