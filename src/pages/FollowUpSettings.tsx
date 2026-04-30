@@ -26,8 +26,11 @@ type FieldDef = {
   max?: number;
 };
 
+type Flow = "assistencias" | "pendencias";
+
 type SectionDef = {
   id: string;
+  flow: Flow;
   title: string;
   description: string;
   icon: typeof Clock;
