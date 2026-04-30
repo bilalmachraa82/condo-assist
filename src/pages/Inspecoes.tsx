@@ -29,6 +29,17 @@ export default function Inspecoes() {
     return s;
   }, [rows]);
 
+  const coverage = useMemo(() => {
+    const map = new Map<string, { label: string; color: string; total: number; covered: number }>();
+    rows.forEach(r => {
+      const cur = map.get(r.category_id) ?? { label: r.category_label, color: r.category_color, total: 0, covered: 0 };
+      cur.total++;
+      if (r.status !== "missing") cur.covered++;
+      map.set(r.category_id, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [rows]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows
@@ -65,7 +76,37 @@ export default function Inspecoes() {
         <KpiCard label="Sem registo" value={stats.missing} icon={<HelpCircle />} status="missing" onClick={() => setStatusFilter("missing")} />
       </div>
 
-      {/* Filters */}
+      {/* Coverage per category */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Cobertura por categoria</CardTitle>
+          <p className="text-xs text-muted-foreground">Edifícios com pelo menos um registo de inspeção</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {coverage.map(c => {
+              const pct = c.total > 0 ? Math.round((c.covered / c.total) * 100) : 0;
+              return (
+                <div key={c.label} className="rounded-md border p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="inline-flex items-center gap-2 text-sm font-medium">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} />
+                      {c.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{c.covered}/{c.total}</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: c.color }} />
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">{pct}% cobertura</div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Compliance por edifício e categoria</CardTitle>
