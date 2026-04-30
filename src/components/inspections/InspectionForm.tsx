@@ -25,7 +25,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
   const [buildingId, setBuildingId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [inspectionDate, setInspectionDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
-  const [result, setResult] = useState<"ok" | "nok_minor" | "nok_major" | "pending_works">("ok");
+  const [result, setResult] = useState<"ok" | "nok_minor" | "nok_major" | "pending_works" | "pending">("ok");
   const [companyName, setCompanyName] = useState("");
   const [companyContact, setCompanyContact] = useState("");
   const [notes, setNotes] = useState("");
@@ -110,6 +110,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ok">OK / Conforme</SelectItem>
+                  <SelectItem value="pending">Pendente (a aguardar relatório)</SelectItem>
                   <SelectItem value="nok_minor">Não conforme menor</SelectItem>
                   <SelectItem value="nok_major">Não conforme maior</SelectItem>
                   <SelectItem value="pending_works">Obras pendentes</SelectItem>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,11 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useInspectionStatus, useInspectionCategories, STATUS_META, InspectionStatus } from "@/hooks/useInspections";
 import { InspectionForm } from "@/components/inspections/InspectionForm";
-import { ShieldCheck, AlertTriangle, Clock, CalendarX, HelpCircle, Plus, Search } from "lucide-react";
+import { ShieldCheck, AlertTriangle, Clock, CalendarX, HelpCircle, Plus, Search, Hourglass, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 
-const STATUS_ORDER: InspectionStatus[] = ["overdue", "due_soon_15", "due_soon_30", "missing", "ok"];
+const STATUS_ORDER: InspectionStatus[] = ["overdue", "due_soon_15", "due_soon_30", "pending", "missing", "ok"];
 
 export default function Inspecoes() {
   const { data: rows = [], isLoading } = useInspectionStatus();
@@ -22,23 +22,29 @@ export default function Inspecoes() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const tableRef = useRef<HTMLDivElement | null>(null);
 
   const stats = useMemo(() => {
-    const s = { ok: 0, due_soon_30: 0, due_soon_15: 0, overdue: 0, missing: 0 };
+    const s = { ok: 0, due_soon_30: 0, due_soon_15: 0, overdue: 0, missing: 0, pending: 0 };
     rows.forEach(r => { s[r.status]++; });
     return s;
   }, [rows]);
 
   const coverage = useMemo(() => {
-    const map = new Map<string, { label: string; color: string; total: number; covered: number }>();
+    const map = new Map<string, { id: string; label: string; color: string; total: number; covered: number }>();
     rows.forEach(r => {
-      const cur = map.get(r.category_id) ?? { label: r.category_label, color: r.category_color, total: 0, covered: 0 };
+      const cur = map.get(r.category_id) ?? { id: r.category_id, label: r.category_label, color: r.category_color, total: 0, covered: 0 };
       cur.total++;
       if (r.status !== "missing") cur.covered++;
       map.set(r.category_id, cur);
     });
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
+
+  const handleCategoryClick = (id: string) => {
+    setCategoryFilter(prev => (prev === id ? "all" : id));
+    setTimeout(() => tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -68,11 +74,12 @@ export default function Inspecoes() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <KpiCard label="Em dia" value={stats.ok} icon={<ShieldCheck />} status="ok" onClick={() => setStatusFilter("ok")} />
         <KpiCard label="A vencer 30d" value={stats.due_soon_30} icon={<Clock />} status="due_soon_30" onClick={() => setStatusFilter("due_soon_30")} />
         <KpiCard label="A vencer 15d" value={stats.due_soon_15} icon={<Clock />} status="due_soon_15" onClick={() => setStatusFilter("due_soon_15")} />
         <KpiCard label="Vencidos" value={stats.overdue} icon={<CalendarX />} status="overdue" onClick={() => setStatusFilter("overdue")} />
+        <KpiCard label="Pendentes" value={stats.pending} icon={<Hourglass />} status="pending" onClick={() => setStatusFilter("pending")} />
         <KpiCard label="Sem registo" value={stats.missing} icon={<HelpCircle />} status="missing" onClick={() => setStatusFilter("missing")} />
       </div>
 
@@ -86,8 +93,20 @@ export default function Inspecoes() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {coverage.map(c => {
               const pct = c.total > 0 ? Math.round((c.covered / c.total) * 100) : 0;
+              const active = categoryFilter === c.id;
               return (
-                <div key={c.label} className="rounded-md border p-3">
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => handleCategoryClick(c.id)}
+                  aria-pressed={active}
+                  className={cn(
+                    "text-left rounded-md border p-3 transition hover:shadow-md hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-ring",
+                    active && "ring-2 ring-offset-1"
+                  )}
+                  style={active ? { boxShadow: `0 0 0 2px ${c.color}` } : undefined}
+                  title={active ? "Clique para limpar filtro" : `Filtrar tabela por ${c.label}`}
+                >
                   <div className="flex items-center justify-between mb-2">
                     <span className="inline-flex items-center gap-2 text-sm font-medium">
                       <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} />
@@ -98,8 +117,11 @@ export default function Inspecoes() {
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: c.color }} />
                   </div>
-                  <div className="mt-1 text-xs text-muted-foreground">{pct}% cobertura</div>
-                </div>
+                  <div className="mt-1 text-xs text-muted-foreground flex items-center justify-between">
+                    <span>{pct}% cobertura</span>
+                    {active && <span className="text-foreground font-medium inline-flex items-center gap-1"><X className="h-3 w-3" />limpar</span>}
+                  </div>
+                </button>
               );
             })}
           </div>
@@ -107,7 +129,7 @@ export default function Inspecoes() {
       </Card>
 
 
-      <Card>
+      <Card ref={tableRef as any}>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Compliance por edifício e categoria</CardTitle>
         </CardHeader>
@@ -124,6 +146,7 @@ export default function Inspecoes() {
                 <SelectItem value="overdue">Vencidos</SelectItem>
                 <SelectItem value="due_soon_15">A vencer 15d</SelectItem>
                 <SelectItem value="due_soon_30">A vencer 30d</SelectItem>
+                <SelectItem value="pending">Pendentes</SelectItem>
                 <SelectItem value="missing">Sem registo</SelectItem>
                 <SelectItem value="ok">Em dia</SelectItem>
               </SelectContent>
@@ -172,7 +195,7 @@ export default function Inspecoes() {
                       <TableCell>
                         <Badge variant="outline" className={cn(meta.bg, meta.color, meta.border)}>
                           {meta.label}
-                          {r.days_until_due !== null && r.status !== "ok" && r.status !== "missing" && (
+                          {r.days_until_due !== null && r.status !== "ok" && r.status !== "missing" && r.status !== "pending" && (
                             <span className="ml-1 opacity-80">· {r.days_until_due}d</span>
                           )}
                         </Badge>
