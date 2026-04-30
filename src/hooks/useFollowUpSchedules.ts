@@ -22,15 +22,18 @@ export interface FollowUpSchedule {
 
 export interface FollowUpWithDetails extends FollowUpSchedule {
   assistances?: {
+    id?: string;
     title: string;
     description?: string;
-    buildings?: { name: string };
+    assistance_number?: number | null;
+    status?: string;
+    buildings?: { code?: string; name: string };
     intervention_types?: { name: string };
   };
   suppliers?: {
     name: string;
     email: string;
-  };
+  } | null;
 }
 
 export const useFollowUpSchedules = (filters?: {
@@ -46,9 +49,12 @@ export const useFollowUpSchedules = (filters?: {
         .select(`
           *,
           assistances (
+            id,
             title,
             description,
-            buildings (name),
+            assistance_number,
+            status,
+            buildings (code, name),
             intervention_types (name)
           ),
           suppliers (
@@ -105,6 +111,7 @@ export const useFollowUpStats = () => {
         date_confirmation: data.filter(f => f.follow_up_type === 'date_confirmation').length,
         work_reminder: data.filter(f => f.follow_up_type === 'work_reminder').length,
         completion_reminder: data.filter(f => f.follow_up_type === 'completion_reminder').length,
+        manual_reminder: data.filter(f => f.follow_up_type === 'manual_reminder').length,
       };
 
       const byPriority = {
@@ -254,6 +261,38 @@ export const useRescheduleFollowUp = () => {
       toast({
         title: "Erro",
         description: "Erro ao reagendar follow-up. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useTriggerManualReminders = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('manual-reminders-cron', { body: {} });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      const sent = data?.sent ?? 0;
+      const skipped = data?.skipped ?? 0;
+      toast({
+        title: sent > 0 ? "Lembretes enviados" : "Sem lembretes para enviar",
+        description: `${sent} enviados${skipped ? `, ${skipped} ignorados (assistência fechada)` : ''}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["assistance-reminders"] });
+    },
+    onError: (error: any) => {
+      console.error("Manual reminders trigger error:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível disparar os lembretes manuais.",
         variant: "destructive",
       });
     },

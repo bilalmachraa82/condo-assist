@@ -26,6 +26,7 @@ import {
   useProcessFollowUps,
   useCancelFollowUp,
   useRescheduleFollowUp,
+  useTriggerManualReminders,
   type FollowUpWithDetails 
 } from "@/hooks/useFollowUpSchedules";
 import { format } from "date-fns";
@@ -33,12 +34,16 @@ import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ForwardToSupplierDialog from "./ForwardToSupplierDialog";
+import { Forward } from "lucide-react";
 
-const followUpTypeLabels = {
+const followUpTypeLabels: Record<string, string> = {
   quotation_reminder: "Lembrete de Orçamento",
   date_confirmation: "Confirmação de Data",
   work_reminder: "Lembrete de Trabalho",
   completion_reminder: "Lembrete de Conclusão",
+  manual_reminder: "Lembrete manual",
 };
 
 const statusLabels = {
@@ -74,6 +79,7 @@ const priorityColors = {
 export default function FollowUpDashboard() {
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
+  const [forwardTarget, setForwardTarget] = useState<FollowUpWithDetails | null>(null);
   const [rescheduleData, setRescheduleData] = useState<{
     followUpId: string;
     currentDate: string;
@@ -89,6 +95,7 @@ export default function FollowUpDashboard() {
   const processFollowUps = useProcessFollowUps();
   const cancelFollowUp = useCancelFollowUp();
   const rescheduleFollowUp = useRescheduleFollowUp();
+  const triggerManualReminders = useTriggerManualReminders();
 
   const handleReschedule = async () => {
     if (rescheduleData) {
@@ -121,7 +128,16 @@ export default function FollowUpDashboard() {
             Monitore e gerencie todos os lembretes automáticos
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            onClick={() => triggerManualReminders.mutate()}
+            disabled={triggerManualReminders.isPending}
+            variant="secondary"
+            className="gap-2"
+          >
+            <Bell className="h-4 w-4" />
+            {triggerManualReminders.isPending ? "A enviar..." : "Disparar lembretes manuais"}
+          </Button>
           <Button 
             onClick={() => processFollowUps.mutate({ mode: 'due' })}
             disabled={processFollowUps.isPending}
@@ -267,6 +283,23 @@ export default function FollowUpDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground">Tipo</Label>
+              <Select value={selectedType || "all"} onValueChange={(v) => setSelectedType(v === "all" ? "" : v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="manual_reminder">🔔 Lembretes manuais</SelectItem>
+                  <SelectItem value="quotation_reminder">Lembrete de Orçamento</SelectItem>
+                  <SelectItem value="date_confirmation">Confirmação de Data</SelectItem>
+                  <SelectItem value="work_reminder">Lembrete de Trabalho</SelectItem>
+                  <SelectItem value="completion_reminder">Lembrete de Conclusão</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <Tabs value={selectedStatus} onValueChange={setSelectedStatus}>
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="">Todos</TabsTrigger>
@@ -294,6 +327,7 @@ export default function FollowUpDashboard() {
                       key={followUp.id} 
                       followUp={followUp}
                       onCancel={() => cancelFollowUp.mutate(followUp.id)}
+                      onForward={() => setForwardTarget(followUp)}
                       onReschedule={() => setRescheduleData({
                         followUpId: followUp.id,
                         currentDate: followUp.scheduled_for,
@@ -307,6 +341,12 @@ export default function FollowUpDashboard() {
           </Tabs>
         </CardContent>
       </Card>
+
+      <ForwardToSupplierDialog
+        open={!!forwardTarget}
+        onOpenChange={(o) => !o && setForwardTarget(null)}
+        followUp={forwardTarget}
+      />
 
       {/* Dialog para reagendar */}
       <Dialog open={!!rescheduleData} onOpenChange={() => setRescheduleData(null)}>
@@ -354,21 +394,29 @@ interface FollowUpCardProps {
   followUp: FollowUpWithDetails;
   onCancel: () => void;
   onReschedule: () => void;
+  onForward: () => void;
 }
 
-function FollowUpCard({ followUp, onCancel, onReschedule }: FollowUpCardProps) {
+function FollowUpCard({ followUp, onCancel, onReschedule, onForward }: FollowUpCardProps) {
   const isOverdue = followUp.status === 'pending' && new Date(followUp.scheduled_for) < new Date();
-  
+  const isManual = followUp.follow_up_type === 'manual_reminder';
+  const note = (followUp.metadata as any)?.note as string | undefined;
+  const building = followUp.assistances?.buildings;
+  const buildingLabel = building
+    ? `${building.code ? `${building.code} - ` : ""}${building.name}`
+    : "Sem edifício";
+
   return (
     <div className={`border rounded-lg p-4 ${isOverdue ? 'border-red-200 bg-red-50/30' : 'hover:bg-muted/30'} transition-colors`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between mb-3 gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge className={statusColors[followUp.status as keyof typeof statusColors]}>
             {statusIcons[followUp.status as keyof typeof statusIcons]}
             <span className="ml-1">{statusLabels[followUp.status as keyof typeof statusLabels]}</span>
           </Badge>
-          <Badge variant="outline">
-            {followUpTypeLabels[followUp.follow_up_type as keyof typeof followUpTypeLabels]}
+          <Badge variant="outline" className={isManual ? "border-amber-300 bg-amber-50 text-amber-800" : ""}>
+            {isManual && "🔔 "}
+            {followUpTypeLabels[followUp.follow_up_type] ?? followUp.follow_up_type}
           </Badge>
           <Badge className={priorityColors[followUp.priority as keyof typeof priorityColors]}>
             {followUp.priority === 'critical' ? 'Crítica' : followUp.priority === 'urgent' ? 'Urgente' : 'Normal'}
@@ -381,6 +429,12 @@ function FollowUpCard({ followUp, onCancel, onReschedule }: FollowUpCardProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {isManual && (
+            <Button variant="default" size="sm" onClick={onForward} className="gap-1">
+              <Forward className="h-3 w-3" />
+              Encaminhar a fornecedor
+            </Button>
+          )}
           {followUp.status === 'pending' && (
             <>
               <Button variant="outline" size="sm" onClick={onReschedule}>
@@ -397,19 +451,35 @@ function FollowUpCard({ followUp, onCancel, onReschedule }: FollowUpCardProps) {
       </div>
 
       <div className="space-y-2">
-        <h4 className="font-medium">{followUp.assistances?.title}</h4>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span>{followUp.suppliers?.name}</span>
-          <span>•</span>
-          <span>{followUp.assistances?.buildings?.name}</span>
+        <h4 className="font-medium">
+          {followUp.assistances?.assistance_number ? `#${followUp.assistances.assistance_number} ` : ""}
+          {followUp.assistances?.title}
+        </h4>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+          {followUp.suppliers?.name ? (
+            <>
+              <span>{followUp.suppliers.name}</span>
+              <span>•</span>
+            </>
+          ) : isManual ? (
+            <>
+              <span className="italic">Lembrete interno (geral@luvimg.com)</span>
+              <span>•</span>
+            </>
+          ) : null}
+          <span>{buildingLabel}</span>
           <span>•</span>
           <span>
-            {followUp.sent_at 
+            {followUp.sent_at
               ? `Enviado: ${format(new Date(followUp.sent_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}`
-              : `Agendado: ${format(new Date(followUp.scheduled_for), "dd/MM/yyyy HH:mm", { locale: ptBR })}`
-            }
+              : `Agendado: ${format(new Date(followUp.scheduled_for), "dd/MM/yyyy HH:mm", { locale: ptBR })}`}
           </span>
         </div>
+        {isManual && note && (
+          <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <span className="font-medium">Nota: </span>{note}
+          </div>
+        )}
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>Tentativa {followUp.attempt_count + 1} de {followUp.max_attempts}</span>
           {followUp.next_attempt_at && followUp.status === 'failed' && (
