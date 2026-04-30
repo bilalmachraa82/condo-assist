@@ -932,6 +932,148 @@ export type Database = {
           },
         ]
       }
+      email_pendencies: {
+        Row: {
+          assigned_to: string | null
+          assistance_id: string | null
+          building_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          email_sent_at: string | null
+          id: string
+          last_activity_at: string
+          priority: Database["public"]["Enums"]["assistance_priority"]
+          status: Database["public"]["Enums"]["pendency_status"]
+          subject: string | null
+          supplier_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          assistance_id?: string | null
+          building_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          email_sent_at?: string | null
+          id?: string
+          last_activity_at?: string
+          priority?: Database["public"]["Enums"]["assistance_priority"]
+          status?: Database["public"]["Enums"]["pendency_status"]
+          subject?: string | null
+          supplier_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          assistance_id?: string | null
+          building_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          email_sent_at?: string | null
+          id?: string
+          last_activity_at?: string
+          priority?: Database["public"]["Enums"]["assistance_priority"]
+          status?: Database["public"]["Enums"]["pendency_status"]
+          subject?: string | null
+          supplier_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_pendency_attachments: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          kind: string
+          mime_type: string | null
+          pendency_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          pendency_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          pendency_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_pendency_attachments_pendency_id_fkey"
+            columns: ["pendency_id"]
+            isOneToOne: false
+            referencedRelation: "email_pendencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_pendency_notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          note_type: string
+          pendency_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          note_type?: string
+          pendency_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          note_type?: string
+          pendency_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_pendency_notes_pendency_id_fkey"
+            columns: ["pendency_id"]
+            isOneToOne: false
+            referencedRelation: "email_pendencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_unsubscribes: {
         Row: {
           created_at: string
@@ -2172,6 +2314,14 @@ export type Database = {
         | "cancelled"
         | "accepted"
         | "scheduled"
+      pendency_status:
+        | "aberto"
+        | "aguarda_resposta"
+        | "resposta_recebida"
+        | "precisa_decisao"
+        | "escalado"
+        | "resolvido"
+        | "cancelado"
       quotation_status:
         | "pending"
         | "submitted"
@@ -2332,6 +2482,15 @@ export const Constants = {
         "cancelled",
         "accepted",
         "scheduled",
+      ],
+      pendency_status: [
+        "aberto",
+        "aguarda_resposta",
+        "resposta_recebida",
+        "precisa_decisao",
+        "escalado",
+        "resolvido",
+        "cancelado",
       ],
       quotation_status: [
         "pending",

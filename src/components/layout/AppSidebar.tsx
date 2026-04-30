@@ -16,6 +16,7 @@ import {
   ClipboardList,
   ShieldCheck,
   ShieldAlert,
+  MailQuestion,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -37,6 +38,7 @@ const menuItems = [
   { title: "Assistências", url: "/assistencias", icon: Wrench },
   { title: "Orçamentos", url: "/orcamentos", icon: Euro },
   { title: "Follow-ups", url: "/follow-ups", icon: Bell },
+  { title: "Pendências Email", url: "/pendencias-email", icon: MailQuestion },
   { title: "Edifícios", url: "/edificios", icon: Building2 },
   { title: "Fornecedores", url: "/fornecedores", icon: Users },
   { title: "Análise e Relatórios", url: "/analytics", icon: BarChart3 },

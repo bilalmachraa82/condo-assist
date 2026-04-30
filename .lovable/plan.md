@@ -1,95 +1,133 @@
+## Objetivo (revisto)
 
-## Diagnóstico — o que está e o que NÃO está alinhado
+Mini-CRM de **Pendências Email** ligado a edifícios/assistências/fornecedores, com **importação manual do PDF do email** (drag-and-drop), estados, notas internas, anexos e timeline. Sem geração automática de PDF — o utilizador faz "Print to PDF" no cliente de email e arrasta para a app.
 
-Auditei `FollowUpDashboard`, `useFollowUpSchedules`, `manual-reminders-cron` e `CreateAssistanceForm`. Resultado:
+## User journey otimizado (best practice CRM 2026)
 
-### ✅ O que já funciona bem
-1. **Cron diário**: `manual-reminders-cron` está agendado (08:30 Lisboa) e procura corretamente por `follow_up_type='manual_reminder'` com `scheduled_for <= now()`.
-2. **Email tem dados ricos**: o template HTML inclui nº assistência, título, edifício (Code - Name), tipo intervenção, prioridade (chip colorido), estado, dias em aberto, descrição, nota do utilizador e botão "Abrir assistência" → ✅ pronto para encaminhar a fornecedor.
-3. **Skip inteligente**: assistências `completed`/`cancelled` são ignoradas e marcadas com `skipped_reason`.
-4. **Badge 🔔** já aparece na lista de assistências.
+**Cenário típico:** Admin envia email a fornecedor → faz "Print → Save as PDF" no Outlook/Gmail → arrasta PDF para a app → cria pendência em 3 cliques.
 
-### ❌ Lacunas críticas (precisam correção)
+```
+1. Sidebar → "Pendências Email" 
+2. Botão "+ Nova pendência" (ou drag PDF direto na página → cria automaticamente)
+3. Dialog pré-preenche título do PDF, pede: edifício* · assistência (opt) · fornecedor (opt) · prioridade · estado inicial
+4. Submit → abre detalhe com PDF já anexado e visível em preview
+```
 
-**1. Dashboard `/follow-ups` IGNORA por completo os lembretes manuais**
-   - `useFollowUpStats` só conta os 4 tipos antigos (`quotation_reminder`, `date_confirmation`, `work_reminder`, `completion_reminder`). Os `manual_reminder` ficam invisíveis nas estatísticas e no breakdown "Por Tipo".
-   - O `followUpTypeLabels` em `FollowUpDashboard.tsx` não tem `manual_reminder` → aparece como **"undefined"** num badge na lista.
-   - O botão "Processar Devidos" invoca `process-followups` (não `manual-reminders-cron`), portanto **nunca dispara lembretes manuais manualmente** a partir do dashboard.
-   - As tabs de filtro não permitem isolar lembretes manuais.
+**Atalhos de fluxo (reduzir fricção):**
+- **Drag-to-create global**: largar PDF em qualquer sítio da página `/pendencias-email` abre o dialog com o ficheiro já carregado
+- **Quick-create a partir de assistência**: botão em `AssistanceDetail` "Criar pendência" pré-preenche edifício+assistência+fornecedor
+- **Quick-create a partir do `ForwardToSupplierDialog`**: após enviar email, checkbox "Criar pendência de seguimento" — abre dialog em modal sobreposto a pedir só o PDF (resto pré-preenchido a partir do contexto do email enviado)
+- **Atalhos teclado**: `N` nova pendência, `/` foco busca, `J/K` navegar lista, `E` editar estado
 
-**2. Falta supplier_id**
-   - `follow_up_schedules.supplier_id` é provavelmente NOT NULL (pelos outros tipos). Os manual_reminders são criados sem supplier_id pois são lembretes para a equipa interna, não para fornecedor. Preciso confirmar se a inserção no `CreateAssistanceForm` está a passar (verificar se houve erro silencioso).
+## Reaproveitamento do que já existe
 
-**3. Fuso horário do cron**
-   - O cron está agendado para 08:30 mas pg_cron usa UTC. Preciso confirmar se foi compensado para Lisboa (07:30 UTC no inverno / 08:30 UTC no verão).
-
-**4. UX do dashboard pode ser melhor**
-   - Sem tab/filtro dedicado a "Lembretes manuais".
-   - Sem ações rápidas para o caso comum: "snooze +1 dia", "marcar como tratado", "encaminhar agora ao fornecedor" (forward email com 1 clique).
-   - Lista não mostra a **nota** do lembrete nem o **edifício formatado** como "Code - Name".
-
----
-
-## Plano de correção
-
-### A. Tornar lembretes manuais visíveis no dashboard `/follow-ups`
-
-1. **`useFollowUpSchedules.ts`** — adicionar `manual_reminder` em `byType`, e estender o select para incluir `metadata` e `buildings.code`.
-2. **`FollowUpDashboard.tsx`**:
-   - Adicionar label `manual_reminder: "Lembrete manual"` + ícone 🔔.
-   - Nova tab "Lembretes manuais" no filtro de tipo (acima das tabs de status, em formato segmented control).
-   - No `FollowUpCard`, mostrar a **nota** (em destaque amarelo) quando existir, e formatar o edifício como `code - name`.
-   - Card "Sem fornecedor associado" quando `supplier_id` é null (caso dos manuais).
-
-### B. Botão "Processar agora" para lembretes manuais
-
-- Adicionar segundo botão no header: **"Disparar lembretes manuais"** que invoca `manual-reminders-cron` directamente (útil para testar e para casos urgentes sem esperar 08:30).
-- Manter os botões existentes para os outros tipos.
-
-### C. Verificar e corrigir a inserção do lembrete
-
-- Ler `CreateAssistanceForm.tsx` (secção que insere em `follow_up_schedules`) e confirmar:
-  - `supplier_id` enviado como `null` é aceite pela coluna (se não for, criar migration para tornar nullable).
-  - `priority` está a ser preenchido (campo NOT NULL provável).
-  - O insert não falha silenciosamente (capturar erro e mostrar toast).
-
-### D. Fuso horário do cron
-
-- Verificar via `cron.job` qual a expressão actual e ajustar para `30 7 * * *` (UTC) para corresponder a 08:30 Lisboa no horário de verão (CEST = UTC+2). No inverno (WET = UTC) seria 08:30 UTC. Decisão pragmática: usar `30 7 * * *` (chega de manhã cedo todo o ano, nunca antes das 7:30 nem depois das 9:30).
-
-### E. UX extra — "encaminhar ao fornecedor"
-
-- No `FollowUpCard` para `manual_reminder`, adicionar botão **"Encaminhar a fornecedor"** que abre um diálogo com:
-  - Selector de fornecedor (dropdown reusando lógica existente)
-  - Pré-visualização do email (mesmo HTML que o cron envia)
-  - Botão para enviar via `send-email` para o fornecedor escolhido
-- Isto cumpre o objectivo "facilitar o encaminhamento ao fornecedor" sem precisar de copy/paste manual.
-
-### F. QA final
-
-- Criar uma assistência teste com lembrete `+1 dia`.
-- Disparar `manual-reminders-cron` manualmente.
-- Confirmar que o email chega a `geral@luvimg.com` com todos os campos e que a row passa a `status='sent'`.
-- Confirmar que aparece como "Enviado" na tab correspondente do dashboard.
-
----
-
-## Ficheiros a editar / criar
-
-| Ficheiro | Tipo |
+| Existente | Como é reaproveitado |
 |---|---|
-| `src/hooks/useFollowUpSchedules.ts` | editar (incluir manual_reminder nas stats e select) |
-| `src/components/followups/FollowUpDashboard.tsx` | editar (label, ícone, tab, botão dispara cron, card melhorado) |
-| `src/components/assistance/CreateAssistanceForm.tsx` | verificar/corrigir insert (error handling) |
-| `src/components/followups/ForwardToSupplierDialog.tsx` | **novo** — diálogo de encaminhamento |
-| Migration SQL | tornar `supplier_id` nullable em `follow_up_schedules` se necessário; ajustar cron para `30 7 * * *` UTC |
+| `ForwardToSupplierDialog` | Adiciona checkbox "Criar pendência" + opção de anexar PDF |
+| `HighlightText` + padrão de busca | Busca em título/descrição/notas |
+| `StatusBadge`/`PriorityBadge` | Mapeamento dos novos estados aos mesmos tons (warning/primary/success/destructive) |
+| `manual-reminders-cron` | Estendido para incluir digest de pendências SLA-vencido (não cria nova função) |
+| Padrão `upload-supplier-file` | Base do novo `upload-pendency-file` (validação MIME, rate limit, storage) |
+| `email_logs` | Timeline puxa também emails enviados ligados ao edifício/assistência |
+| `activity_log` | Mudanças de estado e anexos também registados aqui (consistência) |
+| Layout sidebar/`DashboardLayout` | Item adicionado no grupo Principal |
+| Mobile cards pattern (Assistencias.tsx) | Mesmo padrão para lista mobile |
+| `format(...,'dd/MM/yyyy', { locale: ptBR })` | Mesma formatação de datas |
+| Building "CODE - Name" (memória core) | Sempre aplicado |
+
+## Modelo de dados (3 tabelas + bucket, RLS admin-only)
+
+**`email_pendencies`**
+- `id`, `title`, `description`, `subject` (assunto do email), `email_sent_at` (data do email original — opcional, default `created_at`)
+- `building_id` (FK), `assistance_id` (FK opt), `supplier_id` (FK opt)
+- `status` enum: `aberto` | `aguarda_resposta` | `resposta_recebida` | `precisa_decisao` | `escalado` | `resolvido` | `cancelado`
+- `priority` (reutiliza `assistance_priority`)
+- `assigned_to` (uuid → profile), `due_date`, `last_activity_at`
+- `created_by`, `created_at`, `updated_at`
+
+**`email_pendency_notes`** — append-only (notas + log automático de mudanças de estado)
+- `id`, `pendency_id`, `author_id`, `body`, `note_type` ('manual'|'status_change'|'system'), `created_at`
+
+**`email_pendency_attachments`**
+- `id`, `pendency_id`, `file_name`, `file_path`, `file_size`, `mime_type`, `kind` ('email_pdf'|'reply_pdf'|'attachment'|'other'), `description`, `uploaded_by`, `created_at`
+
+**Bucket privado** `email-pendencies` (RLS: admin) + trigger `update_last_activity` (atualiza `last_activity_at` em insert de notas/anexos/update de status).
+
+## SLA visual (consistente com sistema atual)
+
+Chip junto ao estado:
+- 🟢 Verde — actividade < 3 dias
+- 🟡 Amarelo — 3-7 dias sem actividade em estado "aguarda_resposta"/"escalado"
+- 🔴 Vermelho — > 7 dias
+
+Digest diário 08:30 Lisboa para `geral@luvimg.com` com pendências SLA-vencido (estende cron existente).
+
+## UI / Componentes (todos novos exceto integrações)
+
+**Página:** `src/pages/EmailPendencies.tsx`
+- Header: título + KPIs (Abertas / Aguarda resposta / Escaladas / SLA vencido) + botão "+ Nova"
+- Toggle Lista ↔ Kanban (Lista por defeito em mobile, Kanban em ≥md)
+- Filtros: edifício · estado (multi) · responsável · SLA · pesquisa global
+- Drop-zone invisível em toda a página (drag PDF → abre create dialog com ficheiro)
+
+**Componentes:** `src/components/pendencies/`
+- `PendencyList.tsx` — tabela densa desktop + cards mobile (padrão Assistencias)
+- `PendencyKanban.tsx` — 6 colunas, drag-to-update status (usa `@dnd-kit` se já presente, senão fallback botões)
+- `PendencyCard.tsx` — usado em lista mobile e kanban
+- `PendencyDetail.tsx` — Sheet lateral (não dialog full screen, melhor UX): cabeçalho + tabs **Resumo · Timeline · Anexos · Notas**
+- `CreatePendencyDialog.tsx` — formulário com drag-and-drop PDF inicial, edifício obrigatório, resto opcional
+- `PendencyAttachments.tsx` — lista de anexos com preview PDF inline (`<iframe>` em signed URL), drag-to-add, badge de data e tipo
+- `PendencyTimeline.tsx` — feed unificado: notas + mudanças estado + anexos + emails de `email_logs` ligados
+- `PendencyStatusSelect.tsx` — selector de estado com cores consistentes
+- `PendencyAssignSelect.tsx` — selector responsável (lista profiles admin)
+
+**Hooks:** `src/hooks/usePendencies.ts` (list, get, create, update, addNote, uploadAttachment, deleteAttachment, changeStatus, assign)
+
+## Edge function
+
+`supabase/functions/upload-pendency-file/index.ts` — segue padrão `upload-supplier-file` mas autentica via JWT admin (não magic code):
+- Valida MIME: `application/pdf`, `image/png`, `image/jpeg`, `message/rfc822` (.eml)
+- Max 15MB
+- Gera signed URL para preview imediato
+- Regista em `activity_log`
+
+## Sidebar
+
+Adicionar entre "Follow-ups" e "Edifícios":
+```ts
+{ title: "Pendências Email", url: "/pendencias-email", icon: MailQuestion }
+```
+
+## Integrações pontuais
+
+1. **`ForwardToSupplierDialog.tsx`** — checkbox "📎 Criar pendência de seguimento (anexar PDF do email)" → ao submeter, abre `CreatePendencyDialog` em segundo passo já pré-preenchido (assistência, fornecedor, edifício, assunto), pedindo apenas o PDF
+2. **`AssistanceDetail.tsx`** — nova secção "Pendências relacionadas" mostrando pendências com `assistance_id = X` + botão "+ Nova pendência"
+3. **`manual-reminders-cron`** — append section "Pendências com SLA vencido" no email diário
+
+## Migration SQL (resumo)
+
+```sql
+create type pendency_status as enum (...);
+create table email_pendencies (...);
+create table email_pendency_notes (...);
+create table email_pendency_attachments (...);
+create policy "Admins manage pendencies" on email_pendencies for all using (is_admin(auth.uid()));
+-- (mesmas policies admin-only para notes/attachments)
+create function update_pendency_last_activity() returns trigger ...;
+create trigger ... on email_pendency_notes ...;
+create trigger ... on email_pendency_attachments ...;
+create trigger ... on email_pendencies (when status changes) ...;
+insert into storage.buckets (id, name, public) values ('email-pendencies', 'email-pendencies', false);
+create policy "Admins manage pendency files" on storage.objects ...;
+```
+
+## Fora de âmbito
+
+- Sincronização IMAP/Gmail automática
+- OCR do PDF anexado (procura full-text dentro do PDF)
+- Templates de resposta
+- Atribuição multi-utilizador em tempo real
 
 ---
 
-## Resposta directa às tuas perguntas
-
-1. **Menu Follow-up alinhado com os lembretes?** ❌ Não — actualmente os lembretes manuais não aparecem nas stats nem têm label próprio. Vou alinhar.
-2. **Email envia a assistência com todos os dados no dia certo?** ✅ Sim — o template já inclui tudo o necessário para encaminhar ao fornecedor (excepto que o cron pode disparar 1h tarde por causa do fuso). Vou ajustar o horário UTC.
-3. **Dashboard optimizado para a melhor experiência?** Parcialmente — vai ficar com: filtro dedicado, processar manual on-demand, snooze rápido, nota visível, e botão **encaminhar ao fornecedor** com 1 clique.
-
-Aprovas para avançar?
+**Confirmas para implementar tudo?** Ou queres faseado (Fase 1: tabelas + página + CRUD + upload PDF · Fase 2: kanban + integrações + cron)?

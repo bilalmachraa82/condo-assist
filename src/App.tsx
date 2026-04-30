@@ -17,6 +17,7 @@ import Comunicacoes from "./pages/Comunicacoes";
 import Analytics from "./pages/Analytics";
 import EmailTesting from "./pages/EmailTesting";
 import FollowUps from "./pages/FollowUps";
+import EmailPendencies from "./pages/EmailPendencies";
 import FollowUpTesting from "./pages/FollowUpTesting";
 import Knowledge from "./pages/Knowledge";
 import Assembly from "./pages/Assembly";
@@ -167,6 +168,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <DashboardLayout><FollowUps /></DashboardLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/pendencias-email" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout><EmailPendencies /></DashboardLayout>
                   </ProtectedRoute>
                 } 
               />
