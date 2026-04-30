@@ -20,6 +20,7 @@ import FollowUps from "./pages/FollowUps";
 import FollowUpTesting from "./pages/FollowUpTesting";
 import Knowledge from "./pages/Knowledge";
 import Assembly from "./pages/Assembly";
+import Inspecoes from "./pages/Inspecoes";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
 import Unsubscribe from "./pages/Unsubscribe";
@@ -189,6 +190,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <DashboardLayout><Assembly /></DashboardLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/inspecoes" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout><Inspecoes /></DashboardLayout>
                   </ProtectedRoute>
                 } 
               />

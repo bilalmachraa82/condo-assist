@@ -257,6 +257,13 @@ export type Database = {
             foreignKeyName: "assembly_items_building_id_fkey"
             columns: ["building_id"]
             isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "assembly_items_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
             referencedRelation: "buildings"
             referencedColumns: ["id"]
           },
@@ -515,6 +522,13 @@ export type Database = {
             foreignKeyName: "assistances_building_id_fkey"
             columns: ["building_id"]
             isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "assistances_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
             referencedRelation: "buildings"
             referencedColumns: ["id"]
           },
@@ -523,6 +537,83 @@ export type Database = {
             columns: ["intervention_type_id"]
             isOneToOne: false
             referencedRelation: "intervention_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      building_inspections: {
+        Row: {
+          building_id: string
+          category_id: string
+          certificate_url: string | null
+          company_contact: string | null
+          company_name: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          inspection_date: string
+          next_due_date: string
+          notes: string | null
+          result: string
+          updated_at: string
+        }
+        Insert: {
+          building_id: string
+          category_id: string
+          certificate_url?: string | null
+          company_contact?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inspection_date: string
+          next_due_date: string
+          notes?: string | null
+          result?: string
+          updated_at?: string
+        }
+        Update: {
+          building_id?: string
+          category_id?: string
+          certificate_url?: string | null
+          company_contact?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inspection_date?: string
+          next_due_date?: string
+          notes?: string | null
+          result?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "building_inspections_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "building_inspections_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "building_inspections_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "building_inspections_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -645,6 +736,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "condominium_contacts_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
           {
             foreignKeyName: "condominium_contacts_building_id_fkey"
             columns: ["building_id"]
@@ -829,6 +927,133 @@ export type Database = {
           },
         ]
       }
+      inspection_alerts_log: {
+        Row: {
+          alert_date: string
+          alert_type: string
+          building_id: string | null
+          category_id: string | null
+          id: string
+          inspection_id: string | null
+          metadata: Json | null
+          recipient_email: string
+          sent_at: string
+        }
+        Insert: {
+          alert_date?: string
+          alert_type: string
+          building_id?: string | null
+          category_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          metadata?: Json | null
+          recipient_email: string
+          sent_at?: string
+        }
+        Update: {
+          alert_date?: string
+          alert_type?: string
+          building_id?: string | null
+          category_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          metadata?: Json | null
+          recipient_email?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_alerts_log_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "inspection_alerts_log_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_alerts_log_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "inspection_alerts_log_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_alerts_log_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["inspection_id"]
+          },
+          {
+            foreignKeyName: "inspection_alerts_log_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_categories: {
+        Row: {
+          alert_days: number[]
+          color: string
+          created_at: string
+          description: string | null
+          display_order: number
+          icon: string
+          id: string
+          is_active: boolean
+          key: string
+          label: string
+          legal_reference: string | null
+          updated_at: string
+          validity_years: number
+        }
+        Insert: {
+          alert_days?: number[]
+          color?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          icon?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          label: string
+          legal_reference?: string | null
+          updated_at?: string
+          validity_years?: number
+        }
+        Update: {
+          alert_days?: number[]
+          color?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          icon?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          label?: string
+          legal_reference?: string | null
+          updated_at?: string
+          validity_years?: number
+        }
+        Relationships: []
+      }
       intervention_types: {
         Row: {
           category: string | null
@@ -903,6 +1128,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "knowledge_articles_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
           {
             foreignKeyName: "knowledge_articles_building_id_fkey"
             columns: ["building_id"]
@@ -1364,7 +1596,29 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      building_inspection_status: {
+        Row: {
+          building_code: string | null
+          building_id: string | null
+          building_name: string | null
+          category_color: string | null
+          category_icon: string | null
+          category_id: string | null
+          category_key: string | null
+          category_label: string | null
+          company_contact: string | null
+          company_name: string | null
+          days_until_due: number | null
+          inspection_date: string | null
+          inspection_id: string | null
+          next_due_date: string | null
+          notes: string | null
+          result: string | null
+          status: string | null
+          validity_years: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       assistance_needs_followup: {
