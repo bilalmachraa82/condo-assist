@@ -1,93 +1,49 @@
 ## Auditoria
 
-Tens **65 seguros** documentados em `knowledge_articles` (categoria `seguros`), todos com a mesma estrutura limpa:
+Estado actual de `inspection_categories`:
 
-```
-- Nº Apólice: 007593225
-- Companhia: Zurich
-- Mediador: Winsurance
-- Contacto: rute.neto@winsurance.pt
-- Multirrisco/Partes Comuns: X
-- Fracções Incluídas: ...
-- Data Renovação: 11/01/2027
-- Observações: ...
-```
+| Categoria | Registos no `building_inspections` | Artigos no KB |
+|---|---|---|
+| Coluna Eléctrica | 57 | sim |
+| Gás | 60 | sim |
+| Elevador | 25 | sim |
+| Extintores | 29 | sim |
+| **AVAC** | **0** | **0** |
+| **Pára-raios** | **0** | **0** |
+| **ITE** | **0** | **0** |
 
-Já temos uma infra exemplar para inspeções (`inspection-alerts-cron` + tabelas `inspection_categories/_alerts_log` + view de status + cron diário às 08:00 → email `geral@luvimg.com`). Vou replicar **exactamente o mesmo padrão** para seguros — assim o sistema fica coerente, com o mesmo design e UX.
+As três últimas estão vazias em ambos os sítios — só inflam o dashboard ("Sem registo" em 83 edifícios cada) e os KPIs de "missing", criando ruído. Como pediste, removo-as por completo. Se mais tarde enviares o Excel com dados de AVAC/Pára-raios/ITE, voltamos a adicionar (ou simplesmente reactivamos via `is_active = true`).
 
 ## Plano
 
-### 1. Schema (migration)
+### 1. Migration: remover categorias sem dados
 
-**`building_insurances`** — uma linha por edifício
-- `building_id`, `policy_number`, `insurer` (companhia), `broker` (mediador), `contact`
-- `coverage_type` enum: `multirisco` / `partes_comuns` / `outro`
-- `fractions_included` (text), `observations` (text)
-- `renewal_date` (date) — campo-chave para alertas
-- `created_by`, `created_at`, `updated_at`
-- `notes` text (igual ao `[KB-IMPORT]` das inspeções, para idempotência)
-- Trigger `updated_at`
-- RLS: admins gerem, autenticados leem (mesma política das inspeções)
+```sql
+DELETE FROM inspection_categories
+ WHERE key IN ('avac','para_raios','ite')
+   AND NOT EXISTS (
+     SELECT 1 FROM building_inspections bi WHERE bi.category_id = inspection_categories.id
+   );
+```
 
-**`insurance_alerts_log`** — idempotência (idêntica a `inspection_alerts_log`)
-- `building_id`, `insurance_id`, `alert_type` (`30d`|`overdue`), `alert_date`, `recipient_email`, `metadata`
+Guardrail: `NOT EXISTS` impede acidente se entretanto alguém registar uma inspeção. Idempotente — se já não existirem, não acontece nada.
 
-**View `building_insurance_status`** — com `security_invoker=on`
-- Junta `buildings` (LEFT JOIN para mostrar também os 18 prédios SEM seguro registado)
-- Calcula `days_until_renewal` e `status`:
-  - `ok` → > 30 dias
-  - `due_soon_30` → entre 0 e 30 dias
-  - `overdue` → renewal_date < hoje
-  - `missing` → sem registo
+### 2. Impacto no dashboard `/inspecoes`
 
-**App settings** (em `app_settings`) para coerência com inspeções:
-- `insurance_alerts_enabled` (default true)
-- `insurance_alerts_recipients` (default `["geral@luvimg.com"]`)
-- `insurance_overdue_repeat_days` (default 7)
+- KPI "Sem registo" desce de ~249 para ~22 (apenas os edifícios reais sem registo nas 4 categorias activas).
+- Card "Cobertura por categoria" passa a mostrar 4 barras em vez de 7.
+- Filtro de categorias na tabela só mostra as 4 com sentido.
+- Edge function `inspection-alerts-cron` deixa de listar 249 falsos "missing" no digest diário — só alerta sobre o que realmente precisa de atenção.
 
-### 2. Seed a partir do KB
+Sem alterações de código necessárias: a UI e o cron lêem dinamicamente da BD.
 
-Migration que extrai com regex todos os campos dos 65 artigos `seguros` e popula `building_insurances` com `notes='[KB-IMPORT] Seguro'` (idempotente).
+### 3. O que NÃO toco
 
-### 3. Edge function `insurance-alerts-cron`
-
-Réplica directa de `inspection-alerts-cron` adaptada:
-- Lê `building_insurance_status` filtrando `overdue` + `due_soon_30`
-- Idempotência via `insurance_alerts_log` (não reenvia 30d duas vezes; `overdue` repete a cada 7 dias)
-- Envia digest HTML com **toda a info necessária para validação**:
-  - Edifício, Companhia, Nº Apólice, Mediador, Contacto, Tipo cobertura, Fracções, Data renovação, Dias restantes/em atraso
-- Botão "Abrir painel de seguros" → `/seguros`
-- Cria `notifications` in-app por edifício (igual ao padrão inspeções)
-- Reusa `send-email` existente
-
-### 4. pg_cron
-
-Job `insurance-alerts-daily` às **08:30 Lisboa** (07:30 UTC) — 30 min depois das inspeções para não sobrepor entregas. Configurado via `cron.schedule` no SQL do user (não migration partilhada).
-
-### 5. Página `/seguros` + entrada na sidebar
-
-Espelho de `/inspecoes` para máxima coerência visual e mental:
-- KPI cards: Em dia · A vencer 30d · Vencidos · Sem registo (mesmo `KpiCard` reutilizado/copiado)
-- Card "Cobertura" (X/83 prédios com seguro registado)
-- Tabela: Edifício · Companhia · Nº Apólice · Mediador · Tipo · Renovação · Estado · Acções (Editar / Renovar)
-- Filtros: pesquisa, estado, companhia
-- Modal `InsuranceForm` para registar/renovar (com pré-preenchimento da última apólice ao renovar)
-- Item "Seguros" na sidebar com ícone `ShieldAlert` (distinto de `ShieldCheck` das inspeções) entre "Inspeções" e "Edifícios"
-
-### 6. Hook `useInsurances`
-
-Padrão idêntico a `useInspections` (`useInsuranceStatus`, `useCreateInsurance`, `STATUS_META` partilhado se possível).
-
-## O que NÃO toco
-
-- Não modifico os `knowledge_articles` (continuam como fonte humana editável)
-- Não altero o `inspection-alerts-cron` actual
-- Não envio emails de teste — o cron diário tratará disso amanhã
-- Email infra existente já tem `geral@luvimg.com` configurado e a funcionar via `send-email`
+- Inspeções existentes (137 registos)
+- `knowledge_articles`
+- Lógica de alertas, view `building_inspection_status`, hooks
+- Categorias activas (Gás, Coluna Eléctrica, Elevador, Extintor)
 
 ## Resultado esperado
 
-- ~65 seguros importados, ~18 edifícios marcados como `missing`
-- Email diário consolidado (estilo digest, igual ao das inspeções) com TODOS os dados das apólices que precisam de atenção
-- Página `/seguros` operacional com mesmo look-and-feel de `/inspecoes`
-- Sistema continua coerente: 1 padrão = inspeções + seguros
+Dashboard `/inspecoes` mais limpo e fiel ao que realmente fazemos tracking. Quando enviares o Excel ou pedires para incluir uma nova categoria, basta um `INSERT` em `inspection_categories` para a activar de novo.
