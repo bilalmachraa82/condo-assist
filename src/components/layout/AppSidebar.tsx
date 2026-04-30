@@ -54,6 +54,7 @@ const menuItems = [
 
 const configItems = [
   { title: "Configurações", url: "/configuracoes", icon: Settings },
+  { title: "Tempos Follow-up", url: "/follow-ups/configuracao", icon: Clock },
   { title: "Tipos Assistência", url: "/tipos-assistencia", icon: FileText },
   { title: "Comunicações", url: "/comunicacoes", icon: Bell },
 ]
