@@ -29,6 +29,24 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Read configurable timings from app_settings
+    const { data: settings } = await supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["pendency_sla_cadence_days", "pendency_sla_max_attempts"]);
+
+    const readInt = (key: string, fallback: number) => {
+      const row = settings?.find((s: any) => s.key === key);
+      if (!row) return fallback;
+      const raw = typeof row.value === "string" ? row.value.replace(/"/g, "") : row.value;
+      const n = parseInt(String(raw), 10);
+      return Number.isFinite(n) ? n : fallback;
+    };
+    const slaCadenceDays = readInt("pendency_sla_cadence_days", 2);
+    // pendency_sla_max_attempts is enforced when reminders are CREATED (not here),
+    // but read it for logging/consistency
+    const slaMaxAttempts = readInt("pendency_sla_max_attempts", 3);
+
     const { data: due, error } = await supabase
       .from("pendency_reminders")
       .select("id, pendency_id, reminder_type, scheduled_for, attempt_count, max_attempts, note, metadata")
@@ -38,7 +56,7 @@ serve(async (req) => {
     if (error) throw error;
 
     const rows = (due ?? []) as ReminderRow[];
-    if (rows.length === 0) return json({ processed: 0, message: "no due reminders" });
+    if (rows.length === 0) return json({ processed: 0, message: "no due reminders", config: { slaCadenceDays, slaMaxAttempts } });
 
     let sent = 0, skipped = 0, failed = 0;
     const errors: string[] = [];
@@ -107,10 +125,10 @@ serve(async (req) => {
           status: isFinal ? "sent" : "pending",
           attempt_count: attempt,
           sent_at: new Date().toISOString(),
-          // For SLA auto: re-schedule next attempt 2 days later if not exhausted
+          // For SLA auto: re-schedule next attempt using configured cadence
           scheduled_for: isFinal
             ? r.scheduled_for
-            : new Date(Date.now() + 2 * 86400000).toISOString(),
+            : new Date(Date.now() + slaCadenceDays * 86400000).toISOString(),
         }).eq("id", r.id);
 
         // Append note to pendency timeline
