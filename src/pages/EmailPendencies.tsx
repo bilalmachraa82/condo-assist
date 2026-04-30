@@ -198,7 +198,7 @@ export default function EmailPendencies() {
             </Card>
           );
         })}
-      </div>
+      </div>}
 
       <CreatePendencyDialog
         open={createOpen}
