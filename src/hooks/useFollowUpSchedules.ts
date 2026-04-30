@@ -266,3 +266,35 @@ export const useRescheduleFollowUp = () => {
     },
   });
 };
+
+export const useTriggerManualReminders = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('manual-reminders-cron', { body: {} });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      const sent = data?.sent ?? 0;
+      const skipped = data?.skipped ?? 0;
+      toast({
+        title: sent > 0 ? "Lembretes enviados" : "Sem lembretes para enviar",
+        description: `${sent} enviados${skipped ? `, ${skipped} ignorados (assistência fechada)` : ''}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["assistance-reminders"] });
+    },
+    onError: (error: any) => {
+      console.error("Manual reminders trigger error:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível disparar os lembretes manuais.",
+        variant: "destructive",
+      });
+    },
+  });
+};
