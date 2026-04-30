@@ -249,75 +249,119 @@ export default function FollowUpSettings() {
             A carregar configurações...
           </div>
         ) : (
-          <div className="space-y-6">
-            {SECTIONS.map((section) => {
-              const Icon = section.icon;
-              return (
-                <Card key={section.id}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Icon className="h-5 w-5 text-primary" />
-                      {section.title}
-                    </CardTitle>
-                    <CardDescription>{section.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {section.fields.map((field, idx) => {
-                      const current = values[field.key] ?? field.defaultValue;
-                      const original = initialValues[field.key];
-                      const isDirty = current !== original;
-                      const isDefault = current === field.defaultValue;
-                      return (
-                        <div key={field.key}>
-                          {idx > 0 && <Separator className="mb-4" />}
-                          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
-                            <div className="space-y-1">
-                              <Label htmlFor={field.key} className="flex items-center gap-2">
-                                {field.label}
-                                {isDirty && (
-                                  <Badge variant="outline" className="text-[10px] py-0">
-                                    Modificado
-                                  </Badge>
-                                )}
-                              </Label>
-                              {field.hint && (
-                                <p className="text-xs text-muted-foreground">{field.hint}</p>
-                              )}
+          <Tabs defaultValue="assistencias" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-md">
+              <TabsTrigger value="assistencias" className="gap-2">
+                <Wrench className="h-4 w-4" />
+                Assistências
+                {(() => {
+                  const n = dirtyKeys.filter((k) =>
+                    SECTIONS.filter((s) => s.flow === "assistencias")
+                      .flatMap((s) => s.fields.map((f) => f.key))
+                      .includes(k)
+                  ).length;
+                  return n > 0 ? (
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{n}</Badge>
+                  ) : null;
+                })()}
+              </TabsTrigger>
+              <TabsTrigger value="pendencias" className="gap-2">
+                <Mail className="h-4 w-4" />
+                Pendências Email
+                {(() => {
+                  const n = dirtyKeys.filter((k) =>
+                    SECTIONS.filter((s) => s.flow === "pendencias")
+                      .flatMap((s) => s.fields.map((f) => f.key))
+                      .includes(k)
+                  ).length;
+                  return n > 0 ? (
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{n}</Badge>
+                  ) : null;
+                })()}
+              </TabsTrigger>
+            </TabsList>
+
+            {(["assistencias", "pendencias"] as Flow[]).map((flow) => (
+              <TabsContent key={flow} value={flow} className="space-y-6 mt-4">
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    {flow === "assistencias"
+                      ? "Tempos aplicados ao fluxo de Assistências (orçamentos, confirmação de data, véspera, conclusão e re-tentativas de envio)."
+                      : "Tempos aplicados ao fluxo de Pendências Email (cadência SLA dos lembretes automáticos quando uma pendência fica em 'Aguarda resposta')."}
+                  </AlertDescription>
+                </Alert>
+
+                {SECTIONS.filter((s) => s.flow === flow).map((section) => {
+                  const Icon = section.icon;
+                  return (
+                    <Card key={section.id}>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Icon className="h-5 w-5 text-primary" />
+                          {section.title}
+                        </CardTitle>
+                        <CardDescription>{section.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {section.fields.map((field, idx) => {
+                          const current = values[field.key] ?? field.defaultValue;
+                          const original = initialValues[field.key];
+                          const isDirty = current !== original;
+                          const isDefault = current === field.defaultValue;
+                          return (
+                            <div key={field.key}>
+                              {idx > 0 && <Separator className="mb-4" />}
+                              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+                                <div className="space-y-1">
+                                  <Label htmlFor={field.key} className="flex items-center gap-2">
+                                    {field.label}
+                                    {isDirty && (
+                                      <Badge variant="outline" className="text-[10px] py-0">
+                                        Modificado
+                                      </Badge>
+                                    )}
+                                  </Label>
+                                  {field.hint && (
+                                    <p className="text-xs text-muted-foreground">{field.hint}</p>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    id={field.key}
+                                    type="number"
+                                    value={current}
+                                    onChange={(e) => handleChange(field.key, e.target.value)}
+                                    min={field.min ?? 0}
+                                    max={field.max ?? 999}
+                                    className="w-24"
+                                  />
+                                  <span className="text-sm text-muted-foreground w-20">
+                                    {field.unit}
+                                  </span>
+                                  {!isDefault && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => handleReset(field.key, field.defaultValue)}
+                                      title={`Repor para ${field.defaultValue} ${field.unit}`}
+                                    >
+                                      <RotateCcw className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                id={field.key}
-                                type="number"
-                                value={current}
-                                onChange={(e) => handleChange(field.key, e.target.value)}
-                                min={field.min ?? 0}
-                                max={field.max ?? 999}
-                                className="w-24"
-                              />
-                              <span className="text-sm text-muted-foreground w-20">
-                                {field.unit}
-                              </span>
-                              {!isDefault && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleReset(field.key, field.defaultValue)}
-                                  title={`Repor para ${field.defaultValue} ${field.unit}`}
-                                >
-                                  <RotateCcw className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                          );
+                        })}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </TabsContent>
+            ))}
+          </Tabs>
         )}
       </div>
     </ProtectedRoute>
