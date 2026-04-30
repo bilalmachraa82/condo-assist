@@ -185,6 +185,26 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
     }
   }, [interventionTypes, form]);
 
+  // Auto-pre-select elevator supplier from building when intervention is "elevador"
+  const watchedBuildingId = form.watch("building_id");
+  const watchedInterventionId = form.watch("intervention_type_id");
+  const watchedSupplierId = form.watch("assigned_supplier_id");
+
+  const selectedBuilding = buildings.find((b) => b.id === watchedBuildingId);
+  const selectedIntervention = interventionTypes.find((i) => i.id === watchedInterventionId);
+  const isElevatorIntervention = !!selectedIntervention?.name && /elevad/i.test(selectedIntervention.name);
+  const buildingElevatorSupplierId = (selectedBuilding as any)?.elevator_supplier_id as string | null | undefined;
+  const buildingElevatorSupplier = buildingElevatorSupplierId
+    ? suppliers.find((s) => s.id === buildingElevatorSupplierId)
+    : null;
+
+  useEffect(() => {
+    if (isElevatorIntervention && buildingElevatorSupplierId && !watchedSupplierId) {
+      form.setValue("assigned_supplier_id", buildingElevatorSupplierId, { shouldDirty: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isElevatorIntervention, buildingElevatorSupplierId]);
+
   const createAssistanceMutation = useMutation({
     mutationFn: async (values: AssistanceFormValues) => {
       const { data, error } = await supabase
