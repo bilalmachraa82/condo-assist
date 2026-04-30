@@ -11,8 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Upload, FileText, X } from "lucide-react";
+import { Upload, FileText, X, Bell } from "lucide-react";
 import { useCreatePendency, useUploadPendencyFile, PENDENCY_STATUS_LABELS, PENDENCY_STATUS_ORDER } from "@/hooks/usePendencies";
+import { useCreatePendencyReminder } from "@/hooks/usePendencyReminders";
+import { Switch } from "@/components/ui/switch";
 
 interface Props {
   open: boolean;
@@ -31,6 +33,7 @@ interface Props {
 export default function CreatePendencyDialog({ open, onOpenChange, initialFile, defaults, onCreated }: Props) {
   const create = useCreatePendency();
   const upload = useUploadPendencyFile();
+  const createReminder = useCreatePendencyReminder();
 
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -41,6 +44,9 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
   const [supplierId, setSupplierId] = useState<string>("");
   const [priority, setPriority] = useState<"normal" | "urgent" | "critical">("normal");
   const [emailSentAt, setEmailSentAt] = useState<string>("");
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderWhen, setReminderWhen] = useState<string>("");
+  const [reminderNote, setReminderNote] = useState<string>("");
 
   useEffect(() => {
     if (!open) return;
@@ -53,6 +59,10 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     setSupplierId(defaults?.supplier_id ?? "");
     setPriority("normal");
     setEmailSentAt("");
+    setReminderEnabled(false);
+    const dt = new Date(Date.now() + 3 * 86400000); dt.setHours(9, 0, 0, 0);
+    setReminderWhen(dt.toISOString().slice(0, 16));
+    setReminderNote("");
   }, [open, initialFile, defaults]);
 
   const { data: buildings } = useQuery({
@@ -110,6 +120,16 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     });
     if (file && created?.id) {
       await upload.mutateAsync({ pendencyId: created.id, file, kind: "email_pdf" });
+    }
+    if (reminderEnabled && reminderWhen && created?.id) {
+      try {
+        await createReminder.mutateAsync({
+          pendency_id: created.id,
+          scheduled_for: new Date(reminderWhen).toISOString(),
+          note: reminderNote || null,
+          reminder_type: "manual",
+        });
+      } catch {/* toast handled inside */}
     }
     onCreated?.(created.id);
     onOpenChange(false);
@@ -225,6 +245,51 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
               <Label>Notas / contexto interno</Label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detalhes do que foi pedido, o que falta, etc." />
             </div>
+          </div>
+
+          {/* Reminder option */}
+          <div className="rounded-lg border p-3 space-y-3 bg-muted/20">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <Bell className="h-4 w-4 text-warning" /> Agendar lembrete
+              </Label>
+              <Switch checked={reminderEnabled} onCheckedChange={setReminderEnabled} />
+            </div>
+            {reminderEnabled && (
+              <div className="space-y-2">
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Data e hora</Label>
+                    <Input
+                      type="datetime-local"
+                      value={reminderWhen}
+                      onChange={(e) => setReminderWhen(e.target.value)}
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Nota (opcional)</Label>
+                    <Input value={reminderNote} onChange={(e) => setReminderNote(e.target.value)} placeholder="Ex.: confirmar resposta do fornecedor" />
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {[{ l: "+1 dia", d: 1 }, { l: "+3 dias", d: 3 }, { l: "+1 semana", d: 7 }].map((q) => (
+                    <Button key={q.l} type="button" variant="outline" size="sm"
+                      onClick={() => {
+                        const dt = new Date(Date.now() + q.d * 86400000);
+                        dt.setHours(9, 0, 0, 0);
+                        setReminderWhen(dt.toISOString().slice(0, 16));
+                      }}>
+                      {q.l}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Receberás um email automático em <strong>geral@luvimg.com</strong> à hora marcada.
+                  Lembretes SLA (3/7/14 dias) são criados automaticamente quando passares a "Aguarda resposta".
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
