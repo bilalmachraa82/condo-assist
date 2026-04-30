@@ -31,15 +31,20 @@ export default function Inspecoes() {
   }, [rows]);
 
   const coverage = useMemo(() => {
-    const map = new Map<string, { label: string; color: string; total: number; covered: number }>();
+    const map = new Map<string, { id: string; label: string; color: string; total: number; covered: number }>();
     rows.forEach(r => {
-      const cur = map.get(r.category_id) ?? { label: r.category_label, color: r.category_color, total: 0, covered: 0 };
+      const cur = map.get(r.category_id) ?? { id: r.category_id, label: r.category_label, color: r.category_color, total: 0, covered: 0 };
       cur.total++;
       if (r.status !== "missing") cur.covered++;
       map.set(r.category_id, cur);
     });
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
+
+  const handleCategoryClick = (id: string) => {
+    setCategoryFilter(prev => (prev === id ? "all" : id));
+    setTimeout(() => tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
