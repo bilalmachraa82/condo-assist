@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,11 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useInspectionStatus, useInspectionCategories, STATUS_META, InspectionStatus } from "@/hooks/useInspections";
 import { InspectionForm } from "@/components/inspections/InspectionForm";
-import { ShieldCheck, AlertTriangle, Clock, CalendarX, HelpCircle, Plus, Search } from "lucide-react";
+import { ShieldCheck, AlertTriangle, Clock, CalendarX, HelpCircle, Plus, Search, Hourglass, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 
-const STATUS_ORDER: InspectionStatus[] = ["overdue", "due_soon_15", "due_soon_30", "missing", "ok"];
+const STATUS_ORDER: InspectionStatus[] = ["overdue", "due_soon_15", "due_soon_30", "pending", "missing", "ok"];
 
 export default function Inspecoes() {
   const { data: rows = [], isLoading } = useInspectionStatus();
