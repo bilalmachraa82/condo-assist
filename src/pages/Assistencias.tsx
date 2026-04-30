@@ -23,8 +23,11 @@ import {
   Euro,
   Trash2,
   RefreshCw,
-  ArrowUpDown
+  ArrowUpDown,
+  BellRing
 } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAssistanceReminders } from "@/hooks/useAssistanceReminders"
 import QuickElevatorForm from "@/components/assistance/QuickElevatorForm"
 import { useQuery } from "@tanstack/react-query"
 import { useAssistances, useAssistanceStats, useDeleteAssistance, type Assistance } from "@/hooks/useAssistances"
@@ -199,6 +202,7 @@ export default function Assistencias() {
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  const { data: remindersMap } = useAssistanceReminders();
 
   // Count active elevator assistances
   const elevatorCount = useQuery({
@@ -497,6 +501,25 @@ export default function Assistencias() {
               'Sem edifício';
             const assistanceTitle = assistance.title || 'Assistência';
             const interventionType = assistance.intervention_types?.name || 'Sem tipo definido';
+            const reminder = remindersMap?.get(assistance.id);
+            const reminderBadge = reminder ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-200 gap-1 cursor-help">
+                      <BellRing className="h-3 w-3" />
+                      {format(new Date(reminder.scheduledFor), "dd/MM", { locale: pt })}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">
+                      Lembrete: {format(new Date(reminder.scheduledFor), "EEEE, d 'de' MMMM 'às' HH:mm", { locale: pt })}
+                    </p>
+                    {reminder.note && <p className="text-xs mt-1 italic">"{reminder.note}"</p>}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : null;
 
             // Mobile: Use SwipeableCard, Desktop: Use regular Card
             if (isMobile) {
@@ -517,6 +540,7 @@ export default function Assistencias() {
                       </span>
                           <StatusBadge status={assistance.status} />
                           <PriorityBadge priority={assistance.priority} />
+                          {reminderBadge}
                     </div>
                     
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -564,6 +588,7 @@ export default function Assistencias() {
                           </span>
                            <StatusBadge status={assistance.status} />
                            <PriorityBadge priority={assistance.priority} />
+                           {reminderBadge}
                         </div>
                         
                         <div className="space-y-1">

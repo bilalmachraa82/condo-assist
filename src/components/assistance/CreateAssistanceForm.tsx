@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, AlertTriangle, RotateCcw } from "lucide-react";
+import { X, Plus, AlertTriangle, RotateCcw, BellRing } from "lucide-react";
+import { addDays, format } from "date-fns";
+import { pt } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
@@ -28,7 +30,36 @@ const assistanceSchema = z.object({
   priority: z.enum(["normal", "urgent", "critical"]),
   assigned_supplier_id: z.string().optional().or(z.literal("")),
   requires_quotation: z.boolean().optional(),
-});
+  reminder_preset: z.enum(["none", "1d", "3d", "7d", "14d", "custom"]).optional(),
+  reminder_date: z.string().optional().or(z.literal("")),
+  reminder_note: z.string().max(280, "Máximo 280 caracteres").optional().or(z.literal("")),
+}).refine(
+  (v) => v.reminder_preset !== "custom" || (v.reminder_date && v.reminder_date.length > 0),
+  { message: "Escolhe uma data para o lembrete", path: ["reminder_date"] },
+);
+
+const REMINDER_PRESETS: { value: "none" | "1d" | "3d" | "7d" | "14d" | "custom"; label: string; days: number | null }[] = [
+  { value: "none", label: "Sem lembrete", days: null },
+  { value: "1d", label: "+1 dia", days: 1 },
+  { value: "3d", label: "+3 dias", days: 3 },
+  { value: "7d", label: "+1 semana", days: 7 },
+  { value: "14d", label: "+2 semanas", days: 14 },
+  { value: "custom", label: "Data personalizada", days: null },
+];
+
+function computeReminderDate(preset: string, customIso?: string): Date | null {
+  const cfg = REMINDER_PRESETS.find(p => p.value === preset);
+  if (!cfg || cfg.value === "none") return null;
+  if (cfg.value === "custom") {
+    if (!customIso) return null;
+    const d = new Date(customIso);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // Always trigger at 09:00 local time on the target day
+  const target = addDays(new Date(), cfg.days ?? 0);
+  target.setHours(9, 0, 0, 0);
+  return target;
+}
 
 type AssistanceFormValues = z.infer<typeof assistanceSchema>;
 
@@ -89,6 +120,9 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
       priority: "normal",
       assigned_supplier_id: "",
       requires_quotation: false,
+      reminder_preset: "none" as const,
+      reminder_date: "",
+      reminder_note: "",
     };
   }, []);
 
@@ -170,6 +204,28 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
         .single();
 
       if (error) throw error;
+
+      // Optional manual reminder — non-blocking
+      const reminderDate = computeReminderDate(values.reminder_preset ?? "none", values.reminder_date);
+      if (reminderDate && data?.id) {
+        const { error: reminderErr } = await supabase
+          .from("follow_up_schedules")
+          .insert({
+            assistance_id: data.id,
+            follow_up_type: "manual_reminder",
+            scheduled_for: reminderDate.toISOString(),
+            status: "pending",
+            priority: values.priority as any,
+            metadata: {
+              note: values.reminder_note || null,
+              created_by_user: true,
+              recipient: "geral@luvimg.com",
+              preset: values.reminder_preset,
+            },
+          });
+        if (reminderErr) console.error("[CreateAssistanceForm] reminder insert error:", reminderErr);
+      }
+
       return data;
     },
     onSuccess: async (assistance) => {
@@ -590,6 +646,102 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                   </FormControl>
                 </FormItem>
               )}
+            />
+
+            {/* Optional follow-up reminder */}
+            <FormField
+              control={form.control}
+              name="reminder_preset"
+              render={({ field }) => {
+                const customDate = form.watch("reminder_date");
+                const note = form.watch("reminder_note") ?? "";
+                const previewDate = computeReminderDate(field.value ?? "none", customDate);
+                return (
+                  <FormItem className="rounded-lg border p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <BellRing className="h-4 w-4 mt-0.5 text-amber-600" />
+                      <div className="flex-1">
+                        <FormLabel className="text-base">Lembrete de follow-up (opcional)</FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Receberás um email em <span className="font-medium">geral@luvimg.com</span> na data escolhida para fazer follow-up deste caso.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {REMINDER_PRESETS.map((p) => (
+                        <Button
+                          key={p.value}
+                          type="button"
+                          size="sm"
+                          variant={field.value === p.value ? "default" : "outline"}
+                          onClick={() => {
+                            field.onChange(p.value);
+                            if (p.value === "custom" && !form.getValues("reminder_date")) {
+                              const tomorrow = addDays(new Date(), 1);
+                              tomorrow.setHours(9, 0, 0, 0);
+                              // datetime-local format: yyyy-MM-ddTHH:mm
+                              form.setValue("reminder_date", format(tomorrow, "yyyy-MM-dd'T'HH:mm"));
+                            }
+                          }}
+                        >
+                          {p.label}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {field.value === "custom" && (
+                      <FormField
+                        control={form.control}
+                        name="reminder_date"
+                        render={({ field: dateField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="datetime-local"
+                                {...dateField}
+                                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {field.value && field.value !== "none" && (
+                      <FormField
+                        control={form.control}
+                        name="reminder_note"
+                        render={({ field: noteField }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs text-muted-foreground">Nota (opcional)</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                {...noteField}
+                                placeholder='ex.: "ligar ao síndico", "confirmar orçamento"'
+                                rows={2}
+                                maxLength={280}
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground text-right">{note.length}/280</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {previewDate && (
+                      <div className="text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-md px-3 py-2">
+                        🔔 Lembrete agendado para{" "}
+                        <span className="font-semibold">
+                          {format(previewDate, "EEEE, d 'de' MMMM 'às' HH:mm", { locale: pt })}
+                        </span>
+                      </div>
+                    )}
+                  </FormItem>
+                );
+              }}
             />
 
 

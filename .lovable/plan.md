@@ -1,106 +1,70 @@
-## Plano: Cores distintas, filtro por categoria e novo estado "Pendente"
+## Plano: lembrete opcional na criação de assistência
 
-### 1. Cores e ícones distintos para Gás vs Extintores
+Permite registar um lembrete não obrigatório ao criar uma assistência, para fazer follow-up do caso. Reutiliza a tabela existente `follow_up_schedules` — sem alterações de schema.
 
-Hoje ambos usam vermelho + ícone `Flame`. Proposta:
+### 1. UI no formulário de criação (`CreateAssistanceForm.tsx`)
 
-| Categoria | Cor actual | Cor nova | Ícone |
-|---|---|---|---|
-| Coluna Eléctrica | `#f59e0b` (amarelo) | mantém | `Zap` |
-| Gás | `#ef4444` (vermelho) | **`#a855f7` (roxo)** — gás natural costuma usar amarelo/roxo, evita conflito com "vencido" (vermelho) | `Flame` |
-| Elevador | `#3b82f6` (azul) | mantém | `ArrowUpDown` |
-| Extintores | `#dc2626` (vermelho escuro) | **`#dc2626` (vermelho)** — mantém vermelho (universal para fogo/extintor) | **`FireExtinguisher`** (em vez de `Flame`) |
+Nova secção colapsável "Lembrete (opcional)" entre "Solicitar Orçamento" e os botões. Padrão estilo Asana/Linear:
 
-Migração de dados em `inspection_categories`: `UPDATE` cor do Gás e ícone dos Extintores.
+- **Atalhos rápidos** (botões toggle): `Sem lembrete` (default) · `+1 dia` · `+3 dias` · `+1 semana` · `+2 semanas` · `Data personalizada`
+- Quando "Data personalizada" → aparece input `datetime-local` (default: amanhã 09:00)
+- **Nota opcional** (textarea, máx 280 char) — ex.: "ligar ao síndico", "confirmar orçamento"
+- Pré-visualização: "Vais receber email a 5 Mai 2026 às 09:00 em geral@luvimg.com"
 
-### 2. Categorias clicáveis para filtrar
+Validação: nota opcional, data obrigatória só se preset = custom.
 
-No card "Cobertura por categoria" (`/inspecoes`), cada barra passa a ser um botão. Click → aplica `categoryFilter = c.id` na tabela abaixo + faz scroll até à tabela. Indicador visual quando filtro activo (border + "x" para limpar).
+### 2. Persistência
 
-Bonus: clicar de novo na mesma categoria limpa o filtro (toggle).
-
-### 3. Novo estado "Pendente" (em ambos os sítios, conforme pedido)
-
-**3a. Resultado da inspeção (`building_inspections.result`)**
-- Adicionar valor `pending` à coluna (texto livre, sem CHECK constraint a alterar — basta a UI suportar).
-- No `InspectionForm`: novo `SelectItem value="pending"` → "Pendente (a aguardar relatório)".
-- No tipo TS `BuildingInspection["result"]`: adicionar `"pending"`.
-
-**3b. Estado de compliance (view `building_inspection_status`)**
-- Recriar a view para devolver `status = 'pending'` quando existe inspeção mas `result = 'pending'` (independentemente da `next_due_date`).
-- Ordem de prioridade na view: `missing` → `overdue` → `pending` → `due_soon_15` → `due_soon_30` → `ok`.
-
-**3c. UI**
-- Novo KPI card "Pendentes" (cor âmbar/violeta, ícone `Hourglass`).
-- `STATUS_META.pending`: label "Pendente", cor violeta (`text-violet-700`, `bg-violet-500/10`, `border-violet-500/30`) — distinta de "A vencer" (âmbar).
-- Adicionar opção no `Select` de filtros de estado.
-- Incluir `pending: 0` no objecto `stats` e no `STATUS_ORDER` (entre `overdue` e `due_soon_15`).
-
-### 4. Edge function `inspection-alerts-cron`
-
-Como agora há `pending`, garantir que estes **não** entram no digest de "vencidos/a vencer" (são uma categoria à parte, esperam acção da empresa, não do admin). Opcionalmente, secção separada "Aguardam relatório há mais de 30 dias" no email — mas mantém-se simples por agora: apenas excluir `pending` dos buckets existentes.
-
-### Detalhes técnicos
-
-**Migration 1 — schema (recriar view + cores/ícones):**
-```sql
--- Cores e ícones
-UPDATE inspection_categories SET color = '#a855f7' WHERE key = 'gas';
-UPDATE inspection_categories SET icon = 'FireExtinguisher' WHERE key = 'extintor';
-
--- Recriar view com estado 'pending'
-DROP VIEW IF EXISTS building_inspection_status;
-CREATE VIEW building_inspection_status AS
-WITH latest AS (
-  SELECT DISTINCT ON (building_id, category_id) *
-  FROM building_inspections
-  ORDER BY building_id, category_id, inspection_date DESC
-)
-SELECT
-  b.id  AS building_id,
-  b.code AS building_code,
-  b.name AS building_name,
-  c.id   AS category_id,
-  c.key  AS category_key,
-  c.label AS category_label,
-  c.color AS category_color,
-  c.icon  AS category_icon,
-  c.validity_years,
-  l.id   AS inspection_id,
-  l.inspection_date,
-  l.next_due_date,
-  l.result,
-  l.company_name,
-  l.company_contact,
-  l.notes,
-  CASE WHEN l.next_due_date IS NULL THEN NULL
-       ELSE (l.next_due_date - CURRENT_DATE) END AS days_until_due,
-  CASE
-    WHEN l.id IS NULL                          THEN 'missing'
-    WHEN l.result = 'pending'                  THEN 'pending'
-    WHEN l.next_due_date < CURRENT_DATE        THEN 'overdue'
-    WHEN l.next_due_date <= CURRENT_DATE + 15  THEN 'due_soon_15'
-    WHEN l.next_due_date <= CURRENT_DATE + 30  THEN 'due_soon_30'
-    ELSE 'ok'
-  END AS status
-FROM buildings b
-CROSS JOIN inspection_categories c
-LEFT JOIN latest l ON l.building_id = b.id AND l.category_id = c.id
-WHERE b.is_active = true AND c.is_active = true;
+Após `INSERT` em `assistances` (sucesso), se preset ≠ none:
+```ts
+await supabase.from("follow_up_schedules").insert({
+  assistance_id: assistance.id,
+  follow_up_type: "manual_reminder",
+  scheduled_for: reminderDate.toISOString(),
+  status: "pending",
+  metadata: { note: reminderNote, created_by_user: true, recipient: "geral@luvimg.com" },
+});
 ```
 
-**Ficheiros a editar:**
-- `src/hooks/useInspections.ts` — adicionar `"pending"` a `InspectionStatus` e `result`; adicionar `STATUS_META.pending`.
-- `src/pages/Inspecoes.tsx` — novo KPI, opção no Select, `STATUS_ORDER`, click handler nas barras de cobertura, ref+scroll para a tabela.
-- `src/components/inspections/InspectionForm.tsx` — novo `SelectItem` "Pendente".
-- `supabase/functions/inspection-alerts-cron/index.ts` — excluir `status = 'pending'` dos buckets de alerta.
+Sem nova tabela, sem alteração de RLS (já existe policy admin para `follow_up_schedules`).
+
+### 3. Edge function de envio
+
+Nova `supabase/functions/manual-reminders-cron/index.ts`:
+- Lê `follow_up_schedules` onde `follow_up_type='manual_reminder'`, `status='pending'`, `scheduled_for <= now()`.
+- Para cada um: busca assistência (título, prioridade, edifício, status), envia 1 email a `geral@luvimg.com` via Resend (mesmo padrão de `inspection-alerts-cron` e `insurance-alerts-cron`) com link directo para `/assistencias/{id}`.
+- Marca `status='sent'`, `sent_at=now()`.
+- Se a assistência já estiver `completed` ou `cancelled` → marca como `sent` com metadata `skipped_completed: true` (não envia).
+
+Cron diário 08:30 Lisboa (07:30 UTC), via `pg_cron` (insert tool, mesmo padrão dos outros).
+
+### 4. Indicador na lista de assistências
+
+Em `AssistanceCard` / lista: se a assistência tem 1+ `follow_up_schedules` do tipo `manual_reminder` com `status='pending'` e `scheduled_for >= now()`, mostrar pequeno badge `🔔 Lembrete dd/MM` (cor âmbar). Ao passar com o rato, mostra a nota.
+
+Implementação leve: 1 query agregada `useAssistanceReminders()` que devolve `Map<assistanceId, { date, note }>`.
+
+### 5. Email (template)
+
+Email simples HTML inline (mesmo estilo dos outros crons), assunto:
+> 🔔 Lembrete: {{título}} — {{Edifício code-name}}
+
+Corpo: prioridade, status actual, dias em aberto, nota do lembrete, botão "Abrir assistência". Sem necessidade de template React Email — mantém-se coerente com `inspection-alerts-cron`.
+
+### Ficheiros tocados
+
+- `src/components/assistance/CreateAssistanceForm.tsx` — schema + UI + insert
+- `src/hooks/useAssistanceReminders.ts` — novo hook
+- Componente da lista de assistências (a identificar — `AssistanceCard` ou similar) — badge
+- `supabase/functions/manual-reminders-cron/index.ts` — novo edge function
+- pg_cron job (via insert tool)
 
 ### O que NÃO toco
-- Dados de inspeções existentes
-- RLS, hooks de criação, cron de seguros
-- Categorias activas (Coluna, Gás, Elevador, Extintor)
 
-### Resultado esperado
-- Cards de Gás (roxo) e Extintores (vermelho + ícone extintor) imediatamente distinguíveis.
-- Click numa barra de "Cobertura por categoria" filtra a tabela só para essa categoria.
-- Inspeções marcadas como "Pendente" aparecem num KPI próprio (violeta) sem inflar "Vencidos" nem "A vencer".
+- Schema de `follow_up_schedules` (já tem todos os campos necessários)
+- Email templates / scaffolding (não é necessário — segue padrão dos outros crons com Resend directo)
+- Edição de lembrete pós-criação (fica para iteração futura se pedires)
+
+### Resultado
+
+Ao criar uma assistência podes (opcional) marcar `+3 dias` com nota "ligar ao síndico". Daí a 3 dias, às 08:30, recebes 1 email em `geral@luvimg.com` com toda a info e link directo. Na lista de assistências, vês um badge 🔔 com a data até o lembrete disparar.
