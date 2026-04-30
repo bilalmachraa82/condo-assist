@@ -32,6 +32,9 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { Badge } from "@/components/ui/badge"
+import { useFollowUpStats } from "@/hooks/useFollowUpSchedules"
+import { usePendencyRemindersStats } from "@/hooks/usePendencyReminders"
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: Home },
