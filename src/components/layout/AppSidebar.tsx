@@ -8,6 +8,7 @@ import {
   BarChart3,
   FileText,
   Bell,
+  Clock,
   HelpCircle,
   Euro,
   Zap,
