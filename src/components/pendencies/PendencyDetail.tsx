@@ -231,6 +231,96 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
             </div>
           </TabsContent>
 
+          {/* LEMBRETES */}
+          <TabsContent value="lembretes" className="space-y-3">
+            <div className="rounded-lg border p-3 space-y-2 bg-muted/20">
+              <div className="text-xs font-medium uppercase text-muted-foreground tracking-wide">Agendar lembrete manual</div>
+              <div className="grid sm:grid-cols-2 gap-2">
+                <Input
+                  type="datetime-local"
+                  value={reminderWhen}
+                  onChange={(e) => setReminderWhen(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+                <Input
+                  placeholder="Nota (opcional, vai no email)"
+                  value={reminderNote}
+                  onChange={(e) => setReminderNote(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { l: "+1 dia", d: 1 }, { l: "+3 dias", d: 3 }, { l: "+1 semana", d: 7 },
+                ].map((q) => (
+                  <Button key={q.l} type="button" variant="outline" size="sm"
+                    onClick={() => {
+                      const dt = new Date(Date.now() + q.d * 86400000);
+                      dt.setHours(9, 0, 0, 0);
+                      setReminderWhen(dt.toISOString().slice(0, 16));
+                    }}>
+                    {q.l}
+                  </Button>
+                ))}
+                <Button
+                  size="sm"
+                  className="ml-auto"
+                  disabled={!reminderWhen || createReminder.isPending}
+                  onClick={async () => {
+                    await createReminder.mutateAsync({
+                      pendency_id: p.id,
+                      scheduled_for: new Date(reminderWhen).toISOString(),
+                      note: reminderNote || null,
+                      reminder_type: "manual",
+                    });
+                    setReminderWhen(""); setReminderNote("");
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Agendar
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Os lembretes SLA automáticos (3, 7, 14 dias) são criados quando o estado passa a "Aguarda resposta".
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {reminders?.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Sem lembretes.</p>}
+              {reminders?.map((r) => {
+                const isPast = new Date(r.scheduled_for) < new Date();
+                return (
+                  <div key={r.id} className="flex items-start justify-between gap-2 border rounded-md p-2.5">
+                    <div className="flex items-start gap-2 min-w-0 flex-1">
+                      <Bell className={`h-4 w-4 mt-0.5 shrink-0 ${
+                        r.status === "pending" ? "text-warning" :
+                        r.status === "sent" ? "text-success" :
+                        r.status === "failed" ? "text-destructive" : "text-muted-foreground"
+                      }`} />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium">
+                          {format(new Date(r.scheduled_for), "dd/MM/yyyy HH:mm", { locale: pt })}
+                          {r.status === "pending" && isPast && <span className="text-warning ml-2">(vencido)</span>}
+                        </div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                          <Badge variant="secondary" className="text-[10px]">
+                            {r.reminder_type === "sla_auto" ? "SLA auto" : "Manual"}
+                          </Badge>
+                          <span>{r.status === "pending" ? "Pendente" : r.status === "sent" ? "Enviado" : r.status === "cancelled" ? "Cancelado" : "Falhou"}</span>
+                          <span>· tentativa {r.attempt_count}/{r.max_attempts}</span>
+                        </div>
+                        {r.note && <div className="text-xs mt-1 text-muted-foreground italic">"{r.note}"</div>}
+                      </div>
+                    </div>
+                    {r.status === "pending" && (
+                      <Button variant="ghost" size="sm" onClick={() => cancelReminder.mutate({ id: r.id, pendencyId: p.id })}>
+                        <BellOff className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </TabsContent>
+
           {/* TIMELINE */}
           <TabsContent value="timeline" className="space-y-3">
             <div className="space-y-2">
