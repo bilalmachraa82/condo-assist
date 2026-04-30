@@ -648,6 +648,102 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
               )}
             />
 
+            {/* Optional follow-up reminder */}
+            <FormField
+              control={form.control}
+              name="reminder_preset"
+              render={({ field }) => {
+                const customDate = form.watch("reminder_date");
+                const note = form.watch("reminder_note") ?? "";
+                const previewDate = computeReminderDate(field.value ?? "none", customDate);
+                return (
+                  <FormItem className="rounded-lg border p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <BellRing className="h-4 w-4 mt-0.5 text-amber-600" />
+                      <div className="flex-1">
+                        <FormLabel className="text-base">Lembrete de follow-up (opcional)</FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Receberás um email em <span className="font-medium">geral@luvimg.com</span> na data escolhida para fazer follow-up deste caso.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {REMINDER_PRESETS.map((p) => (
+                        <Button
+                          key={p.value}
+                          type="button"
+                          size="sm"
+                          variant={field.value === p.value ? "default" : "outline"}
+                          onClick={() => {
+                            field.onChange(p.value);
+                            if (p.value === "custom" && !form.getValues("reminder_date")) {
+                              const tomorrow = addDays(new Date(), 1);
+                              tomorrow.setHours(9, 0, 0, 0);
+                              // datetime-local format: yyyy-MM-ddTHH:mm
+                              form.setValue("reminder_date", format(tomorrow, "yyyy-MM-dd'T'HH:mm"));
+                            }
+                          }}
+                        >
+                          {p.label}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {field.value === "custom" && (
+                      <FormField
+                        control={form.control}
+                        name="reminder_date"
+                        render={({ field: dateField }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="datetime-local"
+                                {...dateField}
+                                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {field.value && field.value !== "none" && (
+                      <FormField
+                        control={form.control}
+                        name="reminder_note"
+                        render={({ field: noteField }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs text-muted-foreground">Nota (opcional)</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                {...noteField}
+                                placeholder='ex.: "ligar ao síndico", "confirmar orçamento"'
+                                rows={2}
+                                maxLength={280}
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground text-right">{note.length}/280</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {previewDate && (
+                      <div className="text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-md px-3 py-2">
+                        🔔 Lembrete agendado para{" "}
+                        <span className="font-semibold">
+                          {format(previewDate, "EEEE, d 'de' MMMM 'às' HH:mm", { locale: pt })}
+                        </span>
+                      </div>
+                    )}
+                  </FormItem>
+                );
+              }}
+            />
+
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={onClose}>
