@@ -124,8 +124,27 @@ export default function FollowUpDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header com botões de processar */}
-      <div className="flex items-center justify-between">
+      <Tabs value={activeOrigin} onValueChange={setActiveOrigin} className="space-y-6">
+        <TabsList className="grid w-full max-w-xl grid-cols-2">
+          <TabsTrigger value="assistances" className="gap-2">
+            <Bell className="h-4 w-4" />
+            Assistências
+            {(stats?.pending ?? 0) > 0 && (
+              <Badge variant="secondary" className="ml-1">{stats?.pending}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="pendencies" className="gap-2">
+            <Mail className="h-4 w-4" />
+            Pendências email
+            {(pendencyStats?.pending ?? 0) > 0 && (
+              <Badge variant="secondary" className="ml-1">{pendencyStats?.pending}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="assistances" className="space-y-6">
+          {/* Header com botões de processar */}
+          <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Dashboard de Follow-ups</h2>
           <p className="text-muted-foreground">
