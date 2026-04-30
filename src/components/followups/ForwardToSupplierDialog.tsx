@@ -78,6 +78,7 @@ export default function ForwardToSupplierDialog({ open, onOpenChange, followUp }
         body: { to: supplier.email, subject, html, email_type: "supplier_forward" },
       });
       if (error) throw error;
+      setLastSubject(subject);
       return supplier;
     },
     onSuccess: (supplier) => {
@@ -86,6 +87,9 @@ export default function ForwardToSupplierDialog({ open, onOpenChange, followUp }
       onOpenChange(false);
       setSupplierId("");
       setExtraNote("");
+      if (createPendency) {
+        setPendencyOpen(true);
+      }
     },
     onError: (e: any) => {
       toast({ title: "Erro", description: e?.message ?? "Falha ao enviar email", variant: "destructive" });
@@ -139,6 +143,20 @@ export default function ForwardToSupplierDialog({ open, onOpenChange, followUp }
               maxLength={500}
             />
           </div>
+
+          <label className="flex items-start gap-2 rounded-md border p-3 bg-primary/5 cursor-pointer">
+            <Checkbox
+              checked={createPendency}
+              onCheckedChange={(v) => setCreatePendency(!!v)}
+              className="mt-0.5"
+            />
+            <div className="text-sm">
+              <div className="font-medium">📎 Criar pendência de seguimento</div>
+              <div className="text-xs text-muted-foreground">
+                Após enviar, abre janela para anexares o PDF do email enviado e ficar registado em "Pendências Email".
+              </div>
+            </div>
+          </label>
         </div>
 
         <DialogFooter>
@@ -148,6 +166,21 @@ export default function ForwardToSupplierDialog({ open, onOpenChange, followUp }
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <CreatePendencyDialog
+        open={pendencyOpen}
+        onOpenChange={setPendencyOpen}
+        defaults={{
+          building_id: followUp.assistances?.buildings?.id ?? "",
+          assistance_id: followUp.assistance_id,
+          supplier_id: supplierId || followUp.supplier_id || undefined,
+          subject: lastSubject,
+          title: `Email enviado: ${followUp.assistances?.title ?? ""}`,
+        }}
+      />
+    </Dialog>
+  );
+}
     </Dialog>
   );
 }
