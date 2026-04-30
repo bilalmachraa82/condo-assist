@@ -204,6 +204,28 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
         .single();
 
       if (error) throw error;
+
+      // Optional manual reminder — non-blocking
+      const reminderDate = computeReminderDate(values.reminder_preset ?? "none", values.reminder_date);
+      if (reminderDate && data?.id) {
+        const { error: reminderErr } = await supabase
+          .from("follow_up_schedules")
+          .insert({
+            assistance_id: data.id,
+            follow_up_type: "manual_reminder",
+            scheduled_for: reminderDate.toISOString(),
+            status: "pending",
+            priority: values.priority as any,
+            metadata: {
+              note: values.reminder_note || null,
+              created_by_user: true,
+              recipient: "geral@luvimg.com",
+              preset: values.reminder_preset,
+            },
+          });
+        if (reminderErr) console.error("[CreateAssistanceForm] reminder insert error:", reminderErr);
+      }
+
       return data;
     },
     onSuccess: async (assistance) => {
