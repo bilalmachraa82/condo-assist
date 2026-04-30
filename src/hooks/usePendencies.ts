@@ -41,7 +41,7 @@ export interface Pendency {
   assistance_id: string | null;
   supplier_id: string | null;
   status: PendencyStatus;
-  priority: "low" | "normal" | "urgent" | "critical";
+  priority: "normal" | "urgent" | "critical";
   assigned_to: string | null;
   due_date: string | null;
   last_activity_at: string;
@@ -51,9 +51,9 @@ export interface Pendency {
   buildings?: { id: string; code: string; name: string } | null;
   assistances?: { id: string; assistance_number: number; title: string } | null;
   suppliers?: { id: string; name: string; email: string | null } | null;
-  attachments_count?: number;
-  notes_count?: number;
 }
+
+export type PendencyPriority = "normal" | "urgent" | "critical";
 
 export function usePendencies() {
   return useQuery({
@@ -139,15 +139,16 @@ export function useCreatePendency() {
       building_id: string;
       assistance_id?: string | null;
       supplier_id?: string | null;
-      priority?: "low" | "normal" | "urgent" | "critical";
+      priority?: PendencyPriority;
       status?: PendencyStatus;
       assigned_to?: string | null;
       due_date?: string | null;
     }) => {
       const { data: u } = await supabase.auth.getUser();
+      const payload: any = { ...input, created_by: u.user?.id ?? null };
       const { data, error } = await supabase
         .from("email_pendencies")
-        .insert({ ...input, created_by: u.user?.id ?? null })
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
@@ -168,7 +169,7 @@ export function useUpdatePendency() {
     mutationFn: async ({ id, ...patch }: Partial<Pendency> & { id: string }) => {
       const { data, error } = await supabase
         .from("email_pendencies")
-        .update(patch)
+        .update(patch as any)
         .eq("id", id)
         .select()
         .single();
