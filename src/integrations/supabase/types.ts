@@ -719,6 +719,7 @@ export type Database = {
           cadastral_code: string | null
           code: string
           created_at: string
+          elevator_supplier_id: string | null
           id: string
           is_active: boolean
           name: string
@@ -731,6 +732,7 @@ export type Database = {
           cadastral_code?: string | null
           code: string
           created_at?: string
+          elevator_supplier_id?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -743,13 +745,22 @@ export type Database = {
           cadastral_code?: string | null
           code?: string
           created_at?: string
+          elevator_supplier_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
           nif?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "buildings_elevator_supplier_id_fkey"
+            columns: ["elevator_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       communications_log: {
         Row: {
