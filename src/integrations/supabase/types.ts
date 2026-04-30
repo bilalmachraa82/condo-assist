@@ -2047,6 +2047,15 @@ export type Database = {
       }
       auto_process_followups: { Args: never; Returns: Json }
       bytea_to_text: { Args: { data: string }; Returns: string }
+      calculate_next_followup: {
+        Args: {
+          p_attempt_count: number
+          p_base_date?: string
+          p_follow_up_type: string
+          p_priority: Database["public"]["Enums"]["assistance_priority"]
+        }
+        Returns: string
+      }
       calculate_reminder_schedule: {
         Args: {
           assistance_priority: Database["public"]["Enums"]["assistance_priority"]
@@ -2160,6 +2169,10 @@ export type Database = {
         }[]
       }
       get_followup_processing_stats: { Args: never; Returns: Json }
+      get_setting_int: {
+        Args: { p_default: number; p_key: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
