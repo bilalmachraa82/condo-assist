@@ -89,6 +89,7 @@ export default function FollowUpDashboard() {
   } | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useFollowUpStats();
+  const { data: pendencyStats } = usePendencyRemindersStats();
   const { data: followUps, isLoading: followUpsLoading } = useFollowUpSchedules({
     status: selectedStatus || undefined,
     follow_up_type: selectedType || undefined,
@@ -98,6 +99,7 @@ export default function FollowUpDashboard() {
   const cancelFollowUp = useCancelFollowUp();
   const rescheduleFollowUp = useRescheduleFollowUp();
   const triggerManualReminders = useTriggerManualReminders();
+  const [activeOrigin, setActiveOrigin] = useState<string>("assistances");
 
   const handleReschedule = async () => {
     if (rescheduleData) {
