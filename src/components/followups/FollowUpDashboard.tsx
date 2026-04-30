@@ -208,11 +208,19 @@ export default function FollowUpDashboard() {
   return (
     <TooltipProvider delayDuration={250}>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Follow-ups e Lembretes</h1>
-          <p className="text-muted-foreground text-sm">
-            Centro de controlo de comunicações pendentes para fornecedores e condomínios.
-          </p>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">Follow-ups e Lembretes</h1>
+            <p className="text-muted-foreground text-sm">
+              Centro de controlo de comunicações pendentes para fornecedores e condomínios.
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link to="/follow-ups/configuracao">
+              <Settings className="h-4 w-4" />
+              Configurar tempos
+            </Link>
+          </Button>
         </div>
 
         <Tabs value={activeOrigin} onValueChange={setActiveOrigin} className="space-y-6">
