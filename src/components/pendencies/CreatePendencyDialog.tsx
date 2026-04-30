@@ -246,6 +246,51 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detalhes do que foi pedido, o que falta, etc." />
             </div>
           </div>
+
+          {/* Reminder option */}
+          <div className="rounded-lg border p-3 space-y-3 bg-muted/20">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <Bell className="h-4 w-4 text-warning" /> Agendar lembrete
+              </Label>
+              <Switch checked={reminderEnabled} onCheckedChange={setReminderEnabled} />
+            </div>
+            {reminderEnabled && (
+              <div className="space-y-2">
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Data e hora</Label>
+                    <Input
+                      type="datetime-local"
+                      value={reminderWhen}
+                      onChange={(e) => setReminderWhen(e.target.value)}
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Nota (opcional)</Label>
+                    <Input value={reminderNote} onChange={(e) => setReminderNote(e.target.value)} placeholder="Ex.: confirmar resposta do fornecedor" />
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {[{ l: "+1 dia", d: 1 }, { l: "+3 dias", d: 3 }, { l: "+1 semana", d: 7 }].map((q) => (
+                    <Button key={q.l} type="button" variant="outline" size="sm"
+                      onClick={() => {
+                        const dt = new Date(Date.now() + q.d * 86400000);
+                        dt.setHours(9, 0, 0, 0);
+                        setReminderWhen(dt.toISOString().slice(0, 16));
+                      }}>
+                      {q.l}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Receberás um email automático em <strong>geral@luvimg.com</strong> à hora marcada.
+                  Lembretes SLA (3/7/14 dias) são criados automaticamente quando passares a "Aguarda resposta".
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <DialogFooter>
