@@ -202,6 +202,7 @@ export default function Assistencias() {
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  const { data: remindersMap } = useAssistanceReminders();
 
   // Count active elevator assistances
   const elevatorCount = useQuery({
