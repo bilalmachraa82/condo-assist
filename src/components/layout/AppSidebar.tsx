@@ -15,6 +15,7 @@ import {
   BookOpen,
   ClipboardList,
   ShieldCheck,
+  ShieldAlert,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -42,6 +43,7 @@ const menuItems = [
   { title: "Base de Conhecimento", url: "/knowledge", icon: BookOpen },
   { title: "Seguimento Actas", url: "/assembly", icon: ClipboardList },
   { title: "Inspeções", url: "/inspecoes", icon: ShieldCheck },
+  { title: "Seguros", url: "/seguros", icon: ShieldAlert },
 ]
 
 const configItems = [
