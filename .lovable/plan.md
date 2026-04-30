@@ -1,59 +1,93 @@
-## Auditoria — onde estão os dados
+## Auditoria
 
-Os `admin_notes` dos edifícios estão vazios, mas todo o histórico de inspeções existe na tabela **`knowledge_articles`**, organizado por categoria (uma entrada por edifício e tipo). Total: **213 artigos com dados úteis** distribuídos por 83 edifícios.
+Tens **65 seguros** documentados em `knowledge_articles` (categoria `seguros`), todos com a mesma estrutura limpa:
 
-| Categoria KB | Artigos | Formato | Significado da data |
-|---|---|---|---|
-| `gas` | 79 | `Inspecionado em DD/MM/YYYY` | **Última** inspeção (passado) |
-| `elevadores` | 48 | `Data Inspeção: DD/MM/YYYY` | **Próxima** devida (futuro) |
-| `extintores` | 29 | `Data: DD/MM/YYYY` | **Próxima** devida (futuro) |
-| `colunas_eletricas` | 57 | Tabela `Ano \| ok` | **Anos cobertos** pela última inspeção |
+```
+- Nº Apólice: 007593225
+- Companhia: Zurich
+- Mediador: Winsurance
+- Contacto: rute.neto@winsurance.pt
+- Multirrisco/Partes Comuns: X
+- Fracções Incluídas: ...
+- Data Renovação: 11/01/2027
+- Observações: ...
+```
 
-Confirmação cruzada com o que disseste:
-- Prédio **003** colunas eléctricas: cobertura 2026+2027 → última inspeção em **2025**, próxima em 2028. ✓
-- Prédio **126** colunas eléctricas: cobertura 2026+2027+2028 → última inspeção em **2026**, próxima em 2029. ✓
+Já temos uma infra exemplar para inspeções (`inspection-alerts-cron` + tabelas `inspection_categories/_alerts_log` + view de status + cron diário às 08:00 → email `geral@luvimg.com`). Vou replicar **exactamente o mesmo padrão** para seguros — assim o sistema fica coerente, com o mesmo design e UX.
 
-## O que vou fazer
+## Plano
 
-### 1. Edge function de importação (one-shot) `import-inspections-from-kb`
-Faz parse de cada artigo segundo a sua categoria e insere em `building_inspections`:
+### 1. Schema (migration)
 
-- **Gás** (validade 3 anos) — usa a data extraída como `inspection_date`. Trigger calcula `next_due_date` automaticamente (+3 anos).
-- **Elevadores** (validade 2 anos) — a data é a próxima devida; calculo `inspection_date = data − 2 anos`.
-- **Extintores** (validade 1 ano) — a data é a próxima; `inspection_date = data − 1 ano`.
-- **Coluna Eléctrica** (validade 3 anos) — extraio o ano máximo da tabela; `inspection_date = (ano_max − 2)/06/30`. (Ex.: 003 com max 2027 → última 2025-06-30; 126 com max 2028 → última 2026-06-30.)
-- Casos sem data ("Já foi solicitada", contactos sem datas) → ignorados (ficam como `missing` no dashboard, que é o correcto).
-- Empresa/contacto extraídos para `company_name` / `company_contact`.
-- Idempotente: corre `DELETE FROM building_inspections WHERE notes LIKE 'Importado de KB%'` antes de inserir, para poder re-correr sem duplicar.
+**`building_insurances`** — uma linha por edifício
+- `building_id`, `policy_number`, `insurer` (companhia), `broker` (mediador), `contact`
+- `coverage_type` enum: `multirisco` / `partes_comuns` / `outro`
+- `fractions_included` (text), `observations` (text)
+- `renewal_date` (date) — campo-chave para alertas
+- `created_by`, `created_at`, `updated_at`
+- `notes` text (igual ao `[KB-IMPORT]` das inspeções, para idempotência)
+- Trigger `updated_at`
+- RLS: admins gerem, autenticados leem (mesma política das inspeções)
 
-### 2. Validação pós-importação
-Query de auditoria que mostra:
-- Quantas inspeções por categoria foram importadas
-- Distribuição final do dashboard (`ok` / `due_soon_30` / `due_soon_15` / `overdue` / `missing`)
-- Lista dos casos `missing` por categoria para sabermos o que falta cobrir manualmente
+**`insurance_alerts_log`** — idempotência (idêntica a `inspection_alerts_log`)
+- `building_id`, `insurance_id`, `alert_type` (`30d`|`overdue`), `alert_date`, `recipient_email`, `metadata`
 
-### 3. Pequeno fix UX no dashboard `/inspecoes`
-- Mostrar a contagem total e percentagem de cobertura por categoria (ex.: "Gás: 79/83 prédios cobertos").
-- Banner discreto a indicar a data da última importação.
+**View `building_insurance_status`** — com `security_invoker=on`
+- Junta `buildings` (LEFT JOIN para mostrar também os 18 prédios SEM seguro registado)
+- Calcula `days_until_renewal` e `status`:
+  - `ok` → > 30 dias
+  - `due_soon_30` → entre 0 e 30 dias
+  - `overdue` → renewal_date < hoje
+  - `missing` → sem registo
 
-### 4. (Opcional, depois) Seed continuo
-Se quiseres manter sincronia futura entre knowledge_articles e inspections, podemos adicionar um trigger — mas por agora basta o one-shot.
+**App settings** (em `app_settings`) para coerência com inspeções:
+- `insurance_alerts_enabled` (default true)
+- `insurance_alerts_recipients` (default `["geral@luvimg.com"]`)
+- `insurance_overdue_repeat_days` (default 7)
 
-## O que NÃO vou tocar
+### 2. Seed a partir do KB
 
-- Não vou apagar nem modificar os `knowledge_articles` (continuam a ser a "fonte humana" editável).
-- Não vou alterar o schema (já está correcto).
-- Não vou enviar emails de teste — o cron diário às 08:00 já está activo e vai disparar com os novos dados naturalmente.
+Migration que extrai com regex todos os campos dos 65 artigos `seguros` e popula `building_insurances` com `notes='[KB-IMPORT] Seguro'` (idempotente).
+
+### 3. Edge function `insurance-alerts-cron`
+
+Réplica directa de `inspection-alerts-cron` adaptada:
+- Lê `building_insurance_status` filtrando `overdue` + `due_soon_30`
+- Idempotência via `insurance_alerts_log` (não reenvia 30d duas vezes; `overdue` repete a cada 7 dias)
+- Envia digest HTML com **toda a info necessária para validação**:
+  - Edifício, Companhia, Nº Apólice, Mediador, Contacto, Tipo cobertura, Fracções, Data renovação, Dias restantes/em atraso
+- Botão "Abrir painel de seguros" → `/seguros`
+- Cria `notifications` in-app por edifício (igual ao padrão inspeções)
+- Reusa `send-email` existente
+
+### 4. pg_cron
+
+Job `insurance-alerts-daily` às **08:30 Lisboa** (07:30 UTC) — 30 min depois das inspeções para não sobrepor entregas. Configurado via `cron.schedule` no SQL do user (não migration partilhada).
+
+### 5. Página `/seguros` + entrada na sidebar
+
+Espelho de `/inspecoes` para máxima coerência visual e mental:
+- KPI cards: Em dia · A vencer 30d · Vencidos · Sem registo (mesmo `KpiCard` reutilizado/copiado)
+- Card "Cobertura" (X/83 prédios com seguro registado)
+- Tabela: Edifício · Companhia · Nº Apólice · Mediador · Tipo · Renovação · Estado · Acções (Editar / Renovar)
+- Filtros: pesquisa, estado, companhia
+- Modal `InsuranceForm` para registar/renovar (com pré-preenchimento da última apólice ao renovar)
+- Item "Seguros" na sidebar com ícone `ShieldAlert` (distinto de `ShieldCheck` das inspeções) entre "Inspeções" e "Edifícios"
+
+### 6. Hook `useInsurances`
+
+Padrão idêntico a `useInspections` (`useInsuranceStatus`, `useCreateInsurance`, `STATUS_META` partilhado se possível).
+
+## O que NÃO toco
+
+- Não modifico os `knowledge_articles` (continuam como fonte humana editável)
+- Não altero o `inspection-alerts-cron` actual
+- Não envio emails de teste — o cron diário tratará disso amanhã
+- Email infra existente já tem `geral@luvimg.com` configurado e a funcionar via `send-email`
 
 ## Resultado esperado
 
-Depois de correr, o dashboard `/inspecoes` deve mostrar (estimativa):
-- ~213 inspeções importadas
-- Maioria em estado `ok` (datas entre 2026-2027)
-- Alguns `due_soon_30/15` (próximos 45 dias)
-- Alguns `overdue` (gás de 2022 já passou os 3 anos)
-- Restantes `missing` para os edifícios sem registo no KB
-
-E recebes o digest amanhã às 08:00 em `geral@luvimg.com` com a lista real de pendências.
-
-Se preferires, em vez de eu inferir tudo a partir do KB, podes mandar o Excel original e eu importo a partir daí — mais limpo, mas mais demorado. Diz-me como queres avançar.
+- ~65 seguros importados, ~18 edifícios marcados como `missing`
+- Email diário consolidado (estilo digest, igual ao das inspeções) com TODOS os dados das apólices que precisam de atenção
+- Página `/seguros` operacional com mesmo look-and-feel de `/inspecoes`
+- Sistema continua coerente: 1 padrão = inspeções + seguros
