@@ -283,6 +283,23 @@ export default function FollowUpDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground">Tipo</Label>
+              <Select value={selectedType || "all"} onValueChange={(v) => setSelectedType(v === "all" ? "" : v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="manual_reminder">🔔 Lembretes manuais</SelectItem>
+                  <SelectItem value="quotation_reminder">Lembrete de Orçamento</SelectItem>
+                  <SelectItem value="date_confirmation">Confirmação de Data</SelectItem>
+                  <SelectItem value="work_reminder">Lembrete de Trabalho</SelectItem>
+                  <SelectItem value="completion_reminder">Lembrete de Conclusão</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <Tabs value={selectedStatus} onValueChange={setSelectedStatus}>
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="">Todos</TabsTrigger>
@@ -310,6 +327,7 @@ export default function FollowUpDashboard() {
                       key={followUp.id} 
                       followUp={followUp}
                       onCancel={() => cancelFollowUp.mutate(followUp.id)}
+                      onForward={() => setForwardTarget(followUp)}
                       onReschedule={() => setRescheduleData({
                         followUpId: followUp.id,
                         currentDate: followUp.scheduled_for,
@@ -323,6 +341,12 @@ export default function FollowUpDashboard() {
           </Tabs>
         </CardContent>
       </Card>
+
+      <ForwardToSupplierDialog
+        open={!!forwardTarget}
+        onOpenChange={(o) => !o && setForwardTarget(null)}
+        followUp={forwardTarget}
+      />
 
       {/* Dialog para reagendar */}
       <Dialog open={!!rescheduleData} onOpenChange={() => setRescheduleData(null)}>
