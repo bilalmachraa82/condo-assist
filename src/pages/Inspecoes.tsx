@@ -129,7 +129,7 @@ export default function Inspecoes() {
       </Card>
 
 
-      <Card>
+      <Card ref={tableRef as any}>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Compliance por edifício e categoria</CardTitle>
         </CardHeader>
@@ -146,6 +146,7 @@ export default function Inspecoes() {
                 <SelectItem value="overdue">Vencidos</SelectItem>
                 <SelectItem value="due_soon_15">A vencer 15d</SelectItem>
                 <SelectItem value="due_soon_30">A vencer 30d</SelectItem>
+                <SelectItem value="pending">Pendentes</SelectItem>
                 <SelectItem value="missing">Sem registo</SelectItem>
                 <SelectItem value="ok">Em dia</SelectItem>
               </SelectContent>
