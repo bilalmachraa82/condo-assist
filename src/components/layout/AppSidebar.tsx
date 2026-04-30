@@ -14,6 +14,7 @@ import {
   TestTube,
   BookOpen,
   ClipboardList,
+  ShieldCheck,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -40,6 +41,7 @@ const menuItems = [
   { title: "Análise e Relatórios", url: "/analytics", icon: BarChart3 },
   { title: "Base de Conhecimento", url: "/knowledge", icon: BookOpen },
   { title: "Seguimento Actas", url: "/assembly", icon: ClipboardList },
+  { title: "Inspeções", url: "/inspecoes", icon: ShieldCheck },
 ]
 
 const configItems = [
