@@ -185,6 +185,26 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
     }
   }, [interventionTypes, form]);
 
+  // Auto-pre-select elevator supplier from building when intervention is "elevador"
+  const watchedBuildingId = form.watch("building_id");
+  const watchedInterventionId = form.watch("intervention_type_id");
+  const watchedSupplierId = form.watch("assigned_supplier_id");
+
+  const selectedBuilding = buildings.find((b) => b.id === watchedBuildingId);
+  const selectedIntervention = interventionTypes.find((i) => i.id === watchedInterventionId);
+  const isElevatorIntervention = !!selectedIntervention?.name && /elevad/i.test(selectedIntervention.name);
+  const buildingElevatorSupplierId = (selectedBuilding as any)?.elevator_supplier_id as string | null | undefined;
+  const buildingElevatorSupplier = buildingElevatorSupplierId
+    ? suppliers.find((s) => s.id === buildingElevatorSupplierId)
+    : null;
+
+  useEffect(() => {
+    if (isElevatorIntervention && buildingElevatorSupplierId && !watchedSupplierId) {
+      form.setValue("assigned_supplier_id", buildingElevatorSupplierId, { shouldDirty: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isElevatorIntervention, buildingElevatorSupplierId]);
+
   const createAssistanceMutation = useMutation({
     mutationFn: async (values: AssistanceFormValues) => {
       const { data, error } = await supabase
@@ -357,10 +377,44 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
           });
         }
       } else {
-        toast({
-          title: "Sucesso",
-          description: "Assistência criada com sucesso!",
-        });
+        // No supplier assigned. For elevator interventions, fall back to admin PDF
+        // so the office can forward manually instead of silently doing nothing.
+        const interventionType = interventionTypes.find(i => i.id === assistance.intervention_type_id);
+        const isElevator = !!interventionType?.name && /elevad/i.test(interventionType.name);
+
+        if (isElevator) {
+          try {
+            console.log('[CreateAssistanceForm] Elevator without supplier — sending PDF to admin as fallback');
+            const pdfResponse = await supabase.functions.invoke('send-assistance-pdf-to-admin', {
+              body: { assistanceId: assistance.id, mode: 'archive' },
+            });
+            if (pdfResponse.error) {
+              console.error('[CreateAssistanceForm] Admin PDF fallback error:', pdfResponse.error);
+              toast({
+                title: 'Sucesso com Aviso',
+                description: 'Assistência criada, mas falhou envio do PDF para administração. Atribui um fornecedor de elevador ao edifício.',
+                variant: 'default',
+              });
+            } else {
+              toast({
+                title: 'Sucesso',
+                description: 'Assistência criada. Sem fornecedor de elevador no edifício — PDF enviado para geral@luvimg.com.',
+              });
+            }
+          } catch (err) {
+            console.error('[CreateAssistanceForm] Admin PDF fallback exception:', err);
+            toast({
+              title: 'Sucesso com Aviso',
+              description: 'Assistência criada, mas houve erro a notificar a administração.',
+              variant: 'default',
+            });
+          }
+        } else {
+          toast({
+            title: 'Sucesso',
+            description: 'Assistência criada com sucesso!',
+          });
+        }
       }
 
       // Clear saved draft after successful submission
@@ -600,7 +654,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fornecedor (opcional)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Atribuir fornecedor" />
@@ -617,6 +671,17 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                         ))}
                       </SelectContent>
                     </Select>
+                    {isElevatorIntervention && buildingElevatorSupplier && field.value === buildingElevatorSupplier.id && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Pré-selecionado a partir do contrato do edifício: <strong>{buildingElevatorSupplier.name}</strong>
+                        {buildingElevatorSupplier.email && <> ({buildingElevatorSupplier.email})</>}. Podes alterar.
+                      </p>
+                    )}
+                    {isElevatorIntervention && !buildingElevatorSupplierId && selectedBuilding && (
+                      <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+                        ⚠ Este edifício não tem fornecedor de elevador configurado. Sem fornecedor, será enviado PDF para administração (geral@luvimg.com).
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

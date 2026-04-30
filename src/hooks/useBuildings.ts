@@ -61,7 +61,7 @@ export const useCreateBuilding = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (building: Omit<Building, "id" | "created_at" | "updated_at">) => {
+    mutationFn: async (building: Partial<Omit<Building, "id" | "created_at" | "updated_at">> & { code: string; name: string; is_active: boolean }) => {
       const { data, error } = await supabase
         .from("buildings")
         .insert(building)
