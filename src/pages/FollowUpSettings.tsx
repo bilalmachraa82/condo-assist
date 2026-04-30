@@ -40,6 +40,7 @@ type SectionDef = {
 const SECTIONS: SectionDef[] = [
   {
     id: "quotation",
+    flow: "assistencias",
     title: "Lembretes de orçamento",
     description:
       "Quando o sistema pede uma orçamento ao fornecedor, agenda automaticamente lembretes em escalação. O 1º depende da prioridade da assistência.",
@@ -81,6 +82,7 @@ const SECTIONS: SectionDef[] = [
   },
   {
     id: "schedule",
+    flow: "assistencias",
     title: "Confirmação e execução do trabalho",
     description:
       "Lembretes automáticos relacionados com a marcação e a véspera/conclusão do trabalho.",
@@ -118,6 +120,7 @@ const SECTIONS: SectionDef[] = [
   },
   {
     id: "pendency",
+    flow: "pendencias",
     title: "Lembretes SLA de pendências email",
     description:
       "Quando uma pendência fica em 'Aguarda resposta', o sistema cria lembretes automáticos com esta cadência.",
