@@ -22,15 +22,18 @@ export interface FollowUpSchedule {
 
 export interface FollowUpWithDetails extends FollowUpSchedule {
   assistances?: {
+    id?: string;
     title: string;
     description?: string;
-    buildings?: { name: string };
+    assistance_number?: number | null;
+    status?: string;
+    buildings?: { code?: string; name: string };
     intervention_types?: { name: string };
   };
   suppliers?: {
     name: string;
     email: string;
-  };
+  } | null;
 }
 
 export const useFollowUpSchedules = (filters?: {
@@ -46,9 +49,12 @@ export const useFollowUpSchedules = (filters?: {
         .select(`
           *,
           assistances (
+            id,
             title,
             description,
-            buildings (name),
+            assistance_number,
+            status,
+            buildings (code, name),
             intervention_types (name)
           ),
           suppliers (
@@ -105,6 +111,7 @@ export const useFollowUpStats = () => {
         date_confirmation: data.filter(f => f.follow_up_type === 'date_confirmation').length,
         work_reminder: data.filter(f => f.follow_up_type === 'work_reminder').length,
         completion_reminder: data.filter(f => f.follow_up_type === 'completion_reminder').length,
+        manual_reminder: data.filter(f => f.follow_up_type === 'manual_reminder').length,
       };
 
       const byPriority = {
