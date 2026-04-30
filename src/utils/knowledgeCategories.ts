@@ -27,7 +27,7 @@ export interface KnowledgeCategory {
 }
 
 export const KNOWLEDGE_CATEGORIES: KnowledgeCategory[] = [
-  { value: "procedimentos", label: "Procedimentos", icon: ClipboardList, color: "blue", bgClass: "bg-blue-100 dark:bg-blue-900/30", textClass: "text-blue-700 dark:text-blue-300", bgCircleClass: "bg-blue-500/10" },
+  { value: "procedimentos", label: "Administrador", icon: ClipboardList, color: "blue", bgClass: "bg-blue-100 dark:bg-blue-900/30", textClass: "text-blue-700 dark:text-blue-300", bgCircleClass: "bg-blue-500/10" },
   { value: "edificios", label: "Edifícios", icon: Building2, color: "slate", bgClass: "bg-slate-100 dark:bg-slate-800/30", textClass: "text-slate-700 dark:text-slate-300", bgCircleClass: "bg-slate-500/10" },
   { value: "elevadores", label: "Elevadores", icon: ArrowUpDown, color: "purple", bgClass: "bg-purple-100 dark:bg-purple-900/30", textClass: "text-purple-700 dark:text-purple-300", bgCircleClass: "bg-purple-500/10" },
   { value: "extintores", label: "Extintores", icon: Flame, color: "red", bgClass: "bg-red-100 dark:bg-red-900/30", textClass: "text-red-700 dark:text-red-300", bgCircleClass: "bg-red-500/10" },
