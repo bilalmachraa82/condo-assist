@@ -409,6 +409,12 @@ export default function FollowUpDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        <TabsContent value="pendencies" className="space-y-6">
+          <PendencyRemindersTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
