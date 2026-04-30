@@ -93,8 +93,20 @@ export default function Inspecoes() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {coverage.map(c => {
               const pct = c.total > 0 ? Math.round((c.covered / c.total) * 100) : 0;
+              const active = categoryFilter === c.id;
               return (
-                <div key={c.label} className="rounded-md border p-3">
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => handleCategoryClick(c.id)}
+                  aria-pressed={active}
+                  className={cn(
+                    "text-left rounded-md border p-3 transition hover:shadow-md hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-ring",
+                    active && "ring-2 ring-offset-1"
+                  )}
+                  style={active ? { boxShadow: `0 0 0 2px ${c.color}` } : undefined}
+                  title={active ? "Clique para limpar filtro" : `Filtrar tabela por ${c.label}`}
+                >
                   <div className="flex items-center justify-between mb-2">
                     <span className="inline-flex items-center gap-2 text-sm font-medium">
                       <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} />
@@ -105,8 +117,11 @@ export default function Inspecoes() {
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: c.color }} />
                   </div>
-                  <div className="mt-1 text-xs text-muted-foreground">{pct}% cobertura</div>
-                </div>
+                  <div className="mt-1 text-xs text-muted-foreground flex items-center justify-between">
+                    <span>{pct}% cobertura</span>
+                    {active && <span className="text-foreground font-medium inline-flex items-center gap-1"><X className="h-3 w-3" />limpar</span>}
+                  </div>
+                </button>
               );
             })}
           </div>
