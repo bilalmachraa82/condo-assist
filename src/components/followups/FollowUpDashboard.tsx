@@ -79,6 +79,7 @@ const priorityColors = {
 export default function FollowUpDashboard() {
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
+  const [forwardTarget, setForwardTarget] = useState<FollowUpWithDetails | null>(null);
   const [rescheduleData, setRescheduleData] = useState<{
     followUpId: string;
     currentDate: string;
@@ -94,6 +95,7 @@ export default function FollowUpDashboard() {
   const processFollowUps = useProcessFollowUps();
   const cancelFollowUp = useCancelFollowUp();
   const rescheduleFollowUp = useRescheduleFollowUp();
+  const triggerManualReminders = useTriggerManualReminders();
 
   const handleReschedule = async () => {
     if (rescheduleData) {
