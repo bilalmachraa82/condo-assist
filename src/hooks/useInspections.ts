@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export type InspectionStatus = "ok" | "due_soon_30" | "due_soon_15" | "overdue" | "missing";
+export type InspectionStatus = "ok" | "due_soon_30" | "due_soon_15" | "overdue" | "missing" | "pending";
 
 export interface InspectionCategory {
   id: string;
