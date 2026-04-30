@@ -36,7 +36,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ForwardToSupplierDialog from "./ForwardToSupplierDialog";
-import { Forward } from "lucide-react";
+import PendencyRemindersTab from "./PendencyRemindersTab";
+import { Forward, Mail } from "lucide-react";
+import { usePendencyRemindersStats } from "@/hooks/usePendencyReminders";
 
 const followUpTypeLabels: Record<string, string> = {
   quotation_reminder: "Lembrete de Orçamento",
