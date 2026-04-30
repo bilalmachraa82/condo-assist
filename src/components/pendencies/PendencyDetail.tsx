@@ -27,8 +27,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  FileText, Upload, Trash2, Eye, MessageSquare, Building2, Wrench, User, Calendar, Clock,
+  FileText, Upload, Trash2, Eye, MessageSquare, Building2, Wrench, User, Calendar, Clock, Bell, BellOff, Plus,
 } from "lucide-react";
+import { usePendencyReminders, useCreatePendencyReminder, useCancelPendencyReminder } from "@/hooks/usePendencyReminders";
 
 interface Props {
   pendencyId: string | null;
@@ -54,6 +55,11 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   const del = useDeletePendencyAttachment();
   const qc = useQueryClient();
   const [noteText, setNoteText] = useState("");
+  const { data: reminders } = usePendencyReminders(pendencyId);
+  const createReminder = useCreatePendencyReminder();
+  const cancelReminder = useCancelPendencyReminder();
+  const [reminderWhen, setReminderWhen] = useState("");
+  const [reminderNote, setReminderNote] = useState("");
 
   if (!p) return null;
   const sla = pendencySLA(p);
@@ -130,9 +136,10 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
         </div>
 
         <Tabs defaultValue="resumo" className="mt-6">
-          <TabsList className="grid grid-cols-3 w-full">
+          <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="resumo">Resumo</TabsTrigger>
             <TabsTrigger value="anexos">Anexos ({attachments?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="lembretes">Lembretes ({reminders?.filter((r) => r.status === "pending").length ?? 0})</TabsTrigger>
             <TabsTrigger value="timeline">Timeline ({notes?.length ?? 0})</TabsTrigger>
           </TabsList>
 
