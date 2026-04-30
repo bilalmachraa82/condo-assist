@@ -172,7 +172,7 @@ export function useCancelPendencyReminder() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: async ({ id }: { id: string; pendencyId: string }) => {
+    mutationFn: async ({ id }: { id: string; pendencyId?: string }) => {
       const { error } = await supabase
         .from("pendency_reminders")
         .update({ status: "cancelled" })
@@ -180,7 +180,9 @@ export function useCancelPendencyReminder() {
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["pendency-reminders", vars.pendencyId] });
+      if (vars.pendencyId) qc.invalidateQueries({ queryKey: ["pendency-reminders", vars.pendencyId] });
+      qc.invalidateQueries({ queryKey: ["pendency-reminders-all"] });
+      qc.invalidateQueries({ queryKey: ["pendency-reminders-stats"] });
       toast({ title: "Lembrete cancelado" });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
