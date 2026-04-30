@@ -987,7 +987,43 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "email_pendencies_assistance_id_fkey"
+            columns: ["assistance_id"]
+            isOneToOne: false
+            referencedRelation: "assistances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_pendencies_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "email_pendencies_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurance_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "email_pendencies_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_pendencies_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_pendency_attachments: {
         Row: {
