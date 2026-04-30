@@ -171,7 +171,6 @@ export default function ForwardToSupplierDialog({ open, onOpenChange, followUp }
         open={pendencyOpen}
         onOpenChange={setPendencyOpen}
         defaults={{
-          building_id: followUp.assistances?.buildings?.id ?? "",
           assistance_id: followUp.assistance_id,
           supplier_id: supplierId || followUp.supplier_id || undefined,
           subject: lastSubject,
