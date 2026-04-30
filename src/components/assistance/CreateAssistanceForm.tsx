@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, AlertTriangle, RotateCcw } from "lucide-react";
+import { X, Plus, AlertTriangle, RotateCcw, BellRing } from "lucide-react";
+import { addDays, format } from "date-fns";
+import { pt } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
@@ -28,7 +30,36 @@ const assistanceSchema = z.object({
   priority: z.enum(["normal", "urgent", "critical"]),
   assigned_supplier_id: z.string().optional().or(z.literal("")),
   requires_quotation: z.boolean().optional(),
-});
+  reminder_preset: z.enum(["none", "1d", "3d", "7d", "14d", "custom"]).optional(),
+  reminder_date: z.string().optional().or(z.literal("")),
+  reminder_note: z.string().max(280, "Máximo 280 caracteres").optional().or(z.literal("")),
+}).refine(
+  (v) => v.reminder_preset !== "custom" || (v.reminder_date && v.reminder_date.length > 0),
+  { message: "Escolhe uma data para o lembrete", path: ["reminder_date"] },
+);
+
+const REMINDER_PRESETS: { value: "none" | "1d" | "3d" | "7d" | "14d" | "custom"; label: string; days: number | null }[] = [
+  { value: "none", label: "Sem lembrete", days: null },
+  { value: "1d", label: "+1 dia", days: 1 },
+  { value: "3d", label: "+3 dias", days: 3 },
+  { value: "7d", label: "+1 semana", days: 7 },
+  { value: "14d", label: "+2 semanas", days: 14 },
+  { value: "custom", label: "Data personalizada", days: null },
+];
+
+function computeReminderDate(preset: string, customIso?: string): Date | null {
+  const cfg = REMINDER_PRESETS.find(p => p.value === preset);
+  if (!cfg || cfg.value === "none") return null;
+  if (cfg.value === "custom") {
+    if (!customIso) return null;
+    const d = new Date(customIso);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // Always trigger at 09:00 local time on the target day
+  const target = addDays(new Date(), cfg.days ?? 0);
+  target.setHours(9, 0, 0, 0);
+  return target;
+}
 
 type AssistanceFormValues = z.infer<typeof assistanceSchema>;
 
@@ -89,6 +120,9 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
       priority: "normal",
       assigned_supplier_id: "",
       requires_quotation: false,
+      reminder_preset: "none" as const,
+      reminder_date: "",
+      reminder_note: "",
     };
   }, []);
 
