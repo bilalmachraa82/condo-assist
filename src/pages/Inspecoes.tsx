@@ -195,7 +195,7 @@ export default function Inspecoes() {
                       <TableCell>
                         <Badge variant="outline" className={cn(meta.bg, meta.color, meta.border)}>
                           {meta.label}
-                          {r.days_until_due !== null && r.status !== "ok" && r.status !== "missing" && (
+                          {r.days_until_due !== null && r.status !== "ok" && r.status !== "missing" && r.status !== "pending" && (
                             <span className="ml-1 opacity-80">· {r.days_until_due}d</span>
                           )}
                         </Badge>
