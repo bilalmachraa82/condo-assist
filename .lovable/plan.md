@@ -1,49 +1,106 @@
-## Auditoria
+## Plano: Cores distintas, filtro por categoria e novo estado "Pendente"
 
-Estado actual de `inspection_categories`:
+### 1. Cores e ícones distintos para Gás vs Extintores
 
-| Categoria | Registos no `building_inspections` | Artigos no KB |
-|---|---|---|
-| Coluna Eléctrica | 57 | sim |
-| Gás | 60 | sim |
-| Elevador | 25 | sim |
-| Extintores | 29 | sim |
-| **AVAC** | **0** | **0** |
-| **Pára-raios** | **0** | **0** |
-| **ITE** | **0** | **0** |
+Hoje ambos usam vermelho + ícone `Flame`. Proposta:
 
-As três últimas estão vazias em ambos os sítios — só inflam o dashboard ("Sem registo" em 83 edifícios cada) e os KPIs de "missing", criando ruído. Como pediste, removo-as por completo. Se mais tarde enviares o Excel com dados de AVAC/Pára-raios/ITE, voltamos a adicionar (ou simplesmente reactivamos via `is_active = true`).
+| Categoria | Cor actual | Cor nova | Ícone |
+|---|---|---|---|
+| Coluna Eléctrica | `#f59e0b` (amarelo) | mantém | `Zap` |
+| Gás | `#ef4444` (vermelho) | **`#a855f7` (roxo)** — gás natural costuma usar amarelo/roxo, evita conflito com "vencido" (vermelho) | `Flame` |
+| Elevador | `#3b82f6` (azul) | mantém | `ArrowUpDown` |
+| Extintores | `#dc2626` (vermelho escuro) | **`#dc2626` (vermelho)** — mantém vermelho (universal para fogo/extintor) | **`FireExtinguisher`** (em vez de `Flame`) |
 
-## Plano
+Migração de dados em `inspection_categories`: `UPDATE` cor do Gás e ícone dos Extintores.
 
-### 1. Migration: remover categorias sem dados
+### 2. Categorias clicáveis para filtrar
 
+No card "Cobertura por categoria" (`/inspecoes`), cada barra passa a ser um botão. Click → aplica `categoryFilter = c.id` na tabela abaixo + faz scroll até à tabela. Indicador visual quando filtro activo (border + "x" para limpar).
+
+Bonus: clicar de novo na mesma categoria limpa o filtro (toggle).
+
+### 3. Novo estado "Pendente" (em ambos os sítios, conforme pedido)
+
+**3a. Resultado da inspeção (`building_inspections.result`)**
+- Adicionar valor `pending` à coluna (texto livre, sem CHECK constraint a alterar — basta a UI suportar).
+- No `InspectionForm`: novo `SelectItem value="pending"` → "Pendente (a aguardar relatório)".
+- No tipo TS `BuildingInspection["result"]`: adicionar `"pending"`.
+
+**3b. Estado de compliance (view `building_inspection_status`)**
+- Recriar a view para devolver `status = 'pending'` quando existe inspeção mas `result = 'pending'` (independentemente da `next_due_date`).
+- Ordem de prioridade na view: `missing` → `overdue` → `pending` → `due_soon_15` → `due_soon_30` → `ok`.
+
+**3c. UI**
+- Novo KPI card "Pendentes" (cor âmbar/violeta, ícone `Hourglass`).
+- `STATUS_META.pending`: label "Pendente", cor violeta (`text-violet-700`, `bg-violet-500/10`, `border-violet-500/30`) — distinta de "A vencer" (âmbar).
+- Adicionar opção no `Select` de filtros de estado.
+- Incluir `pending: 0` no objecto `stats` e no `STATUS_ORDER` (entre `overdue` e `due_soon_15`).
+
+### 4. Edge function `inspection-alerts-cron`
+
+Como agora há `pending`, garantir que estes **não** entram no digest de "vencidos/a vencer" (são uma categoria à parte, esperam acção da empresa, não do admin). Opcionalmente, secção separada "Aguardam relatório há mais de 30 dias" no email — mas mantém-se simples por agora: apenas excluir `pending` dos buckets existentes.
+
+### Detalhes técnicos
+
+**Migration 1 — schema (recriar view + cores/ícones):**
 ```sql
-DELETE FROM inspection_categories
- WHERE key IN ('avac','para_raios','ite')
-   AND NOT EXISTS (
-     SELECT 1 FROM building_inspections bi WHERE bi.category_id = inspection_categories.id
-   );
+-- Cores e ícones
+UPDATE inspection_categories SET color = '#a855f7' WHERE key = 'gas';
+UPDATE inspection_categories SET icon = 'FireExtinguisher' WHERE key = 'extintor';
+
+-- Recriar view com estado 'pending'
+DROP VIEW IF EXISTS building_inspection_status;
+CREATE VIEW building_inspection_status AS
+WITH latest AS (
+  SELECT DISTINCT ON (building_id, category_id) *
+  FROM building_inspections
+  ORDER BY building_id, category_id, inspection_date DESC
+)
+SELECT
+  b.id  AS building_id,
+  b.code AS building_code,
+  b.name AS building_name,
+  c.id   AS category_id,
+  c.key  AS category_key,
+  c.label AS category_label,
+  c.color AS category_color,
+  c.icon  AS category_icon,
+  c.validity_years,
+  l.id   AS inspection_id,
+  l.inspection_date,
+  l.next_due_date,
+  l.result,
+  l.company_name,
+  l.company_contact,
+  l.notes,
+  CASE WHEN l.next_due_date IS NULL THEN NULL
+       ELSE (l.next_due_date - CURRENT_DATE) END AS days_until_due,
+  CASE
+    WHEN l.id IS NULL                          THEN 'missing'
+    WHEN l.result = 'pending'                  THEN 'pending'
+    WHEN l.next_due_date < CURRENT_DATE        THEN 'overdue'
+    WHEN l.next_due_date <= CURRENT_DATE + 15  THEN 'due_soon_15'
+    WHEN l.next_due_date <= CURRENT_DATE + 30  THEN 'due_soon_30'
+    ELSE 'ok'
+  END AS status
+FROM buildings b
+CROSS JOIN inspection_categories c
+LEFT JOIN latest l ON l.building_id = b.id AND l.category_id = c.id
+WHERE b.is_active = true AND c.is_active = true;
 ```
 
-Guardrail: `NOT EXISTS` impede acidente se entretanto alguém registar uma inspeção. Idempotente — se já não existirem, não acontece nada.
+**Ficheiros a editar:**
+- `src/hooks/useInspections.ts` — adicionar `"pending"` a `InspectionStatus` e `result`; adicionar `STATUS_META.pending`.
+- `src/pages/Inspecoes.tsx` — novo KPI, opção no Select, `STATUS_ORDER`, click handler nas barras de cobertura, ref+scroll para a tabela.
+- `src/components/inspections/InspectionForm.tsx` — novo `SelectItem` "Pendente".
+- `supabase/functions/inspection-alerts-cron/index.ts` — excluir `status = 'pending'` dos buckets de alerta.
 
-### 2. Impacto no dashboard `/inspecoes`
+### O que NÃO toco
+- Dados de inspeções existentes
+- RLS, hooks de criação, cron de seguros
+- Categorias activas (Coluna, Gás, Elevador, Extintor)
 
-- KPI "Sem registo" desce de ~249 para ~22 (apenas os edifícios reais sem registo nas 4 categorias activas).
-- Card "Cobertura por categoria" passa a mostrar 4 barras em vez de 7.
-- Filtro de categorias na tabela só mostra as 4 com sentido.
-- Edge function `inspection-alerts-cron` deixa de listar 249 falsos "missing" no digest diário — só alerta sobre o que realmente precisa de atenção.
-
-Sem alterações de código necessárias: a UI e o cron lêem dinamicamente da BD.
-
-### 3. O que NÃO toco
-
-- Inspeções existentes (137 registos)
-- `knowledge_articles`
-- Lógica de alertas, view `building_inspection_status`, hooks
-- Categorias activas (Gás, Coluna Eléctrica, Elevador, Extintor)
-
-## Resultado esperado
-
-Dashboard `/inspecoes` mais limpo e fiel ao que realmente fazemos tracking. Quando enviares o Excel ou pedires para incluir uma nova categoria, basta um `INSERT` em `inspection_categories` para a activar de novo.
+### Resultado esperado
+- Cards de Gás (roxo) e Extintores (vermelho + ícone extintor) imediatamente distinguíveis.
+- Click numa barra de "Cobertura por categoria" filtra a tabela só para essa categoria.
+- Inspeções marcadas como "Pendente" aparecem num KPI próprio (violeta) sem inflar "Vencidos" nem "A vencer".
