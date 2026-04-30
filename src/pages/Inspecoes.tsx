@@ -22,9 +22,10 @@ export default function Inspecoes() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const tableRef = useRef<HTMLDivElement | null>(null);
 
   const stats = useMemo(() => {
-    const s = { ok: 0, due_soon_30: 0, due_soon_15: 0, overdue: 0, missing: 0 };
+    const s = { ok: 0, due_soon_30: 0, due_soon_15: 0, overdue: 0, missing: 0, pending: 0 };
     rows.forEach(r => { s[r.status]++; });
     return s;
   }, [rows]);
