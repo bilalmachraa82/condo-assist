@@ -21,6 +21,7 @@ import {
   Search,
   ExternalLink,
   RefreshCw,
+  Settings,
 } from "lucide-react";
 import {
   useFollowUpSchedules,
