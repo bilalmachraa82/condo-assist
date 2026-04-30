@@ -128,7 +128,16 @@ export default function FollowUpDashboard() {
             Monitore e gerencie todos os lembretes automáticos
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            onClick={() => triggerManualReminders.mutate()}
+            disabled={triggerManualReminders.isPending}
+            variant="secondary"
+            className="gap-2"
+          >
+            <Bell className="h-4 w-4" />
+            {triggerManualReminders.isPending ? "A enviar..." : "Disparar lembretes manuais"}
+          </Button>
           <Button 
             onClick={() => processFollowUps.mutate({ mode: 'due' })}
             disabled={processFollowUps.isPending}
