@@ -11,8 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Upload, FileText, X } from "lucide-react";
+import { Upload, FileText, X, Bell } from "lucide-react";
 import { useCreatePendency, useUploadPendencyFile, PENDENCY_STATUS_LABELS, PENDENCY_STATUS_ORDER } from "@/hooks/usePendencies";
+import { useCreatePendencyReminder } from "@/hooks/usePendencyReminders";
+import { Switch } from "@/components/ui/switch";
 
 interface Props {
   open: boolean;
@@ -31,6 +33,7 @@ interface Props {
 export default function CreatePendencyDialog({ open, onOpenChange, initialFile, defaults, onCreated }: Props) {
   const create = useCreatePendency();
   const upload = useUploadPendencyFile();
+  const createReminder = useCreatePendencyReminder();
 
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -41,6 +44,9 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
   const [supplierId, setSupplierId] = useState<string>("");
   const [priority, setPriority] = useState<"normal" | "urgent" | "critical">("normal");
   const [emailSentAt, setEmailSentAt] = useState<string>("");
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderWhen, setReminderWhen] = useState<string>("");
+  const [reminderNote, setReminderNote] = useState<string>("");
 
   useEffect(() => {
     if (!open) return;
@@ -53,6 +59,10 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     setSupplierId(defaults?.supplier_id ?? "");
     setPriority("normal");
     setEmailSentAt("");
+    setReminderEnabled(false);
+    const dt = new Date(Date.now() + 3 * 86400000); dt.setHours(9, 0, 0, 0);
+    setReminderWhen(dt.toISOString().slice(0, 16));
+    setReminderNote("");
   }, [open, initialFile, defaults]);
 
   const { data: buildings } = useQuery({
