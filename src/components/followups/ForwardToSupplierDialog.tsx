@@ -8,11 +8,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Send, Forward } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import type { FollowUpWithDetails } from "@/hooks/useFollowUpSchedules";
+import CreatePendencyDialog from "@/components/pendencies/CreatePendencyDialog";
 
 interface Props {
   open: boolean;
@@ -25,6 +27,9 @@ export default function ForwardToSupplierDialog({ open, onOpenChange, followUp }
   const queryClient = useQueryClient();
   const [supplierId, setSupplierId] = useState<string>("");
   const [extraNote, setExtraNote] = useState<string>("");
+  const [createPendency, setCreatePendency] = useState<boolean>(false);
+  const [pendencyOpen, setPendencyOpen] = useState<boolean>(false);
+  const [lastSubject, setLastSubject] = useState<string>("");
 
   const { data: suppliers } = useQuery({
     queryKey: ["suppliers-active-list"],
