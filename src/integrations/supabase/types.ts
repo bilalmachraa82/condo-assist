@@ -1503,6 +1503,62 @@ export type Database = {
         }
         Relationships: []
       }
+      pendency_reminders: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          created_by: string | null
+          id: string
+          max_attempts: number
+          metadata: Json | null
+          note: string | null
+          pendency_id: string
+          reminder_type: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          max_attempts?: number
+          metadata?: Json | null
+          note?: string | null
+          pendency_id: string
+          reminder_type?: string
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          max_attempts?: number
+          metadata?: Json | null
+          note?: string | null
+          pendency_id?: string
+          reminder_type?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pendency_reminders_pendency_id_fkey"
+            columns: ["pendency_id"]
+            isOneToOne: false
+            referencedRelation: "email_pendencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
