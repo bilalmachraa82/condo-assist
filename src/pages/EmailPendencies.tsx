@@ -13,9 +13,11 @@ import { PriorityBadge } from "@/components/ui/status-badges";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, MailQuestion, Building2, Wrench, User, Clock, FileText } from "lucide-react";
+import { Plus, Search, MailQuestion, Building2, Wrench, User, Clock, FileText, LayoutList, Columns3 } from "lucide-react";
 import CreatePendencyDialog from "@/components/pendencies/CreatePendencyDialog";
 import PendencyDetail from "@/components/pendencies/PendencyDetail";
+import PendencyKanban from "@/components/pendencies/PendencyKanban";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const slaColor = (s: "ok" | "warn" | "danger") =>
   s === "danger" ? "bg-destructive/15 text-destructive border-destructive/30"
@@ -41,6 +43,10 @@ export default function EmailPendencies() {
   const [createOpen, setCreateOpen] = useState(false);
   const [initialFile, setInitialFile] = useState<File | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "kanban">(() =>
+    (localStorage.getItem("pendencies-view") as "list" | "kanban") || "list"
+  );
+  useEffect(() => { localStorage.setItem("pendencies-view", view); }, [view]);
 
   // Global drag-to-create
   const [isDragging, setIsDragging] = useState(false);
@@ -107,9 +113,15 @@ export default function EmailPendencies() {
           </h1>
           <p className="text-sm text-muted-foreground">Casos pendentes do condomínio com email anexado.</p>
         </div>
-        <Button onClick={() => { setInitialFile(null); setCreateOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" /> Nova pendência
-        </Button>
+        <div className="flex items-center gap-2">
+          <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as any)} size="sm">
+            <ToggleGroupItem value="list" aria-label="Lista"><LayoutList className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="kanban" aria-label="Kanban"><Columns3 className="h-4 w-4" /></ToggleGroupItem>
+          </ToggleGroup>
+          <Button onClick={() => { setInitialFile(null); setCreateOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> Nova pendência
+          </Button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -126,20 +138,27 @@ export default function EmailPendencies() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input className="pl-9" placeholder="Procurar título, edifício, fornecedor…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os estados</SelectItem>
-            {PENDENCY_STATUS_ORDER.map((s) => (
-              <SelectItem key={s} value={s}>{PENDENCY_STATUS_LABELS[s]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {view === "list" && (
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os estados</SelectItem>
+              {PENDENCY_STATUS_ORDER.map((s) => (
+                <SelectItem key={s} value={s}>{PENDENCY_STATUS_LABELS[s]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
+      {isLoading && <p className="text-sm text-muted-foreground">A carregar…</p>}
+
+      {!isLoading && view === "kanban" && (
+        <PendencyKanban pendencies={filtered} onSelect={setSelectedId} />
+      )}
+
       {/* List */}
-      <div className="space-y-2">
-        {isLoading && <p className="text-sm text-muted-foreground">A carregar…</p>}
+      {view === "list" && <div className="space-y-2">
         {!isLoading && filtered.length === 0 && (
           <Card><CardContent className="py-10 text-center text-muted-foreground">
             <MailQuestion className="h-8 w-8 mx-auto mb-2 opacity-60" />
@@ -179,7 +198,7 @@ export default function EmailPendencies() {
             </Card>
           );
         })}
-      </div>
+      </div>}
 
       <CreatePendencyDialog
         open={createOpen}
