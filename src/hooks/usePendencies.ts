@@ -190,12 +190,29 @@ export function useDeletePendency() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Apagar dependências primeiro (não há ON DELETE CASCADE garantido)
+      // Anexos: remover ficheiros do storage + linhas
+      const { data: atts } = await supabase
+        .from("email_pendency_attachments")
+        .select("id, file_path")
+        .eq("pendency_id", id);
+      if (atts && atts.length > 0) {
+        const paths = atts.map((a: any) => a.file_path).filter(Boolean);
+        if (paths.length > 0) {
+          await supabase.storage.from("email-pendencies").remove(paths);
+        }
+        await supabase.from("email_pendency_attachments").delete().eq("pendency_id", id);
+      }
+      await supabase.from("email_pendency_notes").delete().eq("pendency_id", id);
+      await supabase.from("pendency_reminders").delete().eq("pendency_id", id);
+
       const { error } = await supabase.from("email_pendencies").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-pendencies"] });
-      toast({ title: "Pendência removida" });
+      qc.invalidateQueries({ queryKey: ["pendency-reminders-stats"] });
+      toast({ title: "Pendência removida", description: "Pendência e dados associados apagados." });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });

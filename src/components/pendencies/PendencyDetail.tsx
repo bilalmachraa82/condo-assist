@@ -5,7 +5,7 @@ import { pt } from "date-fns/locale";
 import {
   usePendency, usePendencyNotes, usePendencyAttachments,
   useUpdatePendency, useAddPendencyNote, useUploadPendencyFile,
-  useDeletePendencyAttachment, getPendencyFileSignedUrl,
+  useDeletePendencyAttachment, useDeletePendency, getPendencyFileSignedUrl,
   PENDENCY_STATUS_LABELS, PENDENCY_STATUS_ORDER, pendencySLA,
   type PendencyStatus,
 } from "@/hooks/usePendencies";
@@ -53,6 +53,7 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   const addNote = useAddPendencyNote();
   const upload = useUploadPendencyFile();
   const del = useDeletePendencyAttachment();
+  const deletePendency = useDeletePendency();
   const qc = useQueryClient();
   const [noteText, setNoteText] = useState("");
   const { data: reminders } = usePendencyReminders(pendencyId);
@@ -99,6 +100,34 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
                 )}
               </SheetDescription>
             </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5">
+                  <Trash2 className="h-4 w-4" /> Apagar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Apagar pendência?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação é permanente. Vai remover a pendência <strong>{p.title}</strong>,
+                    todos os anexos, notas e lembretes associados. Não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      await deletePendency.mutateAsync(p.id);
+                      onOpenChange(false);
+                    }}
+                  >
+                    Apagar definitivamente
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
           <div className="flex items-center gap-2 flex-wrap pt-2">
             <PriorityBadge priority={p.priority} />
