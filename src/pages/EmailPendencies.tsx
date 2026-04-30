@@ -48,6 +48,13 @@ export default function EmailPendencies() {
   );
   useEffect(() => { localStorage.setItem("pendencies-view", view); }, [view]);
 
+  // Open pendency directly from URL ?pendency=<id> (deep link from Follow-ups)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get("pendency");
+    if (pid) setSelectedId(pid);
+  }, []);
+
   // Global drag-to-create
   const [isDragging, setIsDragging] = useState(false);
   useEffect(() => {

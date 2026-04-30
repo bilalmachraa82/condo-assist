@@ -36,7 +36,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ForwardToSupplierDialog from "./ForwardToSupplierDialog";
-import { Forward } from "lucide-react";
+import PendencyRemindersTab from "./PendencyRemindersTab";
+import { Forward, Mail } from "lucide-react";
+import { usePendencyRemindersStats } from "@/hooks/usePendencyReminders";
 
 const followUpTypeLabels: Record<string, string> = {
   quotation_reminder: "Lembrete de Orçamento",
@@ -87,6 +89,7 @@ export default function FollowUpDashboard() {
   } | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useFollowUpStats();
+  const { data: pendencyStats } = usePendencyRemindersStats();
   const { data: followUps, isLoading: followUpsLoading } = useFollowUpSchedules({
     status: selectedStatus || undefined,
     follow_up_type: selectedType || undefined,
@@ -96,6 +99,7 @@ export default function FollowUpDashboard() {
   const cancelFollowUp = useCancelFollowUp();
   const rescheduleFollowUp = useRescheduleFollowUp();
   const triggerManualReminders = useTriggerManualReminders();
+  const [activeOrigin, setActiveOrigin] = useState<string>("assistances");
 
   const handleReschedule = async () => {
     if (rescheduleData) {
@@ -120,8 +124,27 @@ export default function FollowUpDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header com botões de processar */}
-      <div className="flex items-center justify-between">
+      <Tabs value={activeOrigin} onValueChange={setActiveOrigin} className="space-y-6">
+        <TabsList className="grid w-full max-w-xl grid-cols-2">
+          <TabsTrigger value="assistances" className="gap-2">
+            <Bell className="h-4 w-4" />
+            Assistências
+            {(stats?.pending ?? 0) > 0 && (
+              <Badge variant="secondary" className="ml-1">{stats?.pending}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="pendencies" className="gap-2">
+            <Mail className="h-4 w-4" />
+            Pendências email
+            {(pendencyStats?.pending ?? 0) > 0 && (
+              <Badge variant="secondary" className="ml-1">{pendencyStats?.pending}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="assistances" className="space-y-6">
+          {/* Header com botões de processar */}
+          <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Dashboard de Follow-ups</h2>
           <p className="text-muted-foreground">
@@ -386,6 +409,12 @@ export default function FollowUpDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        <TabsContent value="pendencies" className="space-y-6">
+          <PendencyRemindersTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
