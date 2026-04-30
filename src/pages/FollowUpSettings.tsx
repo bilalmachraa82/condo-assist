@@ -239,8 +239,9 @@ export default function FollowUpSettings() {
           <Info className="h-4 w-4" />
           <AlertDescription>
             Os novos valores aplicam-se aos próximos lembretes criados. Lembretes
-            já agendados mantêm a sua data original — para alterar individualmente,
-            usa o botão "Reagendar" no dashboard de Follow-ups.
+            já agendados mantêm a sua data original. Escolhe o tipo de fluxo abaixo:
+            <strong> Assistências</strong> (orçamentos, agendamento, conclusão) ou
+            <strong> Pendências Email</strong> (cadência SLA).
           </AlertDescription>
         </Alert>
 
