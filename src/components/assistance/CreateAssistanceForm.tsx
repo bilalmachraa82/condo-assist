@@ -654,7 +654,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fornecedor (opcional)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Atribuir fornecedor" />
@@ -671,6 +671,17 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                         ))}
                       </SelectContent>
                     </Select>
+                    {isElevatorIntervention && buildingElevatorSupplier && field.value === buildingElevatorSupplier.id && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Pré-selecionado a partir do contrato do edifício: <strong>{buildingElevatorSupplier.name}</strong>
+                        {buildingElevatorSupplier.email && <> ({buildingElevatorSupplier.email})</>}. Podes alterar.
+                      </p>
+                    )}
+                    {isElevatorIntervention && !buildingElevatorSupplierId && selectedBuilding && (
+                      <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+                        ⚠ Este edifício não tem fornecedor de elevador configurado. Sem fornecedor, será enviado PDF para administração (geral@luvimg.com).
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
