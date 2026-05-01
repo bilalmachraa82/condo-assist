@@ -125,14 +125,6 @@ const App = () => (
                 } 
               />
               <Route 
-                path="/relatorios" 
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout><Analytics /></DashboardLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
                 path="/tipos-assistencia" 
                 element={
                   <ProtectedRoute>
