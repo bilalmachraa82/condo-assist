@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Wrench, Euro, Building2, Users, FileText, BarChart3, Menu } from 'lucide-react';
+import { Home, Wrench, Bell, MailQuestion, Building2, Users, BarChart3, Menu } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -11,15 +11,16 @@ import { cn } from '@/lib/utils';
 const bottomNavItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Assistências", url: "/assistencias", icon: Wrench },
-  { title: "Orçamentos", url: "/orcamentos", icon: Euro },
+  { title: "Follow-ups", url: "/follow-ups", icon: Bell },
+  { title: "Pendências", url: "/pendencias-email", icon: MailQuestion },
   { title: "Mais", url: "/more", icon: Menu }
 ];
 
 const moreItems = [
+  { title: "Orçamentos", url: "/orcamentos", icon: Wrench },
   { title: "Edifícios", url: "/edificios", icon: Building2 },
   { title: "Fornecedores", url: "/fornecedores", icon: Users },
-  { title: "Relatórios", url: "/relatorios", icon: FileText },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Análise e Relatórios", url: "/analytics", icon: BarChart3 },
 ];
 
 export function BottomNavigation() {
