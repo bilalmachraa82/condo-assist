@@ -13,8 +13,7 @@ export function useNavigationGestures() {
     { path: '/orcamentos', title: 'Orçamentos' },
     { path: '/edificios', title: 'Edifícios' },
     { path: '/fornecedores', title: 'Fornecedores' },
-    { path: '/relatorios', title: 'Relatórios' },
-    { path: '/analytics', title: 'Analytics' },
+    { path: '/analytics', title: 'Análise e Relatórios' },
   ];
 
   const currentIndex = navigationHistory.findIndex(item => item.path === location.pathname);

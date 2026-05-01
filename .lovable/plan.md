@@ -1,101 +1,120 @@
-## Auditoria do menu Follow-up
+## Auditoria dos Menus Laterais
 
-Após rever `FollowUpDashboard.tsx`, `PendencyRemindersTab.tsx`, `FollowUps.tsx` e os hooks associados, identifiquei pontos de fricção concretos. Abaixo está o que está a confundir o admin, o que vou remover e o que vou melhorar.
+Estado atual da `AppSidebar` — 3 grupos, 17 itens visíveis.
 
-### Problemas detectados (estado atual)
+### Inventário e diagnóstico
 
-**Header e ações duplicadas**
-- 3 botões no topo (`Disparar lembretes manuais`, `Processar Devidos`, `Processar Todos Agora`) sem hierarquia clara — o admin não sabe qual carregar.
-- "Processar Todos Agora" é perigoso (envia tudo, ignorando agendamento) e está como botão secundário sem confirmação.
-- Aba `Pendências email` tem um botão `Processar agora` separado, com lógica idêntica mas UI diferente.
+**Grupo "Principal" (12 itens)**
 
-**Cards de estatísticas pouco accionáveis**
-- 4 cards estáticos (Total, Pendentes, Enviados, Falhados) sem possibilidade de clicar para filtrar.
-- "Devidos agora" só existe na aba pendências — falta em assistências, embora o dado já exista (`stats.due_now`).
+| Item | Rota | Estado | Recomendação |
+|---|---|---|---|
+| Dashboard | `/` | Funcional, KPIs e atalhos | Manter |
+| Assistências | `/assistencias` | Core, 713 linhas | Manter |
+| Orçamentos | `/orcamentos` | Funcional | Manter |
+| Follow-ups | `/follow-ups` | Funcional, com badge | Manter |
+| Pendências Email | `/pendencias-email` | Funcional, recém-melhorado | Manter |
+| Edifícios | `/edificios` | Core | Manter |
+| Fornecedores | `/fornecedores` | Core | Manter |
+| Análise e Relatórios | `/analytics` | Funcional, 378 linhas | Manter |
+| Base de Conhecimento | `/knowledge` | Funcional | Manter |
+| Seguimento Actas | `/assembly` | Funcional | Manter |
+| Inspeções | `/inspecoes` | Funcional | Manter |
+| Seguros | `/seguros` | Funcional | Manter |
 
-**Filtros e listas**
-- Filtro de Tipo está dentro de um `<Card>` separado dos status tabs — duas zonas de filtragem desligadas.
-- Não há barra de pesquisa por nº de assistência / fornecedor / edifício.
-- Não há ordenação (mais antigos primeiro vs. mais urgentes).
-- Sem paginação ou "carregar mais" — listas longas tornam-se ilegíveis.
+**Grupo "Configuração" (4 itens)**
 
-**Cards de follow-up**
-- Tentativa "1 de 3" aparece sempre, mesmo em itens enviados/cancelados (ruído).
-- Em itens `sent`/`cancelled`/`failed` os botões Reagendar/Cancelar somem mas não aparece nenhuma alternativa (ex.: "Ver email enviado", "Reenviar").
-- "Em atraso" e "Pendente" mostram-se em paralelo — visualmente redundante.
-- Em assistências, falta link "Abrir assistência" (na aba pendências já existe "Abrir pendência").
+| Item | Rota | Estado | Recomendação |
+|---|---|---|---|
+| Configurações | `/configuracoes` | Empresa/Sistema/Notificações/Integração | Manter |
+| Tempos Follow-up | `/follow-ups/configuracao` | Recém-criado, funcional | Manter |
+| Tipos Assistência | `/tipos-assistencia` | Funcional | Manter |
+| Comunicações | `/comunicacoes` | Logs de email | Manter, mas mover para "Principal" (é operacional, não config) |
 
-**Cards "Por Tipo" / "Por Prioridade"**
-- Apenas mostram contagem — não são filtros. Ocupam espaço sem ação.
+**Grupo "Desenvolvimento" (1 item visível)**
 
-**Inconsistências entre as duas abas**
-- Aba "Assistências" tem cards de "Por Tipo / Por Prioridade", a aba "Pendências" não.
-- Ações primárias usam estilos diferentes (variant `secondary` vs `default`).
-- "Encaminhar a fornecedor" só aparece em manuais — bom, mas sem tooltip a explicar.
+| Item | Rota | Estado | Recomendação |
+|---|---|---|---|
+| Teste Follow-ups | `/follow-up-testing` | Ferramenta dev | Ocultar para utilizadores normais |
 
-**Empty states fracos**
-- "Nenhum follow-up encontrado" sem CTA. Não orienta o admin.
+**Páginas existentes mas SEM entrada no menu (rotas órfãs)**
 
----
+| Rota | Página | Diagnóstico |
+|---|---|---|
+| `/seguranca` | Security (auditoria, alertas, settings) | Útil só para admin — adicionar visível só a admins |
+| `/relatorios` | Aponta para `Analytics` (duplicado de `/analytics`) | Remover rota duplicada |
+| `/email-testing` | EmailSystemTester (dev tool) | Adicionar ao grupo Dev (oculto a não-admin) ou remover |
 
-### Plano de melhorias
+### Problemas detetados no user journey
 
-**1. Header unificado (em ambas as abas)**
-- Título único: "Follow-ups e Lembretes" + subtítulo curto que muda por aba.
-- Ação primária única: **`Processar agora`** (= modo `due`, o seguro) — mesmo botão nas duas abas.
-- Mover `Processar Todos Agora` e `Disparar lembretes manuais` para um menu `…` (DropdownMenu) com:
-  - "Forçar envio de todos (ignora agendamento)" + `AlertDialog` de confirmação a explicar consequências.
-  - "Disparar varredura de lembretes manuais".
+1. **"Comunicações" está em Configuração** mas é uma ferramenta operacional (consulta de logs de email). Pertence ao bloco Principal.
+2. **Grupo "Desenvolvimento" sempre visível** mesmo para utilizadores finais — confunde e polui.
+3. **`/relatorios` duplica `/analytics`** — duas rotas para a mesma página.
+4. **`/seguranca` e `/email-testing` existem no `App.tsx` mas não estão no menu** — funcionalidade escondida.
+5. **12 itens no grupo Principal** — lista longa; vale a pena criar um subgrupo "Operações" (Assistências, Orçamentos, Follow-ups, Pendências Email, Comunicações) e "Catálogo" (Edifícios, Fornecedores, Base Conhecimento, Inspeções, Seguros, Actas).
 
-**2. Stat cards interactivos**
-- Adicionar card "Devidos agora" também na aba assistências (dado já existe).
-- Cards passam a ser **clicáveis** → aplicam o filtro de status correspondente (Pendentes → tab `pending`, Falhados → tab `failed`, etc.).
-- Card activo ganha `ring-2 ring-primary` para feedback visual.
-- "Em atraso" passa a contador destacado dentro do card "Pendentes" (badge vermelho), não card próprio.
+### Plano de alterações
 
-**3. Remover cards "Por Tipo" / "Por Prioridade"**
-- Substituir por **chips de filtro rápido** acima da lista (ex.: `Todos | Orçamento (3) | Confirmação (1) | Trabalho (5)`), que funcionam como filtros + mostram a contagem. Resolve dois problemas (espaço + acionabilidade).
+**1. Reorganizar `src/components/layout/AppSidebar.tsx`**
 
-**4. Barra de filtros consolidada**
-- Linha única acima da lista: `[🔎 Pesquisar nº/edifício/fornecedor]  [Tipo ▾]  [Ordenar ▾: Mais urgentes / Mais antigos / Recentes]`.
-- Status tabs ficam logo abaixo (mantém o padrão atual).
-- Pesquisa local (client-side) sobre o array já carregado — sem alterar hooks.
+Nova estrutura de grupos:
 
-**5. Cards de follow-up melhorados**
-- Esconder "Tentativa X de Y" em itens `sent`/`cancelled` (só relevante para `pending`/`failed`).
-- Substituir badge dupla "Pendente + Em atraso" por **"Em atraso"** sozinha quando aplicável (vermelha) — mais legível.
-- Adicionar botão **"Abrir assistência"** (link para `/assistencias/:id`) em todos os cards da aba assistências, espelhando "Abrir pendência".
-- Em itens `failed`: botão **"Tentar novamente"** (reusa `processFollowUps` com filtro por id; se hook não suporta, usar `rescheduleFollowUp` para `now()`).
-- Tooltips nos botões de ícone (Reagendar, Cancelar, Encaminhar) com `<TooltipProvider>` já existente no projeto.
+```text
+Principal
+  - Dashboard
+  - Análise e Relatórios
 
-**6. Empty state com CTA**
-- Quando não há resultados:
-  - Se filtros ativos → "Sem resultados para estes filtros" + botão **"Limpar filtros"**.
-  - Se realmente vazio → "Tudo em dia ✅. Não há follow-ups pendentes." + link "Criar pendência email" / "Ver assistências".
+Operações
+  - Assistências
+  - Orçamentos
+  - Follow-ups            (badge)
+  - Pendências Email
+  - Comunicações          (movido de Configuração)
 
-**7. Feedback visual durante ações**
-- Botão `Processar agora`: ao terminar, mostrar `toast` com resumo ("3 enviados, 1 falhado") em vez do toast genérico atual.
-- Card alvo de uma ação (cancelar, reagendar) recebe transição visual breve (fade) para confirmar.
-- Loading skeletons em vez do spinner único — substitui o "A carregar follow-ups..." por 3 `Skeleton` com formato de card.
+Catálogo
+  - Edifícios
+  - Fornecedores
+  - Seguimento Actas
+  - Inspeções
+  - Seguros
+  - Base de Conhecimento
 
-**8. Navegação entre abas com contadores no badge da sidebar**
-- A sidebar (`AppSidebar.tsx`) recebe um badge total `(stats.due_now + pendencyStats.due_now)` no item "Follow-up" — admin vê de imediato se há trabalho sem entrar.
+Configuração
+  - Configurações
+  - Tempos Follow-up
+  - Tipos Assistência
+  - Segurança             (NOVO, só admin)
 
----
+Desenvolvimento           (só admin / dev)
+  - Teste Follow-ups
+  - Teste Email           (NOVO, expõe /email-testing)
+```
 
-### Ficheiros a alterar
+**2. Visibilidade por role**
 
-- `src/components/followups/FollowUpDashboard.tsx` — header, stat cards interactivos, chips de tipo, barra de filtros, empty state, card melhorado.
-- `src/components/followups/PendencyRemindersTab.tsx` — espelhar mesma estrutura para consistência total entre abas.
-- `src/components/layout/AppSidebar.tsx` — badge com contador "devidos agora" no item Follow-up.
-- (Opcional) extrair um `<FollowUpStatsCards>` partilhado pelas duas abas para garantir consistência futura.
+- Verificar role com `has_role(user.id, 'admin')` via hook existente (já há `useAuth` + `user_roles`).
+- Esconder os grupos "Configuração > Segurança" e "Desenvolvimento" inteiro para utilizadores não-admin.
+- Adicionar item de menu "Segurança" → `/seguranca` apenas para admins.
+- Adicionar item de menu "Teste Email" → `/email-testing` apenas para admins.
 
-### Fora do âmbito (não tocar agora)
+**3. Limpeza de rotas em `src/App.tsx`**
 
-- Hooks (`useFollowUpSchedules`, `usePendencyReminders`) e edge functions — mantêm-se. Toda a melhoria é UI/UX sobre dados que já existem.
-- Lógica de envio, cron, RLS — sem alterações.
-- Esquema da BD — sem alterações.
+- Remover a rota duplicada `/relatorios` (mantém só `/analytics`).
+- Atualizar `src/hooks/useNavigationGestures.ts` e `src/components/mobile/MobileBreadcrumbs.tsx` e `src/components/mobile/BottomNavigation.tsx` para apontar para `/analytics`.
+
+**4. BottomNavigation mobile**
+
+Verificar e alinhar `src/components/mobile/BottomNavigation.tsx` com a nova estrutura (manter apenas 4-5 atalhos essenciais: Dashboard, Assistências, Follow-ups, Pendências, Mais).
+
+### Detalhes técnicos
+
+- Usar hook `useAuth` + adicionar pequena helper `useIsAdmin()` que consulta a tabela `user_roles` (já existe `has_role` SQL function).
+- Render condicional por grupo: filtrar arrays `configItems`/`devItems` antes do `.map`.
+- Não eliminar nenhuma página — apenas ocultar do menu. Mantém-se acessível por URL direto se necessário.
+- Sem alterações de schema/DB.
 
 ### Resultado esperado
 
-O admin abre `/follow-ups`, vê de imediato quantos itens precisam de atenção (cards + badge na sidebar), tem **um** botão claro para processar, pode pesquisar/filtrar/ordenar numa barra única, e cada card mostra apenas a informação e ações relevantes ao seu estado.
+- Sidebar mais limpa para utilizador comum (ocultas as ferramentas dev e Segurança).
+- Páginas agrupadas por intenção (operação vs catálogo vs config).
+- Sem rotas duplicadas.
+- Funcionalidades antes escondidas (`/seguranca`, `/email-testing`) ficam acessíveis a admins via menu.
