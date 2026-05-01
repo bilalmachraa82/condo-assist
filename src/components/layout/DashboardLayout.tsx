@@ -4,6 +4,7 @@ import UserMenu from "@/components/auth/UserMenu"
 import RealtimeNotificationCenter from "./RealtimeNotificationCenter"
 import { InstallPrompt } from "@/components/mobile/InstallPrompt"
 import { BottomNavigation } from "@/components/mobile/BottomNavigation"
+import { QuickShortcutsFab } from "@/components/mobile/QuickShortcutsFab"
 import { OfflineIndicator } from "@/components/mobile/OfflineIndicator"
 import { MobileBreadcrumbs } from "@/components/mobile/MobileBreadcrumbs"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -47,6 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         
         <InstallPrompt />
         <OfflineIndicator />
+        <QuickShortcutsFab />
         <BottomNavigation />
       </div>
     </SidebarProvider>
