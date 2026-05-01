@@ -17,9 +17,18 @@ const pageTitles: Record<string, string> = {
   '/fornecedores': 'Fornecedores',
   '/analytics': 'Análise e Relatórios',
   '/configuracoes': 'Configurações',
-  '/notificacoes': 'Notificações',
   '/comunicacoes': 'Comunicações',
-  '/tipos-assistencia': 'Tipos de Assistência'
+  '/tipos-assistencia': 'Tipos de Assistência',
+  '/follow-ups': 'Follow-ups',
+  '/follow-ups/configuracao': 'Tempos Follow-up',
+  '/pendencias-email': 'Pendências Email',
+  '/follow-up-testing': 'Teste Follow-ups',
+  '/email-testing': 'Teste Email',
+  '/knowledge': 'Base de Conhecimento',
+  '/assembly': 'Seguimento Actas',
+  '/inspecoes': 'Inspeções',
+  '/seguros': 'Seguros',
+  '/seguranca': 'Segurança',
 };
 
 export function MobileBreadcrumbs() {
