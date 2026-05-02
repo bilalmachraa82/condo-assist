@@ -21,6 +21,19 @@ export function QuickShortcutsFab() {
   const { getBadgeForRoute } = useNotificationBadge();
   const [open, setOpen] = useState(false);
 
+  // Fechar ao fazer scroll
+  useEffect(() => {
+    if (!open) return;
+    const onScroll = () => setOpen(false);
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    return () => window.removeEventListener("scroll", onScroll, true);
+  }, [open]);
+
+  // Fechar ao mudar de rota
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname, location.search]);
+
   if (!isMobile) return null;
 
   const go = (url: string) => {
