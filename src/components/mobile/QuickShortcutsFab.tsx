@@ -55,7 +55,8 @@ export function QuickShortcutsFab() {
         {open &&
           shortcuts.map((s, i) => {
             const badge = getBadgeForRoute(s.url);
-            const active = location.pathname === s.url;
+            const [path, query] = s.url.split("?");
+            const active = location.pathname === path && (location.search.replace(/^\?/, "") === (query || "") || (!query && !location.search));
             return (
               <div
                 key={s.url}
