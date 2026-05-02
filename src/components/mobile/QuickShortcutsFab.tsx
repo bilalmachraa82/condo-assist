@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Wrench, Bell, MailQuestion, Zap, X } from "lucide-react";
+import { Wrench, Bell, MailQuestion, Zap, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 const shortcuts = [
   { title: "Assistências", url: "/assistencias", icon: Wrench },
+  { title: "Assistências — Pendentes", url: "/assistencias?status=pending", icon: Clock },
   { title: "Follow-ups", url: "/follow-ups", icon: Bell },
   { title: "Pendências Email", url: "/pendencias-email", icon: MailQuestion },
 ];
@@ -19,6 +20,19 @@ export function QuickShortcutsFab() {
   const location = useLocation();
   const { getBadgeForRoute } = useNotificationBadge();
   const [open, setOpen] = useState(false);
+
+  // Fechar ao fazer scroll
+  useEffect(() => {
+    if (!open) return;
+    const onScroll = () => setOpen(false);
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    return () => window.removeEventListener("scroll", onScroll, true);
+  }, [open]);
+
+  // Fechar ao mudar de rota
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname, location.search]);
 
   if (!isMobile) return null;
 
@@ -41,7 +55,8 @@ export function QuickShortcutsFab() {
         {open &&
           shortcuts.map((s, i) => {
             const badge = getBadgeForRoute(s.url);
-            const active = location.pathname === s.url;
+            const [path, query] = s.url.split("?");
+            const active = location.pathname === path && (location.search.replace(/^\?/, "") === (query || "") || (!query && !location.search));
             return (
               <div
                 key={s.url}

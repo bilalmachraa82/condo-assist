@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
+import { useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -197,7 +198,15 @@ export default function Assistencias() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showElevatorForm, setShowElevatorForm] = useState(false)
   const [elevatorOnly, setElevatorOnly] = useState(false)
-  const [filters, setFilters] = useState<AssistanceFilters>({})
+  const [searchParams] = useSearchParams()
+  const [filters, setFilters] = useState<AssistanceFilters>(() => {
+    const status = searchParams.get('status')
+    return status ? { status } : {}
+  })
+  useEffect(() => {
+    const status = searchParams.get('status')
+    if (status) setFilters(f => ({ ...f, status }))
+  }, [searchParams])
   const { data: assistances, isLoading, refetch } = useAssistances();
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
   const isMobile = useIsMobile();
