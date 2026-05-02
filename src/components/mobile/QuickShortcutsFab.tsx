@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Wrench, Bell, MailQuestion, Zap, X } from "lucide-react";
+import { Wrench, Bell, MailQuestion, Zap, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 const shortcuts = [
   { title: "Assistências", url: "/assistencias", icon: Wrench },
+  { title: "Assistências — Pendentes", url: "/assistencias?status=pending", icon: Clock },
   { title: "Follow-ups", url: "/follow-ups", icon: Bell },
   { title: "Pendências Email", url: "/pendencias-email", icon: MailQuestion },
 ];
