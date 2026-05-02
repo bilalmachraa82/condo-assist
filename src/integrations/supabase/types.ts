@@ -194,6 +194,369 @@ export type Database = {
         }
         Relationships: []
       }
+      assemblies: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          assembly_type: Database["public"]["Enums"]["assembly_type_enum"]
+          building_id: string
+          call_type:
+            | Database["public"]["Enums"]["assembly_call_type_enum"]
+            | null
+          chairperson_name: string | null
+          created_at: string
+          created_by: string
+          end_time: string | null
+          id: string
+          location: string | null
+          meeting_date: string
+          secretary_name: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["assembly_status_enum"]
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assembly_type: Database["public"]["Enums"]["assembly_type_enum"]
+          building_id: string
+          call_type?:
+            | Database["public"]["Enums"]["assembly_call_type_enum"]
+            | null
+          chairperson_name?: string | null
+          created_at?: string
+          created_by: string
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          meeting_date: string
+          secretary_name?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["assembly_status_enum"]
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assembly_type?: Database["public"]["Enums"]["assembly_type_enum"]
+          building_id?: string
+          call_type?:
+            | Database["public"]["Enums"]["assembly_call_type_enum"]
+            | null
+          chairperson_name?: string | null
+          created_at?: string
+          created_by?: string
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          meeting_date?: string
+          secretary_name?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["assembly_status_enum"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assemblies_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "assemblies_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurance_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "assemblies_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembly_action_items: {
+        Row: {
+          assembly_id: string
+          assigned_to: string | null
+          building_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string | null
+          resolution_id: string | null
+          source: string
+          status: string | null
+          title: string
+        }
+        Insert: {
+          assembly_id: string
+          assigned_to?: string | null
+          building_id: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          resolution_id?: string | null
+          source?: string
+          status?: string | null
+          title: string
+        }
+        Update: {
+          assembly_id?: string
+          assigned_to?: string | null
+          building_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          resolution_id?: string | null
+          source?: string
+          status?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_action_items_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "assemblies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembly_action_items_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "assembly_action_items_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurance_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "assembly_action_items_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembly_action_items_resolution_id_fkey"
+            columns: ["resolution_id"]
+            isOneToOne: false
+            referencedRelation: "assembly_resolutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembly_agenda_items: {
+        Row: {
+          assembly_id: string
+          created_at: string
+          description: string | null
+          id: string
+          item_number: number
+          source: string
+          title: string
+        }
+        Insert: {
+          assembly_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_number: number
+          source?: string
+          title: string
+        }
+        Update: {
+          assembly_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_number?: number
+          source?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_agenda_items_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "assemblies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembly_attendees: {
+        Row: {
+          assembly_id: string
+          attendance_type: Database["public"]["Enums"]["attendee_type_enum"]
+          created_at: string
+          fraction_label: string | null
+          id: string
+          notes: string | null
+          owner_name: string
+          permillage: number | null
+          representative_name: string | null
+          validated_manually: boolean
+        }
+        Insert: {
+          assembly_id: string
+          attendance_type: Database["public"]["Enums"]["attendee_type_enum"]
+          created_at?: string
+          fraction_label?: string | null
+          id?: string
+          notes?: string | null
+          owner_name: string
+          permillage?: number | null
+          representative_name?: string | null
+          validated_manually?: boolean
+        }
+        Update: {
+          assembly_id?: string
+          attendance_type?: Database["public"]["Enums"]["attendee_type_enum"]
+          created_at?: string
+          fraction_label?: string | null
+          id?: string
+          notes?: string | null
+          owner_name?: string
+          permillage?: number | null
+          representative_name?: string | null
+          validated_manually?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_attendees_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "assemblies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembly_audio_jobs: {
+        Row: {
+          assembly_id: string
+          audio_duration_seconds: number | null
+          audio_size_bytes: number | null
+          audio_storage_path: string
+          cost_cents_actual: number | null
+          cost_cents_estimated: number | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          id: string
+          mime_type: string | null
+          provider: string
+          provider_job_id: string | null
+          raw_provider_payload: Json | null
+          status: Database["public"]["Enums"]["audio_job_status_enum"]
+          updated_at: string
+          webhook_received_at: string | null
+        }
+        Insert: {
+          assembly_id: string
+          audio_duration_seconds?: number | null
+          audio_size_bytes?: number | null
+          audio_storage_path: string
+          cost_cents_actual?: number | null
+          cost_cents_estimated?: number | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          mime_type?: string | null
+          provider?: string
+          provider_job_id?: string | null
+          raw_provider_payload?: Json | null
+          status?: Database["public"]["Enums"]["audio_job_status_enum"]
+          updated_at?: string
+          webhook_received_at?: string | null
+        }
+        Update: {
+          assembly_id?: string
+          audio_duration_seconds?: number | null
+          audio_size_bytes?: number | null
+          audio_storage_path?: string
+          cost_cents_actual?: number | null
+          cost_cents_estimated?: number | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          mime_type?: string | null
+          provider?: string
+          provider_job_id?: string | null
+          raw_provider_payload?: Json | null
+          status?: Database["public"]["Enums"]["audio_job_status_enum"]
+          updated_at?: string
+          webhook_received_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_audio_jobs_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "assemblies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembly_dispatches: {
+        Row: {
+          assembly_id: string
+          created_at: string
+          dispatch_type: Database["public"]["Enums"]["dispatch_type_enum"]
+          id: string
+          metadata_json: Json | null
+          recipient_count: number | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string | null
+        }
+        Insert: {
+          assembly_id: string
+          created_at?: string
+          dispatch_type: Database["public"]["Enums"]["dispatch_type_enum"]
+          id?: string
+          metadata_json?: Json | null
+          recipient_count?: number | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          assembly_id?: string
+          created_at?: string
+          dispatch_type?: Database["public"]["Enums"]["dispatch_type_enum"]
+          id?: string
+          metadata_json?: Json | null
+          recipient_count?: number | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_dispatches_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "assemblies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assembly_items: {
         Row: {
           assigned_to: string | null
@@ -279,6 +642,241 @@ export type Database = {
             columns: ["knowledge_article_id"]
             isOneToOne: false
             referencedRelation: "knowledge_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembly_minutes_versions: {
+        Row: {
+          assembly_id: string
+          change_summary: string | null
+          created_at: string
+          created_by: string | null
+          html_content: string | null
+          id: string
+          markdown_content: string | null
+          missing_fields: Json | null
+          status: Database["public"]["Enums"]["minutes_version_status_enum"]
+          structured_json: Json | null
+          validation_warnings: Json | null
+          version_number: number
+        }
+        Insert: {
+          assembly_id: string
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          html_content?: string | null
+          id?: string
+          markdown_content?: string | null
+          missing_fields?: Json | null
+          status: Database["public"]["Enums"]["minutes_version_status_enum"]
+          structured_json?: Json | null
+          validation_warnings?: Json | null
+          version_number: number
+        }
+        Update: {
+          assembly_id?: string
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          html_content?: string | null
+          id?: string
+          markdown_content?: string | null
+          missing_fields?: Json | null
+          status?: Database["public"]["Enums"]["minutes_version_status_enum"]
+          structured_json?: Json | null
+          validation_warnings?: Json | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_minutes_versions_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "assemblies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembly_processing_queue: {
+        Row: {
+          assembly_id: string
+          attempt_count: number
+          created_at: string
+          id: string
+          job_type: Database["public"]["Enums"]["processing_job_type_enum"]
+          last_error: string | null
+          locked_at: string | null
+          max_attempts: number
+          next_retry_at: string | null
+          payload_json: Json | null
+          status: Database["public"]["Enums"]["processing_status_enum"]
+          updated_at: string
+        }
+        Insert: {
+          assembly_id: string
+          attempt_count?: number
+          created_at?: string
+          id?: string
+          job_type: Database["public"]["Enums"]["processing_job_type_enum"]
+          last_error?: string | null
+          locked_at?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
+          payload_json?: Json | null
+          status?: Database["public"]["Enums"]["processing_status_enum"]
+          updated_at?: string
+        }
+        Update: {
+          assembly_id?: string
+          attempt_count?: number
+          created_at?: string
+          id?: string
+          job_type?: Database["public"]["Enums"]["processing_job_type_enum"]
+          last_error?: string | null
+          locked_at?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
+          payload_json?: Json | null
+          status?: Database["public"]["Enums"]["processing_status_enum"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_processing_queue_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "assemblies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembly_resolutions: {
+        Row: {
+          agenda_item_id: string | null
+          approved: boolean
+          assembly_id: string
+          created_at: string
+          due_date: string | null
+          financial_amount: number | null
+          id: string
+          raw_extraction_json: Json | null
+          requires_followup: boolean
+          resolution_text: string
+          resolution_title: string
+          vendor_name: string | null
+          vote_abstention_permillage: number | null
+          vote_against_permillage: number | null
+          vote_for_permillage: number | null
+        }
+        Insert: {
+          agenda_item_id?: string | null
+          approved?: boolean
+          assembly_id: string
+          created_at?: string
+          due_date?: string | null
+          financial_amount?: number | null
+          id?: string
+          raw_extraction_json?: Json | null
+          requires_followup?: boolean
+          resolution_text: string
+          resolution_title: string
+          vendor_name?: string | null
+          vote_abstention_permillage?: number | null
+          vote_against_permillage?: number | null
+          vote_for_permillage?: number | null
+        }
+        Update: {
+          agenda_item_id?: string | null
+          approved?: boolean
+          assembly_id?: string
+          created_at?: string
+          due_date?: string | null
+          financial_amount?: number | null
+          id?: string
+          raw_extraction_json?: Json | null
+          requires_followup?: boolean
+          resolution_text?: string
+          resolution_title?: string
+          vendor_name?: string | null
+          vote_abstention_permillage?: number | null
+          vote_against_permillage?: number | null
+          vote_for_permillage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_resolutions_agenda_item_id_fkey"
+            columns: ["agenda_item_id"]
+            isOneToOne: false
+            referencedRelation: "assembly_agenda_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembly_resolutions_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "assemblies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembly_transcript_segments: {
+        Row: {
+          assembly_id: string
+          audio_job_id: string
+          confidence: number | null
+          created_at: string
+          end_ms: number
+          id: string
+          raw_json: Json | null
+          speaker_label: string | null
+          speaker_name: string | null
+          speaker_role: string | null
+          start_ms: number
+          text: string
+        }
+        Insert: {
+          assembly_id: string
+          audio_job_id: string
+          confidence?: number | null
+          created_at?: string
+          end_ms: number
+          id?: string
+          raw_json?: Json | null
+          speaker_label?: string | null
+          speaker_name?: string | null
+          speaker_role?: string | null
+          start_ms: number
+          text: string
+        }
+        Update: {
+          assembly_id?: string
+          audio_job_id?: string
+          confidence?: number | null
+          created_at?: string
+          end_ms?: number
+          id?: string
+          raw_json?: Json | null
+          speaker_label?: string | null
+          speaker_name?: string | null
+          speaker_role?: string | null
+          start_ms?: number
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_transcript_segments_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "assemblies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembly_transcript_segments_audio_job_id_fkey"
+            columns: ["audio_job_id"]
+            isOneToOne: false
+            referencedRelation: "assembly_audio_jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -2420,6 +3018,15 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "supplier"
+      assembly_call_type_enum: "primeira_convocatoria" | "segunda_convocatoria"
+      assembly_status_enum:
+        | "draft"
+        | "processing_audio"
+        | "awaiting_review"
+        | "approved"
+        | "archived"
+        | "failed"
+      assembly_type_enum: "ordinaria" | "extraordinaria"
       assistance_priority: "normal" | "urgent" | "critical"
       assistance_status:
         | "pending"
@@ -2430,6 +3037,20 @@ export type Database = {
         | "cancelled"
         | "accepted"
         | "scheduled"
+      attendee_type_enum: "present" | "represented" | "absent"
+      audio_job_status_enum:
+        | "uploading"
+        | "queued"
+        | "processing"
+        | "transcribed"
+        | "draft_generating"
+        | "draft_ready"
+        | "failed"
+      dispatch_type_enum: "email" | "download" | "portal"
+      minutes_version_status_enum:
+        | "ai_draft"
+        | "reviewed_draft"
+        | "approved_final"
       pendency_status:
         | "aberto"
         | "aguarda_resposta"
@@ -2438,6 +3059,18 @@ export type Database = {
         | "escalado"
         | "resolvido"
         | "cancelado"
+      processing_job_type_enum:
+        | "transcription_start"
+        | "draft_generation"
+        | "draft_regeneration"
+        | "post_approval_sync"
+        | "dispatch"
+      processing_status_enum:
+        | "pending"
+        | "running"
+        | "retrying"
+        | "done"
+        | "failed"
       quotation_status:
         | "pending"
         | "submitted"
@@ -2588,6 +3221,19 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "supplier"],
+      assembly_call_type_enum: [
+        "primeira_convocatoria",
+        "segunda_convocatoria",
+      ],
+      assembly_status_enum: [
+        "draft",
+        "processing_audio",
+        "awaiting_review",
+        "approved",
+        "archived",
+        "failed",
+      ],
+      assembly_type_enum: ["ordinaria", "extraordinaria"],
       assistance_priority: ["normal", "urgent", "critical"],
       assistance_status: [
         "pending",
@@ -2599,6 +3245,22 @@ export const Constants = {
         "accepted",
         "scheduled",
       ],
+      attendee_type_enum: ["present", "represented", "absent"],
+      audio_job_status_enum: [
+        "uploading",
+        "queued",
+        "processing",
+        "transcribed",
+        "draft_generating",
+        "draft_ready",
+        "failed",
+      ],
+      dispatch_type_enum: ["email", "download", "portal"],
+      minutes_version_status_enum: [
+        "ai_draft",
+        "reviewed_draft",
+        "approved_final",
+      ],
       pendency_status: [
         "aberto",
         "aguarda_resposta",
@@ -2607,6 +3269,20 @@ export const Constants = {
         "escalado",
         "resolvido",
         "cancelado",
+      ],
+      processing_job_type_enum: [
+        "transcription_start",
+        "draft_generation",
+        "draft_regeneration",
+        "post_approval_sync",
+        "dispatch",
+      ],
+      processing_status_enum: [
+        "pending",
+        "running",
+        "retrying",
+        "done",
+        "failed",
       ],
       quotation_status: [
         "pending",
