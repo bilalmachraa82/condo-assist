@@ -68,32 +68,6 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   if (!p) return null;
   const sla = pendencySLA(p);
 
-  const onPreview = async (path: string, fileName?: string) => {
-    try {
-      const url = await getPendencyFileSignedUrl(path);
-      // Fetch as blob to bypass ad/privacy blockers (e.g. Comet, uBlock) that
-      // block direct supabase.co URLs with ERR_BLOCKED_BY_CLIENT.
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Falha a descarregar o ficheiro");
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const win = window.open(blobUrl, "_blank", "noopener");
-      if (!win) {
-        // Popup blocked — fallback to forced download
-        const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = fileName || "ficheiro";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
-    } catch (e: any) {
-      console.error("Erro a abrir anexo:", e);
-      toast({ title: "Não foi possível abrir o anexo", description: e?.message ?? "Tenta novamente.", variant: "destructive" });
-    }
-  };
-
   const onUpload = async (f: File | null) => {
     if (!f || !p) return;
     await upload.mutateAsync({ pendencyId: p.id, file: f, kind: "attachment" });
