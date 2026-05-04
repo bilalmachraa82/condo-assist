@@ -74,6 +74,7 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
