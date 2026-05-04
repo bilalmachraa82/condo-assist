@@ -31,6 +31,7 @@ import {
   FileText, Upload, Trash2, Eye, MessageSquare, Building2, Wrench, User, Calendar, Clock, Bell, BellOff, Plus,
 } from "lucide-react";
 import { usePendencyReminders, useCreatePendencyReminder, useCancelPendencyReminder } from "@/hooks/usePendencyReminders";
+import AttachmentPreviewDialog, { type PreviewAttachment } from "./AttachmentPreviewDialog";
 
 interface Props {
   pendencyId: string | null;
