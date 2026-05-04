@@ -31,6 +31,7 @@ import {
   FileText, Upload, Trash2, Eye, MessageSquare, Building2, Wrench, User, Calendar, Clock, Bell, BellOff, Plus,
 } from "lucide-react";
 import { usePendencyReminders, useCreatePendencyReminder, useCancelPendencyReminder } from "@/hooks/usePendencyReminders";
+import AttachmentPreviewDialog, { type PreviewAttachment } from "./AttachmentPreviewDialog";
 
 interface Props {
   pendencyId: string | null;
@@ -62,35 +63,10 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   const cancelReminder = useCancelPendencyReminder();
   const [reminderWhen, setReminderWhen] = useState("");
   const [reminderNote, setReminderNote] = useState("");
+  const [previewAttachment, setPreviewAttachment] = useState<PreviewAttachment | null>(null);
 
   if (!p) return null;
   const sla = pendencySLA(p);
-
-  const onPreview = async (path: string, fileName?: string) => {
-    try {
-      const url = await getPendencyFileSignedUrl(path);
-      // Fetch as blob to bypass ad/privacy blockers (e.g. Comet, uBlock) that
-      // block direct supabase.co URLs with ERR_BLOCKED_BY_CLIENT.
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Falha a descarregar o ficheiro");
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const win = window.open(blobUrl, "_blank", "noopener");
-      if (!win) {
-        // Popup blocked — fallback to forced download
-        const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = fileName || "ficheiro";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
-    } catch (e: any) {
-      console.error("Erro a abrir anexo:", e);
-      toast({ title: "Não foi possível abrir o anexo", description: e?.message ?? "Tenta novamente.", variant: "destructive" });
-    }
-  };
 
   const onUpload = async (f: File | null) => {
     if (!f || !p) return;
@@ -98,6 +74,7 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
@@ -261,7 +238,7 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => onPreview(a.file_path)}><Eye className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => setPreviewAttachment({ filePath: a.file_path, fileName: a.file_name, mimeType: a.mime_type })}><Eye className="h-4 w-4" /></Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -413,5 +390,10 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
         </Tabs>
       </SheetContent>
     </Sheet>
+    <AttachmentPreviewDialog
+      attachment={previewAttachment}
+      onOpenChange={(o) => { if (!o) setPreviewAttachment(null); }}
+    />
+    </>
   );
 }
