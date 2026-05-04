@@ -63,6 +63,7 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   const cancelReminder = useCancelPendencyReminder();
   const [reminderWhen, setReminderWhen] = useState("");
   const [reminderNote, setReminderNote] = useState("");
+  const [previewAttachment, setPreviewAttachment] = useState<PreviewAttachment | null>(null);
 
   if (!p) return null;
   const sla = pendencySLA(p);
