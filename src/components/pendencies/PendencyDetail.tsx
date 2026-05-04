@@ -389,5 +389,10 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
         </Tabs>
       </SheetContent>
     </Sheet>
+    <AttachmentPreviewDialog
+      attachment={previewAttachment}
+      onOpenChange={(o) => { if (!o) setPreviewAttachment(null); }}
+    />
+    </>
   );
 }
