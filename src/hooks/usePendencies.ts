@@ -2,6 +2,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+async function getFunctionErrorMessage(error: any): Promise<string> {
+  const fallback = error?.message || "Erro ao comunicar com o servidor";
+  const response = error?.context;
+
+  if (!response || typeof response.json !== "function") return fallback;
+
+  try {
+    const payload = await response.clone().json();
+    return payload?.details || payload?.error || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export type PendencyStatus =
   | "aberto"
   | "aguarda_resposta"
@@ -271,7 +285,7 @@ export function useUploadPendencyFile() {
           description,
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(await getFunctionErrorMessage(error));
       return data;
     },
     onSuccess: (_d, vars) => {
