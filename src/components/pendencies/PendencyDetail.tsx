@@ -237,7 +237,7 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => onPreview(a.file_path)}><Eye className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => setPreviewAttachment({ filePath: a.file_path, fileName: a.file_name, mimeType: a.mime_type })}><Eye className="h-4 w-4" /></Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
