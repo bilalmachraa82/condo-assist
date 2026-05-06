@@ -6,9 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useBuildings } from "@/hooks/useBuildings";
-import { CoverageType, InsuranceInput, InsuranceStatusRow, useUpsertInsurance } from "@/hooks/useInsurances";
+import { CoverageType, InsuranceInput, InsuranceStatusRow, useUpsertInsurance, useBuildingFractions, useInsuranceFractionStatus, useSaveInsuranceFractionStatus, useUpsertBuildingFraction, useDeleteBuildingFraction, type FractionStatusValue } from "@/hooks/useInsurances";
 import { addYears, format } from "date-fns";
-import { CalendarCheck2 } from "lucide-react";
+import { CalendarCheck2, Plus, Trash2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -65,6 +65,27 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
     }
   }, [open, mode, prefill, defaultBuildingId]);
 
+  const fractionsQ = useBuildingFractions(buildingId || undefined);
+  const insuranceId = mode === "edit" ? prefill?.insurance_id ?? null : null;
+  const fractionStatusQ = useInsuranceFractionStatus(insuranceId);
+  const saveFractionStatus = useSaveInsuranceFractionStatus();
+  const upsertFraction = useUpsertBuildingFraction();
+  const deleteFraction = useDeleteBuildingFraction();
+
+  // Local state of fraction inclusion: id -> 'included' | 'excluded' | undefined (untouched)
+  const [fractionState, setFractionState] = useState<Record<string, FractionStatusValue>>({});
+  const [newFractionLabel, setNewFractionLabel] = useState("");
+
+  useEffect(() => {
+    if (fractionStatusQ.data) {
+      const m: Record<string, FractionStatusValue> = {};
+      fractionStatusQ.data.forEach((s) => { m[s.fraction_id] = s.status; });
+      setFractionState(m);
+    } else {
+      setFractionState({});
+    }
+  }, [fractionStatusQ.data, insuranceId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!buildingId) return;
@@ -82,7 +103,14 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       renewal_date: renewalDate || null,
     };
 
-    await upsert.mutateAsync(payload);
+    const saved = await upsert.mutateAsync(payload);
+    // Guarda o estado das frações se houver alguma marcada
+    const entries = Object.entries(fractionState)
+      .filter(([, v]) => v === "included" || v === "excluded")
+      .map(([fraction_id, status]) => ({ fraction_id, status }));
+    if (saved?.id && entries.length > 0) {
+      await saveFractionStatus.mutateAsync({ insurance_id: saved.id, entries });
+    }
     onOpenChange(false);
   };
 
@@ -134,6 +162,7 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
                 <SelectContent>
                   <SelectItem value="multirisco">Multirriscos</SelectItem>
                   <SelectItem value="partes_comuns">Partes Comuns</SelectItem>
+                  <SelectItem value="acidentes_trabalho">Acidentes de Trabalho</SelectItem>
                   <SelectItem value="outro">Outro</SelectItem>
                 </SelectContent>
               </Select>
@@ -146,8 +175,68 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
           </div>
 
           <div className="grid gap-2">
-            <Label>Fracções incluídas</Label>
-            <Input value={fractionsIncluded} onChange={e => setFractionsIncluded(e.target.value)} placeholder="Ex: CV DT / RC ESQ / 1º DT..." />
+            <Label>Frações</Label>
+            {fractionsQ.data && fractionsQ.data.length > 0 ? (
+              <div className="rounded-md border divide-y bg-muted/20">
+                {fractionsQ.data.map((f) => {
+                  const st = fractionState[f.id];
+                  return (
+                    <div key={f.id} className="flex items-center justify-between px-3 py-2 gap-2">
+                      <div className="text-sm flex-1 min-w-0 truncate">
+                        <span className="font-medium">{f.label}</span>
+                        {f.permillage != null && <span className="text-muted-foreground ml-2 text-xs">{f.permillage}‰</span>}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button type="button" size="sm"
+                          variant={st === "included" ? "default" : "outline"}
+                          onClick={() => setFractionState((s) => ({ ...s, [f.id]: "included" }))}>
+                          Incluída
+                        </Button>
+                        <Button type="button" size="sm"
+                          variant={st === "excluded" ? "destructive" : "outline"}
+                          onClick={() => setFractionState((s) => ({ ...s, [f.id]: "excluded" }))}>
+                          Excluída
+                        </Button>
+                        <Button type="button" size="icon" variant="ghost"
+                          title="Remover fração do edifício"
+                          onClick={() => deleteFraction.mutate({ id: f.id, building_id: buildingId })}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <Textarea
+                value={fractionsIncluded}
+                onChange={e => setFractionsIncluded(e.target.value)}
+                placeholder="Sem frações registadas. Lista livre (ex: CV DT / RC ESQ / 1º DT...)"
+                rows={2}
+              />
+            )}
+            {buildingId && (
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  value={newFractionLabel}
+                  onChange={e => setNewFractionLabel(e.target.value)}
+                  placeholder="Adicionar fração (ex: 1º DT)"
+                  className="h-8"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!newFractionLabel.trim() || upsertFraction.isPending}
+                  onClick={async () => {
+                    await upsertFraction.mutateAsync({ building_id: buildingId, label: newFractionLabel.trim() });
+                    setNewFractionLabel("");
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="grid gap-2">
