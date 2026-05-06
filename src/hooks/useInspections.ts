@@ -130,6 +130,37 @@ export function useCreateInspection() {
   });
 }
 
+export function useUpdateInspection() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: {
+      id: string;
+      building_id?: string;
+      category_id?: string;
+      inspection_date?: string;
+      result?: BuildingInspection["result"];
+      company_name?: string | null;
+      company_contact?: string | null;
+      notes?: string | null;
+    }) => {
+      const { data, error } = await (supabase as any)
+        .from("building_inspections")
+        .update(patch)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inspection_status"] });
+      qc.invalidateQueries({ queryKey: ["building_inspections"] });
+      toast({ title: "Inspeção atualizada" });
+    },
+  });
+}
+
 export function useDeleteInspection() {
   const qc = useQueryClient();
   const { toast } = useToast();

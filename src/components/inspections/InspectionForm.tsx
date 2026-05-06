@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useBuildings } from "@/hooks/useBuildings";
-import { useCreateInspection, useInspectionCategories } from "@/hooks/useInspections";
+import { useCreateInspection, useUpdateInspection, useInspectionCategories } from "@/hooks/useInspections";
 import { format, addYears } from "date-fns";
 import { CalendarCheck2 } from "lucide-react";
 
@@ -15,12 +15,25 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   defaultBuildingId?: string;
   defaultCategoryId?: string;
+  /** Quando passado, abre em modo edição. */
+  editInspection?: {
+    id: string;
+    building_id: string;
+    category_id: string;
+    inspection_date: string;
+    result: "ok" | "nok_minor" | "nok_major" | "pending_works" | "pending";
+    company_name?: string | null;
+    company_contact?: string | null;
+    notes?: string | null;
+  } | null;
 }
 
-export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultCategoryId }: Props) {
+export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultCategoryId, editInspection }: Props) {
   const { data: buildings } = useBuildings();
   const { data: categories } = useInspectionCategories();
   const createMut = useCreateInspection();
+  const updateMut = useUpdateInspection();
+  const isEdit = !!editInspection;
 
   const [buildingId, setBuildingId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
@@ -31,14 +44,23 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    if (editInspection) {
+      setBuildingId(editInspection.building_id);
+      setCategoryId(editInspection.category_id);
+      setInspectionDate(editInspection.inspection_date);
+      setResult(editInspection.result);
+      setCompanyName(editInspection.company_name ?? "");
+      setCompanyContact(editInspection.company_contact ?? "");
+      setNotes(editInspection.notes ?? "");
+    } else {
       setBuildingId(defaultBuildingId ?? "");
       setCategoryId(defaultCategoryId ?? "");
       setInspectionDate(format(new Date(), "yyyy-MM-dd"));
       setResult("ok");
       setCompanyName(""); setCompanyContact(""); setNotes("");
     }
-  }, [open, defaultBuildingId, defaultCategoryId]);
+  }, [open, defaultBuildingId, defaultCategoryId, editInspection]);
 
   const selectedCategory = useMemo(
     () => categories?.find(c => c.id === categoryId),
@@ -53,7 +75,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!buildingId || !categoryId || !inspectionDate) return;
-    await createMut.mutateAsync({
+    const payload = {
       building_id: buildingId,
       category_id: categoryId,
       inspection_date: inspectionDate,
@@ -61,7 +83,12 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
       company_name: companyName || null,
       company_contact: companyContact || null,
       notes: notes || null,
-    });
+    };
+    if (isEdit && editInspection) {
+      await updateMut.mutateAsync({ id: editInspection.id, ...payload });
+    } else {
+      await createMut.mutateAsync(payload);
+    }
     onOpenChange(false);
   };
 
@@ -69,7 +96,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Registar inspeção</DialogTitle>
+          <DialogTitle>{isEdit ? "Editar inspeção" : "Registar inspeção"}</DialogTitle>
           <DialogDescription>A próxima data é calculada automaticamente com base no tipo.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -144,8 +171,8 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={createMut.isPending || !buildingId || !categoryId}>
-              {createMut.isPending ? "A guardar..." : "Registar inspeção"}
+            <Button type="submit" disabled={createMut.isPending || updateMut.isPending || !buildingId || !categoryId}>
+              {(createMut.isPending || updateMut.isPending) ? "A guardar..." : (isEdit ? "Guardar alterações" : "Registar inspeção")}
             </Button>
           </DialogFooter>
         </form>
