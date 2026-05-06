@@ -19,6 +19,7 @@ export default function Inspecoes() {
   const [openForm, setOpenForm] = useState(false);
   const [presetBuilding, setPresetBuilding] = useState<string | undefined>();
   const [presetCategory, setPresetCategory] = useState<string | undefined>();
+  const [editInspection, setEditInspection] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -56,7 +57,24 @@ export default function Inspecoes() {
   }, [rows, search, statusFilter, categoryFilter]);
 
   const openFor = (buildingId?: string, categoryId?: string) => {
+    setEditInspection(null);
     setPresetBuilding(buildingId); setPresetCategory(categoryId); setOpenForm(true);
+  };
+
+  const openEdit = (r: any) => {
+    if (!r.inspection_id) return openFor(r.building_id, r.category_id);
+    setEditInspection({
+      id: r.inspection_id,
+      building_id: r.building_id,
+      category_id: r.category_id,
+      inspection_date: r.inspection_date,
+      result: (r.result ?? "ok"),
+      company_name: r.company_name,
+      company_contact: r.company_contact,
+      notes: r.notes,
+    });
+    setPresetBuilding(undefined); setPresetCategory(undefined);
+    setOpenForm(true);
   };
 
   return (
@@ -201,7 +219,12 @@ export default function Inspecoes() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">{r.company_name ?? "—"}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right space-x-1">
+                        {r.inspection_id && (
+                          <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
+                            Editar
+                          </Button>
+                        )}
                         <Button size="sm" variant="ghost" onClick={() => openFor(r.building_id, r.category_id)}>
                           Registar
                         </Button>
@@ -215,7 +238,13 @@ export default function Inspecoes() {
         </CardContent>
       </Card>
 
-      <InspectionForm open={openForm} onOpenChange={setOpenForm} defaultBuildingId={presetBuilding} defaultCategoryId={presetCategory} />
+      <InspectionForm
+        open={openForm}
+        onOpenChange={(v) => { setOpenForm(v); if (!v) setEditInspection(null); }}
+        defaultBuildingId={presetBuilding}
+        defaultCategoryId={presetCategory}
+        editInspection={editInspection}
+      />
     </div>
   );
 }
