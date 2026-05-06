@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export type InsuranceStatus = "ok" | "due_soon_30" | "overdue" | "missing";
-export type CoverageType = "multirisco" | "partes_comuns" | "outro";
+export type CoverageType = "multirisco" | "partes_comuns" | "acidentes_trabalho" | "outro";
 
 export interface BuildingInsurance {
   id: string;
@@ -144,5 +144,124 @@ export const INSURANCE_STATUS_META: Record<InsuranceStatus, { label: string; col
 export const COVERAGE_LABEL: Record<CoverageType, string> = {
   multirisco: "Multirriscos",
   partes_comuns: "Partes Comuns",
+  acidentes_trabalho: "Acidentes de Trabalho",
   outro: "Outro",
 };
+
+// ===== Frações por edifício + estado por apólice =====
+
+export interface BuildingFraction {
+  id: string;
+  building_id: string;
+  label: string;
+  permillage: number | null;
+  notes: string | null;
+  display_order: number;
+}
+
+export function useBuildingFractions(buildingId?: string) {
+  return useQuery({
+    queryKey: ["building-fractions", buildingId],
+    enabled: !!buildingId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("building_fractions")
+        .select("*")
+        .eq("building_id", buildingId)
+        .order("display_order")
+        .order("label");
+      if (error) throw error;
+      return (data ?? []) as BuildingFraction[];
+    },
+  });
+}
+
+export function useUpsertBuildingFraction() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (input: Partial<BuildingFraction> & { building_id: string; label: string }) => {
+      const payload: any = { ...input };
+      if (payload.id) {
+        const { id, ...rest } = payload;
+        const { data, error } = await (supabase as any)
+          .from("building_fractions").update(rest).eq("id", id).select().single();
+        if (error) throw error;
+        return data;
+      }
+      const { data, error } = await (supabase as any)
+        .from("building_fractions").insert(payload).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["building-fractions", vars.building_id] });
+      toast({ title: "Fração guardada" });
+    },
+  });
+}
+
+export function useDeleteBuildingFraction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; building_id: string }) => {
+      const { error } = await (supabase as any).from("building_fractions").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["building-fractions", vars.building_id] });
+    },
+  });
+}
+
+export type FractionStatusValue = "included" | "excluded";
+
+export interface InsuranceFractionStatus {
+  id: string;
+  insurance_id: string;
+  fraction_id: string;
+  status: FractionStatusValue;
+  notes: string | null;
+}
+
+export function useInsuranceFractionStatus(insuranceId?: string | null) {
+  return useQuery({
+    queryKey: ["insurance-fraction-status", insuranceId],
+    enabled: !!insuranceId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("insurance_fraction_status")
+        .select("*")
+        .eq("insurance_id", insuranceId);
+      if (error) throw error;
+      return (data ?? []) as InsuranceFractionStatus[];
+    },
+  });
+}
+
+export function useSaveInsuranceFractionStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      insurance_id: string;
+      entries: { fraction_id: string; status: FractionStatusValue }[];
+    }) => {
+      // Estratégia simples: apaga tudo e re-insere.
+      await (supabase as any)
+        .from("insurance_fraction_status")
+        .delete()
+        .eq("insurance_id", input.insurance_id);
+      if (input.entries.length === 0) return;
+      const rows = input.entries.map((e) => ({
+        insurance_id: input.insurance_id,
+        fraction_id: e.fraction_id,
+        status: e.status,
+      }));
+      const { error } = await (supabase as any).from("insurance_fraction_status").insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["insurance-fraction-status", vars.insurance_id] });
+    },
+  });
+}
