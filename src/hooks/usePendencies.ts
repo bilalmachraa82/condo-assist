@@ -35,14 +35,11 @@ export const PENDENCY_STATUS_LABELS: Record<PendencyStatus, string> = {
   cancelado: "Cancelado",
 };
 
+// Estados visíveis no UI (simplificado a 2). Os antigos continuam no enum
+// para compatibilidade histórica, mas não são apresentados nem selecionáveis.
 export const PENDENCY_STATUS_ORDER: PendencyStatus[] = [
-  "aberto",
   "aguarda_resposta",
-  "resposta_recebida",
-  "precisa_decisao",
-  "escalado",
   "resolvido",
-  "cancelado",
 ];
 
 export interface Pendency {
