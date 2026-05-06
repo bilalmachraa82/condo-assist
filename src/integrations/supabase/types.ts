@@ -1153,6 +1153,61 @@ export type Database = {
           },
         ]
       }
+      building_fractions: {
+        Row: {
+          building_id: string
+          created_at: string
+          display_order: number
+          id: string
+          label: string
+          notes: string | null
+          permillage: number | null
+          updated_at: string
+        }
+        Insert: {
+          building_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          label: string
+          notes?: string | null
+          permillage?: number | null
+          updated_at?: string
+        }
+        Update: {
+          building_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          label?: string
+          notes?: string | null
+          permillage?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "building_fractions_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "building_fractions_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurance_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "building_fractions_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       building_inspections: {
         Row: {
           building_id: string
@@ -1981,6 +2036,55 @@ export type Database = {
           sent_at?: string
         }
         Relationships: []
+      }
+      insurance_fraction_status: {
+        Row: {
+          created_at: string
+          fraction_id: string
+          id: string
+          insurance_id: string
+          notes: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          fraction_id: string
+          id?: string
+          insurance_id: string
+          notes?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          fraction_id?: string
+          id?: string
+          insurance_id?: string
+          notes?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_fraction_status_fraction_id_fkey"
+            columns: ["fraction_id"]
+            isOneToOne: false
+            referencedRelation: "building_fractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_fraction_status_insurance_id_fkey"
+            columns: ["insurance_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurance_status"
+            referencedColumns: ["insurance_id"]
+          },
+          {
+            foreignKeyName: "insurance_fraction_status_insurance_id_fkey"
+            columns: ["insurance_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurances"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       intervention_types: {
         Row: {

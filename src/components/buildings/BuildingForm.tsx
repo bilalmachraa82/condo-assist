@@ -111,11 +111,21 @@ export function BuildingForm({ building, onSuccess, onCancel }: BuildingFormProp
               <FormItem>
                 <FormLabel>Código</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="Auto (deixe vazio para gerar)"
-                    autoComplete="off"
-                    {...field}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Auto (deixe vazio para gerar)"
+                      autoComplete="off"
+                      {...field}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => field.onChange(await generateNextCode())}
+                    >
+                      Gerar
+                    </Button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>

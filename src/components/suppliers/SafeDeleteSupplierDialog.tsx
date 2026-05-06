@@ -98,8 +98,17 @@ export function SafeDeleteSupplierDialog({
       
       onOpenChange(false);
     } catch (error: any) {
-      // Handle specific 409 errors related to activity_log
-      if (error?.code === "23503" || (error?.message && error.message.includes("activity_log"))) {
+      const extractMessage = (e: any): string => {
+        if (!e) return "Erro ao processar a operação";
+        if (typeof e === "string") return e;
+        if (typeof e?.message === "string" && e.message.trim()) return e.message;
+        if (typeof e?.details === "string" && e.details.trim()) return e.details;
+        if (typeof e?.hint === "string" && e.hint.trim()) return e.hint;
+        if (typeof e?.error === "string" && e.error.trim()) return e.error;
+        try { return JSON.stringify(e); } catch { return "Erro ao processar a operação"; }
+      };
+      const msg = extractMessage(error);
+      if (error?.code === "23503" || msg.includes("activity_log")) {
         toast({
           title: "Eliminação bloqueada",
           description: "Existem registos de atividade. Desative o fornecedor para preservar auditoria.",
@@ -108,7 +117,7 @@ export function SafeDeleteSupplierDialog({
       } else {
         toast({
           title: "Erro",
-          description: error?.message || "Erro ao processar a operação",
+          description: msg,
           variant: "destructive",
         });
       }
