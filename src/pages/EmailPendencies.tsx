@@ -26,13 +26,9 @@ const slaColor = (s: "ok" | "warn" | "danger") =>
 
 const statusColor = (s: PendencyStatus) => {
   switch (s) {
-    case "aberto": return "bg-primary/15 text-primary border-primary/30";
-    case "aguarda_resposta": return "bg-warning/15 text-warning border-warning/30";
-    case "resposta_recebida": return "bg-accent/20 text-accent-foreground border-accent/30";
-    case "precisa_decisao": return "bg-warning/15 text-warning border-warning/30";
-    case "escalado": return "bg-destructive/15 text-destructive border-destructive/30";
     case "resolvido": return "bg-success/15 text-success border-success/30";
     case "cancelado": return "bg-muted text-muted-foreground border-border";
+    default: return "bg-warning/15 text-warning border-warning/30"; // aguarda_resposta + legados
   }
 };
 
@@ -83,7 +79,11 @@ export default function EmailPendencies() {
 
   const filtered = useMemo(() => {
     return pendencies.filter((p) => {
-      if (status !== "all" && p.status !== status) return false;
+      if (status === "aguarda_resposta") {
+        if (["resolvido", "cancelado"].includes(p.status)) return false;
+      } else if (status !== "all" && p.status !== status) {
+        return false;
+      }
       if (search) {
         const s = search.toLowerCase();
         const hay = [p.title, p.description, p.subject, p.buildings?.code, p.buildings?.name, p.suppliers?.name]
@@ -95,11 +95,10 @@ export default function EmailPendencies() {
   }, [pendencies, search, status]);
 
   const stats = useMemo(() => {
-    const open = pendencies.filter((p) => !["resolvido", "cancelado"].includes(p.status)).length;
-    const waiting = pendencies.filter((p) => p.status === "aguarda_resposta").length;
-    const escalated = pendencies.filter((p) => p.status === "escalado").length;
+    const waiting = pendencies.filter((p) => !["resolvido", "cancelado"].includes(p.status)).length;
+    const resolved = pendencies.filter((p) => p.status === "resolvido").length;
     const slaBad = pendencies.filter((p) => pendencySLA(p) === "danger").length;
-    return { open, waiting, escalated, slaBad };
+    return { waiting, resolved, slaBad };
   }, [pendencies]);
 
   return (
@@ -132,10 +131,9 @@ export default function EmailPendencies() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPI label="Abertas" value={stats.open} />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <KPI label="Aguarda resposta" value={stats.waiting} tone="warn" />
-        <KPI label="Escaladas" value={stats.escalated} tone="danger" />
+        <KPI label="Resolvidas" value={stats.resolved} />
         <KPI label="SLA vencido" value={stats.slaBad} tone="danger" />
       </div>
 

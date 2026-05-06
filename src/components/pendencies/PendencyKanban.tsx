@@ -12,14 +12,9 @@ import { Building2, User, Wrench, Clock, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-const COLUMN_ACCENT: Record<PendencyStatus, string> = {
-  aberto: "border-t-primary",
+const COLUMN_ACCENT: Partial<Record<PendencyStatus, string>> = {
   aguarda_resposta: "border-t-warning",
-  resposta_recebida: "border-t-accent",
-  precisa_decisao: "border-t-warning",
-  escalado: "border-t-destructive",
   resolvido: "border-t-success",
-  cancelado: "border-t-muted-foreground",
 };
 
 const slaDot = (s: "ok" | "warn" | "danger") =>
@@ -37,7 +32,12 @@ export default function PendencyKanban({ pendencies, onSelect }: Props) {
   const [overCol, setOverCol] = useState<PendencyStatus | null>(null);
 
   const grouped = PENDENCY_STATUS_ORDER.reduce((acc, s) => {
-    acc[s] = pendencies.filter((p) => p.status === s);
+    // Para "aguarda_resposta" agrupar também os estados antigos que ainda existam.
+    if (s === "aguarda_resposta") {
+      acc[s] = pendencies.filter((p) => !["resolvido", "cancelado"].includes(p.status));
+    } else {
+      acc[s] = pendencies.filter((p) => p.status === s);
+    }
     return acc;
   }, {} as Record<PendencyStatus, Pendency[]>);
 
