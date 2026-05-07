@@ -80,7 +80,16 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
         <SheetHeader>
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <SheetTitle className="text-lg">{p.title}</SheetTitle>
+              <SheetTitle className="text-lg">
+                <Input
+                  defaultValue={p.title}
+                  className="text-lg font-semibold border-transparent hover:border-input focus:border-input px-2 -mx-2 h-auto py-1"
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v && v !== p.title) update.mutate({ id: p.id, title: v });
+                  }}
+                />
+              </SheetTitle>
               <SheetDescription className="flex items-center gap-2 flex-wrap mt-1">
                 {p.buildings && (
                   <span className="inline-flex items-center gap-1 text-xs">
