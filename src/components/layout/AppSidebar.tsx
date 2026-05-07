@@ -19,6 +19,7 @@ import {
   Mail,
   Lock,
   Key,
+  UserCog,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -61,6 +62,7 @@ const operacoesItems: NavItem[] = [
 const catalogoItems: NavItem[] = [
   { title: "Edifícios", url: "/edificios", icon: Building2 },
   { title: "Fornecedores", url: "/fornecedores", icon: Users },
+  { title: "Administradores", url: "/administradores", icon: UserCog },
   { title: "Seguimento Actas", url: "/assembly", icon: ClipboardList },
   { title: "Inspeções", url: "/inspecoes", icon: ShieldCheck },
   { title: "Seguros", url: "/seguros", icon: ShieldAlert },

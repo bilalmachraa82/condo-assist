@@ -26,6 +26,7 @@ import Inspecoes from "./pages/Inspecoes";
 import Seguros from "./pages/Seguros";
 import Keys from "./pages/Keys";
 import Sinistros from "./pages/Sinistros";
+import Administradores from "./pages/Administradores";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
 import Unsubscribe from "./pages/Unsubscribe";
@@ -224,6 +225,7 @@ const App = () => (
               />
               <Route path="/chaves" element={<ProtectedRoute><DashboardLayout><Keys /></DashboardLayout></ProtectedRoute>} />
               <Route path="/sinistros" element={<ProtectedRoute><DashboardLayout><Sinistros /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/administradores" element={<ProtectedRoute><DashboardLayout><Administradores /></DashboardLayout></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
