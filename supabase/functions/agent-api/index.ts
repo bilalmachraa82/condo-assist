@@ -822,6 +822,8 @@ async function handleCreateBuilding(req: Request, supabase: ReturnType<typeof ge
     cadastral_code: body.cadastral_code || null,
     admin_notes: body.admin_notes || null,
     is_active: body.is_active ?? true,
+    elevator_count: body.elevator_count ?? 0,
+    elevator_supplier_id: body.elevator_supplier_id || null,
   };
   const { data, error } = await supabase.from("buildings").insert(insertData).select("*").single();
   if (error) {
