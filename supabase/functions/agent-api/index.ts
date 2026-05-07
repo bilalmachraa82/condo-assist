@@ -1893,6 +1893,40 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // Activity log
       case "listActivityLog":
         return await handleListActivityLog(url, supabase);
+      // Building administrators
+      case "listBuildingAdministrators":
+        return await handleListBuildingAdministrators(route.params, supabase);
+      case "createBuildingAdministrator":
+        return await handleCreateBuildingAdministrator(req, route.params, supabase);
+      case "updateBuildingAdministrator":
+        return await handleUpdateBuildingAdministrator(req, route.params, supabase);
+      case "deleteBuildingAdministrator":
+        return await handleDeleteBuildingAdministrator(route.params, supabase);
+      // Key handovers
+      case "listKeyHandovers":
+        return await handleListKeyHandovers(url, supabase);
+      case "createKeyHandover":
+        return await handleCreateKeyHandover(req, supabase);
+      case "updateKeyHandover":
+        return await handleUpdateKeyHandover(req, route.params, supabase);
+      // Building documents
+      case "listBuildingDocuments":
+        return await handleListBuildingDocuments(url, route.params, supabase);
+      case "uploadBuildingDocument":
+        return await handleUploadBuildingDocument(req, route.params, supabase);
+      case "deleteBuildingDocument":
+        return await handleDeleteBuildingDocument(route.params, supabase);
+      // Insurance claims
+      case "listInsuranceClaims":
+        return await handleListInsuranceClaims(url, supabase);
+      case "getInsuranceClaim":
+        return await handleGetInsuranceClaim(route.params, supabase);
+      case "createInsuranceClaim":
+        return await handleCreateInsuranceClaim(req, supabase);
+      case "updateInsuranceClaim":
+        return await handleUpdateInsuranceClaim(req, route.params, supabase);
+      case "addClaimNote":
+        return await handleAddClaimNote(req, route.params, supabase);
       default:
         return errorResponse(404, "Not found", "NOT_FOUND");
     }
