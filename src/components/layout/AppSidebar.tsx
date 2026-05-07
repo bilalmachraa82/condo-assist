@@ -18,6 +18,7 @@ import {
   MailQuestion,
   Mail,
   Lock,
+  Key,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -63,6 +64,8 @@ const catalogoItems: NavItem[] = [
   { title: "Seguimento Actas", url: "/assembly", icon: ClipboardList },
   { title: "Inspeções", url: "/inspecoes", icon: ShieldCheck },
   { title: "Seguros", url: "/seguros", icon: ShieldAlert },
+  { title: "Sinistros", url: "/sinistros", icon: ShieldAlert },
+  { title: "Chaves", url: "/chaves", icon: Key },
   { title: "Base de Conhecimento", url: "/knowledge", icon: BookOpen },
 ]
 

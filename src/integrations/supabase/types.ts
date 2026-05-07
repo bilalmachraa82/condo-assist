@@ -1153,6 +1153,143 @@ export type Database = {
           },
         ]
       }
+      building_administrators: {
+        Row: {
+          building_id: string
+          created_at: string
+          display_order: number
+          email: string | null
+          floor: string | null
+          id: string
+          is_primary: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          building_id: string
+          created_at?: string
+          display_order?: number
+          email?: string | null
+          floor?: string | null
+          id?: string
+          is_primary?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          building_id?: string
+          created_at?: string
+          display_order?: number
+          email?: string | null
+          floor?: string | null
+          id?: string
+          is_primary?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "building_administrators_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "building_administrators_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurance_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "building_administrators_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      building_documents: {
+        Row: {
+          building_id: string
+          category: string
+          created_at: string
+          description: string | null
+          document_date: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          building_id: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          document_date?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          building_id?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          document_date?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "building_documents_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "building_documents_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurance_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "building_documents_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       building_fractions: {
         Row: {
           building_id: string
@@ -1372,6 +1509,7 @@ export type Database = {
           cadastral_code: string | null
           code: string
           created_at: string
+          elevator_count: number
           elevator_supplier_id: string | null
           id: string
           is_active: boolean
@@ -1385,6 +1523,7 @@ export type Database = {
           cadastral_code?: string | null
           code: string
           created_at?: string
+          elevator_count?: number
           elevator_supplier_id?: string | null
           id?: string
           is_active?: boolean
@@ -1398,6 +1537,7 @@ export type Database = {
           cadastral_code?: string | null
           code?: string
           created_at?: string
+          elevator_count?: number
           elevator_supplier_id?: string | null
           id?: string
           is_active?: boolean
@@ -2037,6 +2177,184 @@ export type Database = {
         }
         Relationships: []
       }
+      insurance_claim_attachments: {
+        Row: {
+          claim_id: string
+          created_at: string
+          description: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          kind: string
+          mime_type: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_claim_attachments_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insurance_claim_notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          claim_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          claim_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          claim_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_claim_notes_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insurance_claims: {
+        Row: {
+          assistance_id: string | null
+          building_id: string
+          claim_number: string
+          created_at: string
+          created_by: string | null
+          damage_location: string | null
+          description: string
+          estimated_amount: number | null
+          final_amount: number | null
+          id: string
+          insurance_id: string | null
+          insurer_claim_ref: string | null
+          insurer_contact: string | null
+          notes: string | null
+          occurrence_date: string | null
+          reported_date: string | null
+          status: Database["public"]["Enums"]["insurance_claim_status"]
+          updated_at: string
+        }
+        Insert: {
+          assistance_id?: string | null
+          building_id: string
+          claim_number: string
+          created_at?: string
+          created_by?: string | null
+          damage_location?: string | null
+          description: string
+          estimated_amount?: number | null
+          final_amount?: number | null
+          id?: string
+          insurance_id?: string | null
+          insurer_claim_ref?: string | null
+          insurer_contact?: string | null
+          notes?: string | null
+          occurrence_date?: string | null
+          reported_date?: string | null
+          status?: Database["public"]["Enums"]["insurance_claim_status"]
+          updated_at?: string
+        }
+        Update: {
+          assistance_id?: string | null
+          building_id?: string
+          claim_number?: string
+          created_at?: string
+          created_by?: string | null
+          damage_location?: string | null
+          description?: string
+          estimated_amount?: number | null
+          final_amount?: number | null
+          id?: string
+          insurance_id?: string | null
+          insurer_claim_ref?: string | null
+          insurer_contact?: string | null
+          notes?: string | null
+          occurrence_date?: string | null
+          reported_date?: string | null
+          status?: Database["public"]["Enums"]["insurance_claim_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_claims_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "insurance_claims_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurance_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "insurance_claims_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_claims_insurance_id_fkey"
+            columns: ["insurance_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurance_status"
+            referencedColumns: ["insurance_id"]
+          },
+          {
+            foreignKeyName: "insurance_claims_insurance_id_fkey"
+            columns: ["insurance_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insurance_fraction_status: {
         Row: {
           created_at: string
@@ -2112,6 +2430,79 @@ export type Database = {
           urgency_level?: Database["public"]["Enums"]["assistance_priority"]
         }
         Relationships: []
+      }
+      key_handovers: {
+        Row: {
+          assistance_id: string | null
+          building_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          picked_up_at: string
+          picked_up_by_name: string
+          picked_up_by_phone: string | null
+          purpose: string | null
+          returned_at: string | null
+          returned_by_name: string | null
+          supplier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assistance_id?: string | null
+          building_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          picked_up_at?: string
+          picked_up_by_name: string
+          picked_up_by_phone?: string | null
+          purpose?: string | null
+          returned_at?: string | null
+          returned_by_name?: string | null
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assistance_id?: string | null
+          building_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          picked_up_at?: string
+          picked_up_by_name?: string
+          picked_up_by_phone?: string | null
+          purpose?: string | null
+          returned_at?: string | null
+          returned_by_name?: string | null
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "key_handovers_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_inspection_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "key_handovers_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "building_insurance_status"
+            referencedColumns: ["building_id"]
+          },
+          {
+            foreignKeyName: "key_handovers_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       knowledge_articles: {
         Row: {
@@ -3151,6 +3542,15 @@ export type Database = {
         | "draft_ready"
         | "failed"
       dispatch_type_enum: "email" | "download" | "portal"
+      insurance_claim_status:
+        | "aberto"
+        | "em_analise"
+        | "aguarda_peritagem"
+        | "peritagem_realizada"
+        | "aguarda_pagamento"
+        | "pago"
+        | "recusado"
+        | "arquivado"
       minutes_version_status_enum:
         | "ai_draft"
         | "reviewed_draft"
@@ -3360,6 +3760,16 @@ export const Constants = {
         "failed",
       ],
       dispatch_type_enum: ["email", "download", "portal"],
+      insurance_claim_status: [
+        "aberto",
+        "em_analise",
+        "aguarda_peritagem",
+        "peritagem_realizada",
+        "aguarda_pagamento",
+        "pago",
+        "recusado",
+        "arquivado",
+      ],
       minutes_version_status_enum: [
         "ai_draft",
         "reviewed_draft",

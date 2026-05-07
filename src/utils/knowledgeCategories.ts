@@ -41,7 +41,7 @@ export const KNOWLEDGE_CATEGORIES: KnowledgeCategory[] = [
   { value: "chamines", label: "Chaminés", icon: Wind, color: "gray", bgClass: "bg-gray-100 dark:bg-gray-800/30", textClass: "text-gray-700 dark:text-gray-300", bgCircleClass: "bg-gray-500/10" },
   { value: "fornecedores", label: "Fornecedores", icon: Truck, color: "emerald", bgClass: "bg-emerald-100 dark:bg-emerald-900/30", textClass: "text-emerald-700 dark:text-emerald-300", bgCircleClass: "bg-emerald-500/10" },
   { value: "legal", label: "Legal", icon: Scale, color: "violet", bgClass: "bg-violet-100 dark:bg-violet-900/30", textClass: "text-violet-700 dark:text-violet-300", bgCircleClass: "bg-violet-500/10" },
-  { value: "empresas_limpeza", label: "Empresas de Limpeza", icon: Sparkles, color: "teal", bgClass: "bg-teal-100 dark:bg-teal-900/30", textClass: "text-teal-700 dark:text-teal-300", bgCircleClass: "bg-teal-500/10" },
+  { value: "empresas_limpeza", label: "Empresa de Limpeza", icon: Sparkles, color: "teal", bgClass: "bg-teal-100 dark:bg-teal-900/30", textClass: "text-teal-700 dark:text-teal-300", bgCircleClass: "bg-teal-500/10" },
   { value: "geral", label: "Geral", icon: BookOpen, color: "slate", bgClass: "bg-slate-100 dark:bg-slate-800/30", textClass: "text-slate-700 dark:text-slate-300", bgCircleClass: "bg-slate-500/10" },
 ];
 
