@@ -704,6 +704,11 @@ export default function Edificios() {
                           NIF: {building.nif}
                         </p>
                       )}
+                      {(building as any).elevator_count > 0 && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                          🛗 {(building as any).elevator_count} {(building as any).elevator_count === 1 ? 'elevador' : 'elevadores'}
+                        </p>
+                      )}
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
