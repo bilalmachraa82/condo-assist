@@ -6,11 +6,14 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useCreateBuilding, useUpdateBuilding, type Building } from "@/hooks/useBuildings"
 import { useToast } from "@/hooks/use-toast"
+import BuildingAdministratorsManager from "./BuildingAdministratorsManager"
+import BuildingDocumentsTab from "./BuildingDocumentsTab"
 
 const buildingSchema = z.object({
-  code: z.string().optional(),
+  code: z.string(),
   name: z.string().min(1, "Nome é obrigatório"),
   address: z.string().optional(),
   nif: z.string().optional().refine((val) => !val || /^\d{9}$/.test(val), {
@@ -18,6 +21,7 @@ const buildingSchema = z.object({
   }),
   cadastral_code: z.string().optional(),
   admin_notes: z.string().optional(),
+  elevator_count: z.coerce.number().int().min(0).default(0),
   is_active: z.boolean().default(true),
 })
 
@@ -43,6 +47,7 @@ export function BuildingForm({ building, onSuccess, onCancel }: BuildingFormProp
       nif: building?.nif || "",
       cadastral_code: building?.cadastral_code || "",
       admin_notes: building?.admin_notes || "",
+      elevator_count: (building as any)?.elevator_count ?? 0,
       is_active: building?.is_active ?? true,
     },
   })
@@ -67,17 +72,18 @@ export function BuildingForm({ building, onSuccess, onCancel }: BuildingFormProp
 
   const onSubmit = async (data: BuildingFormData) => {
     try {
-      const finalCode = data.code?.trim()
-        ? data.code.trim()
-        : building?.code ?? (await generateNextCode())
+      // Permitir código vazio: só auto-gera se for criação E vazio.
+      let finalCode = data.code?.trim() ?? ""
+      if (!finalCode && !building) finalCode = await generateNextCode()
 
-      const processedData = {
+      const processedData: any = {
         code: finalCode,
         name: data.name,
         address: data.address || null,
         nif: data.nif || null,
         cadastral_code: data.cadastral_code || null,
         admin_notes: data.admin_notes || null,
+        elevator_count: data.elevator_count ?? 0,
         is_active: data.is_active,
       }
 
@@ -101,6 +107,14 @@ export function BuildingForm({ building, onSuccess, onCancel }: BuildingFormProp
   const isLoading = createBuilding.isPending || updateBuilding.isPending
 
   return (
+    <Tabs defaultValue="dados" className="w-full">
+      <TabsList className={building ? "grid grid-cols-3 w-full" : "grid grid-cols-1 w-full"}>
+        <TabsTrigger value="dados">Dados</TabsTrigger>
+        {building && <TabsTrigger value="admins">Administradores</TabsTrigger>}
+        {building && <TabsTrigger value="docs">Documentos</TabsTrigger>}
+      </TabsList>
+
+      <TabsContent value="dados">
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -124,6 +138,14 @@ export function BuildingForm({ building, onSuccess, onCancel }: BuildingFormProp
                       onClick={async () => field.onChange(await generateNextCode())}
                     >
                       Gerar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => field.onChange("")}
+                    >
+                      Limpar
                     </Button>
                   </div>
                 </FormControl>
@@ -168,6 +190,20 @@ export function BuildingForm({ building, onSuccess, onCancel }: BuildingFormProp
                 <FormLabel>Código Postal</FormLabel>
                 <FormControl>
                   <Input placeholder="Ex: 1234-567" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="elevator_count"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Quantidade de elevadores</FormLabel>
+                <FormControl>
+                  <Input type="number" min={0} step={1} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -231,5 +267,19 @@ export function BuildingForm({ building, onSuccess, onCancel }: BuildingFormProp
         </div>
       </form>
     </Form>
+      </TabsContent>
+
+      {building && (
+        <TabsContent value="admins">
+          <BuildingAdministratorsManager buildingId={building.id} />
+        </TabsContent>
+      )}
+
+      {building && (
+        <TabsContent value="docs">
+          <BuildingDocumentsTab buildingId={building.id} buildingLabel={`${building.code}-${building.name}`} />
+        </TabsContent>
+      )}
+    </Tabs>
   )
 }
