@@ -955,7 +955,167 @@ mcp.tool("list_activity_log", {
     })),
 });
 
-// ── HTTP transport (Hono) ──
+// ═══════════ BUILDING ADMINISTRATORS ═══════════
+mcp.tool("list_building_administrators", {
+  description: "[Edifícios] Lista administradores/contactos de gestão de um edifício (até 5).",
+  inputSchema: { type: "object", properties: { building_id: { type: "string" } }, required: ["building_id"] },
+  handler: async ({ building_id }: { building_id: string }) =>
+    asText(await callAgentApi("GET", `/v1/buildings/${building_id}/administrators`)),
+});
+mcp.tool("create_building_administrator", {
+  description: "[Edifícios] Cria um administrador para um edifício. Máx 5 por edifício.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      building_id: { type: "string" }, name: { type: "string" },
+      email: { type: "string" }, phone: { type: "string" }, floor: { type: "string" },
+      role: { type: "string" }, notes: { type: "string" },
+      is_primary: { type: "boolean" }, display_order: { type: "number" },
+    },
+    required: ["building_id", "name"],
+  },
+  handler: async ({ building_id, ...body }: { building_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("POST", `/v1/buildings/${building_id}/administrators`, { body })),
+});
+mcp.tool("update_building_administrator", {
+  description: "[Edifícios] Actualiza administrador.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      admin_id: { type: "string" }, name: { type: "string" }, email: { type: "string" },
+      phone: { type: "string" }, floor: { type: "string" }, role: { type: "string" },
+      notes: { type: "string" }, is_primary: { type: "boolean" }, display_order: { type: "number" },
+    },
+    required: ["admin_id"],
+  },
+  handler: async ({ admin_id, ...body }: { admin_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("PATCH", `/v1/building-administrators/${admin_id}`, { body })),
+});
+mcp.tool("delete_building_administrator", {
+  description: "[Edifícios] Apaga administrador.",
+  inputSchema: { type: "object", properties: { admin_id: { type: "string" } }, required: ["admin_id"] },
+  handler: async ({ admin_id }: { admin_id: string }) =>
+    asText(await callAgentApi("DELETE", `/v1/building-administrators/${admin_id}`)),
+});
+
+// ═══════════ KEY HANDOVERS ═══════════
+mcp.tool("list_key_handovers", {
+  description: "[Chaves] Lista entregas de chaves. Filtros: building_id, status (open/returned).",
+  inputSchema: { type: "object", properties: { building_id: { type: "string" }, status: { type: "string", enum: ["open", "returned"] }, limit: { type: "number" }, offset: { type: "number" } } },
+  handler: async (args: Record<string, unknown>) =>
+    asText(await callAgentApi("GET", "/v1/key-handovers", { query: { building_id: args.building_id as string, status: args.status as string, limit: (args.limit as number)?.toString(), offset: (args.offset as number)?.toString() } })),
+});
+mcp.tool("create_key_handover", {
+  description: "[Chaves] Regista entrega de chaves a alguém (fornecedor, condómino, etc).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      building_id: { type: "string" }, picked_up_by_name: { type: "string" },
+      picked_up_by_phone: { type: "string" }, picked_up_at: { type: "string" },
+      purpose: { type: "string" }, notes: { type: "string" },
+      assistance_id: { type: "string" }, supplier_id: { type: "string" },
+    },
+    required: ["building_id", "picked_up_by_name"],
+  },
+  handler: async (body: Record<string, unknown>) =>
+    asText(await callAgentApi("POST", "/v1/key-handovers", { body })),
+});
+mcp.tool("update_key_handover", {
+  description: "[Chaves] Actualiza registo (ex: marcar devolução com returned_at e returned_by_name).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      handover_id: { type: "string" }, returned_by_name: { type: "string" }, returned_at: { type: "string" },
+      picked_up_by_name: { type: "string" }, picked_up_by_phone: { type: "string" }, picked_up_at: { type: "string" },
+      purpose: { type: "string" }, notes: { type: "string" },
+    },
+    required: ["handover_id"],
+  },
+  handler: async ({ handover_id, ...body }: { handover_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("PATCH", `/v1/key-handovers/${handover_id}`, { body })),
+});
+
+// ═══════════ BUILDING DOCUMENTS ═══════════
+mcp.tool("list_building_documents", {
+  description: "[Documentos] Lista documentos arquivados de um edifício (atas, certificados, orçamentos, contratos, seguros, etc).",
+  inputSchema: { type: "object", properties: { building_id: { type: "string" }, category: { type: "string" } }, required: ["building_id"] },
+  handler: async ({ building_id, category }: { building_id: string; category?: string }) =>
+    asText(await callAgentApi("GET", `/v1/buildings/${building_id}/documents`, { query: { category } })),
+});
+mcp.tool("upload_building_document", {
+  description: "[Documentos] Carrega documento (base64, máx 50MB) para a biblioteca de um edifício.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      building_id: { type: "string" }, file_name: { type: "string" }, file_base64: { type: "string" },
+      mime_type: { type: "string" }, category: { type: "string", description: "atas, certificados_gas, certificados_inspecao, orcamentos, contratos, seguros, fotos, outros" },
+      title: { type: "string" }, description: { type: "string" }, document_date: { type: "string" },
+    },
+    required: ["building_id", "file_name", "file_base64"],
+  },
+  handler: async ({ building_id, ...body }: { building_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("POST", `/v1/buildings/${building_id}/documents`, { body })),
+});
+mcp.tool("delete_building_document", {
+  description: "[Documentos] Apaga documento da biblioteca (e do storage).",
+  inputSchema: { type: "object", properties: { doc_id: { type: "string" } }, required: ["doc_id"] },
+  handler: async ({ doc_id }: { doc_id: string }) =>
+    asText(await callAgentApi("DELETE", `/v1/building-documents/${doc_id}`)),
+});
+
+// ═══════════ INSURANCE CLAIMS / SINISTROS ═══════════
+mcp.tool("list_insurance_claims", {
+  description: "[Sinistros] Lista participações de sinistro. Filtros: building_id, status (aberto, em_analise, em_reparacao, fechado, indeferido).",
+  inputSchema: { type: "object", properties: { building_id: { type: "string" }, status: { type: "string" }, limit: { type: "number" }, offset: { type: "number" } } },
+  handler: async (args: Record<string, unknown>) =>
+    asText(await callAgentApi("GET", "/v1/insurance-claims", { query: { building_id: args.building_id as string, status: args.status as string, limit: (args.limit as number)?.toString(), offset: (args.offset as number)?.toString() } })),
+});
+mcp.tool("get_insurance_claim", {
+  description: "[Sinistros] Detalhe de um sinistro com notas e anexos.",
+  inputSchema: { type: "object", properties: { claim_id: { type: "string" } }, required: ["claim_id"] },
+  handler: async ({ claim_id }: { claim_id: string }) =>
+    asText(await callAgentApi("GET", `/v1/insurance-claims/${claim_id}`)),
+});
+mcp.tool("create_insurance_claim", {
+  description: "[Sinistros] Cria participação de sinistro (opcionalmente ligada a uma assistência e/ou apólice).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      building_id: { type: "string" }, description: { type: "string" },
+      assistance_id: { type: "string" }, insurance_id: { type: "string" },
+      occurrence_date: { type: "string" }, reported_date: { type: "string" },
+      damage_location: { type: "string" }, insurer_claim_ref: { type: "string" },
+      insurer_contact: { type: "string" }, status: { type: "string" },
+      estimated_amount: { type: "number" }, final_amount: { type: "number" }, notes: { type: "string" },
+    },
+    required: ["building_id", "description"],
+  },
+  handler: async (body: Record<string, unknown>) =>
+    asText(await callAgentApi("POST", "/v1/insurance-claims", { body })),
+});
+mcp.tool("update_insurance_claim", {
+  description: "[Sinistros] Actualiza dados/estado de um sinistro.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      claim_id: { type: "string" }, description: { type: "string" }, assistance_id: { type: "string" },
+      insurance_id: { type: "string" }, occurrence_date: { type: "string" }, reported_date: { type: "string" },
+      damage_location: { type: "string" }, insurer_claim_ref: { type: "string" }, insurer_contact: { type: "string" },
+      status: { type: "string" }, estimated_amount: { type: "number" }, final_amount: { type: "number" }, notes: { type: "string" },
+    },
+    required: ["claim_id"],
+  },
+  handler: async ({ claim_id, ...body }: { claim_id: string; [k: string]: unknown }) =>
+    asText(await callAgentApi("PATCH", `/v1/insurance-claims/${claim_id}`, { body })),
+});
+mcp.tool("add_claim_note", {
+  description: "[Sinistros] Adiciona nota ao sinistro (timeline).",
+  inputSchema: { type: "object", properties: { claim_id: { type: "string" }, body: { type: "string" } }, required: ["claim_id", "body"] },
+  handler: async ({ claim_id, body }: { claim_id: string; body: string }) =>
+    asText(await callAgentApi("POST", `/v1/insurance-claims/${claim_id}/notes`, { body: { body } })),
+});
+
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key, mcp-session-id",
