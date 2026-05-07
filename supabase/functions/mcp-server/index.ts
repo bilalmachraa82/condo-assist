@@ -1137,7 +1137,7 @@ app.use("*", async (c, next) => {
       name: "condo-assist-mcp",
       version: "1.0.0",
       transport: "streamable-http",
-      tools: 48,
+      tools: 63,
     }, 200, corsHeaders);
   }
 
