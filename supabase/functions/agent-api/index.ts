@@ -163,6 +163,25 @@ function matchRoute(method: string, pathname: string): { handler: string; params
     { method: "POST", pattern: /^\/v1\/follow-ups$/, handler: "createFollowUp", paramNames: [] },
     // Activity log
     { method: "GET", pattern: /^\/v1\/activity-log$/, handler: "listActivityLog", paramNames: [] },
+    // Building administrators
+    { method: "GET", pattern: /^\/v1\/buildings\/([^/]+)\/administrators$/, handler: "listBuildingAdministrators", paramNames: ["buildingId"] },
+    { method: "POST", pattern: /^\/v1\/buildings\/([^/]+)\/administrators$/, handler: "createBuildingAdministrator", paramNames: ["buildingId"] },
+    { method: "PATCH", pattern: /^\/v1\/building-administrators\/([^/]+)$/, handler: "updateBuildingAdministrator", paramNames: ["adminId"] },
+    { method: "DELETE", pattern: /^\/v1\/building-administrators\/([^/]+)$/, handler: "deleteBuildingAdministrator", paramNames: ["adminId"] },
+    // Key handovers
+    { method: "GET", pattern: /^\/v1\/key-handovers$/, handler: "listKeyHandovers", paramNames: [] },
+    { method: "POST", pattern: /^\/v1\/key-handovers$/, handler: "createKeyHandover", paramNames: [] },
+    { method: "PATCH", pattern: /^\/v1\/key-handovers\/([^/]+)$/, handler: "updateKeyHandover", paramNames: ["handoverId"] },
+    // Building documents
+    { method: "GET", pattern: /^\/v1\/buildings\/([^/]+)\/documents$/, handler: "listBuildingDocuments", paramNames: ["buildingId"] },
+    { method: "POST", pattern: /^\/v1\/buildings\/([^/]+)\/documents$/, handler: "uploadBuildingDocument", paramNames: ["buildingId"] },
+    { method: "DELETE", pattern: /^\/v1\/building-documents\/([^/]+)$/, handler: "deleteBuildingDocument", paramNames: ["docId"] },
+    // Insurance claims
+    { method: "GET", pattern: /^\/v1\/insurance-claims$/, handler: "listInsuranceClaims", paramNames: [] },
+    { method: "GET", pattern: /^\/v1\/insurance-claims\/([^/]+)$/, handler: "getInsuranceClaim", paramNames: ["claimId"] },
+    { method: "POST", pattern: /^\/v1\/insurance-claims$/, handler: "createInsuranceClaim", paramNames: [] },
+    { method: "PATCH", pattern: /^\/v1\/insurance-claims\/([^/]+)$/, handler: "updateInsuranceClaim", paramNames: ["claimId"] },
+    { method: "POST", pattern: /^\/v1\/insurance-claims\/([^/]+)\/notes$/, handler: "addClaimNote", paramNames: ["claimId"] },
   ];
 
   for (const route of routes) {
@@ -822,6 +841,8 @@ async function handleCreateBuilding(req: Request, supabase: ReturnType<typeof ge
     cadastral_code: body.cadastral_code || null,
     admin_notes: body.admin_notes || null,
     is_active: body.is_active ?? true,
+    elevator_count: body.elevator_count ?? 0,
+    elevator_supplier_id: body.elevator_supplier_id || null,
   };
   const { data, error } = await supabase.from("buildings").insert(insertData).select("*").single();
   if (error) {
@@ -834,7 +855,7 @@ async function handleCreateBuilding(req: Request, supabase: ReturnType<typeof ge
 async function handleUpdateBuilding(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
   const body = await req.json();
   const updateData: Record<string, unknown> = {};
-  for (const k of ["code", "name", "address", "nif", "cadastral_code", "admin_notes", "is_active"]) {
+  for (const k of ["code", "name", "address", "nif", "cadastral_code", "admin_notes", "is_active", "elevator_count", "elevator_supplier_id"]) {
     if (body[k] !== undefined) updateData[k] = body[k];
   }
   if (Object.keys(updateData).length === 0) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
@@ -1556,6 +1577,183 @@ async function handleListActivityLog(url: URL, supabase: ReturnType<typeof getSu
   return json({ total: count ?? 0, limit, offset, entries: data || [] });
 }
 
+// ═══════ Building Administrators ═══════
+async function handleListBuildingAdministrators(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase
+    .from("building_administrators").select("*").eq("building_id", params.buildingId)
+    .order("display_order", { ascending: true }).order("created_at", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ building_id: params.buildingId, administrators: data || [] });
+}
+async function handleCreateBuildingAdministrator(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const name = requireString(body.name, "name");
+  const { count } = await supabase.from("building_administrators").select("*", { count: "exact", head: true }).eq("building_id", params.buildingId);
+  if ((count ?? 0) >= 5) throw new HttpError(400, "Máximo 5 administradores por edifício", "LIMIT_REACHED");
+  const insertData = {
+    building_id: params.buildingId, name,
+    email: body.email || null, phone: body.phone || null, floor: body.floor || null,
+    role: body.role || null, notes: body.notes || null,
+    is_primary: body.is_primary ?? false, display_order: body.display_order ?? 0,
+  };
+  const { data, error } = await supabase.from("building_administrators").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create administrator", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+async function handleUpdateBuildingAdministrator(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["name", "email", "phone", "floor", "role", "notes", "is_primary", "display_order"]) {
+    if (body[k] !== undefined) updateData[k] = body[k];
+  }
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("building_administrators").update(updateData).eq("id", params.adminId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+async function handleDeleteBuildingAdministrator(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("building_administrators").delete().eq("id", params.adminId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+// ═══════ Key Handovers ═══════
+async function handleListKeyHandovers(url: URL, supabase: ReturnType<typeof getSupabase>) {
+  const buildingId = url.searchParams.get("building_id");
+  const status = url.searchParams.get("status");
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 200);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
+  let q = supabase.from("key_handovers").select("*, buildings:building_id(id,code,name)", { count: "exact" })
+    .order("picked_up_at", { ascending: false }).range(offset, offset + limit - 1);
+  if (buildingId) q = q.eq("building_id", buildingId);
+  if (status === "open") q = q.is("returned_at", null);
+  if (status === "returned") q = q.not("returned_at", "is", null);
+  const { data, error, count } = await q;
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ total: count ?? 0, limit, offset, handovers: data || [] });
+}
+async function handleCreateKeyHandover(req: Request, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const building_id = requireUUID(body.building_id, "building_id");
+  const picked_up_by_name = requireString(body.picked_up_by_name, "picked_up_by_name");
+  const insertData = {
+    building_id, picked_up_by_name,
+    picked_up_by_phone: body.picked_up_by_phone || null,
+    picked_up_at: body.picked_up_at || new Date().toISOString(),
+    purpose: body.purpose || null, notes: body.notes || null,
+    assistance_id: body.assistance_id || null, supplier_id: body.supplier_id || null,
+  };
+  const { data, error } = await supabase.from("key_handovers").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+async function handleUpdateKeyHandover(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["picked_up_by_name","picked_up_by_phone","picked_up_at","returned_by_name","returned_at","purpose","notes","assistance_id","supplier_id"]) {
+    if (body[k] !== undefined) updateData[k] = body[k];
+  }
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("key_handovers").update(updateData).eq("id", params.handoverId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+
+// ═══════ Building Documents ═══════
+async function handleListBuildingDocuments(url: URL, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const category = url.searchParams.get("category");
+  let q = supabase.from("building_documents").select("*").eq("building_id", params.buildingId).order("created_at", { ascending: false });
+  if (category) q = q.eq("category", category);
+  const { data, error } = await q;
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ building_id: params.buildingId, documents: data || [] });
+}
+async function handleUploadBuildingDocument(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const fileName = requireString(body.file_name, "file_name");
+  const fileBase64 = requireString(body.file_base64, "file_base64");
+  const category = body.category || "outros";
+  const bytes = Uint8Array.from(atob(fileBase64), (c) => c.charCodeAt(0));
+  if (bytes.length > 50 * 1024 * 1024) throw new HttpError(400, "Max 50MB", "TOO_LARGE");
+  const safe = fileName.replace(/[^\w.\-]+/g, "_");
+  const path = `${params.buildingId}/${category}/${Date.now()}_${safe}`;
+  const { error: upErr } = await supabase.storage.from("building-documents").upload(path, bytes, { contentType: body.mime_type || "application/octet-stream", upsert: false });
+  if (upErr) throw new HttpError(500, "Upload failed", "INTERNAL_ERROR");
+  const { data, error } = await supabase.from("building_documents").insert({
+    building_id: params.buildingId, category,
+    title: body.title || fileName, description: body.description || null,
+    file_path: path, file_name: fileName, file_size: bytes.length,
+    mime_type: body.mime_type || null, document_date: body.document_date || null,
+  }).select("*").single();
+  if (error) throw new HttpError(500, "Failed to save metadata", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+async function handleDeleteBuildingDocument(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data: doc } = await supabase.from("building_documents").select("file_path").eq("id", params.docId).maybeSingle();
+  if (doc?.file_path) await supabase.storage.from("building-documents").remove([doc.file_path]);
+  const { error } = await supabase.from("building_documents").delete().eq("id", params.docId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+// ═══════ Insurance Claims ═══════
+async function handleListInsuranceClaims(url: URL, supabase: ReturnType<typeof getSupabase>) {
+  const buildingId = url.searchParams.get("building_id");
+  const status = url.searchParams.get("status");
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 200);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
+  let q = supabase.from("insurance_claims").select("*, buildings:building_id(id,code,name)", { count: "exact" })
+    .order("created_at", { ascending: false }).range(offset, offset + limit - 1);
+  if (buildingId) q = q.eq("building_id", buildingId);
+  if (status) q = q.eq("status", status);
+  const { data, error, count } = await q;
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ total: count ?? 0, limit, offset, claims: data || [] });
+}
+async function handleGetInsuranceClaim(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("insurance_claims")
+    .select("*, buildings:building_id(id,code,name), insurance:insurance_id(*), notes:insurance_claim_notes(*), attachments:insurance_claim_attachments(*)")
+    .eq("id", params.claimId).maybeSingle();
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  if (!data) throw new HttpError(404, "Not found", "NOT_FOUND");
+  return json(data);
+}
+async function handleCreateInsuranceClaim(req: Request, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const building_id = requireUUID(body.building_id, "building_id");
+  const description = requireString(body.description, "description");
+  const insertData = {
+    building_id, description,
+    assistance_id: body.assistance_id || null, insurance_id: body.insurance_id || null,
+    occurrence_date: body.occurrence_date || null, reported_date: body.reported_date || null,
+    damage_location: body.damage_location || null, insurer_claim_ref: body.insurer_claim_ref || null,
+    insurer_contact: body.insurer_contact || null, status: body.status || "aberto",
+    estimated_amount: body.estimated_amount ?? null, final_amount: body.final_amount ?? null,
+    notes: body.notes || null,
+  };
+  const { data, error } = await supabase.from("insurance_claims").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create claim", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+async function handleUpdateInsuranceClaim(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["description","assistance_id","insurance_id","occurrence_date","reported_date","damage_location","insurer_claim_ref","insurer_contact","status","estimated_amount","final_amount","notes"]) {
+    if (body[k] !== undefined) updateData[k] = body[k];
+  }
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("insurance_claims").update(updateData).eq("id", params.claimId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+async function handleAddClaimNote(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const note = requireString(body.body, "body");
+  const { data, error } = await supabase.from("insurance_claim_notes").insert({ claim_id: params.claimId, body: note }).select("*").single();
+  if (error) throw new HttpError(500, "Failed to add note", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+
 // ── Main handler ──
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -1695,6 +1893,40 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // Activity log
       case "listActivityLog":
         return await handleListActivityLog(url, supabase);
+      // Building administrators
+      case "listBuildingAdministrators":
+        return await handleListBuildingAdministrators(route.params, supabase);
+      case "createBuildingAdministrator":
+        return await handleCreateBuildingAdministrator(req, route.params, supabase);
+      case "updateBuildingAdministrator":
+        return await handleUpdateBuildingAdministrator(req, route.params, supabase);
+      case "deleteBuildingAdministrator":
+        return await handleDeleteBuildingAdministrator(route.params, supabase);
+      // Key handovers
+      case "listKeyHandovers":
+        return await handleListKeyHandovers(url, supabase);
+      case "createKeyHandover":
+        return await handleCreateKeyHandover(req, supabase);
+      case "updateKeyHandover":
+        return await handleUpdateKeyHandover(req, route.params, supabase);
+      // Building documents
+      case "listBuildingDocuments":
+        return await handleListBuildingDocuments(url, route.params, supabase);
+      case "uploadBuildingDocument":
+        return await handleUploadBuildingDocument(req, route.params, supabase);
+      case "deleteBuildingDocument":
+        return await handleDeleteBuildingDocument(route.params, supabase);
+      // Insurance claims
+      case "listInsuranceClaims":
+        return await handleListInsuranceClaims(url, supabase);
+      case "getInsuranceClaim":
+        return await handleGetInsuranceClaim(route.params, supabase);
+      case "createInsuranceClaim":
+        return await handleCreateInsuranceClaim(req, supabase);
+      case "updateInsuranceClaim":
+        return await handleUpdateInsuranceClaim(req, route.params, supabase);
+      case "addClaimNote":
+        return await handleAddClaimNote(req, route.params, supabase);
       default:
         return errorResponse(404, "Not found", "NOT_FOUND");
     }
