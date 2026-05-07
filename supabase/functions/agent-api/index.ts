@@ -834,7 +834,7 @@ async function handleCreateBuilding(req: Request, supabase: ReturnType<typeof ge
 async function handleUpdateBuilding(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
   const body = await req.json();
   const updateData: Record<string, unknown> = {};
-  for (const k of ["code", "name", "address", "nif", "cadastral_code", "admin_notes", "is_active"]) {
+  for (const k of ["code", "name", "address", "nif", "cadastral_code", "admin_notes", "is_active", "elevator_count", "elevator_supplier_id"]) {
     if (body[k] !== undefined) updateData[k] = body[k];
   }
   if (Object.keys(updateData).length === 0) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
