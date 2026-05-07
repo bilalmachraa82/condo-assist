@@ -19,6 +19,7 @@ import {
   Mail,
   Lock,
   Key,
+  UserCog,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
