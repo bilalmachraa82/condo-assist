@@ -26,6 +26,7 @@ import Inspecoes from "./pages/Inspecoes";
 import Seguros from "./pages/Seguros";
 import Keys from "./pages/Keys";
 import Sinistros from "./pages/Sinistros";
+import Administradores from "./pages/Administradores";
 import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
 import Unsubscribe from "./pages/Unsubscribe";
