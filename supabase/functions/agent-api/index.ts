@@ -163,6 +163,25 @@ function matchRoute(method: string, pathname: string): { handler: string; params
     { method: "POST", pattern: /^\/v1\/follow-ups$/, handler: "createFollowUp", paramNames: [] },
     // Activity log
     { method: "GET", pattern: /^\/v1\/activity-log$/, handler: "listActivityLog", paramNames: [] },
+    // Building administrators
+    { method: "GET", pattern: /^\/v1\/buildings\/([^/]+)\/administrators$/, handler: "listBuildingAdministrators", paramNames: ["buildingId"] },
+    { method: "POST", pattern: /^\/v1\/buildings\/([^/]+)\/administrators$/, handler: "createBuildingAdministrator", paramNames: ["buildingId"] },
+    { method: "PATCH", pattern: /^\/v1\/building-administrators\/([^/]+)$/, handler: "updateBuildingAdministrator", paramNames: ["adminId"] },
+    { method: "DELETE", pattern: /^\/v1\/building-administrators\/([^/]+)$/, handler: "deleteBuildingAdministrator", paramNames: ["adminId"] },
+    // Key handovers
+    { method: "GET", pattern: /^\/v1\/key-handovers$/, handler: "listKeyHandovers", paramNames: [] },
+    { method: "POST", pattern: /^\/v1\/key-handovers$/, handler: "createKeyHandover", paramNames: [] },
+    { method: "PATCH", pattern: /^\/v1\/key-handovers\/([^/]+)$/, handler: "updateKeyHandover", paramNames: ["handoverId"] },
+    // Building documents
+    { method: "GET", pattern: /^\/v1\/buildings\/([^/]+)\/documents$/, handler: "listBuildingDocuments", paramNames: ["buildingId"] },
+    { method: "POST", pattern: /^\/v1\/buildings\/([^/]+)\/documents$/, handler: "uploadBuildingDocument", paramNames: ["buildingId"] },
+    { method: "DELETE", pattern: /^\/v1\/building-documents\/([^/]+)$/, handler: "deleteBuildingDocument", paramNames: ["docId"] },
+    // Insurance claims
+    { method: "GET", pattern: /^\/v1\/insurance-claims$/, handler: "listInsuranceClaims", paramNames: [] },
+    { method: "GET", pattern: /^\/v1\/insurance-claims\/([^/]+)$/, handler: "getInsuranceClaim", paramNames: ["claimId"] },
+    { method: "POST", pattern: /^\/v1\/insurance-claims$/, handler: "createInsuranceClaim", paramNames: [] },
+    { method: "PATCH", pattern: /^\/v1\/insurance-claims\/([^/]+)$/, handler: "updateInsuranceClaim", paramNames: ["claimId"] },
+    { method: "POST", pattern: /^\/v1\/insurance-claims\/([^/]+)\/notes$/, handler: "addClaimNote", paramNames: ["claimId"] },
   ];
 
   for (const route of routes) {
