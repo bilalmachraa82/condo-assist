@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Loader2, Download, ExternalLink, FileText } from "lucide-react";
 import { getPendencyFileSignedUrl } from "@/hooks/usePendencies";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export interface PreviewAttachment {
@@ -14,9 +15,12 @@ export interface PreviewAttachment {
 interface Props {
   attachment: PreviewAttachment | null;
   onOpenChange: (open: boolean) => void;
+  /** Optional storage bucket; defaults to email-pendencies via legacy helper */
+  bucket?: string;
+  open?: boolean;
 }
 
-export default function AttachmentPreviewDialog({ attachment, onOpenChange }: Props) {
+export default function AttachmentPreviewDialog({ attachment, onOpenChange, bucket }: Props) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +32,14 @@ export default function AttachmentPreviewDialog({ attachment, onOpenChange }: Pr
       setLoading(true);
       setBlobUrl(null);
       try {
-        const signed = await getPendencyFileSignedUrl(attachment.filePath);
+        let signed: string;
+        if (bucket) {
+          const { data, error } = await supabase.storage.from(bucket).createSignedUrl(attachment.filePath, 3600);
+          if (error) throw error;
+          signed = data.signedUrl;
+        } else {
+          signed = await getPendencyFileSignedUrl(attachment.filePath);
+        }
         const res = await fetch(signed);
         if (!res.ok) throw new Error("Falha a descarregar o ficheiro");
         const blob = await res.blob();
