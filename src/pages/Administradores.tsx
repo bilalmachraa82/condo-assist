@@ -48,16 +48,23 @@ export default function Administradores() {
             Gestão de até {MAX_ADMINS_PER_BUILDING} administradores por edifício.
           </p>
         </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Procurar edifício…"
-            className="pl-8"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-72">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Procurar edifício…"
+              className="pl-8"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" /> Importar
+          </Button>
         </div>
       </div>
+
+      <AdministratorsImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
       <Card>
         <CardHeader className="pb-3">
