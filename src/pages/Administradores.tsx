@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
-import { UserCog, Search, Building2 } from "lucide-react";
+import { UserCog, Search, Building2, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBuildings } from "@/hooks/useBuildings";
 import { useBuildingAdministrators, MAX_ADMINS_PER_BUILDING } from "@/hooks/useBuildingAdministrators";
 import BuildingAdministratorsManager from "@/components/buildings/BuildingAdministratorsManager";
+import AdministratorsImportDialog from "@/components/buildings/AdministratorsImportDialog";
 import {
   Accordion, AccordionItem, AccordionTrigger, AccordionContent,
 } from "@/components/ui/accordion";
@@ -24,6 +26,7 @@ function BuildingAdminCount({ buildingId }: { buildingId: string }) {
 export default function Administradores() {
   const { data: buildings = [], isLoading } = useBuildings();
   const [q, setQ] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -45,16 +48,23 @@ export default function Administradores() {
             Gestão de até {MAX_ADMINS_PER_BUILDING} administradores por edifício.
           </p>
         </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Procurar edifício…"
-            className="pl-8"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-72">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Procurar edifício…"
+              className="pl-8"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" /> Importar
+          </Button>
         </div>
       </div>
+
+      <AdministratorsImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
       <Card>
         <CardHeader className="pb-3">
