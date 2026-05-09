@@ -26,6 +26,7 @@ function BuildingAdminCount({ buildingId }: { buildingId: string }) {
 export default function Administradores() {
   const { data: buildings = [], isLoading } = useBuildings();
   const [q, setQ] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
