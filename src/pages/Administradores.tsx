@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
-import { UserCog, Search, Building2 } from "lucide-react";
+import { UserCog, Search, Building2, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBuildings } from "@/hooks/useBuildings";
 import { useBuildingAdministrators, MAX_ADMINS_PER_BUILDING } from "@/hooks/useBuildingAdministrators";
 import BuildingAdministratorsManager from "@/components/buildings/BuildingAdministratorsManager";
+import AdministratorsImportDialog from "@/components/buildings/AdministratorsImportDialog";
 import {
   Accordion, AccordionItem, AccordionTrigger, AccordionContent,
 } from "@/components/ui/accordion";
