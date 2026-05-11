@@ -10,9 +10,19 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Key, CheckCircle2, Trash2 } from "lucide-react";
+import { Plus, Search, Key, CheckCircle2, Trash2, Pencil, Printer } from "lucide-react";
 import { useBuildings } from "@/hooks/useBuildings";
-import { useKeyHandovers, useCreateKeyHandover, useUpdateKeyHandover, useDeleteKeyHandover } from "@/hooks/useKeyHandovers";
+import { useKeyHandovers, useCreateKeyHandover, useUpdateKeyHandover, useDeleteKeyHandover, type KeyHandover } from "@/hooks/useKeyHandovers";
+
+const emptyForm = {
+  building_id: "",
+  picked_up_by_name: "",
+  picked_up_by_phone: "",
+  picked_up_collaborator: "",
+  company_name: "",
+  purpose: "",
+  notes: "",
+};
 
 export default function Keys() {
   const { data: handovers = [], isLoading } = useKeyHandovers();
@@ -24,21 +34,18 @@ export default function Keys() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [open, setOpen] = useState(false);
-  const [returnId, setReturnId] = useState<string | null>(null);
-
-  const [bId, setBId] = useState("");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [notes, setNotes] = useState("");
+  const [editing, setEditing] = useState<KeyHandover | null>(null);
+  const [returnRow, setReturnRow] = useState<KeyHandover | null>(null);
+  const [form, setForm] = useState({ ...emptyForm });
   const [returnedBy, setReturnedBy] = useState("");
+  const [returnedCollaborator, setReturnedCollaborator] = useState("");
 
-  const filtered = useMemo(() => handovers.filter((h) => {
+  const filtered = useMemo(() => handovers.filter((h: any) => {
     if (statusFilter === "open" && h.returned_at) return false;
     if (statusFilter === "returned" && !h.returned_at) return false;
     if (search) {
       const s = search.toLowerCase();
-      const hay = [h.picked_up_by_name, h.returned_by_name, h.purpose, h.buildings?.code, h.buildings?.name].filter(Boolean).join(" ").toLowerCase();
+      const hay = [h.picked_up_by_name, h.returned_by_name, h.purpose, h.buildings?.code, h.buildings?.name, h.company_name, h.picked_up_collaborator, h.returned_collaborator].filter(Boolean).join(" ").toLowerCase();
       if (!hay.includes(s)) return false;
     }
     return true;
@@ -49,19 +56,83 @@ export default function Keys() {
     returned: handovers.filter((h) => !!h.returned_at).length,
   }), [handovers]);
 
-  const onCreate = async () => {
-    if (!bId || !name.trim()) return;
-    await create.mutateAsync({
-      building_id: bId, picked_up_by_name: name.trim(),
-      picked_up_by_phone: phone || null, purpose: purpose || null, notes: notes || null,
+  const openCreate = () => { setEditing(null); setForm({ ...emptyForm }); setOpen(true); };
+  const openEdit = (h: KeyHandover) => {
+    setEditing(h);
+    setForm({
+      building_id: h.building_id,
+      picked_up_by_name: h.picked_up_by_name ?? "",
+      picked_up_by_phone: h.picked_up_by_phone ?? "",
+      picked_up_collaborator: (h as any).picked_up_collaborator ?? "",
+      company_name: (h as any).company_name ?? "",
+      purpose: h.purpose ?? "",
+      notes: h.notes ?? "",
     });
-    setOpen(false); setBId(""); setName(""); setPhone(""); setPurpose(""); setNotes("");
+    setOpen(true);
+  };
+
+  const onSave = async () => {
+    if (!form.building_id || !form.picked_up_by_name.trim()) return;
+    const payload: any = {
+      building_id: form.building_id,
+      picked_up_by_name: form.picked_up_by_name.trim(),
+      picked_up_by_phone: form.picked_up_by_phone || null,
+      picked_up_collaborator: form.picked_up_collaborator || null,
+      company_name: form.company_name || null,
+      purpose: form.purpose || null,
+      notes: form.notes || null,
+    };
+    if (editing) {
+      await update.mutateAsync({ id: editing.id, ...payload });
+    } else {
+      await create.mutateAsync(payload);
+    }
+    setOpen(false);
+    setForm({ ...emptyForm });
+    setEditing(null);
   };
 
   const onReturn = async () => {
-    if (!returnId) return;
-    await update.mutateAsync({ id: returnId, returned_by_name: returnedBy || "—", returned_at: new Date().toISOString() });
-    setReturnId(null); setReturnedBy("");
+    if (!returnRow) return;
+    await update.mutateAsync({
+      id: returnRow.id,
+      returned_by_name: returnedBy || "—",
+      returned_at: new Date().toISOString(),
+      ...(returnedCollaborator ? { returned_collaborator: returnedCollaborator } as any : {}),
+    } as any);
+    setReturnRow(null); setReturnedBy(""); setReturnedCollaborator("");
+  };
+
+  const printInUse = () => {
+    const inUse = handovers.filter((h) => !h.returned_at);
+    const rows = inUse.map((h: any) => `
+      <tr>
+        <td>${h.buildings ? `${h.buildings.code} - ${h.buildings.name}` : "—"}</td>
+        <td>${h.picked_up_by_name ?? ""}${h.picked_up_by_phone ? `<br/><small>${h.picked_up_by_phone}</small>` : ""}</td>
+        <td>${h.company_name ?? "—"}</td>
+        <td>${h.picked_up_collaborator ?? "—"}</td>
+        <td>${format(new Date(h.picked_up_at), "dd/MM/yyyy HH:mm", { locale: pt })}</td>
+        <td>${h.purpose ?? "—"}</td>
+      </tr>`).join("");
+    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Chaves em uso</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:24px;color:#111}
+        h1{font-size:18px;margin:0 0 4px}
+        .sub{color:#666;font-size:12px;margin-bottom:16px}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;vertical-align:top}
+        th{background:#f3f4f6}
+      </style></head><body>
+      <h1>Chaves em uso</h1>
+      <div class="sub">Emitido em ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: pt })} · Total: ${inUse.length}</div>
+      <table><thead><tr>
+        <th>Edifício</th><th>Quem pegou</th><th>Empresa</th><th>Colaborador Luvimg</th><th>Data levantamento</th><th>Motivo</th>
+      </tr></thead><tbody>${rows || `<tr><td colspan="6" style="text-align:center;color:#666">Sem chaves em uso.</td></tr>`}</tbody></table>
+      <script>window.onload=()=>{window.print();}</script>
+      </body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(html); w.document.close();
   };
 
   return (
@@ -71,7 +142,10 @@ export default function Keys() {
           <h1 className="text-2xl font-bold flex items-center gap-2"><Key className="h-6 w-6 text-primary" /> Relatório de Chaves</h1>
           <p className="text-sm text-muted-foreground">Registo de levantamento e devolução de chaves dos edifícios.</p>
         </div>
-        <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" /> Registar levantamento</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={printInUse}><Printer className="h-4 w-4 mr-2" /> Imprimir chaves em uso</Button>
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Registar levantamento</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
@@ -82,7 +156,7 @@ export default function Keys() {
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Procurar pessoa, edifício, motivo…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input className="pl-9" placeholder="Procurar pessoa, edifício, motivo, empresa…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="sm:w-48"><SelectValue /></SelectTrigger>
@@ -95,39 +169,51 @@ export default function Keys() {
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Edifício</TableHead>
                 <TableHead>Quem pegou</TableHead>
+                <TableHead>Empresa</TableHead>
+                <TableHead>Colab. Luvimg</TableHead>
                 <TableHead>Data</TableHead>
-                <TableHead>Quem entregou</TableHead>
-                <TableHead>Data devolução</TableHead>
+                <TableHead>Devolução</TableHead>
                 <TableHead>Motivo</TableHead>
                 <TableHead className="w-32 text-right">Acções</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
+              {isLoading && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
               {!isLoading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Sem registos.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sem registos.</TableCell></TableRow>
               )}
-              {filtered.map((h) => (
+              {filtered.map((h: any) => (
                 <TableRow key={h.id}>
                   <TableCell className="font-medium">{h.buildings ? `${h.buildings.code} - ${h.buildings.name}` : "—"}</TableCell>
                   <TableCell>{h.picked_up_by_name}{h.picked_up_by_phone ? <div className="text-xs text-muted-foreground">{h.picked_up_by_phone}</div> : null}</TableCell>
+                  <TableCell className="text-sm">{h.company_name ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{h.picked_up_collaborator ?? "—"}</TableCell>
                   <TableCell className="text-sm">{format(new Date(h.picked_up_at), "dd/MM/yy HH:mm", { locale: pt })}</TableCell>
-                  <TableCell>{h.returned_by_name ?? <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Em uso</Badge>}</TableCell>
-                  <TableCell className="text-sm">{h.returned_at ? format(new Date(h.returned_at), "dd/MM/yy HH:mm", { locale: pt }) : "—"}</TableCell>
+                  <TableCell className="text-sm">
+                    {h.returned_at ? (
+                      <div>
+                        <div>{format(new Date(h.returned_at), "dd/MM/yy HH:mm", { locale: pt })}</div>
+                        <div className="text-xs text-muted-foreground">{h.returned_by_name}{h.returned_collaborator ? ` · ${h.returned_collaborator}` : ""}</div>
+                      </div>
+                    ) : <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Em uso</Badge>}
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{h.purpose ?? "—"}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
                     {!h.returned_at && (
-                      <Button size="sm" variant="ghost" onClick={() => setReturnId(h.id)}>
-                        <CheckCircle2 className="h-4 w-4 mr-1" /> Devolver
+                      <Button size="sm" variant="ghost" onClick={() => setReturnRow(h)} title="Marcar devolução">
+                        <CheckCircle2 className="h-4 w-4" />
                       </Button>
                     )}
-                    <Button size="sm" variant="ghost" onClick={() => remove.mutate(h.id)}>
+                    <Button size="sm" variant="ghost" onClick={() => openEdit(h)} title="Editar">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => remove.mutate(h.id)} title="Apagar">
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </TableCell>
@@ -138,13 +224,13 @@ export default function Keys() {
         </CardContent>
       </Card>
 
-      {/* Create */}
+      {/* Create/Edit */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Registar levantamento de chave</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? "Editar levantamento" : "Registar levantamento de chave"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>Edifício</Label>
-              <Select value={bId} onValueChange={setBId}>
+            <div><Label>Edifício *</Label>
+              <Select value={form.building_id} onValueChange={(v) => setForm((f) => ({ ...f, building_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecionar edifício" /></SelectTrigger>
                 <SelectContent>
                   {buildings.map((b) => <SelectItem key={b.id} value={b.id}>{b.code} - {b.name}</SelectItem>)}
@@ -152,28 +238,35 @@ export default function Keys() {
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>Quem pegou *</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-              <div><Label>Telemóvel</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+              <div><Label>Quem pegou *</Label><Input value={form.picked_up_by_name} onChange={(e) => setForm((f) => ({ ...f, picked_up_by_name: e.target.value }))} /></div>
+              <div><Label>Telemóvel</Label><Input value={form.picked_up_by_phone} onChange={(e) => setForm((f) => ({ ...f, picked_up_by_phone: e.target.value }))} /></div>
             </div>
-            <div><Label>Motivo / Para quem</Label><Input value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Ex: Entrega ao fornecedor X" /></div>
-            <div><Label>Notas</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Empresa</Label><Input value={form.company_name} onChange={(e) => setForm((f) => ({ ...f, company_name: e.target.value }))} placeholder="Ex: Schindler" /></div>
+              <div><Label>Colaborador Luvimg</Label><Input value={form.picked_up_collaborator} onChange={(e) => setForm((f) => ({ ...f, picked_up_collaborator: e.target.value }))} placeholder="Quem entregou a chave" /></div>
+            </div>
+            <div><Label>Motivo / Para quem</Label><Input value={form.purpose} onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))} placeholder="Ex: Entrega ao fornecedor X" /></div>
+            <div><Label>Notas</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={onCreate} disabled={!bId || !name.trim() || create.isPending}>Registar</Button>
+            <Button onClick={onSave} disabled={!form.building_id || !form.picked_up_by_name.trim() || create.isPending || update.isPending}>
+              {editing ? "Guardar alterações" : "Registar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Return */}
-      <Dialog open={!!returnId} onOpenChange={(o) => !o && setReturnId(null)}>
+      <Dialog open={!!returnRow} onOpenChange={(o) => !o && setReturnRow(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Marcar como devolvida</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Quem devolveu</Label><Input value={returnedBy} onChange={(e) => setReturnedBy(e.target.value)} placeholder="Nome de quem devolveu" /></div>
+            <div><Label>Colaborador Luvimg que recebeu</Label><Input value={returnedCollaborator} onChange={(e) => setReturnedCollaborator(e.target.value)} placeholder="Quem recebeu a chave" /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setReturnId(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setReturnRow(null)}>Cancelar</Button>
             <Button onClick={onReturn} disabled={update.isPending}>Confirmar devolução</Button>
           </DialogFooter>
         </DialogContent>

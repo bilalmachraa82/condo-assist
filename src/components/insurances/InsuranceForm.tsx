@@ -8,7 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useBuildings } from "@/hooks/useBuildings";
 import { CoverageType, InsuranceInput, InsuranceStatusRow, useUpsertInsurance, useBuildingFractions, useInsuranceFractionStatus, useSaveInsuranceFractionStatus, useUpsertBuildingFraction, useDeleteBuildingFraction, type FractionStatusValue } from "@/hooks/useInsurances";
 import { addYears, format } from "date-fns";
-import { CalendarCheck2, Plus, Trash2 } from "lucide-react";
+import { CalendarCheck2, Plus, Trash2, Upload, FileText, Eye, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   open: boolean;
@@ -32,11 +34,15 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
   const [fractionsIncluded, setFractionsIncluded] = useState("");
   const [observations, setObservations] = useState("");
   const [renewalDate, setRenewalDate] = useState("");
+  const [policyFile, setPolicyFile] = useState<File | null>(null);
+  const [existingPolicyPath, setExistingPolicyPath] = useState<string | null>(null);
+  const [uploadingPolicy, setUploadingPolicy] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!open) return;
+    setPolicyFile(null);
     if (mode === "renew" && prefill) {
-      // Renovação: copia os dados, sugere +1 ano
       setBuildingId(prefill.building_id ?? defaultBuildingId ?? "");
       setPolicyNumber(prefill.policy_number ?? "");
       setInsurer(prefill.insurer ?? "");
@@ -47,6 +53,7 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       setObservations(prefill.observations ?? "");
       const base = prefill.renewal_date ? new Date(prefill.renewal_date) : new Date();
       setRenewalDate(format(addYears(base, 1), "yyyy-MM-dd"));
+      setExistingPolicyPath(null); // nova apólice
     } else if (mode === "edit" && prefill) {
       setBuildingId(prefill.building_id ?? "");
       setPolicyNumber(prefill.policy_number ?? "");
@@ -57,11 +64,13 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       setFractionsIncluded(prefill.fractions_included ?? "");
       setObservations(prefill.observations ?? "");
       setRenewalDate(prefill.renewal_date ?? "");
+      setExistingPolicyPath((prefill as any)?.policy_path ?? null);
     } else {
       setBuildingId(defaultBuildingId ?? "");
       setPolicyNumber(""); setInsurer(""); setBroker(""); setContact("");
       setCoverageType("multirisco"); setFractionsIncluded(""); setObservations("");
       setRenewalDate(format(addYears(new Date(), 1), "yyyy-MM-dd"));
+      setExistingPolicyPath(null);
     }
   }, [open, mode, prefill, defaultBuildingId]);
 
@@ -90,7 +99,27 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
     e.preventDefault();
     if (!buildingId) return;
 
-    const payload: InsuranceInput = {
+    let policyPath: string | null | undefined = undefined;
+    if (policyFile) {
+      try {
+        setUploadingPolicy(true);
+        const ext = policyFile.name.split(".").pop() || "pdf";
+        const path = `${buildingId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("insurance-documents")
+          .upload(path, policyFile, { upsert: false, contentType: policyFile.type || undefined });
+        if (upErr) throw upErr;
+        policyPath = path;
+      } catch (err: any) {
+        toast({ title: "Erro a carregar apólice", description: err.message, variant: "destructive" });
+        setUploadingPolicy(false);
+        return;
+      } finally {
+        setUploadingPolicy(false);
+      }
+    }
+
+    const payload: InsuranceInput & { policy_path?: string | null } = {
       id: mode === "edit" ? prefill?.insurance_id ?? undefined : undefined,
       building_id: buildingId,
       policy_number: policyNumber || null,
@@ -101,10 +130,10 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       fractions_included: fractionsIncluded || null,
       observations: observations || null,
       renewal_date: renewalDate || null,
+      ...(policyPath !== undefined ? { policy_path: policyPath } : {}),
     };
 
-    const saved = await upsert.mutateAsync(payload);
-    // Guarda o estado das frações se houver alguma marcada
+    const saved = await upsert.mutateAsync(payload as InsuranceInput);
     const entries = Object.entries(fractionState)
       .filter(([, v]) => v === "included" || v === "excluded")
       .map(([fraction_id, status]) => ({ fraction_id, status }));
@@ -112,6 +141,13 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       await saveFractionStatus.mutateAsync({ insurance_id: saved.id, entries });
     }
     onOpenChange(false);
+  };
+
+  const openExistingPolicy = async () => {
+    if (!existingPolicyPath) return;
+    const { data, error } = await supabase.storage.from("insurance-documents").createSignedUrl(existingPolicyPath, 3600);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    window.open(data.signedUrl, "_blank");
   };
 
   const title = mode === "renew" ? "Renovar seguro" : mode === "edit" ? "Editar seguro" : "Registar seguro";
@@ -251,14 +287,51 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
           </div>
 
           <div className="grid gap-2">
+            <Label>Apólice (PDF)</Label>
+            {existingPolicyPath && !policyFile && (
+              <div className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm bg-muted/30">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
+                  <span className="truncate">Apólice carregada</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button type="button" size="sm" variant="ghost" onClick={openExistingPolicy}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            {policyFile ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
+                  <span className="truncate">{policyFile.name}</span>
+                </div>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setPolicyFile(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Input
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={(e) => setPolicyFile(e.target.files?.[0] ?? null)}
+              />
+            )}
+            {existingPolicyPath && policyFile && (
+              <p className="text-xs text-muted-foreground">A nova apólice irá substituir a atual.</p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
             <Label>Observações</Label>
             <Textarea value={observations} onChange={e => setObservations(e.target.value)} rows={2} />
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={upsert.isPending || !buildingId}>
-              {upsert.isPending ? "A guardar..." : title}
+            <Button type="submit" disabled={upsert.isPending || uploadingPolicy || !buildingId}>
+              {uploadingPolicy ? "A carregar apólice..." : upsert.isPending ? "A guardar..." : title}
             </Button>
           </DialogFooter>
         </form>

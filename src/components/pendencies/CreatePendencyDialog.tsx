@@ -11,10 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Upload, FileText, X, Bell } from "lucide-react";
+import { Upload, FileText, X, Bell, Sparkles } from "lucide-react";
 import { useCreatePendency, useUploadPendencyFile, PENDENCY_STATUS_LABELS, PENDENCY_STATUS_ORDER } from "@/hooks/usePendencies";
 import { useCreatePendencyReminder } from "@/hooks/usePendencyReminders";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   open: boolean;
@@ -34,7 +35,8 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
   const create = useCreatePendency();
   const upload = useUploadPendencyFile();
   const createReminder = useCreatePendencyReminder();
-
+  const { toast } = useToast();
+  const [aiBusy, setAiBusy] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
@@ -105,6 +107,54 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
   };
 
+  const fileToBase64 = (f: File) => new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",", 2)[1] ?? "");
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(f);
+  });
+
+  const runAutoFill = async () => {
+    if (!file) {
+      toast({ title: "Anexa um PDF/imagem primeiro", variant: "destructive" });
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const fileBase64 = await fileToBase64(file);
+      const { data, error } = await supabase.functions.invoke("parse-pendency-pdf", {
+        body: { fileBase64, mimeType: file.type || "application/pdf" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      // Apply only if user fields empty
+      if (data?.title && !title) setTitle(data.title);
+      if (data?.subject && !subject) setSubject(data.subject);
+      if (data?.description && !description) setDescription(data.description);
+      if (data?.priority) setPriority(data.priority);
+      // Try to match building by code/name hint
+      if (data?.building_hint && !buildingId && buildings) {
+        const hint = String(data.building_hint).toLowerCase();
+        const match = buildings.find((b: any) =>
+          b.code?.toLowerCase() === hint ||
+          b.code?.toLowerCase().includes(hint) ||
+          b.name?.toLowerCase().includes(hint)
+        );
+        if (match) setBuildingId(match.id);
+      }
+      if (data?.supplier_hint && !supplierId && suppliers) {
+        const hint = String(data.supplier_hint).toLowerCase();
+        const match = suppliers.find((s: any) => s.name?.toLowerCase().includes(hint));
+        if (match) setSupplierId(match.id);
+      }
+      toast({ title: "Auto-preenchido com IA", description: "Revê e ajusta antes de criar." });
+    } catch (e: any) {
+      toast({ title: "Erro a analisar PDF", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
   const submit = async () => {
     if (!buildingId || !title) return;
     const created = await create.mutateAsync({
@@ -173,6 +223,15 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
               </>
             )}
           </div>
+          {file && (
+            <div className="flex justify-end -mt-2">
+              <Button type="button" variant="outline" size="sm" onClick={runAutoFill} disabled={aiBusy}>
+                <Sparkles className="h-4 w-4 mr-1.5 text-primary" />
+                {aiBusy ? "A analisar com IA…" : "Auto-preencher com IA"}
+              </Button>
+            </div>
+          )}
+
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
