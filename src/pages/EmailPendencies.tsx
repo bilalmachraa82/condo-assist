@@ -91,6 +91,13 @@ export default function EmailPendencies() {
         if (!hay.includes(s)) return false;
       }
       return true;
+    }).sort((a, b) => {
+      // Ordenar por código de edifício asc (003 → 180), depois data desc
+      const ca = a.buildings?.code ?? "zzz";
+      const cb = b.buildings?.code ?? "zzz";
+      const cmp = ca.localeCompare(cb, "pt", { numeric: true });
+      if (cmp !== 0) return cmp;
+      return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
     });
   }, [pendencies, search, status]);
 
@@ -177,11 +184,15 @@ export default function EmailPendencies() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold truncate">{p.title}</div>
+                    {/* Negrito: edifício (código + nome). Cinzento: assunto/título da pendência */}
+                    <div className="font-semibold truncate flex items-center gap-1.5">
+                      <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                      {p.buildings ? `${p.buildings.code} - ${p.buildings.name}` : "Sem edifício"}
+                    </div>
+                    <div className="text-sm text-muted-foreground truncate mt-0.5">
+                      {p.subject || p.title}
+                    </div>
                     <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                      {p.buildings && (
-                        <span className="inline-flex items-center gap-1"><Building2 className="h-3 w-3" />{p.buildings.code} - {p.buildings.name}</span>
-                      )}
                       {p.suppliers && (
                         <span className="inline-flex items-center gap-1"><User className="h-3 w-3" />{p.suppliers.name}</span>
                       )}

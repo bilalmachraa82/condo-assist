@@ -1507,7 +1507,7 @@ export type Database = {
           address: string | null
           admin_notes: string | null
           cadastral_code: string | null
-          code: string
+          code: string | null
           created_at: string
           elevator_count: number
           elevator_supplier_id: string | null
@@ -1521,7 +1521,7 @@ export type Database = {
           address?: string | null
           admin_notes?: string | null
           cadastral_code?: string | null
-          code: string
+          code?: string | null
           created_at?: string
           elevator_count?: number
           elevator_supplier_id?: string | null
@@ -1535,7 +1535,7 @@ export type Database = {
           address?: string | null
           admin_notes?: string | null
           cadastral_code?: string | null
-          code?: string
+          code?: string | null
           created_at?: string
           elevator_count?: number
           elevator_supplier_id?: string | null

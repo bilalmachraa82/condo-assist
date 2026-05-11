@@ -73,7 +73,8 @@ export function BuildingForm({ building, onSuccess, onCancel }: BuildingFormProp
   const onSubmit = async (data: BuildingFormData) => {
     try {
       // Permitir código vazio: só auto-gera se for criação E vazio.
-      let finalCode = data.code?.trim() ?? ""
+      // Em edição, se o utilizador limpar o código, gravamos NULL.
+      let finalCode: string | null = (data.code?.trim() ?? "") || null
       if (!finalCode && !building) finalCode = await generateNextCode()
 
       const processedData: any = {

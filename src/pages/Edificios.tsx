@@ -184,11 +184,7 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
       {/* Building Info */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{buildingAssistances.length}</div>
-              <div className="text-sm text-muted-foreground">Total</div>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-warning">{openAssistances.length}</div>
               <div className="text-sm text-muted-foreground">Abertas</div>
@@ -198,10 +194,8 @@ function BuildingAssistancesView({ building, onBack }: { building: Building; onB
               <div className="text-sm text-muted-foreground">Fechadas</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {buildingAssistances.filter(a => a.status === 'in_progress').length}
-              </div>
-              <div className="text-sm text-muted-foreground">Em Progresso</div>
+              <div className="text-2xl font-bold text-primary">{buildingAssistances.length}</div>
+              <div className="text-sm text-muted-foreground">Total</div>
             </div>
             <div 
               className={`text-center cursor-pointer rounded-lg p-2 transition-all ${

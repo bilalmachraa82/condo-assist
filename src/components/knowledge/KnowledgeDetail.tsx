@@ -6,6 +6,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { getCategoryConfig } from "@/utils/knowledgeCategories";
 import { useToast } from "@/hooks/use-toast";
+import BuildingAdministratorsManager from "@/components/buildings/BuildingAdministratorsManager";
+import { useBuildingAdministrators } from "@/hooks/useBuildingAdministrators";
+import { Card, CardContent } from "@/components/ui/card";
+import { Mail, Phone, Home } from "lucide-react";
 import type { KnowledgeArticle } from "@/hooks/useKnowledgeArticles";
 
 interface Props {
@@ -86,6 +90,11 @@ export default function KnowledgeDetail({ article, open, onOpenChange, onEdit }:
             </div>
           )}
 
+          {/* Administradores (apenas categoria procedimentos com edifício) */}
+          {article.category === "procedimentos" && article.building_id && (
+            <AdminsList buildingId={article.building_id} />
+          )}
+
           {/* Content */}
           <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-base prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-table:text-xs prose-th:px-2 prose-th:py-1 prose-td:px-2 prose-td:py-1 prose-table:border prose-th:border prose-td:border prose-th:bg-muted/50">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.content}</ReactMarkdown>
@@ -103,5 +112,54 @@ export default function KnowledgeDetail({ article, open, onOpenChange, onEdit }:
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function AdminsList({ buildingId }: { buildingId: string }) {
+  const { data: admins = [], isLoading } = useBuildingAdministrators(buildingId);
+  if (isLoading) return null;
+  if (admins.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        Administradores ({admins.length})
+      </h3>
+      <div className="grid gap-2">
+        {admins.map((a) => (
+          <Card key={a.id} className={a.is_primary ? "border-primary/40" : ""}>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="font-medium text-sm">
+                  {a.name}
+                  {a.is_primary && (
+                    <span className="ml-2 text-xs text-primary font-normal">(Principal)</span>
+                  )}
+                </div>
+                {a.floor && (
+                  <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                    <Home className="h-3 w-3" />{a.floor}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                {a.email && (
+                  <a href={`mailto:${a.email}`} className="inline-flex items-center gap-1 hover:text-primary">
+                    <Mail className="h-3 w-3" />{a.email}
+                  </a>
+                )}
+                {a.phone && (
+                  <a href={`tel:${a.phone}`} className="inline-flex items-center gap-1 hover:text-primary">
+                    <Phone className="h-3 w-3" />{a.phone}
+                  </a>
+                )}
+              </div>
+              {a.notes && (
+                <div className="mt-1 text-xs text-muted-foreground whitespace-pre-line">{a.notes}</div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }

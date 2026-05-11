@@ -91,14 +91,11 @@ export default function Inspecoes() {
         <Button onClick={() => openFor()}><Plus className="h-4 w-4 mr-1" /> Registar inspeção</Button>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* KPI cards — simplificado: Em dia / A vencer 30d / Vencidos */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <KpiCard label="Em dia" value={stats.ok} icon={<ShieldCheck />} status="ok" onClick={() => setStatusFilter("ok")} />
-        <KpiCard label="A vencer 30d" value={stats.due_soon_30} icon={<Clock />} status="due_soon_30" onClick={() => setStatusFilter("due_soon_30")} />
-        <KpiCard label="A vencer 15d" value={stats.due_soon_15} icon={<Clock />} status="due_soon_15" onClick={() => setStatusFilter("due_soon_15")} />
+        <KpiCard label="A vencer 30d" value={stats.due_soon_30 + stats.due_soon_15} icon={<Clock />} status="due_soon_30" onClick={() => setStatusFilter("due_soon_30")} />
         <KpiCard label="Vencidos" value={stats.overdue} icon={<CalendarX />} status="overdue" onClick={() => setStatusFilter("overdue")} />
-        <KpiCard label="Pendentes" value={stats.pending} icon={<Hourglass />} status="pending" onClick={() => setStatusFilter("pending")} />
-        <KpiCard label="Sem registo" value={stats.missing} icon={<HelpCircle />} status="missing" onClick={() => setStatusFilter("missing")} />
       </div>
 
       {/* Coverage per category */}
