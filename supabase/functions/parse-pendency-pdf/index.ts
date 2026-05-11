@@ -1,7 +1,11 @@
 // Parse a pendency-related PDF/image with Lovable AI Gateway and return structured fields.
 // Used by the "Auto-fill" button in CreatePendencyDialog.
-import { corsHeaders } from "@supabase/supabase-js/cors";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 interface ParseRequest {
   // Either a base64 file (data URL or raw base64) or a storage path in 'pendency-attachments' bucket
