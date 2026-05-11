@@ -199,13 +199,34 @@ export default function AssemblyBuildingGroup({
             </div>
           </button>
         </CollapsibleTrigger>
-        <div className="flex items-center px-1 rounded-lg border bg-card" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center px-1 rounded-lg border bg-card gap-1" onClick={(e) => e.stopPropagation()}>
+          {buildingId && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              title="Anexar acta (PDF)"
+              onClick={() => setAttachOpen(true)}
+            >
+              <Paperclip className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <AssemblyPDFExportButton
             groups={[{ buildingCode, address, items }]}
             iconOnly
           />
         </div>
       </div>
+
+      {buildingId && (
+        <AssemblyAttachMinutesDialog
+          open={attachOpen}
+          onOpenChange={setAttachOpen}
+          buildingId={buildingId}
+          buildingLabel={`${String(buildingCode).padStart(3, "0")}${address ? ` — ${address}` : ""}`}
+          defaultYear={latestYear}
+        />
+      )}
 
       <CollapsibleContent>
         <div className="ml-4 mr-1 mt-1 mb-3 border rounded-lg overflow-hidden bg-card">
