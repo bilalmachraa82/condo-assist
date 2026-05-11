@@ -223,6 +223,15 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
               </>
             )}
           </div>
+          {file && (
+            <div className="flex justify-end -mt-2">
+              <Button type="button" variant="outline" size="sm" onClick={runAutoFill} disabled={aiBusy}>
+                <Sparkles className="h-4 w-4 mr-1.5 text-primary" />
+                {aiBusy ? "A analisar com IA…" : "Auto-preencher com IA"}
+              </Button>
+            </div>
+          )}
+
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
