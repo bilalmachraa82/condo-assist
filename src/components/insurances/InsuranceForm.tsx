@@ -41,8 +41,8 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
 
   useEffect(() => {
     if (!open) return;
+    setPolicyFile(null);
     if (mode === "renew" && prefill) {
-      // Renovação: copia os dados, sugere +1 ano
       setBuildingId(prefill.building_id ?? defaultBuildingId ?? "");
       setPolicyNumber(prefill.policy_number ?? "");
       setInsurer(prefill.insurer ?? "");
@@ -53,6 +53,7 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       setObservations(prefill.observations ?? "");
       const base = prefill.renewal_date ? new Date(prefill.renewal_date) : new Date();
       setRenewalDate(format(addYears(base, 1), "yyyy-MM-dd"));
+      setExistingPolicyPath(null); // nova apólice
     } else if (mode === "edit" && prefill) {
       setBuildingId(prefill.building_id ?? "");
       setPolicyNumber(prefill.policy_number ?? "");
@@ -63,11 +64,13 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       setFractionsIncluded(prefill.fractions_included ?? "");
       setObservations(prefill.observations ?? "");
       setRenewalDate(prefill.renewal_date ?? "");
+      setExistingPolicyPath((prefill as any)?.policy_path ?? null);
     } else {
       setBuildingId(defaultBuildingId ?? "");
       setPolicyNumber(""); setInsurer(""); setBroker(""); setContact("");
       setCoverageType("multirisco"); setFractionsIncluded(""); setObservations("");
       setRenewalDate(format(addYears(new Date(), 1), "yyyy-MM-dd"));
+      setExistingPolicyPath(null);
     }
   }, [open, mode, prefill, defaultBuildingId]);
 
