@@ -38,7 +38,9 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
   const [buildingId, setBuildingId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [inspectionDate, setInspectionDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
-  const [result, setResult] = useState<"ok" | "nok_minor" | "nok_major" | "pending_works" | "pending">("ok");
+  // Sem default: o utilizador tem de escolher explicitamente o resultado.
+  // Antes ficava "ok" automaticamente — bastava escrever uma nota e era considerado válido.
+  const [result, setResult] = useState<"" | "ok" | "nok_minor" | "nok_major" | "pending_works" | "pending">("");
   const [companyName, setCompanyName] = useState("");
   const [companyContact, setCompanyContact] = useState("");
   const [notes, setNotes] = useState("");
@@ -57,7 +59,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
       setBuildingId(defaultBuildingId ?? "");
       setCategoryId(defaultCategoryId ?? "");
       setInspectionDate(format(new Date(), "yyyy-MM-dd"));
-      setResult("ok");
+      setResult("");
       setCompanyName(""); setCompanyContact(""); setNotes("");
     }
   }, [open, defaultBuildingId, defaultCategoryId, editInspection]);
@@ -74,12 +76,12 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!buildingId || !categoryId || !inspectionDate) return;
+    if (!buildingId || !categoryId || !inspectionDate || !result) return;
     const payload = {
       building_id: buildingId,
       category_id: categoryId,
       inspection_date: inspectionDate,
-      result,
+      result: result as Exclude<typeof result, "">,
       company_name: companyName || null,
       company_contact: companyContact || null,
       notes: notes || null,
@@ -132,9 +134,9 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
               <Input type="date" value={inspectionDate} onChange={e => setInspectionDate(e.target.value)} required />
             </div>
             <div className="grid gap-2">
-              <Label>Resultado</Label>
+              <Label>Resultado *</Label>
               <Select value={result} onValueChange={(v) => setResult(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Escolher resultado" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ok">OK / Conforme</SelectItem>
                   <SelectItem value="pending">Pendente (a aguardar relatório)</SelectItem>
@@ -171,7 +173,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={createMut.isPending || updateMut.isPending || !buildingId || !categoryId}>
+            <Button type="submit" disabled={createMut.isPending || updateMut.isPending || !buildingId || !categoryId || !result}>
               {(createMut.isPending || updateMut.isPending) ? "A guardar..." : (isEdit ? "Guardar alterações" : "Registar inspeção")}
             </Button>
           </DialogFooter>
