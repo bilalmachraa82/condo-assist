@@ -11,10 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Upload, FileText, X, Bell } from "lucide-react";
+import { Upload, FileText, X, Bell, Sparkles } from "lucide-react";
 import { useCreatePendency, useUploadPendencyFile, PENDENCY_STATUS_LABELS, PENDENCY_STATUS_ORDER } from "@/hooks/usePendencies";
 import { useCreatePendencyReminder } from "@/hooks/usePendencyReminders";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   open: boolean;
