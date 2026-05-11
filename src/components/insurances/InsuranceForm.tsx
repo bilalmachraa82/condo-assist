@@ -34,6 +34,10 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
   const [fractionsIncluded, setFractionsIncluded] = useState("");
   const [observations, setObservations] = useState("");
   const [renewalDate, setRenewalDate] = useState("");
+  const [policyFile, setPolicyFile] = useState<File | null>(null);
+  const [existingPolicyPath, setExistingPolicyPath] = useState<string | null>(null);
+  const [uploadingPolicy, setUploadingPolicy] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!open) return;
