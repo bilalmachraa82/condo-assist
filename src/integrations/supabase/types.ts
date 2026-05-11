@@ -1443,6 +1443,7 @@ export type Database = {
           notes: string | null
           observations: string | null
           policy_number: string | null
+          policy_path: string | null
           renewal_date: string | null
           updated_at: string
         }
@@ -1459,6 +1460,7 @@ export type Database = {
           notes?: string | null
           observations?: string | null
           policy_number?: string | null
+          policy_path?: string | null
           renewal_date?: string | null
           updated_at?: string
         }
@@ -1475,6 +1477,7 @@ export type Database = {
           notes?: string | null
           observations?: string | null
           policy_number?: string | null
+          policy_path?: string | null
           renewal_date?: string | null
           updated_at?: string
         }
@@ -2435,6 +2438,7 @@ export type Database = {
         Row: {
           assistance_id: string | null
           building_id: string
+          company_name: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -2442,15 +2446,18 @@ export type Database = {
           picked_up_at: string
           picked_up_by_name: string
           picked_up_by_phone: string | null
+          picked_up_collaborator: string | null
           purpose: string | null
           returned_at: string | null
           returned_by_name: string | null
+          returned_collaborator: string | null
           supplier_id: string | null
           updated_at: string
         }
         Insert: {
           assistance_id?: string | null
           building_id: string
+          company_name?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -2458,15 +2465,18 @@ export type Database = {
           picked_up_at?: string
           picked_up_by_name: string
           picked_up_by_phone?: string | null
+          picked_up_collaborator?: string | null
           purpose?: string | null
           returned_at?: string | null
           returned_by_name?: string | null
+          returned_collaborator?: string | null
           supplier_id?: string | null
           updated_at?: string
         }
         Update: {
           assistance_id?: string | null
           building_id?: string
+          company_name?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -2474,9 +2484,11 @@ export type Database = {
           picked_up_at?: string
           picked_up_by_name?: string
           picked_up_by_phone?: string | null
+          picked_up_collaborator?: string | null
           purpose?: string | null
           returned_at?: string | null
           returned_by_name?: string | null
+          returned_collaborator?: string | null
           supplier_id?: string | null
           updated_at?: string
         }
@@ -3092,9 +3104,11 @@ export type Database = {
           category_id: string | null
           category_key: string | null
           category_label: string | null
+          certificate_url: string | null
           company_contact: string | null
           company_name: string | null
           days_until_due: number | null
+          elevator_count: number | null
           inspection_date: string | null
           inspection_id: string | null
           next_due_date: string | null
