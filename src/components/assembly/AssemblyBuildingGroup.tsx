@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, ChevronRight, Plus, Pencil, Trash2, Check, Loader2, AlertCircle, RotateCw } from "lucide-react";
+import { Building2, ChevronRight, Plus, Pencil, Trash2, Check, Loader2, AlertCircle, RotateCw, Paperclip } from "lucide-react";
 import { getAssemblyCategoryConfig } from "@/utils/assemblyCategories";
 import AssemblyPDFExportButton from "./AssemblyPDFExportButton";
+import AssemblyAttachMinutesDialog from "./AssemblyAttachMinutesDialog";
 import { useUpdateAssemblyItem, type AssemblyItem } from "@/hooks/useAssemblyItems";
 
 interface Props {
