@@ -7,8 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useBuildings } from "@/hooks/useBuildings";
 import { useCreateInspection, useUpdateInspection, useInspectionCategories } from "@/hooks/useInspections";
-import { format, addYears } from "date-fns";
-import { CalendarCheck2 } from "lucide-react";
+import { addYears, format } from "date-fns";
+import { CalendarCheck2, Paperclip, FileCheck2, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+export type InspectionResult = "aprovado" | "aprovado_clausulas" | "pendente_relatorio" | "chumbou";
 
 interface Props {
   open: boolean;
@@ -21,10 +25,11 @@ interface Props {
     building_id: string;
     category_id: string;
     inspection_date: string;
-    result: "ok" | "nok_minor" | "nok_major" | "pending_works" | "pending";
+    result: InspectionResult | string;
     company_name?: string | null;
     company_contact?: string | null;
     notes?: string | null;
+    certificate_url?: string | null;
   } | null;
 }
 
