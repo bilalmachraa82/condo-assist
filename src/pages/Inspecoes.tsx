@@ -68,10 +68,11 @@ export default function Inspecoes() {
       building_id: r.building_id,
       category_id: r.category_id,
       inspection_date: r.inspection_date,
-      result: (r.result ?? "ok"),
+      result: r.result ?? "aprovado",
       company_name: r.company_name,
       company_contact: r.company_contact,
       notes: r.notes,
+      certificate_url: r.certificate_url ?? null,
     });
     setPresetBuilding(undefined); setPresetCategory(undefined);
     setOpenForm(true);

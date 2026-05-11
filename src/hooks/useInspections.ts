@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export type InspectionStatus = "ok" | "due_soon_30" | "due_soon_15" | "overdue" | "missing" | "pending";
+export type InspectionResult = "aprovado" | "aprovado_clausulas" | "pendente_relatorio" | "chumbou";
 
 export interface InspectionCategory {
   id: string;
@@ -23,7 +24,7 @@ export interface BuildingInspection {
   building_id: string;
   category_id: string;
   inspection_date: string;
-  result: "ok" | "nok_minor" | "nok_major" | "pending_works" | "pending";
+  result: InspectionResult;
   next_due_date: string;
   company_name: string | null;
   company_contact: string | null;
@@ -112,6 +113,7 @@ export function useCreateInspection() {
       company_name?: string | null;
       company_contact?: string | null;
       notes?: string | null;
+      certificate_url?: string | null;
     }) => {
       const { data: userData } = await supabase.auth.getUser();
       const { data, error } = await (supabase as any)
@@ -143,6 +145,7 @@ export function useUpdateInspection() {
       company_name?: string | null;
       company_contact?: string | null;
       notes?: string | null;
+      certificate_url?: string | null;
     }) => {
       const { data, error } = await (supabase as any)
         .from("building_inspections")
