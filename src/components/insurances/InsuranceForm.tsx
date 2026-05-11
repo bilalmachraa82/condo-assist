@@ -8,7 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useBuildings } from "@/hooks/useBuildings";
 import { CoverageType, InsuranceInput, InsuranceStatusRow, useUpsertInsurance, useBuildingFractions, useInsuranceFractionStatus, useSaveInsuranceFractionStatus, useUpsertBuildingFraction, useDeleteBuildingFraction, type FractionStatusValue } from "@/hooks/useInsurances";
 import { addYears, format } from "date-fns";
-import { CalendarCheck2, Plus, Trash2 } from "lucide-react";
+import { CalendarCheck2, Plus, Trash2, Upload, FileText, Eye, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   open: boolean;
