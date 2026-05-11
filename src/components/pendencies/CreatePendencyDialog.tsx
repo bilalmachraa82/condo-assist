@@ -35,7 +35,8 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
   const create = useCreatePendency();
   const upload = useUploadPendencyFile();
   const createReminder = useCreatePendencyReminder();
-
+  const { toast } = useToast();
+  const [aiBusy, setAiBusy] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
