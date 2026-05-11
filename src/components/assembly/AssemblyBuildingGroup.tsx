@@ -152,6 +152,7 @@ function InlineNotes({ item }: { item: AssemblyItem }) {
 export default function AssemblyBuildingGroup({
   buildingCode,
   address,
+  buildingId,
   items,
   onViewItem,
   onEditItem,
@@ -161,6 +162,8 @@ export default function AssemblyBuildingGroup({
   defaultOpen = false,
 }: Props) {
   const [open, setOpen] = useState(defaultOpen);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const latestYear = items.reduce((acc, it) => (it.year > acc ? it.year : acc), 0) || new Date().getFullYear();
 
   const doneCount = items.filter((i) => i.status === "done" || i.status === "cancelled").length;
   const pendingCount = items.filter((i) => i.status === "pending").length;
