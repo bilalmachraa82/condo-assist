@@ -14,6 +14,7 @@ import { useUpdateAssemblyItem, type AssemblyItem } from "@/hooks/useAssemblyIte
 interface Props {
   buildingCode: number;
   address: string;
+  buildingId?: string | null;
   items: AssemblyItem[];
   onViewItem: (item: AssemblyItem) => void;
   onEditItem: (item: AssemblyItem) => void;
