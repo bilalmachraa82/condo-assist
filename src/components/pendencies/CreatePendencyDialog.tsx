@@ -107,7 +107,53 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
   };
 
-  const submit = async () => {
+  const fileToBase64 = (f: File) => new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",", 2)[1] ?? "");
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(f);
+  });
+
+  const runAutoFill = async () => {
+    if (!file) {
+      toast({ title: "Anexa um PDF/imagem primeiro", variant: "destructive" });
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const fileBase64 = await fileToBase64(file);
+      const { data, error } = await supabase.functions.invoke("parse-pendency-pdf", {
+        body: { fileBase64, mimeType: file.type || "application/pdf" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      // Apply only if user fields empty
+      if (data?.title && !title) setTitle(data.title);
+      if (data?.subject && !subject) setSubject(data.subject);
+      if (data?.description && !description) setDescription(data.description);
+      if (data?.priority) setPriority(data.priority);
+      // Try to match building by code/name hint
+      if (data?.building_hint && !buildingId && buildings) {
+        const hint = String(data.building_hint).toLowerCase();
+        const match = buildings.find((b: any) =>
+          b.code?.toLowerCase() === hint ||
+          b.code?.toLowerCase().includes(hint) ||
+          b.name?.toLowerCase().includes(hint)
+        );
+        if (match) setBuildingId(match.id);
+      }
+      if (data?.supplier_hint && !supplierId && suppliers) {
+        const hint = String(data.supplier_hint).toLowerCase();
+        const match = suppliers.find((s: any) => s.name?.toLowerCase().includes(hint));
+        if (match) setSupplierId(match.id);
+      }
+      toast({ title: "Auto-preenchido com IA", description: "Revê e ajusta antes de criar." });
+    } catch (e: any) {
+      toast({ title: "Erro a analisar PDF", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setAiBusy(false);
+    }
+  };
     if (!buildingId || !title) return;
     const created = await create.mutateAsync({
       title,
