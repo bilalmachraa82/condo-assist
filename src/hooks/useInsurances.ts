@@ -79,6 +79,7 @@ export interface InsuranceInput {
   fractions_included?: string | null;
   observations?: string | null;
   renewal_date?: string | null;
+  policy_path?: string | null;
 }
 
 export function useUpsertInsurance() {
