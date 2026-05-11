@@ -99,7 +99,27 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
     e.preventDefault();
     if (!buildingId) return;
 
-    const payload: InsuranceInput = {
+    let policyPath: string | null | undefined = undefined;
+    if (policyFile) {
+      try {
+        setUploadingPolicy(true);
+        const ext = policyFile.name.split(".").pop() || "pdf";
+        const path = `${buildingId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("insurance-documents")
+          .upload(path, policyFile, { upsert: false, contentType: policyFile.type || undefined });
+        if (upErr) throw upErr;
+        policyPath = path;
+      } catch (err: any) {
+        toast({ title: "Erro a carregar apólice", description: err.message, variant: "destructive" });
+        setUploadingPolicy(false);
+        return;
+      } finally {
+        setUploadingPolicy(false);
+      }
+    }
+
+    const payload: InsuranceInput & { policy_path?: string | null } = {
       id: mode === "edit" ? prefill?.insurance_id ?? undefined : undefined,
       building_id: buildingId,
       policy_number: policyNumber || null,
@@ -110,10 +130,10 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       fractions_included: fractionsIncluded || null,
       observations: observations || null,
       renewal_date: renewalDate || null,
+      ...(policyPath !== undefined ? { policy_path: policyPath } : {}),
     };
 
-    const saved = await upsert.mutateAsync(payload);
-    // Guarda o estado das frações se houver alguma marcada
+    const saved = await upsert.mutateAsync(payload as InsuranceInput);
     const entries = Object.entries(fractionState)
       .filter(([, v]) => v === "included" || v === "excluded")
       .map(([fraction_id, status]) => ({ fraction_id, status }));
@@ -121,6 +141,13 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       await saveFractionStatus.mutateAsync({ insurance_id: saved.id, entries });
     }
     onOpenChange(false);
+  };
+
+  const openExistingPolicy = async () => {
+    if (!existingPolicyPath) return;
+    const { data, error } = await supabase.storage.from("insurance-documents").createSignedUrl(existingPolicyPath, 3600);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    window.open(data.signedUrl, "_blank");
   };
 
   const title = mode === "renew" ? "Renovar seguro" : mode === "edit" ? "Editar seguro" : "Registar seguro";
