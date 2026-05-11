@@ -287,14 +287,51 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
           </div>
 
           <div className="grid gap-2">
+            <Label>Apólice (PDF)</Label>
+            {existingPolicyPath && !policyFile && (
+              <div className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm bg-muted/30">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
+                  <span className="truncate">Apólice carregada</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button type="button" size="sm" variant="ghost" onClick={openExistingPolicy}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            {policyFile ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
+                  <span className="truncate">{policyFile.name}</span>
+                </div>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setPolicyFile(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Input
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={(e) => setPolicyFile(e.target.files?.[0] ?? null)}
+              />
+            )}
+            {existingPolicyPath && policyFile && (
+              <p className="text-xs text-muted-foreground">A nova apólice irá substituir a atual.</p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
             <Label>Observações</Label>
             <Textarea value={observations} onChange={e => setObservations(e.target.value)} rows={2} />
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={upsert.isPending || !buildingId}>
-              {upsert.isPending ? "A guardar..." : title}
+            <Button type="submit" disabled={upsert.isPending || uploadingPolicy || !buildingId}>
+              {uploadingPolicy ? "A carregar apólice..." : upsert.isPending ? "A guardar..." : title}
             </Button>
           </DialogFooter>
         </form>
