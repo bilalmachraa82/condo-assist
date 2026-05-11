@@ -148,6 +148,7 @@ export default function Assembly() {
                 key={code}
                 buildingCode={code}
                 address={group.address}
+                buildingId={group.building_id}
                 items={group.items}
                 onViewItem={setViewItem}
                 onEditItem={(it) => { setEditItem(it); setDefaultBuildingId(null); setFormOpen(true); }}

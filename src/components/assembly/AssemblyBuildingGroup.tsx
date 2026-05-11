@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, ChevronRight, Plus, Pencil, Trash2, Check, Loader2, AlertCircle, RotateCw } from "lucide-react";
+import { Building2, ChevronRight, Plus, Pencil, Trash2, Check, Loader2, AlertCircle, RotateCw, Paperclip } from "lucide-react";
 import { getAssemblyCategoryConfig } from "@/utils/assemblyCategories";
 import AssemblyPDFExportButton from "./AssemblyPDFExportButton";
+import AssemblyAttachMinutesDialog from "./AssemblyAttachMinutesDialog";
 import { useUpdateAssemblyItem, type AssemblyItem } from "@/hooks/useAssemblyItems";
 
 interface Props {
   buildingCode: number;
   address: string;
+  buildingId?: string | null;
   items: AssemblyItem[];
   onViewItem: (item: AssemblyItem) => void;
   onEditItem: (item: AssemblyItem) => void;
@@ -150,6 +152,7 @@ function InlineNotes({ item }: { item: AssemblyItem }) {
 export default function AssemblyBuildingGroup({
   buildingCode,
   address,
+  buildingId,
   items,
   onViewItem,
   onEditItem,
@@ -159,6 +162,8 @@ export default function AssemblyBuildingGroup({
   defaultOpen = false,
 }: Props) {
   const [open, setOpen] = useState(defaultOpen);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const latestYear = items.reduce((acc, it) => (it.year > acc ? it.year : acc), 0) || new Date().getFullYear();
 
   const doneCount = items.filter((i) => i.status === "done" || i.status === "cancelled").length;
   const pendingCount = items.filter((i) => i.status === "pending").length;
@@ -194,13 +199,34 @@ export default function AssemblyBuildingGroup({
             </div>
           </button>
         </CollapsibleTrigger>
-        <div className="flex items-center px-1 rounded-lg border bg-card" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center px-1 rounded-lg border bg-card gap-1" onClick={(e) => e.stopPropagation()}>
+          {buildingId && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              title="Anexar acta (PDF)"
+              onClick={() => setAttachOpen(true)}
+            >
+              <Paperclip className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <AssemblyPDFExportButton
             groups={[{ buildingCode, address, items }]}
             iconOnly
           />
         </div>
       </div>
+
+      {buildingId && (
+        <AssemblyAttachMinutesDialog
+          open={attachOpen}
+          onOpenChange={setAttachOpen}
+          buildingId={buildingId}
+          buildingLabel={`${String(buildingCode).padStart(3, "0")}${address ? ` — ${address}` : ""}`}
+          defaultYear={latestYear}
+        />
+      )}
 
       <CollapsibleContent>
         <div className="ml-4 mr-1 mt-1 mb-3 border rounded-lg overflow-hidden bg-card">
