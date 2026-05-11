@@ -154,6 +154,8 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
       setAiBusy(false);
     }
   };
+
+  const submit = async () => {
     if (!buildingId || !title) return;
     const created = await create.mutateAsync({
       title,
