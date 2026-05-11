@@ -223,14 +223,15 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
               </>
             )}
           </div>
-          {file && (
-            <div className="flex justify-end -mt-2">
-              <Button type="button" variant="outline" size="sm" onClick={runAutoFill} disabled={aiBusy}>
-                <Sparkles className="h-4 w-4 mr-1.5 text-primary" />
-                {aiBusy ? "A analisar com IA…" : "Auto-preencher com IA"}
-              </Button>
-            </div>
-          )}
+          <div className="flex items-center justify-between gap-2 -mt-2 rounded-md border bg-primary/5 p-2">
+            <p className="text-xs text-muted-foreground">
+              {file ? "Pronto para analisar — extrai automaticamente título, edifício e descrição." : "Anexa um PDF/imagem acima para ativar a análise automática."}
+            </p>
+            <Button type="button" variant="default" size="sm" onClick={runAutoFill} disabled={aiBusy || !file}>
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              {aiBusy ? "A analisar com IA…" : "Auto-preencher com IA"}
+            </Button>
+          </div>
 
 
           <div className="grid sm:grid-cols-2 gap-4">
