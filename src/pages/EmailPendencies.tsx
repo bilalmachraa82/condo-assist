@@ -13,7 +13,7 @@ import { PriorityBadge } from "@/components/ui/status-badges";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, MailQuestion, Building2, Wrench, User, Clock, FileText, LayoutList, Columns3 } from "lucide-react";
+import { Plus, Search, MailQuestion, Building2, Wrench, User, Clock, FileText, LayoutList, Columns3, Pencil } from "lucide-react";
 import CreatePendencyDialog from "@/components/pendencies/CreatePendencyDialog";
 import PendencyDetail from "@/components/pendencies/PendencyDetail";
 import PendencyKanban from "@/components/pendencies/PendencyKanban";
@@ -208,6 +208,9 @@ export default function EmailPendencies() {
                     <Badge variant="outline" className={slaColor(sla)}>
                       {sla === "danger" ? "SLA!" : sla === "warn" ? "Risco" : "OK"}
                     </Badge>
+                    <Button size="sm" variant="ghost" className="h-8 px-2" onClick={(e) => { e.stopPropagation(); setSelectedId(p.id); }} title="Editar pendência">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>
