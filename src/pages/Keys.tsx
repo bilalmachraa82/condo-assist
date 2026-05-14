@@ -94,9 +94,10 @@ export default function Keys() {
 
   const onReturn = async () => {
     if (!returnRow) return;
+    if (!returnedBy.trim()) return;
     await update.mutateAsync({
       id: returnRow.id,
-      returned_by_name: returnedBy || "—",
+      returned_by_name: returnedBy.trim(),
       returned_at: new Date().toISOString(),
       ...(returnedCollaborator ? { returned_collaborator: returnedCollaborator } as any : {}),
     } as any);
@@ -148,7 +149,8 @@ export default function Keys() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Total</div><div className="text-2xl font-bold">{stats.open + stats.returned}</div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Em uso</div><div className="text-2xl font-bold text-warning">{stats.open}</div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Devolvidas</div><div className="text-2xl font-bold">{stats.returned}</div></CardContent></Card>
       </div>
@@ -262,12 +264,12 @@ export default function Keys() {
         <DialogContent>
           <DialogHeader><DialogTitle>Marcar como devolvida</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>Quem devolveu</Label><Input value={returnedBy} onChange={(e) => setReturnedBy(e.target.value)} placeholder="Nome de quem devolveu" /></div>
+            <div><Label>Quem devolveu *</Label><Input value={returnedBy} onChange={(e) => setReturnedBy(e.target.value)} placeholder="Nome de quem devolveu (obrigatório)" /></div>
             <div><Label>Colaborador Luvimg que recebeu</Label><Input value={returnedCollaborator} onChange={(e) => setReturnedCollaborator(e.target.value)} placeholder="Quem recebeu a chave" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReturnRow(null)}>Cancelar</Button>
-            <Button onClick={onReturn} disabled={update.isPending}>Confirmar devolução</Button>
+            <Button onClick={onReturn} disabled={update.isPending || !returnedBy.trim()}>Confirmar devolução</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
