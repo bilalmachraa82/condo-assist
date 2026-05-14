@@ -127,21 +127,31 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      // Apply only if user fields empty
-      if (data?.title && !title) setTitle(data.title);
-      if (data?.subject && !subject) setSubject(data.subject);
-      if (data?.description && !description) setDescription(data.description);
-      if (data?.priority) setPriority(data.priority);
-      // Try to match building by code/name hint
-      if (data?.building_hint && !buildingId && buildings) {
-        const hint = String(data.building_hint).toLowerCase();
-        const match = buildings.find((b: any) =>
+      // Try to match building by code/name hint first (so we can use code in title)
+      let matchedBuilding: any = null;
+      if (data?.building_hint && buildings) {
+        const hint = String(data.building_hint).toLowerCase().trim();
+        matchedBuilding = buildings.find((b: any) =>
           b.code?.toLowerCase() === hint ||
           b.code?.toLowerCase().includes(hint) ||
           b.name?.toLowerCase().includes(hint)
         );
-        if (match) setBuildingId(match.id);
+        if (matchedBuilding && !buildingId) setBuildingId(matchedBuilding.id);
       }
+      // Apply only if user fields empty. Prefix title with building code when available.
+      if (data?.title && !title) {
+        let newTitle = String(data.title);
+        const code = matchedBuilding?.code;
+        if (code && !newTitle.toLowerCase().startsWith(code.toLowerCase())) {
+          // strip any leading code-like prefix from AI title to avoid duplication
+          newTitle = newTitle.replace(/^\s*[A-Z0-9]{2,4}\s*[-–]\s*/i, "");
+          newTitle = `${code} - ${newTitle}`;
+        }
+        setTitle(newTitle.slice(0, 200));
+      }
+      if (data?.subject && !subject) setSubject(data.subject);
+      if (data?.description && !description) setDescription(data.description);
+      if (data?.priority) setPriority(data.priority);
       if (data?.supplier_hint && !supplierId && suppliers) {
         const hint = String(data.supplier_hint).toLowerCase();
         const match = suppliers.find((s: any) => s.name?.toLowerCase().includes(hint));
