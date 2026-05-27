@@ -1,64 +1,89 @@
-## Objetivo
-Corrigir as confusões apontadas pelo cliente nas áreas recentes: Relatório de Chaves, Base de Conhecimento e Pendências Email, mantendo o fluxo simples e mais coerente com o uso real.
+## Diagnóstico — estado actual
 
-## Queixas identificadas na imagem
-1. **Relatório de Chaves**
-   - Tornar obrigatório preencher quem devolveu a chave.
-   - Mostrar totais claros: Total, Em uso e Devolvidas.
-   - Evitar que o registo de chaves pareça incompleto quando há devolução sem nome.
+Acabei de auditar o `mcp-server` em produção. Resultados:
 
-2. **Base de Conhecimento**
-   - O campo/categoria “Administrador” cria confusão com administradores de edifícios.
-   - Melhor separar “administradores” reais da base de conhecimento, ou renomear a categoria para não sugerir entidade/pessoa.
-   - A importação/edição deve continuar simples, mas com etiquetas mais claras.
+| Teste | Resultado |
+|---|---|
+| `GET /functions/v1/mcp-server/info` | ✅ HTTP 200 — `{"name":"condo-assist-mcp","version":"1.0.0","transport":"streamable-http","tools":63}` |
+| `POST` sem auth | ✅ HTTP 401 (rejeita correctamente) |
+| `POST` com chave errada | ✅ HTTP 401 |
+| `EXTERNAL_API_KEY` em Edge Function Secrets | ✅ presente |
+| Middleware auth aceita `x-api-key`, `Authorization: Bearer`, e `?api_key=` | ✅ |
+| CORS expõe `mcp-session-id` e aceita headers do MCP | ✅ |
+| `verify_jwt = false` em `config.toml` | ✅ |
 
-3. **Pendências Email**
-   - Permitir editar pendências de email de forma mais direta.
-   - Confirmar se a ação de abrir detalhe já permite editar e, se sim, tornar isso mais evidente com botão/label “Editar”.
-   - O código do prédio aparece no assunto/título, mas não aparece de forma útil no título final; o auto-preenchimento deve usar o código do prédio como parte principal do título quando vem no assunto.
+**Conclusão:** o servidor MCP está ligado e a responder. O problema **não é o servidor** — é a forma como o ChatGPT/Codex está a falar com ele.
 
-## Plano de implementação
+## Causa provável da falha no ChatGPT
 
-### 1. Relatório de Chaves
-- Adicionar um terceiro KPI no topo: **Total**.
-- Manter **Em uso** e **Devolvidas** como métricas separadas.
-- No modal “Marcar como devolvida”:
-  - Tornar **Quem devolveu** obrigatório.
-  - Bloquear “Confirmar devolução” enquanto estiver vazio.
-  - Remover fallback atual `—`, porque mascara dados em falta.
-- Atualizar a impressão “Chaves em uso” apenas se necessário para manter consistência dos totais.
+O conector "Custom MCP" do **ChatGPT (Apps SDK / Developer mode)** exige que o servidor exponha **duas ferramentas obrigatórias**: `search` e `fetch`. Sem elas o conector liga-se mas o ChatGPT recusa-se a usá-lo nas conversas (silenciosamente, ou com mensagem genérica de "no compatible tools").
 
-### 2. Base de Conhecimento
-- Renomear a categoria atual `Administrador` para algo menos ambíguo, por exemplo **Procedimentos** ou **Gestão interna**.
-- Manter o valor interno `procedimentos` para não quebrar dados existentes.
-- Rever os textos visíveis no formulário/filtros/cartões para deixar claro que é uma categoria de conhecimento, não uma ficha de administrador.
-- Não criar duplicação de administradores aqui; a gestão de administradores deve continuar na página própria.
+O nosso servidor tem 63 ferramentas mas **nenhuma chamada `search` nem `fetch`** — por isso o ChatGPT vê-o como inválido.
 
-### 3. Pendências Email
-- Na lista, adicionar uma ação explícita de edição/abrir detalhe, mantendo o clique no cartão.
-- No detalhe da pendência, reforçar que os campos são editáveis:
-  - Título editável.
-  - Estado e prioridade editáveis.
-  - Descrição e data limite editáveis.
-- Ajustar o auto-preenchimento com IA:
-  - Melhorar o prompt para extrair `building_hint` preferindo o código do prédio quando o assunto tiver padrões tipo `088 - ...`, `074 - ...`.
-  - Ao aplicar o resultado, se houver código de prédio reconhecido, preencher o edifício e criar um título limpo no formato `Código - assunto resumido`, evitando perder o código.
-- Rever o texto do botão/área “Auto-preencher com IA” para ficar claro que é opcional e depende de anexar PDF/imagem/email.
+Para o **Codex CLI** o problema é diferente: o Codex só suporta MCP **stdio**, por isso tem de usar o adaptador `mcp-remote`. A config TOML já fornecida está correcta; resta confirmar que a chave foi colada sem quebras de linha.
 
-### 4. Validação final
-- Verificar visualmente os três fluxos no tamanho atual do cliente.
-- Confirmar que:
-  - O modal de devolução não deixa confirmar sem nome.
-  - Os totais de chaves batem certo.
-  - A Base de Conhecimento não mostra “Administrador” como categoria ambígua.
-  - Uma pendência criada por email preserva o código do prédio no título/edifício quando a IA consegue identificá-lo.
+## Plano
 
-## Ficheiros prováveis a alterar
-- `src/pages/Keys.tsx`
-- `src/utils/knowledgeCategories.ts`
-- `src/components/pendencies/CreatePendencyDialog.tsx`
-- `src/pages/EmailPendencies.tsx`
-- `supabase/functions/parse-pendency-pdf/index.ts`
+### 1. Adicionar tools `search` e `fetch` ao `mcp-server` (compatibilidade ChatGPT)
 
-## Nota importante
-Não recomendo remover a Base de Conhecimento nem as Pendências Email; o problema parece ser sobretudo de linguagem, obrigatoriedade de campos e clareza do fluxo, não da existência das funcionalidades.
+No `supabase/functions/mcp-server/index.ts`, antes do bloco `corsHeaders`, registar:
+
+- **`search`** — input `{ query: string }`. Pesquisa transversal em:
+  - assistências (por título/descrição)
+  - edifícios (por código/nome)
+  - fornecedores (por nome)
+  - base de conhecimento (full-text)
+
+  Devolve no formato esperado pelo Apps SDK:
+  ```json
+  { "results": [{ "id": "...", "title": "...", "url": "..." }, ...] }
+  ```
+
+- **`fetch`** — input `{ id: string }`. Recebe um id no formato `tipo:uuid` (ex: `assistance:abc-...`, `building:...`, `supplier:...`, `knowledge:...`) e devolve o documento completo via agent-api correspondente, no formato:
+  ```json
+  { "id": "...", "title": "...", "text": "...", "url": "...", "metadata": {...} }
+  ```
+
+Actualizar contador `tools: 63 → 65` no endpoint `/info`.
+
+### 2. Verificação pós-deploy
+
+Após deploy automático, correr:
+
+```bash
+curl -X POST https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server \
+  -H "x-api-key: <CHAVE>" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq '.result.tools | map(.name) | .[0:5], length'
+```
+
+Deve mostrar `65` e incluir `search` + `fetch`.
+
+### 3. Reconfigurar o conector no ChatGPT
+
+No formulário "Adicionar conector":
+- **URL:** `https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server`
+- **Autenticação:** Cabeçalho personalizado
+- **Nome:** `x-api-key`  
+- **Valor:** colar `EXTERNAL_API_KEY` (do dashboard Supabase → Edge Function Secrets, sem espaços/quebras)
+- **Aviso "Compreendo e quero continuar":** marcado
+- Criar → abrir nova conversa → o conector deve listar 65 ferramentas.
+
+### 4. Codex CLI — verificação rápida
+
+Confirmar que o `~/.codex/config.toml` tem **uma única linha** no header (sem espaços à volta de `:` no `--header`):
+
+```toml
+"--header","x-api-key:<CHAVE_SEM_ESPACOS>"
+```
+
+E que `npx -y mcp-remote` consegue arrancar (basta correr o comando à mão uma vez para aceitar a instalação).
+
+## Notas técnicas
+
+- `search` e `fetch` são apenas **camadas finas** sobre a agent-api existente — sem nova lógica de negócio, sem migrations, sem novos secrets.
+- A chave continua a ser a mesma (`EXTERNAL_API_KEY`), não há rotação.
+- O contador `tools` em `/info` é meramente informativo; o número real vem sempre de `tools/list`.
+
+Confirmas que avanço com a implementação?
