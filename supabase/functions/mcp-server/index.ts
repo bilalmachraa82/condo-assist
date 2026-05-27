@@ -1115,6 +1115,105 @@ mcp.tool("add_claim_note", {
     asText(await callAgentApi("POST", `/v1/insurance-claims/${claim_id}/notes`, { body: { body } })),
 });
 
+// ── ChatGPT Apps SDK compatibility: required `search` and `fetch` tools ──
+const APP_BASE_URL = "https://condo-assist.lovable.app";
+
+mcp.tool("search", {
+  description: "Pesquisa transversal em assistências (título/descrição), edifícios (código/nome), fornecedores (nome) e base de conhecimento. Devolve resultados no formato esperado pelo ChatGPT Apps SDK.",
+  inputSchema: {
+    type: "object",
+    properties: { query: { type: "string", description: "Termo de pesquisa" } },
+    required: ["query"],
+  },
+  handler: async ({ query }: { query: string }) => {
+    const q = (query ?? "").trim();
+    const results: Array<{ id: string; title: string; url: string }> = [];
+    if (!q) return asText({ results });
+
+    const safe = async <T,>(p: Promise<T>): Promise<T | null> => {
+      try { return await p; } catch { return null; }
+    };
+
+    const [buildings, suppliers, knowledge, assistances] = await Promise.all([
+      safe(callAgentApi("GET", "/v1/buildings", { query: { q, limit: "10" } }) as Promise<any>),
+      safe(callAgentApi("GET", "/v1/suppliers", { query: { q, limit: "10" } }) as Promise<any>),
+      safe(callAgentApi("GET", "/v1/knowledge", { query: { q, limit: "10" } }) as Promise<any>),
+      safe(callAgentApi("GET", "/v1/assistances", { query: { q, limit: "10" } }) as Promise<any>),
+    ]);
+
+    const pushArr = (data: any, mapper: (item: any) => { id: string; title: string; url: string } | null) => {
+      const arr = Array.isArray(data) ? data : (data?.items ?? data?.data ?? []);
+      if (!Array.isArray(arr)) return;
+      for (const item of arr) {
+        const m = mapper(item);
+        if (m) results.push(m);
+      }
+    };
+
+    pushArr(buildings, (b) => b?.id ? {
+      id: `building:${b.id}`,
+      title: `Edifício ${b.code ?? ""}${b.code && b.name ? " - " : ""}${b.name ?? ""}`.trim(),
+      url: `${APP_BASE_URL}/edificios`,
+    } : null);
+    pushArr(suppliers, (s) => s?.id ? {
+      id: `supplier:${s.id}`,
+      title: `Fornecedor: ${s.name ?? s.id}`,
+      url: `${APP_BASE_URL}/fornecedores`,
+    } : null);
+    pushArr(knowledge, (k) => k?.id ? {
+      id: `knowledge:${k.id}`,
+      title: k.title ?? "Artigo",
+      url: `${APP_BASE_URL}/knowledge`,
+    } : null);
+    pushArr(assistances, (a) => a?.id ? {
+      id: `assistance:${a.id}`,
+      title: a.title ?? `Assistência ${a.id}`,
+      url: `${APP_BASE_URL}/assistencias`,
+    } : null);
+
+    return asText({ results });
+  },
+});
+
+mcp.tool("fetch", {
+  description: "Obtém o conteúdo completo de um item identificado por `tipo:uuid` (assistance|building|supplier|knowledge). Formato esperado pelo ChatGPT Apps SDK.",
+  inputSchema: {
+    type: "object",
+    properties: { id: { type: "string", description: "Identificador no formato `tipo:uuid`" } },
+    required: ["id"],
+  },
+  handler: async ({ id }: { id: string }) => {
+    const [type, uuid] = String(id ?? "").split(":");
+    if (!type || !uuid) {
+      return asText({ error: "id inválido. Use `tipo:uuid` (assistance|building|supplier|knowledge)." });
+    }
+    const pathMap: Record<string, string> = {
+      assistance: `/v1/assistances/${uuid}`,
+      building: `/v1/buildings/${uuid}`,
+      supplier: `/v1/suppliers/${uuid}`,
+      knowledge: `/v1/knowledge/${uuid}`,
+    };
+    const urlMap: Record<string, string> = {
+      assistance: `${APP_BASE_URL}/assistencias`,
+      building: `${APP_BASE_URL}/edificios`,
+      supplier: `${APP_BASE_URL}/fornecedores`,
+      knowledge: `${APP_BASE_URL}/knowledge`,
+    };
+    const path = pathMap[type];
+    if (!path) return asText({ error: `tipo desconhecido: ${type}` });
+
+    const data: any = await callAgentApi("GET", path);
+    const title = data?.title ?? data?.name ?? `${type} ${uuid}`;
+    return asText({
+      id,
+      title,
+      text: JSON.stringify(data, null, 2),
+      url: urlMap[type],
+      metadata: { type, uuid },
+    });
+  },
+});
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
