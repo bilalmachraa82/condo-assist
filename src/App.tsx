@@ -31,6 +31,7 @@ import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
 import Unsubscribe from "./pages/Unsubscribe";
 import NotFound from "./pages/NotFound";
+import McpDiagnostics from "./pages/McpDiagnostics";
 import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import ErrorBoundary from "./components/error/ErrorBoundary";
@@ -227,6 +228,7 @@ const App = () => (
               <Route path="/sinistros" element={<ProtectedRoute><DashboardLayout><Sinistros /></DashboardLayout></ProtectedRoute>} />
               <Route path="/administradores" element={<ProtectedRoute><DashboardLayout><Administradores /></DashboardLayout></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="/mcp-diagnostics" element={<McpDiagnostics />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
