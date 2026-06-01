@@ -1407,20 +1407,42 @@ app.use("*", async (c, next) => {
     }, 200, corsHeaders);
   }
 
-  // Public discovery: returns the exact tool descriptors as published, so the
-  // Agent Builder team can confirm `search`/`fetch` shape without auth.
+  // Public discovery: returns the registered tool descriptors, the live
+  // tools/list JSON-RPC response from the same handler the Agent Builder hits,
+  // and the last N MCP requests (method + rpc + body snippet) so we can
+  // compare discovery vs manual calls without auth.
   if (c.req.method === "GET" && pathname.endsWith("/debug/tools")) {
-    const tools = registeredTools.map((t) => ({
-      ...t,
-      description: typeof t.description === "string"
-        ? (t.description as string).slice(0, 240)
-        : undefined,
-    }));
+    const url = new URL(c.req.url);
+    const variant = url.searchParams.get("variant") === "chatgpt" ? "chatgpt" : "full";
+    const handler = variant === "chatgpt" ? mcpChatGptHandler : mcpHandler;
+
+    let liveToolsList: unknown = null;
+    let liveStatus = 0;
+    let liveContentType = "";
+    try {
+      const probeReq = new Request("https://probe.local/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: "debug-tools-list", method: "tools/list", params: {} }),
+      });
+      const probeRes = await handler(probeReq);
+      liveStatus = probeRes.status;
+      liveContentType = probeRes.headers.get("content-type") ?? "";
+      const txt = await probeRes.text();
+      try { liveToolsList = JSON.parse(txt); } catch { liveToolsList = txt; }
+    } catch (e) {
+      liveToolsList = { error: String(e) };
+    }
+
+    const tools = registeredTools.map((t) => ({ ...t }));
     return c.json({
+      variant,
       count: tools.length,
       has_search: tools.some((t: any) => t.name === "search"),
       has_fetch: tools.some((t: any) => t.name === "fetch"),
-      tools,
+      tools_registry: tools,
+      live_tools_list: { status: liveStatus, content_type: liveContentType, body: liveToolsList },
+      recent_requests: getRecentMcpRequests(),
     }, 200, corsHeaders);
   }
 
