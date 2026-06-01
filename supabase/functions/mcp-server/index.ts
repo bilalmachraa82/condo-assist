@@ -49,7 +49,26 @@ async function callAgentApi(
 }
 
 function asText(data: unknown) {
-  return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+  const result: {
+    content: Array<{ type: "text"; text: string }>;
+    structuredContent?: unknown;
+  } = { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  if (data !== null && typeof data === "object") result.structuredContent = data;
+  return result;
+}
+
+function titleFromName(name: string) {
+  return name.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function defaultToolAnnotations(name: string) {
+  const writes = /^(create|update|delete|upload|submit|save|add|import)/.test(name);
+  return {
+    readOnlyHint: !writes,
+    destructiveHint: /^(delete)/.test(name),
+    idempotentHint: !writes,
+    openWorldHint: true,
+  };
 }
 
 // ── MCP Server ──
@@ -58,10 +77,30 @@ const mcp = new McpServer({
   version: "1.0.0",
 });
 
+const originalTool = mcp.tool.bind(mcp);
+(mcp as any).tool = (name: string, def: Record<string, unknown>) => originalTool(name, {
+  ...def,
+  title: (def.title as string | undefined) ?? titleFromName(name),
+  inputSchema: def.inputSchema ?? { type: "object", properties: {} },
+  annotations: {
+    ...defaultToolAnnotations(name),
+    ...((def.annotations as Record<string, unknown> | undefined) ?? {}),
+  },
+});
+
 // 1. Health
 mcp.tool("health_check", {
   description: "Verifica se a Agent API está operacional. Não requer parâmetros.",
   inputSchema: { type: "object", properties: {} },
+  outputSchema: {
+    type: "object",
+    properties: {
+      status: { type: "string" },
+      version: { type: "string" },
+      timestamp: { type: "string" },
+    },
+    required: ["status"],
+  },
   handler: async () => asText(await callAgentApi("GET", "/v1/health")),
 });
 
@@ -1125,6 +1164,24 @@ mcp.tool("search", {
     properties: { query: { type: "string", description: "Termo de pesquisa" } },
     required: ["query"],
   },
+  outputSchema: {
+    type: "object",
+    properties: {
+      results: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            url: { type: "string" },
+          },
+          required: ["id", "title", "url"],
+        },
+      },
+    },
+    required: ["results"],
+  },
   handler: async ({ query }: { query: string }) => {
     const q = (query ?? "").trim();
     const results: Array<{ id: string; title: string; url: string }> = [];
@@ -1134,15 +1191,15 @@ mcp.tool("search", {
       try { return await p; } catch { return null; }
     };
 
-    const [buildings, suppliers, knowledge, assistances] = await Promise.all([
+    const [buildings, suppliers, knowledge, assemblyItems] = await Promise.all([
       safe(callAgentApi("GET", "/v1/buildings", { query: { q, limit: "10" } }) as Promise<any>),
       safe(callAgentApi("GET", "/v1/suppliers", { query: { q, limit: "10" } }) as Promise<any>),
       safe(callAgentApi("GET", "/v1/knowledge", { query: { q, limit: "10" } }) as Promise<any>),
-      safe(callAgentApi("GET", "/v1/assistances", { query: { q, limit: "10" } }) as Promise<any>),
+      safe(callAgentApi("GET", "/v1/assembly-items", { query: { q, limit: "10" } }) as Promise<any>),
     ]);
 
-    const pushArr = (data: any, mapper: (item: any) => { id: string; title: string; url: string } | null) => {
-      const arr = Array.isArray(data) ? data : (data?.items ?? data?.data ?? []);
+    const pushArr = (data: any, key: string, mapper: (item: any) => { id: string; title: string; url: string } | null) => {
+      const arr = Array.isArray(data) ? data : (data?.[key] ?? data?.items ?? data?.data ?? []);
       if (!Array.isArray(arr)) return;
       for (const item of arr) {
         const m = mapper(item);
@@ -1150,33 +1207,33 @@ mcp.tool("search", {
       }
     };
 
-    pushArr(buildings, (b) => b?.id ? {
+    pushArr(buildings, "buildings", (b) => b?.id ? {
       id: `building:${b.id}`,
       title: `Edifício ${b.code ?? ""}${b.code && b.name ? " - " : ""}${b.name ?? ""}`.trim(),
       url: `${APP_BASE_URL}/edificios`,
     } : null);
-    pushArr(suppliers, (s) => s?.id ? {
+    pushArr(suppliers, "suppliers", (s) => s?.id ? {
       id: `supplier:${s.id}`,
       title: `Fornecedor: ${s.name ?? s.id}`,
       url: `${APP_BASE_URL}/fornecedores`,
     } : null);
-    pushArr(knowledge, (k) => k?.id ? {
+    pushArr(knowledge, "articles", (k) => k?.id ? {
       id: `knowledge:${k.id}`,
       title: k.title ?? "Artigo",
       url: `${APP_BASE_URL}/knowledge`,
     } : null);
-    pushArr(assistances, (a) => a?.id ? {
-      id: `assistance:${a.id}`,
-      title: a.title ?? `Assistência ${a.id}`,
-      url: `${APP_BASE_URL}/assistencias`,
+    pushArr(assemblyItems, "items", (item) => item?.id ? {
+      id: `assembly:${item.id}`,
+      title: `Ata/pendência: ${item.description ?? item.status_notes ?? item.id}`,
+      url: `${APP_BASE_URL}/assembly`,
     } : null);
 
-    return asText({ results });
+    return asText({ results: results.slice(0, 30) });
   },
 });
 
 mcp.tool("fetch", {
-  description: "Obtém o conteúdo completo de um item identificado por `tipo:uuid` (assistance|building|supplier|knowledge). Formato esperado pelo ChatGPT Apps SDK.",
+  description: "Obtém o conteúdo completo de um item identificado por `tipo:uuid` (assistance|building|supplier|knowledge|assembly). Formato esperado pelo ChatGPT Apps SDK.",
   inputSchema: {
     type: "object",
     properties: { id: { type: "string", description: "Identificador no formato `tipo:uuid`" } },
@@ -1185,19 +1242,21 @@ mcp.tool("fetch", {
   handler: async ({ id }: { id: string }) => {
     const [type, uuid] = String(id ?? "").split(":");
     if (!type || !uuid) {
-      return asText({ error: "id inválido. Use `tipo:uuid` (assistance|building|supplier|knowledge)." });
+      return asText({ error: "id inválido. Use `tipo:uuid` (assistance|building|supplier|knowledge|assembly)." });
     }
     const pathMap: Record<string, string> = {
       assistance: `/v1/assistances/${uuid}`,
       building: `/v1/buildings/${uuid}`,
       supplier: `/v1/suppliers/${uuid}`,
       knowledge: `/v1/knowledge/${uuid}`,
+      assembly: `/v1/assembly-items/${uuid}`,
     };
     const urlMap: Record<string, string> = {
       assistance: `${APP_BASE_URL}/assistencias`,
       building: `${APP_BASE_URL}/edificios`,
       supplier: `${APP_BASE_URL}/fornecedores`,
       knowledge: `${APP_BASE_URL}/knowledge`,
+      assembly: `${APP_BASE_URL}/assembly`,
     };
     const path = pathMap[type];
     if (!path) return asText({ error: `tipo desconhecido: ${type}` });
@@ -1236,7 +1295,7 @@ app.use("*", async (c, next) => {
       name: "condo-assist-mcp",
       version: "1.0.0",
       transport: "streamable-http",
-      tools: 65,
+      tools: 66,
     }, 200, corsHeaders);
   }
 
