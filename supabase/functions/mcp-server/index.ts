@@ -1333,15 +1333,11 @@ app.use("*", async (c, next) => {
   // Public discovery: returns the exact tool descriptors as published, so the
   // Agent Builder team can confirm `search`/`fetch` shape without auth.
   if (c.req.method === "GET" && new URL(c.req.url).pathname.endsWith("/debug/tools")) {
-    const list: any = (mcp as any)._tools ?? (mcp as any).tools ?? new Map();
-    const arr = list instanceof Map ? Array.from(list.values()) : Object.values(list);
-    const tools = (arr as any[]).map((t: any) => ({
-      name: t?.name,
-      title: t?.title,
-      description: typeof t?.description === "string" ? t.description.slice(0, 200) : undefined,
-      inputSchema: t?.inputSchema,
-      outputSchema: t?.outputSchema,
-      annotations: t?.annotations,
+    const tools = registeredTools.map((t) => ({
+      ...t,
+      description: typeof t.description === "string"
+        ? (t.description as string).slice(0, 240)
+        : undefined,
     }));
     return c.json({
       count: tools.length,
