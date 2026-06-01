@@ -1309,9 +1309,33 @@ app.use("*", async (c, next) => {
   if (c.req.method === "GET" && new URL(c.req.url).pathname.endsWith("/info")) {
     return c.json({
       name: "condo-assist-mcp",
-      version: "1.0.0",
+      version: "1.1.0",
       transport: "streamable-http",
       tools: 66,
+      protocol: "MCP Streamable HTTP",
+      compatibility: ["ChatGPT Apps SDK", "ChatGPT Agent Builder", "Claude Desktop", "MCP Inspector"],
+      required_tools: { search: true, fetch: true },
+    }, 200, corsHeaders);
+  }
+
+  // Public discovery: returns the exact tool descriptors as published, so the
+  // Agent Builder team can confirm `search`/`fetch` shape without auth.
+  if (c.req.method === "GET" && new URL(c.req.url).pathname.endsWith("/debug/tools")) {
+    const list: any = (mcp as any)._tools ?? (mcp as any).tools ?? new Map();
+    const arr = list instanceof Map ? Array.from(list.values()) : Object.values(list);
+    const tools = (arr as any[]).map((t: any) => ({
+      name: t?.name,
+      title: t?.title,
+      description: typeof t?.description === "string" ? t.description.slice(0, 200) : undefined,
+      inputSchema: t?.inputSchema,
+      outputSchema: t?.outputSchema,
+      annotations: t?.annotations,
+    }));
+    return c.json({
+      count: tools.length,
+      has_search: tools.some((t: any) => t.name === "search"),
+      has_fetch: tools.some((t: any) => t.name === "fetch"),
+      tools,
     }, 200, corsHeaders);
   }
 
