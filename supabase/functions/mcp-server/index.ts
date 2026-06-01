@@ -1664,6 +1664,26 @@ app.use("*", async (c, next) => {
     }, 200, corsHeaders);
   }
 
+  // Bypass auth on /chatgpt for discovery methods only (initialize, tools/list, ping).
+  // tools/call and everything else stays protected by x-api-key.
+  const isChatgpt = pathname.endsWith("/chatgpt");
+  if (isChatgpt && c.req.method === "POST") {
+    try {
+      const raw = await c.req.raw.clone().text();
+      const parsed = raw ? JSON.parse(raw) : null;
+      const DISCOVERY = new Set(["initialize", "tools/list", "ping"]);
+      const methods: string[] = Array.isArray(parsed)
+        ? parsed.map((m) => m?.method).filter((x) => typeof x === "string")
+        : (typeof parsed?.method === "string" ? [parsed.method] : []);
+      if (methods.length > 0 && methods.every((m) => DISCOVERY.has(m))) {
+        await next();
+        return;
+      }
+    } catch {
+      // fall through to auth check
+    }
+  }
+
   const authHeader = c.req.header("authorization") ?? "";
   const bearer = authHeader.replace(/^Bearer\s+/i, "");
   const apiKey = c.req.header("x-api-key") ?? bearer ?? new URL(c.req.url).searchParams.get("api_key") ?? "";
