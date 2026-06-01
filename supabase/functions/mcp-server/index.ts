@@ -1233,7 +1233,7 @@ mcp.tool("search", {
 });
 
 mcp.tool("fetch", {
-  description: "Obtém o conteúdo completo de um item identificado por `tipo:uuid` (assistance|building|supplier|knowledge). Formato esperado pelo ChatGPT Apps SDK.",
+  description: "Obtém o conteúdo completo de um item identificado por `tipo:uuid` (assistance|building|supplier|knowledge|assembly). Formato esperado pelo ChatGPT Apps SDK.",
   inputSchema: {
     type: "object",
     properties: { id: { type: "string", description: "Identificador no formato `tipo:uuid`" } },
@@ -1242,7 +1242,7 @@ mcp.tool("fetch", {
   handler: async ({ id }: { id: string }) => {
     const [type, uuid] = String(id ?? "").split(":");
     if (!type || !uuid) {
-      return asText({ error: "id inválido. Use `tipo:uuid` (assistance|building|supplier|knowledge)." });
+      return asText({ error: "id inválido. Use `tipo:uuid` (assistance|building|supplier|knowledge|assembly)." });
     }
     const pathMap: Record<string, string> = {
       assistance: `/v1/assistances/${uuid}`,
@@ -1295,7 +1295,7 @@ app.use("*", async (c, next) => {
       name: "condo-assist-mcp",
       version: "1.0.0",
       transport: "streamable-http",
-      tools: 65,
+      tools: 66,
     }, 200, corsHeaders);
   }
 
