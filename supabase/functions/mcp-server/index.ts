@@ -1809,7 +1809,7 @@ function snapshotHeaders(req: Request): Record<string, string> {
   return out;
 }
 
-async function logAuthRejected(c: any, label: string, reason: "missing-key" | "invalid-key") {
+async function logAuthRejected(c: any, label: string, reason: "missing-key" | "invalid-key"): Promise<string> {
   const startedAt = Date.now();
   const correlationId = (globalThis.crypto?.randomUUID?.() ?? `cid-${startedAt}-${Math.random().toString(36).slice(2, 8)}`);
   const authHeader = c.req.header("authorization") ?? "";
@@ -1870,6 +1870,7 @@ async function logAuthRejected(c: any, label: string, reason: "missing-key" | "i
     headers: entry.requestHeaders,
     body: requestBody,
   }));
+  return correlationId;
 }
 
 async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, label: string) {
