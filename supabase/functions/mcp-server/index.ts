@@ -57,6 +57,12 @@ function asText(data: unknown) {
   return result;
 }
 
+// Strict OpenAI search/fetch standard: exactly one content item with JSON-encoded text,
+// no structuredContent, no extra fields.
+function asJsonText(data: unknown) {
+  return { content: [{ type: "text" as const, text: JSON.stringify(data) }] };
+}
+
 function titleFromName(name: string) {
   return name.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }

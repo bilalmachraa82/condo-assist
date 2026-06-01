@@ -1,89 +1,50 @@
-## Diagnóstico — estado actual
+## Diagnóstico confirmado
 
-Acabei de auditar o `mcp-server` em produção. Resultados:
+- O endpoint correto é `https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server`.
+- A função publicada responde em produção: `GET /info` devolve `tools: 66` e `transport: streamable-http`.
+- O segredo `EXTERNAL_API_KEY` existe.
+- O código tem uma tool chamada exatamente `search`, mas há fortes sinais de incompatibilidade no discovery do Agent Builder:
+  - O servidor usa `mcp-lite` e atualmente regista tools com `inputSchema` em JSON Schema direto.
+  - A documentação atual do `mcp-lite` recomenda `schemaAdapter` quando há schemas de validação; sem isso, algumas serializações podem não sair no formato esperado por clientes mais estritos.
+  - `search` e `fetch` têm `structuredContent` via helper global, mas o standard OpenAI para search/fetch exige retorno com exatamente um item `content: [{ type: "text", text: JSON.stringify(...) }]`; para o Builder, convém não adicionar campos extra nestas duas tools.
+  - O `fetch` não declara `outputSchema`, enquanto o Agent Builder tende a validar descriptors mais estritamente.
+  - O erro “search action not found” pode acontecer quando `tools/list` existe mas o descriptor de `search` não corresponde ao formato esperado, fazendo o Builder ignorá-lo.
 
-| Teste | Resultado |
-|---|---|
-| `GET /functions/v1/mcp-server/info` | ✅ HTTP 200 — `{"name":"condo-assist-mcp","version":"1.0.0","transport":"streamable-http","tools":63}` |
-| `POST` sem auth | ✅ HTTP 401 (rejeita correctamente) |
-| `POST` com chave errada | ✅ HTTP 401 |
-| `EXTERNAL_API_KEY` em Edge Function Secrets | ✅ presente |
-| Middleware auth aceita `x-api-key`, `Authorization: Bearer`, e `?api_key=` | ✅ |
-| CORS expõe `mcp-session-id` e aceita headers do MCP | ✅ |
-| `verify_jwt = false` em `config.toml` | ✅ |
+## Plano de correção
 
-**Conclusão:** o servidor MCP está ligado e a responder. O problema **não é o servidor** — é a forma como o ChatGPT/Codex está a falar com ele.
+1. **Ajustar compatibilidade do servidor MCP**
+   - Em `supabase/functions/mcp-server/index.ts`, inicializar o `McpServer` com `schemaAdapter` do Zod para garantir JSON Schema consistente.
+   - Importar `zod` já presente no `deno.json`.
+   - Rever o wrapper global de `mcp.tool` para preservar `title`, `description`, `inputSchema`, `outputSchema`, `_meta` e `annotations` sem alterar indevidamente o descriptor.
 
-## Causa provável da falha no ChatGPT
+2. **Tornar `search` e `fetch` estritamente compatíveis com OpenAI/ChatGPT**
+   - Manter os nomes exatos: `search` e `fetch`.
+   - Marcar ambas como read-only com `annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false }`.
+   - Garantir input schemas simples e exatos:
+     - `search`: `{ query: string }`
+     - `fetch`: `{ id: string }`
+   - Adicionar `outputSchema` ao `fetch` com `id`, `title`, `text`, `url`, `metadata` opcional.
+   - Fazer `search` e `fetch` devolverem apenas um content item JSON text, sem `structuredContent`, para cumprir o standard de search/fetch usado por ChatGPT connectors, company knowledge e deep research.
 
-O conector "Custom MCP" do **ChatGPT (Apps SDK / Developer mode)** exige que o servidor exponha **duas ferramentas obrigatórias**: `search` e `fetch`. Sem elas o conector liga-se mas o ChatGPT recusa-se a usá-lo nas conversas (silenciosamente, ou com mensagem genérica de "no compatible tools").
+3. **Adicionar rota de diagnóstico compatível com Builder**
+   - Adicionar um endpoint público ou protegido tipo `/debug/tools` que devolva um resumo dos descriptors publicados (`name`, `inputSchema`, `outputSchema`, `annotations`) para confirmar rapidamente se `search` aparece exatamente como o Builder deveria ver.
+   - Não expor dados sensíveis nem a API key.
 
-O nosso servidor tem 63 ferramentas mas **nenhuma chamada `search` nem `fetch`** — por isso o ChatGPT vê-o como inválido.
+4. **Atualizar documentação operacional**
+   - Atualizar `supabase/functions/mcp-server/README.md` para `66 tools`, ChatGPT Agent Builder, Streamable HTTP, header `x-api-key`, e comandos de validação.
+   - Corrigir referências antigas a “48 tools”.
 
-Para o **Codex CLI** o problema é diferente: o Codex só suporta MCP **stdio**, por isso tem de usar o adaptador `mcp-remote`. A config TOML já fornecida está correcta; resta confirmar que a chave foi colada sem quebras de linha.
+5. **Deploy e validação em produção**
+   - Deploy da edge function `mcp-server`.
+   - Validar em produção com:
+     - `initialize`
+     - `tools/list`
+     - presença exata de `search`
+     - schema de `search`
+     - `tools/call` de `search`
+     - `tools/call` de `fetch` quando houver um ID retornado
+   - Confirmar se o resultado publicado é o mesmo endpoint `zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server`.
 
-## Plano
+## Resultado esperado
 
-### 1. Adicionar tools `search` e `fetch` ao `mcp-server` (compatibilidade ChatGPT)
-
-No `supabase/functions/mcp-server/index.ts`, antes do bloco `corsHeaders`, registar:
-
-- **`search`** — input `{ query: string }`. Pesquisa transversal em:
-  - assistências (por título/descrição)
-  - edifícios (por código/nome)
-  - fornecedores (por nome)
-  - base de conhecimento (full-text)
-
-  Devolve no formato esperado pelo Apps SDK:
-  ```json
-  { "results": [{ "id": "...", "title": "...", "url": "..." }, ...] }
-  ```
-
-- **`fetch`** — input `{ id: string }`. Recebe um id no formato `tipo:uuid` (ex: `assistance:abc-...`, `building:...`, `supplier:...`, `knowledge:...`) e devolve o documento completo via agent-api correspondente, no formato:
-  ```json
-  { "id": "...", "title": "...", "text": "...", "url": "...", "metadata": {...} }
-  ```
-
-Actualizar contador `tools: 63 → 65` no endpoint `/info`.
-
-### 2. Verificação pós-deploy
-
-Após deploy automático, correr:
-
-```bash
-curl -X POST https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server \
-  -H "x-api-key: <CHAVE>" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq '.result.tools | map(.name) | .[0:5], length'
-```
-
-Deve mostrar `65` e incluir `search` + `fetch`.
-
-### 3. Reconfigurar o conector no ChatGPT
-
-No formulário "Adicionar conector":
-- **URL:** `https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server`
-- **Autenticação:** Cabeçalho personalizado
-- **Nome:** `x-api-key`  
-- **Valor:** colar `EXTERNAL_API_KEY` (do dashboard Supabase → Edge Function Secrets, sem espaços/quebras)
-- **Aviso "Compreendo e quero continuar":** marcado
-- Criar → abrir nova conversa → o conector deve listar 65 ferramentas.
-
-### 4. Codex CLI — verificação rápida
-
-Confirmar que o `~/.codex/config.toml` tem **uma única linha** no header (sem espaços à volta de `:` no `--header`):
-
-```toml
-"--header","x-api-key:<CHAVE_SEM_ESPACOS>"
-```
-
-E que `npx -y mcp-remote` consegue arrancar (basta correr o comando à mão uma vez para aceitar a instalação).
-
-## Notas técnicas
-
-- `search` e `fetch` são apenas **camadas finas** sobre a agent-api existente — sem nova lógica de negócio, sem migrations, sem novos secrets.
-- A chave continua a ser a mesma (`EXTERNAL_API_KEY`), não há rotação.
-- O contador `tools` em `/info` é meramente informativo; o número real vem sempre de `tools/list`.
-
-Confirmas que avanço com a implementação?
+Depois da implementação, o ChatGPT Agent Builder deverá deixar de mostrar “search action not found” e passar a listar pelo menos as actions `search` e `fetch`, além das restantes tools elegíveis.
