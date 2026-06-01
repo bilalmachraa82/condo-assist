@@ -1175,7 +1175,41 @@ mcp.tool("add_claim_note", {
 // ── ChatGPT Apps SDK compatibility: required `search` and `fetch` tools ──
 const APP_BASE_URL = "https://condo-assist.lovable.app";
 
-mcp.tool("search", {
+const searchOutputSchema = {
+  type: "object",
+  properties: {
+    results: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          title: { type: "string" },
+          url: { type: "string" },
+        },
+        required: ["id", "title", "url"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["results"],
+  additionalProperties: false,
+} as const;
+
+const fetchOutputSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    title: { type: "string" },
+    text: { type: "string" },
+    url: { type: "string" },
+    metadata: { type: "object", additionalProperties: true },
+  },
+  required: ["id", "title", "text", "url"],
+  additionalProperties: false,
+} as const;
+
+const searchDef = {
   title: "Search",
   description: "Search across assistances, buildings, suppliers, knowledge base and assembly items. Returns a list of results with id, title and url, compatible with the ChatGPT/OpenAI Apps SDK search standard.",
   inputSchema: {
@@ -1184,6 +1218,7 @@ mcp.tool("search", {
     required: ["query"],
     additionalProperties: false,
   },
+  outputSchema: searchOutputSchema,
   annotations: {
     readOnlyHint: true,
     openWorldHint: false,
@@ -1238,9 +1273,9 @@ mcp.tool("search", {
 
     return asJsonText({ results: results.slice(0, 30) });
   },
-});
+};
 
-mcp.tool("fetch", {
+const fetchDef = {
   title: "Fetch",
   description: "Fetch the full content of a single item by id. The id must be in the form `type:uuid` (assistance|building|supplier|knowledge|assembly). Returns id, title, text, url and metadata, compatible with the ChatGPT/OpenAI Apps SDK fetch standard.",
   inputSchema: {
@@ -1249,6 +1284,7 @@ mcp.tool("fetch", {
     required: ["id"],
     additionalProperties: false,
   },
+  outputSchema: fetchOutputSchema,
   annotations: {
     readOnlyHint: true,
     openWorldHint: false,
@@ -1299,8 +1335,43 @@ mcp.tool("fetch", {
       });
     }
   },
+};
+
+mcp.tool("search", searchDef as any);
+mcp.tool("fetch", fetchDef as any);
+
+// ── ChatGPT-safe MCP server: minimal catalog (search + fetch + health_check) ──
+// Exposed on the same edge function under the `/chatgpt` sub-path so the
+// ChatGPT Agent Builder gets a strict, low-noise tools/list it can accept.
+const mcpChatGpt = new McpServer({
+  name: "condo-assist-mcp-chatgpt",
+  version: "1.2.0",
 });
 
+mcpChatGpt.tool("search", searchDef as any);
+mcpChatGpt.tool("fetch", fetchDef as any);
+mcpChatGpt.tool("health_check", {
+  title: "Health Check",
+  description: "Verifies the underlying API is reachable. Returns a small status object.",
+  inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  outputSchema: {
+    type: "object",
+    properties: {
+      status: { type: "string" },
+      version: { type: "string" },
+      timestamp: { type: "string" },
+    },
+    required: ["status"],
+    additionalProperties: true,
+  },
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+  },
+  handler: async () => asJsonText(await callAgentApi("GET", "/v1/health")),
+} as any);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1317,22 +1388,28 @@ app.use("*", async (c, next) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const pathname = new URL(c.req.url).pathname;
+
   // Public health check via GET / (returns server info, no auth)
-  if (c.req.method === "GET" && new URL(c.req.url).pathname.endsWith("/info")) {
+  if (c.req.method === "GET" && pathname.endsWith("/info")) {
     return c.json({
       name: "condo-assist-mcp",
-      version: "1.1.0",
+      version: "1.2.0",
       transport: "streamable-http",
       tools: 66,
       protocol: "MCP Streamable HTTP",
       compatibility: ["ChatGPT Apps SDK", "ChatGPT Agent Builder", "Claude Desktop", "MCP Inspector"],
       required_tools: { search: true, fetch: true },
+      endpoints: {
+        full: "/functions/v1/mcp-server",
+        chatgpt_safe: "/functions/v1/mcp-server/chatgpt",
+      },
     }, 200, corsHeaders);
   }
 
   // Public discovery: returns the exact tool descriptors as published, so the
   // Agent Builder team can confirm `search`/`fetch` shape without auth.
-  if (c.req.method === "GET" && new URL(c.req.url).pathname.endsWith("/debug/tools")) {
+  if (c.req.method === "GET" && pathname.endsWith("/debug/tools")) {
     const tools = registeredTools.map((t) => ({
       ...t,
       description: typeof t.description === "string"
@@ -1361,12 +1438,77 @@ app.use("*", async (c, next) => {
 const transport = new StreamableHttpTransport();
 const mcpHandler = transport.bind(mcp);
 
-app.all("*", async (c) => {
-  const res = await mcpHandler(c.req.raw);
-  // Merge CORS headers
+const transportChatGpt = new StreamableHttpTransport();
+const mcpChatGptHandler = transportChatGpt.bind(mcpChatGpt);
+
+// Force JSON responses for clients that send mixed Accept headers (ChatGPT
+// Agent Builder cannot reliably consume the `text/event-stream` form that
+// mcp-lite emits by default when SSE is acceptable).
+function forceJsonAccept(req: Request): Request {
+  const headers = new Headers(req.headers);
+  const accept = headers.get("accept") ?? "";
+  if (accept.includes("text/event-stream") && accept.includes("application/json")) {
+    headers.set("accept", "application/json");
+  } else if (!accept || accept === "*/*") {
+    headers.set("accept", "application/json");
+  }
+  return new Request(req.url, {
+    method: req.method,
+    headers,
+    body: req.body,
+    redirect: req.redirect,
+    // @ts-ignore — required to forward the body in Deno
+    duplex: "half",
+  });
+}
+
+async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, label: string) {
+  const startedAt = Date.now();
+  const ua = (c.req.header("user-agent") ?? "").slice(0, 80);
+  let rpcMethod: string | undefined;
+  let rpcId: unknown;
+  let toolName: string | undefined;
+
+  let req: Request = c.req.raw;
+  if (req.method === "POST") {
+    try {
+      const cloned = req.clone();
+      const body = await cloned.json();
+      rpcMethod = body?.method;
+      rpcId = body?.id;
+      toolName = body?.params?.name;
+    } catch {
+      /* not JSON */
+    }
+    req = forceJsonAccept(req);
+  }
+
+  const res = await handler(req);
   const headers = new Headers(res.headers);
   for (const [k, v] of Object.entries(corsHeaders)) headers.set(k, v);
+
+  console.log(JSON.stringify({
+    mcp: label,
+    method: c.req.method,
+    rpc: rpcMethod,
+    rpcId,
+    tool: toolName,
+    status: res.status,
+    contentType: headers.get("content-type"),
+    ua,
+    ms: Date.now() - startedAt,
+  }));
+
   return new Response(res.body, { status: res.status, headers });
-});
+}
+
+// ChatGPT-safe sub-path: only search/fetch/health_check, strict descriptors.
+app.all("/functions/v1/mcp-server/chatgpt", (c) => handleMcp(c, mcpChatGptHandler, "chatgpt"));
+app.all("/mcp-server/chatgpt", (c) => handleMcp(c, mcpChatGptHandler, "chatgpt"));
+app.all("/chatgpt", (c) => handleMcp(c, mcpChatGptHandler, "chatgpt"));
+
+// Full catalog (Claude Desktop, MCP Inspector, etc.)
+app.all("*", (c) => handleMcp(c, mcpHandler, "full"));
 
 Deno.serve(app.fetch);
+
