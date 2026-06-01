@@ -1503,13 +1503,16 @@ async function chatgptRpcHandler(req: Request): Promise<Response> {
     "Cache-Control": "no-store",
   };
 
-  if (req.method === "GET") {
-    return new Response(JSON.stringify({
+  if (req.method === "GET" || req.method === "HEAD") {
+    const info = {
       name: "condo-assist-mcp-chatgpt",
       version: "2.0.0",
       protocolVersion: PROTOCOL_VERSION,
-      tools: chatgptToolsList.map((t) => t.name),
-    }), { status: 200, headers: baseHeaders });
+      capabilities: { tools: { listChanged: false } },
+      serverInfo: { name: "condo-assist-mcp-chatgpt", version: "2.0.0" },
+      tools: chatgptToolsList,
+    };
+    return new Response(req.method === "HEAD" ? null : JSON.stringify(info), { status: 200, headers: baseHeaders });
   }
 
   if (req.method !== "POST") {
@@ -1590,7 +1593,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key, mcp-session-id",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
-  "Access-Control-Expose-Headers": "mcp-session-id",
+  "Access-Control-Expose-Headers": "mcp-session-id, x-correlation-id",
 };
 
 const app = new Hono();
@@ -1602,6 +1605,15 @@ app.use("*", async (c, next) => {
   }
 
   const pathname = new URL(c.req.url).pathname;
+  const isChatgpt = pathname.endsWith("/chatgpt");
+
+  // Some MCP clients probe the endpoint with GET/HEAD before JSON-RPC discovery.
+  // Keep this public for /chatgpt because it exposes only server metadata and
+  // the two retrieval descriptors; tools/call still requires x-api-key below.
+  if (isChatgpt && (c.req.method === "GET" || c.req.method === "HEAD")) {
+    await next();
+    return;
+  }
 
   // Public health check via GET / (returns server info, no auth)
   if (c.req.method === "GET" && pathname.endsWith("/info")) {
@@ -1688,7 +1700,6 @@ app.use("*", async (c, next) => {
 
   // Bypass auth on /chatgpt for discovery methods only (initialize, tools/list, ping).
   // tools/call and everything else stays protected by x-api-key.
-  const isChatgpt = pathname.endsWith("/chatgpt");
   if (isChatgpt && c.req.method === "POST") {
     try {
       const raw = await c.req.raw.clone().text();
@@ -1711,7 +1722,11 @@ app.use("*", async (c, next) => {
   const apiKey = c.req.header("x-api-key") ?? bearer ?? new URL(c.req.url).searchParams.get("api_key") ?? "";
 
   if (!EXTERNAL_API_KEY || apiKey !== EXTERNAL_API_KEY) {
-    return c.json({ error: "Unauthorized. Provide x-api-key header or Bearer token." }, 401, corsHeaders);
+    const correlationId = await logAuthRejected(c, pathname.endsWith("/chatgpt") ? "chatgpt" : "full", apiKey ? "invalid-key" : "missing-key");
+    return c.json({ error: "Unauthorized. Provide x-api-key header or Bearer token.", correlationId }, 401, {
+      ...corsHeaders,
+      "x-correlation-id": correlationId,
+    });
   }
 
   await next();
@@ -1792,6 +1807,70 @@ function snapshotHeaders(req: Request): Record<string, string> {
     }
   });
   return out;
+}
+
+async function logAuthRejected(c: any, label: string, reason: "missing-key" | "invalid-key"): Promise<string> {
+  const startedAt = Date.now();
+  const correlationId = (globalThis.crypto?.randomUUID?.() ?? `cid-${startedAt}-${Math.random().toString(36).slice(2, 8)}`);
+  const authHeader = c.req.header("authorization") ?? "";
+  const xApiKey = c.req.header("x-api-key") ?? "";
+  let requestBody: unknown = undefined;
+  let rpcMethod: string | undefined;
+  let rpcId: unknown;
+  let toolName: string | undefined;
+  if (c.req.method === "POST") {
+    try {
+      const body = await c.req.raw.clone().json();
+      rpcMethod = Array.isArray(body) ? `batch[${body.map((b) => b?.method).join(",")}]` : body?.method;
+      rpcId = Array.isArray(body) ? body.map((b) => b?.id) : body?.id;
+      toolName = Array.isArray(body) ? undefined : body?.params?.name;
+      requestBody = body;
+    } catch { /* not JSON */ }
+  }
+  const entry: McpDebugEntry = {
+    correlationId,
+    at: new Date(startedAt).toISOString(),
+    mcp: label,
+    httpMethod: c.req.method,
+    url: c.req.url,
+    rpc: rpcMethod,
+    rpcId,
+    tool: toolName,
+    status: 401,
+    contentType: "application/json",
+    ua: (c.req.header("user-agent") ?? "").slice(0, 200),
+    accept: c.req.header("accept") ?? "",
+    acceptOverridden: false,
+    ms: Date.now() - startedAt,
+    authPresent: !!authHeader,
+    authScheme: authHeader ? authHeader.split(/\s+/)[0] : undefined,
+    xApiKeyPresent: !!xApiKey,
+    apiKeyMatched: false,
+    requestHeaders: snapshotHeaders(c.req.raw),
+    requestBody,
+    responseBodySnippet: JSON.stringify({ error: "Unauthorized", reason }),
+  };
+  pushRecent(entry);
+  console.log(JSON.stringify({
+    tag: "mcp.auth_rejected",
+    correlationId,
+    mcp: label,
+    reason,
+    httpMethod: c.req.method,
+    url: c.req.url,
+    rpc: rpcMethod,
+    rpcId,
+    tool: toolName,
+    ua: entry.ua,
+    accept: entry.accept,
+    authPresent: entry.authPresent,
+    authScheme: entry.authScheme,
+    xApiKeyPresent: entry.xApiKeyPresent,
+    apiKeyMatched: false,
+    headers: entry.requestHeaders,
+    body: requestBody,
+  }));
+  return correlationId;
 }
 
 async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, label: string) {
