@@ -1728,6 +1728,7 @@ type McpDebugEntry = {
   at: string;
   mcp: string;
   httpMethod: string;
+  url: string;
   rpc?: string;
   rpcId?: unknown;
   tool?: string;
@@ -1737,10 +1738,15 @@ type McpDebugEntry = {
   accept: string;
   acceptOverridden: boolean;
   ms: number;
+  authPresent: boolean;
+  authScheme?: string;
+  xApiKeyPresent: boolean;
+  apiKeyMatched: boolean;
+  requestHeaders?: Record<string, string>;
   requestBody?: unknown;
   responseBodySnippet?: string;
 };
-const RECENT_MAX = 30;
+const RECENT_MAX = 50;
 const recentRequests: McpDebugEntry[] = [];
 function pushRecent(e: McpDebugEntry) {
   recentRequests.push(e);
@@ -1750,11 +1756,35 @@ function getRecentMcpRequests() {
   return [...recentRequests].reverse();
 }
 
+// Headers we never want to log even masked (none right now), and headers we
+// fully mask. Everything else passes through verbatim.
+const MASKED_HEADERS = new Set(["authorization", "x-api-key", "cookie", "apikey"]);
+function snapshotHeaders(req: Request): Record<string, string> {
+  const out: Record<string, string> = {};
+  req.headers.forEach((v, k) => {
+    const key = k.toLowerCase();
+    if (MASKED_HEADERS.has(key)) {
+      out[key] = v ? `***present(len=${v.length})` : "";
+    } else {
+      out[key] = v.length > 300 ? v.slice(0, 300) + "…" : v;
+    }
+  });
+  return out;
+}
+
 async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, label: string) {
   const startedAt = Date.now();
   const correlationId = (globalThis.crypto?.randomUUID?.() ?? `cid-${startedAt}-${Math.random().toString(36).slice(2, 8)}`);
-  const ua = (c.req.header("user-agent") ?? "").slice(0, 120);
+  const ua = (c.req.header("user-agent") ?? "").slice(0, 200);
   const originalAccept = c.req.header("accept") ?? "";
+  const authHeader = c.req.header("authorization") ?? "";
+  const xApiKey = c.req.header("x-api-key") ?? "";
+  const authPresent = !!authHeader;
+  const authScheme = authHeader ? authHeader.split(/\s+/)[0] : undefined;
+  const xApiKeyPresent = !!xApiKey;
+  const providedKey = xApiKey || authHeader.replace(/^Bearer\s+/i, "");
+  const apiKeyMatched = !!EXTERNAL_API_KEY && providedKey === EXTERNAL_API_KEY;
+
   let rpcMethod: string | undefined;
   let rpcId: unknown;
   let toolName: string | undefined;
@@ -1766,8 +1796,8 @@ async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, l
     try {
       const cloned = req.clone();
       const body = await cloned.json();
-      rpcMethod = body?.method;
-      rpcId = body?.id;
+      rpcMethod = Array.isArray(body) ? `batch[${body.map((b) => b?.method).join(",")}]` : body?.method;
+      rpcId = Array.isArray(body) ? body.map((b) => b?.id) : body?.id;
       toolName = body?.params?.name;
       requestBody = body;
     } catch { /* not JSON */ }
@@ -1776,17 +1806,28 @@ async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, l
     req = newReq;
   }
 
+  const requestHeaders = snapshotHeaders(c.req.raw);
+
+  // Detailed pre-handler log — especially useful for initialize / tools/list
+  // to confirm exactly what the ChatGPT Agent Builder is sending.
   console.log(JSON.stringify({
     tag: "mcp.request",
     correlationId,
     mcp: label,
     httpMethod: c.req.method,
+    url: c.req.url,
     rpc: rpcMethod,
     rpcId,
     tool: toolName,
     accept: originalAccept,
     acceptOverridden,
     ua,
+    authPresent,
+    authScheme,
+    xApiKeyPresent,
+    apiKeyMatched,
+    headers: requestHeaders,
+    body: requestBody,
   }));
 
   const res = await handler(req);
@@ -1794,14 +1835,20 @@ async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, l
   for (const [k, v] of Object.entries(corsHeaders)) headers.set(k, v);
   headers.set("x-correlation-id", correlationId);
 
-  // Capture response body for tools/list and tools/call so we can compare
-  // discovery vs manual invocations. For other methods we stream through.
+  // Capture response body for discovery + execution methods so we can
+  // compare what the Builder receives vs manual invocations.
   let bodyForClient: BodyInit | null = res.body;
   let responseSnippet: string | undefined;
-  const shouldCapture = rpcMethod === "tools/list" || rpcMethod === "tools/call";
+  const baseMethod = Array.isArray(requestBody) ? "batch" : rpcMethod;
+  const shouldCapture =
+    baseMethod === "initialize" ||
+    baseMethod === "tools/list" ||
+    baseMethod === "tools/call" ||
+    baseMethod === "ping" ||
+    baseMethod === "batch";
   if (shouldCapture) {
     const buf = await res.clone().text();
-    responseSnippet = buf.length > 8000 ? buf.slice(0, 8000) + `…(+${buf.length - 8000} bytes)` : buf;
+    responseSnippet = buf.length > 16000 ? buf.slice(0, 16000) + `…(+${buf.length - 16000} bytes)` : buf;
     bodyForClient = buf;
   }
 
@@ -1810,6 +1857,7 @@ async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, l
     at: new Date(startedAt).toISOString(),
     mcp: label,
     httpMethod: c.req.method,
+    url: c.req.url,
     rpc: rpcMethod,
     rpcId,
     tool: toolName,
@@ -1819,6 +1867,11 @@ async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, l
     accept: originalAccept,
     acceptOverridden,
     ms: Date.now() - startedAt,
+    authPresent,
+    authScheme,
+    xApiKeyPresent,
+    apiKeyMatched,
+    requestHeaders,
     requestBody: shouldCapture ? requestBody : undefined,
     responseBodySnippet: responseSnippet,
   };
@@ -1834,10 +1887,18 @@ async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, l
     status: res.status,
     contentType: headers.get("content-type"),
     ms: entry.ms,
-    bodyPreview: responseSnippet ? responseSnippet.slice(0, 500) : undefined,
+    authPresent,
+    xApiKeyPresent,
+    apiKeyMatched,
+    bodyPreview: responseSnippet ? responseSnippet.slice(0, 1000) : undefined,
   }));
 
   return new Response(bodyForClient, { status: res.status, headers });
+}
+
+// Lookup a single correlation entry — used by /debug/correlation/:id.
+function findByCorrelation(id: string): McpDebugEntry | undefined {
+  return recentRequests.find((e) => e.correlationId === id);
 }
 
 // ChatGPT-safe sub-path: native JSON-RPC, only `search` + `fetch`.
