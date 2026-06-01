@@ -31,6 +31,7 @@ import Auth from "./pages/Auth";
 import SupplierPortal from "./pages/SupplierPortal";
 import Unsubscribe from "./pages/Unsubscribe";
 import NotFound from "./pages/NotFound";
+import McpDiagnostics from "./pages/McpDiagnostics";
 import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import ErrorBoundary from "./components/error/ErrorBoundary";
