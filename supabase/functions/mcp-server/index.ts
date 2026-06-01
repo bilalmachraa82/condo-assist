@@ -1679,8 +1679,8 @@ app.use("*", async (c, next) => {
 const transport = new StreamableHttpTransport();
 const mcpHandler = transport.bind(mcp);
 
-const transportChatGpt = new StreamableHttpTransport();
-const mcpChatGptHandler = transportChatGpt.bind(mcpChatGpt);
+// ChatGPT endpoint uses the native JSON-RPC handler (chatgptRpcHandler) — no mcp-lite.
+
 
 // Force JSON responses for clients that send mixed Accept headers (ChatGPT
 // Agent Builder cannot reliably consume the `text/event-stream` form that
