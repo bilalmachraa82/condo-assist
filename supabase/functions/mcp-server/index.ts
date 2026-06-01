@@ -1484,14 +1484,46 @@ function forceJsonAccept(req: Request): Request {
   });
 }
 
+// Ring buffer of recent MCP requests for /debug/tools inspection.
+type McpDebugEntry = {
+  correlationId: string;
+  at: string;
+  mcp: string;
+  httpMethod: string;
+  rpc?: string;
+  rpcId?: unknown;
+  tool?: string;
+  status: number;
+  contentType: string | null;
+  ua: string;
+  accept: string;
+  acceptOverridden: boolean;
+  ms: number;
+  requestBody?: unknown;
+  responseBodySnippet?: string;
+};
+const RECENT_MAX = 30;
+const recentRequests: McpDebugEntry[] = [];
+function pushRecent(e: McpDebugEntry) {
+  recentRequests.push(e);
+  if (recentRequests.length > RECENT_MAX) recentRequests.shift();
+}
+function getRecentMcpRequests() {
+  return [...recentRequests].reverse();
+}
+
 async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, label: string) {
   const startedAt = Date.now();
-  const ua = (c.req.header("user-agent") ?? "").slice(0, 80);
+  const correlationId = (globalThis.crypto?.randomUUID?.() ?? `cid-${startedAt}-${Math.random().toString(36).slice(2, 8)}`);
+  const ua = (c.req.header("user-agent") ?? "").slice(0, 120);
+  const originalAccept = c.req.header("accept") ?? "";
   let rpcMethod: string | undefined;
   let rpcId: unknown;
   let toolName: string | undefined;
+  let requestBody: unknown = undefined;
 
   let req: Request = c.req.raw;
+  let acceptOverridden = false;
   if (req.method === "POST") {
     try {
       const cloned = req.clone();
@@ -1499,29 +1531,75 @@ async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, l
       rpcMethod = body?.method;
       rpcId = body?.id;
       toolName = body?.params?.name;
-    } catch {
-      /* not JSON */
-    }
-    req = forceJsonAccept(req);
+      requestBody = body;
+    } catch { /* not JSON */ }
+    const newReq = forceJsonAccept(req);
+    acceptOverridden = newReq.headers.get("accept") !== originalAccept;
+    req = newReq;
   }
+
+  console.log(JSON.stringify({
+    tag: "mcp.request",
+    correlationId,
+    mcp: label,
+    httpMethod: c.req.method,
+    rpc: rpcMethod,
+    rpcId,
+    tool: toolName,
+    accept: originalAccept,
+    acceptOverridden,
+    ua,
+  }));
 
   const res = await handler(req);
   const headers = new Headers(res.headers);
   for (const [k, v] of Object.entries(corsHeaders)) headers.set(k, v);
+  headers.set("x-correlation-id", correlationId);
 
-  console.log(JSON.stringify({
+  // Capture response body for tools/list and tools/call so we can compare
+  // discovery vs manual invocations. For other methods we stream through.
+  let bodyForClient: BodyInit | null = res.body;
+  let responseSnippet: string | undefined;
+  const shouldCapture = rpcMethod === "tools/list" || rpcMethod === "tools/call";
+  if (shouldCapture) {
+    const buf = await res.clone().text();
+    responseSnippet = buf.length > 8000 ? buf.slice(0, 8000) + `…(+${buf.length - 8000} bytes)` : buf;
+    bodyForClient = buf;
+  }
+
+  const entry: McpDebugEntry = {
+    correlationId,
+    at: new Date(startedAt).toISOString(),
     mcp: label,
-    method: c.req.method,
+    httpMethod: c.req.method,
     rpc: rpcMethod,
     rpcId,
     tool: toolName,
     status: res.status,
     contentType: headers.get("content-type"),
     ua,
+    accept: originalAccept,
+    acceptOverridden,
     ms: Date.now() - startedAt,
+    requestBody: shouldCapture ? requestBody : undefined,
+    responseBodySnippet: responseSnippet,
+  };
+  pushRecent(entry);
+
+  console.log(JSON.stringify({
+    tag: "mcp.response",
+    correlationId,
+    mcp: label,
+    rpc: rpcMethod,
+    rpcId,
+    tool: toolName,
+    status: res.status,
+    contentType: headers.get("content-type"),
+    ms: entry.ms,
+    bodyPreview: responseSnippet ? responseSnippet.slice(0, 500) : undefined,
   }));
 
-  return new Response(res.body, { status: res.status, headers });
+  return new Response(bodyForClient, { status: res.status, headers });
 }
 
 // ChatGPT-safe sub-path: only search/fetch/health_check, strict descriptors.
