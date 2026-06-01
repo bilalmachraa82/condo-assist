@@ -49,7 +49,26 @@ async function callAgentApi(
 }
 
 function asText(data: unknown) {
-  return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+  const result: {
+    content: Array<{ type: "text"; text: string }>;
+    structuredContent?: unknown;
+  } = { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  if (data !== null && typeof data === "object") result.structuredContent = data;
+  return result;
+}
+
+function titleFromName(name: string) {
+  return name.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function defaultToolAnnotations(name: string) {
+  const writes = /^(create|update|delete|upload|submit|save|add|import)/.test(name);
+  return {
+    readOnlyHint: !writes,
+    destructiveHint: /^(delete)/.test(name),
+    idempotentHint: !writes,
+    openWorldHint: true,
+  };
 }
 
 // ── MCP Server ──
@@ -58,10 +77,30 @@ const mcp = new McpServer({
   version: "1.0.0",
 });
 
+const originalTool = mcp.tool.bind(mcp);
+(mcp as any).tool = (name: string, def: Record<string, unknown>) => originalTool(name, {
+  ...def,
+  title: (def.title as string | undefined) ?? titleFromName(name),
+  inputSchema: def.inputSchema ?? { type: "object", properties: {} },
+  annotations: {
+    ...defaultToolAnnotations(name),
+    ...((def.annotations as Record<string, unknown> | undefined) ?? {}),
+  },
+});
+
 // 1. Health
 mcp.tool("health_check", {
   description: "Verifica se a Agent API está operacional. Não requer parâmetros.",
   inputSchema: { type: "object", properties: {} },
+  outputSchema: {
+    type: "object",
+    properties: {
+      status: { type: "string" },
+      version: { type: "string" },
+      timestamp: { type: "string" },
+    },
+    required: ["status"],
+  },
   handler: async () => asText(await callAgentApi("GET", "/v1/health")),
 });
 
