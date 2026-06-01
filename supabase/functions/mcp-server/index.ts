@@ -1633,7 +1633,7 @@ app.use("*", async (c, next) => {
   if (c.req.method === "GET" && pathname.endsWith("/debug/tools")) {
     const url = new URL(c.req.url);
     const variant = url.searchParams.get("variant") === "chatgpt" ? "chatgpt" : "full";
-    const handler = variant === "chatgpt" ? mcpChatGptHandler : mcpHandler;
+    const handler = variant === "chatgpt" ? chatgptRpcHandler : mcpHandler;
 
     let liveToolsList: unknown = null;
     let liveStatus = 0;
