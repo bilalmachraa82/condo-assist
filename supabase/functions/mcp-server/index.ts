@@ -1653,9 +1653,14 @@ app.use("*", async (c, next) => {
       liveToolsList = { error: String(e) };
     }
 
-    const tools = registeredTools.map((t) => ({ ...t }));
+    const tools = variant === "chatgpt"
+      ? chatgptToolsList.map((t) => ({ ...t }))
+      : registeredTools.map((t) => ({ ...t }));
     return c.json({
       variant,
+      endpoint: variant === "chatgpt"
+        ? "/functions/v1/mcp-server/chatgpt"
+        : "/functions/v1/mcp-server",
       count: tools.length,
       has_search: tools.some((t: any) => t.name === "search"),
       has_fetch: tools.some((t: any) => t.name === "fetch"),
