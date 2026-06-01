@@ -1,215 +1,108 @@
-## Confirmação feita online e no servidor publicado
+Vou corrigir especificamente o endpoint configurado no Builder:
 
-Pesquisei a documentação atual da OpenAI/ChatGPT Apps SDK e MCP:
+`https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server/chatgpt`
 
-- OpenAI Apps SDK recomenda MCP por HTTPS, discovery via `tools/list`, execução via `tools/call`, descritores com `name`, `description`, `inputSchema`, `outputSchema` quando aplicável e `annotations.readOnlyHint`.
-- A página “Connect from ChatGPT” confirma que, ao criar o connector, o ChatGPT deve chamar o endpoint MCP e mostrar a lista de tools anunciadas.
-- A especificação MCP permite `tools/list` devolver tools com `name`, `title`, `description`, `inputSchema`, `outputSchema` e `annotations`.
-- Encontrei também relatos recentes de falhas específicas do Agent Builder com MCP HTTP customizado, incluindo casos em que o Builder inicializa mas não lista tools, ou falha com “search action not found”.
+## Diagnóstico atual
 
-## Estado atual confirmado em produção
+- O `/debug/tools?variant=chatgpt` mostra que o handler interno consegue listar `search` e `fetch`.
+- Mas isso ainda não prova que o Builder recebe exatamente a mesma resposta no endpoint real `/mcp-server/chatgpt`.
+- A documentação oficial atual da OpenAI para MCP/deep research diz que servidores retrievable devem implementar duas tools read-only: `search` e `fetch`, com output schema, e que as respostas devem incluir o objeto em `structuredContent` e também o mesmo JSON serializado em `content[].text`.
+- Isto contradiz a hipótese anterior de remover `structuredContent`; para passar conformance, vou alinhar o `/chatgpt` com a documentação oficial da OpenAI.
 
-Endpoint testado:
+## Alteração principal
 
-```text
-https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server
-```
+Substituir o `/chatgpt` por um handler MCP JSON-RPC mínimo e explícito, sem depender do wrapper `mcp-lite` nesse sub-endpoint.
 
-Com `Accept: application/json`, o endpoint publicado devolve:
+O endpoint `/mcp-server` completo continua como está para outros clientes, mas `/mcp-server/chatgpt` passa a responder diretamente a:
 
-- `tools/list` com 66 tools.
-- Tool chamada exatamente `search`.
-- Tool chamada exatamente `fetch`.
-- `search.annotations.readOnlyHint: true`.
-- `fetch.annotations.readOnlyHint: true`.
-- `search.inputSchema.required: ["query"]`.
-- `fetch.inputSchema.required: ["id"]`.
-- `search.inputSchema.additionalProperties: false`.
-- `fetch.inputSchema.additionalProperties: false`.
-- `tools/call search` devolve só:
+1. `initialize`
+2. `notifications/initialized`
+3. `tools/list`
+4. `tools/call`
+
+## Tools publicadas no `/chatgpt`
+
+Publicar apenas duas tools no `tools/list` real do endpoint `/chatgpt`:
+
+- `search`
+- `fetch`
+
+Sem `health_check`, sem aliases, sem catálogo extra.
+
+Cada descriptor terá:
+
+- `name` exatamente `search` ou `fetch`
+- `annotations.readOnlyHint: true`
+- `annotations.openWorldHint: false`
+- `annotations.destructiveHint: false`
+- `inputSchema.type: "object"`
+- `inputSchema.required` correto
+  - `search`: `["query"]`
+  - `fetch`: `["id"]`
+- `inputSchema.additionalProperties: false`
+- `outputSchema` explícito para validar o resultado
+
+## Respostas de execução
+
+Atualizar `tools/call` de `search` e `fetch` no `/chatgpt` para devolver o formato oficial recomendado pela OpenAI:
 
 ```json
 {
+  "structuredContent": { "results": [] },
   "content": [
-    { "type": "text", "text": "{...json...}" }
+    {
+      "type": "text",
+      "text": "{\"results\":[]}"
+    }
   ]
 }
 ```
 
-- `tools/call search` não devolve `structuredContent`.
-
-## Problemas reais encontrados
-
-1. **Diferença crítica de transporte/conteúdo**
-
-Quando testado com o header típico MCP:
-
-```text
-Accept: application/json, text/event-stream
-```
-
-o `mcp-lite` responde `tools/list` como:
-
-```text
-Content-Type: text/event-stream
-
-data: {"jsonrpc":"2.0", ...}
-```
-
-Quando testado com:
-
-```text
-Accept: application/json
-```
-
-o mesmo `tools/list` responde JSON normal:
-
-```text
-Content-Type: application/json
-{"jsonrpc":"2.0", ...}
-```
-
-Isto é provavelmente a incompatibilidade: o Agent Builder pode estar a enviar o header misto MCP mas a falhar ao processar o `text/event-stream` do `mcp-lite`, resultando em zero actions.
-
-2. **`fetch` não tem `outputSchema` publicado**
-
-Apesar da intenção anterior, o `tools/list` real publicado mostra que `fetch` ainda não inclui `outputSchema`. Não é obrigatório para retorno sem `structuredContent`, mas é recomendado pela OpenAI para discovery/model reasoning.
-
-3. **Catálogo demasiado grande e schemas não estritos**
-
-Mesmo com `search`/`fetch` corretas, as outras 64 tools têm vários schemas sem `additionalProperties: false`. Clientes OpenAI/Agent Builder parecem mais sensíveis a catálogos grandes ou descriptors menos estritos. Isto pode fazer o Builder rejeitar a lista inteira antes de mostrar actions.
-
-## Plano de correção
-
-### 1. Normalizar respostas MCP para JSON no endpoint usado pelo ChatGPT
-
-Alterar `supabase/functions/mcp-server/index.ts` para que chamadas JSON-RPC `POST` como:
-
-- `initialize`
-- `notifications/initialized`
-- `tools/list`
-- `tools/call`
-
-respondam em `application/json` sempre que possível, mesmo quando o cliente envia:
-
-```text
-Accept: application/json, text/event-stream
-```
-
-Isto continua compatível com MCP Streamable HTTP porque o cliente aceita `application/json`, e remove a ambiguidade do `data: ...` SSE que pode estar a quebrar o Agent Builder.
-
-### 2. Adicionar `outputSchema` explícito a `search` e `fetch`
-
-Publicar no descriptor real:
-
-- `search.outputSchema`:
+Para `fetch`, o `structuredContent` terá:
 
 ```json
 {
-  "type": "object",
-  "properties": {
-    "results": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string" },
-          "title": { "type": "string" },
-          "url": { "type": "string" }
-        },
-        "required": ["id", "title", "url"],
-        "additionalProperties": false
-      }
-    }
-  },
-  "required": ["results"],
-  "additionalProperties": false
+  "id": "...",
+  "title": "...",
+  "text": "...",
+  "url": "...",
+  "metadata": {}
 }
 ```
 
-- `fetch.outputSchema`:
+## Debug e logs
 
-```json
-{
-  "type": "object",
-  "properties": {
-    "id": { "type": "string" },
-    "title": { "type": "string" },
-    "text": { "type": "string" },
-    "url": { "type": "string" },
-    "metadata": { "type": "object", "additionalProperties": true }
-  },
-  "required": ["id", "title", "text", "url"],
-  "additionalProperties": false
-}
-```
+Reforçar os logs e o `/debug/tools` para comparar Builder vs testes manuais:
 
-Manter o resultado de execução sem `structuredContent`, só com `content` JSON text, como pediste.
+- correlationId por request
+- log de `initialize`, `tools/list`, `tools/call`
+- método HTTP, path real, user-agent, accept, content-type
+- se a chamada foi para `chatgpt` ou `full`
+- tool chamada
+- resultado da validação do `tools/list`
+- snippet da resposta enviada
+- header `x-correlation-id` exposto
 
-### 3. Criar modo ChatGPT-safe para discovery
+Atualizar `/debug/tools?variant=chatgpt` para chamar o mesmo handler direto usado por `/mcp-server/chatgpt`, devolvendo:
 
-Para evitar que o Agent Builder rejeite as 66 tools por causa de uma tool não estrita, fazer o endpoint principal publicar inicialmente uma lista segura para ChatGPT:
+- endpoint validado
+- raw `initialize`
+- raw `tools/list`
+- descriptors de `search` e `fetch`
+- validações booleanas (`hasSearch`, `hasFetch`, schemas estritos, readOnlyHint)
+- últimas requests capturadas no isolamento atual
 
-- `search`
-- `fetch`
-- `health_check` opcional
+## Validação final
 
-Todas com schemas estritos, `additionalProperties: false`, `readOnlyHint: true` e responses simples.
+Depois de implementar e publicar a edge function, testar em produção:
 
-As restantes 64 tools podem continuar disponíveis internamente/para clientes menos restritivos numa rota ou modo separado, mas o conector ChatGPT deve primeiro ficar operacional com o catálogo obrigatório `search`/`fetch`.
+1. `POST /mcp-server/chatgpt` com `initialize`
+2. `POST /mcp-server/chatgpt` com `tools/list`
+3. Confirmar que `tools/list.result.tools[0].name === "search"`
+4. Confirmar que existe `fetch`
+5. `POST /mcp-server/chatgpt` com `tools/call search`
+6. `POST /mcp-server/chatgpt` com `tools/call fetch`
+7. Confirmar logs com `correlationId`
+8. Confirmar `/debug/tools?variant=chatgpt` mostra a resposta exata do handler real
 
-### 4. Garantir que `tools/list` e `tools/call` usam exatamente o mesmo endpoint
-
-Não depender do `/debug/tools` para validação. O mesmo endpoint:
-
-```text
-/functions/v1/mcp-server
-```
-
-deve responder corretamente a:
-
-```json
-{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}
-```
-
-e deve executar:
-
-```json
-{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"teste"}}}
-```
-
-### 5. Adicionar logs de diagnóstico sem expor segredos
-
-Adicionar logs temporários/seguros para cada chamada MCP:
-
-- método JSON-RPC (`initialize`, `tools/list`, `tools/call`)
-- user-agent resumido
-- status HTTP
-- content-type devolvido
-- se `tools/list` incluiu `search`/`fetch`
-
-Isto permite confirmar se o Agent Builder está realmente a chamar `tools/list` ou se fica parado depois do `initialize`.
-
-### 6. Atualizar documentação operacional
-
-Atualizar `supabase/functions/mcp-server/README.md` com:
-
-- Configuração correta para ChatGPT Agent Builder.
-- Nota de que o endpoint responde JSON mesmo com `Accept: application/json, text/event-stream`.
-- Testes curl para `initialize`, `tools/list`, `tools/call search`, `tools/call fetch`.
-- Nota sobre `x-api-key`.
-
-### 7. Deploy e validação final
-
-Depois da implementação, validar em produção:
-
-- `GET /info` confirma versão nova.
-- `POST initialize` responde 200 JSON.
-- `POST tools/list` com `Accept: application/json, text/event-stream` responde `Content-Type: application/json`.
-- `tools/list` contém `search` e `fetch` com nomes exatos.
-- `readOnlyHint: true` em ambas.
-- `required` e `additionalProperties: false` corretos.
-- `search` e `fetch` têm `outputSchema`.
-- `tools/call search` devolve apenas `content` e sem `structuredContent`.
-- `tools/call fetch` devolve apenas `content` e sem `structuredContent`.
-- Confirmar nos logs se o ChatGPT Agent Builder chamou `tools/list`.
+Isto isola o problema do Builder: se continuar a mostrar `search action not found`, os logs vão provar se o Builder está ou não a chamar `tools/list` no endpoint `/chatgpt` e que payload recebeu.
