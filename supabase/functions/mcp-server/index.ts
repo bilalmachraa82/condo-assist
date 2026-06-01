@@ -1664,6 +1664,28 @@ app.use("*", async (c, next) => {
     }, 200, corsHeaders);
   }
 
+  // Filterable recent requests log: /debug/recent?rpc=initialize&mcp=chatgpt&limit=20
+  if (c.req.method === "GET" && pathname.endsWith("/debug/recent")) {
+    const url = new URL(c.req.url);
+    const rpc = url.searchParams.get("rpc");
+    const mcpLabel = url.searchParams.get("mcp");
+    const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit") ?? 30)));
+    let entries = getRecentMcpRequests();
+    if (rpc) entries = entries.filter((e) => (e.rpc ?? "").includes(rpc));
+    if (mcpLabel) entries = entries.filter((e) => e.mcp === mcpLabel);
+    return c.json({ count: entries.length, entries: entries.slice(0, limit) }, 200, corsHeaders);
+  }
+
+  // Lookup a single request by correlationId: /debug/correlation/<id>
+  if (c.req.method === "GET" && pathname.includes("/debug/correlation/")) {
+    const id = pathname.split("/debug/correlation/")[1]?.split("/")[0] ?? "";
+    const entry = findByCorrelation(id);
+    if (!entry) return c.json({ error: "not found", correlationId: id }, 404, corsHeaders);
+    return c.json(entry, 200, corsHeaders);
+  }
+
+
+
   // Bypass auth on /chatgpt for discovery methods only (initialize, tools/list, ping).
   // tools/call and everything else stays protected by x-api-key.
   const isChatgpt = pathname.endsWith("/chatgpt");
