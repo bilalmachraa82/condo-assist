@@ -1826,10 +1826,10 @@ async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, l
   return new Response(bodyForClient, { status: res.status, headers });
 }
 
-// ChatGPT-safe sub-path: only search/fetch/health_check, strict descriptors.
-app.all("/functions/v1/mcp-server/chatgpt", (c) => handleMcp(c, mcpChatGptHandler, "chatgpt"));
-app.all("/mcp-server/chatgpt", (c) => handleMcp(c, mcpChatGptHandler, "chatgpt"));
-app.all("/chatgpt", (c) => handleMcp(c, mcpChatGptHandler, "chatgpt"));
+// ChatGPT-safe sub-path: native JSON-RPC, only `search` + `fetch`.
+app.all("/functions/v1/mcp-server/chatgpt", (c) => handleMcp(c, chatgptRpcHandler, "chatgpt"));
+app.all("/mcp-server/chatgpt", (c) => handleMcp(c, chatgptRpcHandler, "chatgpt"));
+app.all("/chatgpt", (c) => handleMcp(c, chatgptRpcHandler, "chatgpt"));
 
 // Full catalog (Claude Desktop, MCP Inspector, etc.)
 app.all("*", (c) => handleMcp(c, mcpHandler, "full"));
