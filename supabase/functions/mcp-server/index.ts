@@ -1806,6 +1806,69 @@ function snapshotHeaders(req: Request): Record<string, string> {
   return out;
 }
 
+async function logAuthRejected(c: any, label: string, reason: "missing-key" | "invalid-key") {
+  const startedAt = Date.now();
+  const correlationId = (globalThis.crypto?.randomUUID?.() ?? `cid-${startedAt}-${Math.random().toString(36).slice(2, 8)}`);
+  const authHeader = c.req.header("authorization") ?? "";
+  const xApiKey = c.req.header("x-api-key") ?? "";
+  let requestBody: unknown = undefined;
+  let rpcMethod: string | undefined;
+  let rpcId: unknown;
+  let toolName: string | undefined;
+  if (c.req.method === "POST") {
+    try {
+      const body = await c.req.raw.clone().json();
+      rpcMethod = Array.isArray(body) ? `batch[${body.map((b) => b?.method).join(",")}]` : body?.method;
+      rpcId = Array.isArray(body) ? body.map((b) => b?.id) : body?.id;
+      toolName = Array.isArray(body) ? undefined : body?.params?.name;
+      requestBody = body;
+    } catch { /* not JSON */ }
+  }
+  const entry: McpDebugEntry = {
+    correlationId,
+    at: new Date(startedAt).toISOString(),
+    mcp: label,
+    httpMethod: c.req.method,
+    url: c.req.url,
+    rpc: rpcMethod,
+    rpcId,
+    tool: toolName,
+    status: 401,
+    contentType: "application/json",
+    ua: (c.req.header("user-agent") ?? "").slice(0, 200),
+    accept: c.req.header("accept") ?? "",
+    acceptOverridden: false,
+    ms: Date.now() - startedAt,
+    authPresent: !!authHeader,
+    authScheme: authHeader ? authHeader.split(/\s+/)[0] : undefined,
+    xApiKeyPresent: !!xApiKey,
+    apiKeyMatched: false,
+    requestHeaders: snapshotHeaders(c.req.raw),
+    requestBody,
+    responseBodySnippet: JSON.stringify({ error: "Unauthorized", reason }),
+  };
+  pushRecent(entry);
+  console.log(JSON.stringify({
+    tag: "mcp.auth_rejected",
+    correlationId,
+    mcp: label,
+    reason,
+    httpMethod: c.req.method,
+    url: c.req.url,
+    rpc: rpcMethod,
+    rpcId,
+    tool: toolName,
+    ua: entry.ua,
+    accept: entry.accept,
+    authPresent: entry.authPresent,
+    authScheme: entry.authScheme,
+    xApiKeyPresent: entry.xApiKeyPresent,
+    apiKeyMatched: false,
+    headers: entry.requestHeaders,
+    body: requestBody,
+  }));
+}
+
 async function handleMcp(c: any, handler: (req: Request) => Promise<Response>, label: string) {
   const startedAt = Date.now();
   const correlationId = (globalThis.crypto?.randomUUID?.() ?? `cid-${startedAt}-${Math.random().toString(36).slice(2, 8)}`);
