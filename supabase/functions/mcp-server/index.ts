@@ -1350,7 +1350,6 @@ const PROTOCOL_VERSION = "2025-06-18";
 
 const chatgptSearchDescriptor = {
   name: "search",
-  title: "Search",
   description:
     "Search across assistances, buildings, suppliers, knowledge base and assembly items. Returns results with id, title and url. Compatible with the ChatGPT Apps SDK / deep research `search` standard.",
   inputSchema: {
@@ -1361,18 +1360,15 @@ const chatgptSearchDescriptor = {
     required: ["query"],
     additionalProperties: false,
   },
-  outputSchema: searchOutputSchema,
   annotations: {
     readOnlyHint: true,
     openWorldHint: false,
     destructiveHint: false,
-    idempotentHint: true,
   },
 };
 
 const chatgptFetchDescriptor = {
   name: "fetch",
-  title: "Fetch",
   description:
     "Fetch the full content of a single item by id (`type:uuid`, type ∈ assistance|building|supplier|knowledge|assembly). Compatible with the ChatGPT Apps SDK / deep research `fetch` standard.",
   inputSchema: {
@@ -1383,12 +1379,10 @@ const chatgptFetchDescriptor = {
     required: ["id"],
     additionalProperties: false,
   },
-  outputSchema: fetchOutputSchema,
   annotations: {
     readOnlyHint: true,
     openWorldHint: false,
     destructiveHint: false,
-    idempotentHint: true,
   },
 };
 
@@ -1668,6 +1662,26 @@ app.use("*", async (c, next) => {
       live_tools_list: { status: liveStatus, content_type: liveContentType, body: liveToolsList },
       recent_requests: getRecentMcpRequests(),
     }, 200, corsHeaders);
+  }
+
+  // Bypass auth on /chatgpt for discovery methods only (initialize, tools/list, ping).
+  // tools/call and everything else stays protected by x-api-key.
+  const isChatgpt = pathname.endsWith("/chatgpt");
+  if (isChatgpt && c.req.method === "POST") {
+    try {
+      const raw = await c.req.raw.clone().text();
+      const parsed = raw ? JSON.parse(raw) : null;
+      const DISCOVERY = new Set(["initialize", "tools/list", "ping"]);
+      const methods: string[] = Array.isArray(parsed)
+        ? parsed.map((m) => m?.method).filter((x) => typeof x === "string")
+        : (typeof parsed?.method === "string" ? [parsed.method] : []);
+      if (methods.length > 0 && methods.every((m) => DISCOVERY.has(m))) {
+        await next();
+        return;
+      }
+    } catch {
+      // fall through to auth check
+    }
   }
 
   const authHeader = c.req.header("authorization") ?? "";

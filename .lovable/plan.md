@@ -1,108 +1,59 @@
-Vou corrigir especificamente o endpoint configurado no Builder:
 
-`https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server/chatgpt`
+## Causa raiz (hipótese forte, a confirmar com logs)
 
-## Diagnóstico atual
+`POST /functions/v1/mcp-server/chatgpt` responde **401** sem `x-api-key` já no `initialize`/`tools/list`. O ChatGPT Agent Builder **pode** estar a fazer discovery/indexação numa fase em que as credenciais ainda não estão a ser aplicadas ao request. Se isso acontecer, um 401 em `initialize` ou `tools/list` explica o estado de "0 actions" no catálogo. Tratamos isto como **hipótese principal muito forte**, a confirmar com logs observáveis após o deploy.
 
-- O `/debug/tools?variant=chatgpt` mostra que o handler interno consegue listar `search` e `fetch`.
-- Mas isso ainda não prova que o Builder recebe exatamente a mesma resposta no endpoint real `/mcp-server/chatgpt`.
-- A documentação oficial atual da OpenAI para MCP/deep research diz que servidores retrievable devem implementar duas tools read-only: `search` e `fetch`, com output schema, e que as respostas devem incluir o objeto em `structuredContent` e também o mesmo JSON serializado em `content[].text`.
-- Isto contradiz a hipótese anterior de remover `structuredContent`; para passar conformance, vou alinhar o `/chatgpt` com a documentação oficial da OpenAI.
+O shape dos descriptors está correto — não é a causa principal, mas tem ruído (`title`, `outputSchema`, `idempotentHint`) que vale limpar na mesma iteração.
 
-## Alteração principal
+## Fase 1 — Correção mínima no `/chatgpt`
 
-Substituir o `/chatgpt` por um handler MCP JSON-RPC mínimo e explícito, sem depender do wrapper `mcp-lite` nesse sub-endpoint.
+### 1.1 Discovery sem auth, execution com auth (bypass mínimo)
 
-O endpoint `/mcp-server` completo continua como está para outros clientes, mas `/mcp-server/chatgpt` passa a responder diretamente a:
+No middleware Hono (`supabase/functions/mcp-server/index.ts`, linhas ~1605–1682), antes de validar `x-api-key`:
 
-1. `initialize`
-2. `notifications/initialized`
-3. `tools/list`
-4. `tools/call`
+- se `pathname` termina em `/chatgpt` E método HTTP é `POST` E body JSON-RPC tem `method ∈ { "initialize", "tools/list", "ping" }` → deixar passar **sem auth**.
+- **Tudo o resto continua com auth**, incluindo `tools/call`, `notifications/*` e qualquer outro método. Não alargamos o bypass além do estritamente necessário nesta iteração.
+- Suportar batch JSON-RPC (array): só passa sem auth se TODAS as entradas estiverem na whitelist acima; qualquer outra entrada força exigência de `x-api-key`.
 
-## Tools publicadas no `/chatgpt`
+Implementação: ler o body uma vez (clone do Request), fazer peek do(s) `method`, reconstruir um novo `Request` com o mesmo body para o `chatgptRpcHandler`.
 
-Publicar apenas duas tools no `tools/list` real do endpoint `/chatgpt`:
+### 1.2 Descriptors no contrato mínimo retrievable
 
-- `search`
-- `fetch`
+Em `chatgptSearchDescriptor` e `chatgptFetchDescriptor` (linhas ~1351–1393):
 
-Sem `health_check`, sem aliases, sem catálogo extra.
+- remover `title`
+- remover `outputSchema` do descriptor publicado (manter a implementação interna, que continua a devolver `structuredContent` no shape esperado)
+- remover `annotations.idempotentHint`
+- manter exatamente: `name`, `description`, `inputSchema { type, properties, required, additionalProperties: false }`, `annotations { readOnlyHint: true, openWorldHint: false, destructiveHint: false }`
 
-Cada descriptor terá:
+## Fase 2 — Verificação no endpoint real (não no /debug)
 
-- `name` exatamente `search` ou `fetch`
-- `annotations.readOnlyHint: true`
-- `annotations.openWorldHint: false`
-- `annotations.destructiveHint: false`
-- `inputSchema.type: "object"`
-- `inputSchema.required` correto
-  - `search`: `["query"]`
-  - `fetch`: `["id"]`
-- `inputSchema.additionalProperties: false`
-- `outputSchema` explícito para validar o resultado
+Após o deploy, correr 4 testes contra `/functions/v1/mcp-server/chatgpt` e anexar os resultados:
 
-## Respostas de execução
-
-Atualizar `tools/call` de `search` e `fetch` no `/chatgpt` para devolver o formato oficial recomendado pela OpenAI:
-
-```json
-{
-  "structuredContent": { "results": [] },
-  "content": [
-    {
-      "type": "text",
-      "text": "{\"results\":[]}"
-    }
-  ]
-}
+```text
+POST initialize        sem auth → 200 (protocolVersion + serverInfo)
+POST tools/list        sem auth → 200 (tools = [search, fetch], shape mínimo)
+POST tools/call search sem auth → 401
+POST tools/call search com x-api-key → 200 (content[0].text JSON + structuredContent.results)
 ```
 
-Para `fetch`, o `structuredContent` terá:
+Só avançamos para a Fase 3 se os 4 baterem certo.
 
-```json
-{
-  "id": "...",
-  "title": "...",
-  "text": "...",
-  "url": "...",
-  "metadata": {}
-}
-```
+## Fase 3 — Atualizar `/mcp-diagnostics`
 
-## Debug e logs
+- Painel "Endpoint real (sem auth)": faz `initialize` e `tools/list` diretos a `/chatgpt` (não ao `/debug/tools`) e mostra status, content-type e body cru.
+- Painel "Tool call autenticado": input para colar a `EXTERNAL_API_KEY` (só client-side, nunca persistido) e botões para `tools/call search` / `tools/call fetch` contra `/chatgpt`.
+- Manter os painéis atuais para comparação histórica.
 
-Reforçar os logs e o `/debug/tools` para comparar Builder vs testes manuais:
+## Fase 4 — Builder + confirmação observável
 
-- correlationId por request
-- log de `initialize`, `tools/list`, `tools/call`
-- método HTTP, path real, user-agent, accept, content-type
-- se a chamada foi para `chatgpt` ou `full`
-- tool chamada
-- resultado da validação do `tools/list`
-- snippet da resposta enviada
-- header `x-correlation-id` exposto
+1. No ChatGPT Agent Builder: **apagar** o conector "Condo Assist".
+2. **Recriar** com URL `https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server/chatgpt` e `x-api-key`.
+3. Verificar que aparecem 2 actions (`search`, `fetch`) no catálogo.
+4. Abrir `Edge Function Logs` do `mcp-server` e procurar requests vindos do Builder com `correlationId` — confirmar (ou refutar) se o Builder está a fazer `initialize` / `tools/list` **sem** header `x-api-key`. Isso fecha a hipótese.
 
-Atualizar `/debug/tools?variant=chatgpt` para chamar o mesmo handler direto usado por `/mcp-server/chatgpt`, devolvendo:
+## Notas de segurança
 
-- endpoint validado
-- raw `initialize`
-- raw `tools/list`
-- descriptors de `search` e `fetch`
-- validações booleanas (`hasSearch`, `hasFetch`, schemas estritos, readOnlyHint)
-- últimas requests capturadas no isolamento atual
-
-## Validação final
-
-Depois de implementar e publicar a edge function, testar em produção:
-
-1. `POST /mcp-server/chatgpt` com `initialize`
-2. `POST /mcp-server/chatgpt` com `tools/list`
-3. Confirmar que `tools/list.result.tools[0].name === "search"`
-4. Confirmar que existe `fetch`
-5. `POST /mcp-server/chatgpt` com `tools/call search`
-6. `POST /mcp-server/chatgpt` com `tools/call fetch`
-7. Confirmar logs com `correlationId`
-8. Confirmar `/debug/tools?variant=chatgpt` mostra a resposta exata do handler real
-
-Isto isola o problema do Builder: se continuar a mostrar `search action not found`, os logs vão provar se o Builder está ou não a chamar `tools/list` no endpoint `/chatgpt` e que payload recebeu.
+- O bypass sem auth expõe apenas: nome do servidor, versão de protocolo e o shape dos 2 descriptors públicos. Não expõe dados de negócio, não permite executar tools, não toca `tools/call`.
+- Toda a execução (`tools/call`), o handler `/mcp-server` completo e todos os outros endpoints continuam protegidos por `x-api-key`.
+- Sem alterações a tabelas, RLS, ou outros endpoints.
