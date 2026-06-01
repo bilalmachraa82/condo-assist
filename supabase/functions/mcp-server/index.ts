@@ -1360,6 +1360,26 @@ const chatgptSearchDescriptor = {
     required: ["query"],
     additionalProperties: false,
   },
+  outputSchema: {
+    type: "object",
+    properties: {
+      results: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            url: { type: "string" },
+          },
+          required: ["id", "title", "url"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["results"],
+    additionalProperties: false,
+  },
   annotations: {
     readOnlyHint: true,
     openWorldHint: false,
@@ -1377,6 +1397,18 @@ const chatgptFetchDescriptor = {
       id: { type: "string", description: "Identifier in the form `type:uuid`" },
     },
     required: ["id"],
+    additionalProperties: false,
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      id: { type: "string" },
+      title: { type: "string" },
+      text: { type: "string" },
+      url: { type: "string" },
+      metadata: { type: "object", additionalProperties: true },
+    },
+    required: ["id", "title", "text", "url"],
     additionalProperties: false,
   },
   annotations: {

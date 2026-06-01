@@ -41,7 +41,7 @@ function validateTool(actual: any, expected: any): Check[] {
   checks.push({ label: "annotations.openWorldHint === false", ok: ann.openWorldHint === false, detail: String(ann.openWorldHint) });
   checks.push({ label: "annotations.destructiveHint === false", ok: ann.destructiveHint === false, detail: String(ann.destructiveHint) });
   checks.push({ label: "sem 'title' extra", ok: actual.title === undefined, detail: actual.title ? String(actual.title) : "—" });
-  checks.push({ label: "sem 'outputSchema' extra", ok: actual.outputSchema === undefined, detail: actual.outputSchema ? "presente" : "—" });
+  checks.push({ label: "outputSchema presente", ok: actual.outputSchema !== undefined && actual.outputSchema?.type === "object", detail: actual.outputSchema ? "ok" : "—" });
   return checks;
 }
 
