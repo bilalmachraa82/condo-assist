@@ -1340,38 +1340,257 @@ const fetchDef = {
 mcp.tool("search", searchDef as any);
 mcp.tool("fetch", fetchDef as any);
 
-// ── ChatGPT-safe MCP server: minimal catalog (search + fetch + health_check) ──
-// Exposed on the same edge function under the `/chatgpt` sub-path so the
-// ChatGPT Agent Builder gets a strict, low-noise tools/list it can accept.
-const mcpChatGpt = new McpServer({
-  name: "condo-assist-mcp-chatgpt",
-  version: "1.2.0",
-});
+// ── ChatGPT-safe MCP endpoint: native JSON-RPC, ONLY `search` + `fetch` ──
+// The Builder rejects connectors whose `tools/list` does not contain `search`
+// and `fetch` exactly. We bypass mcp-lite here and emit a strict MCP
+// 2025-06-18 JSON-RPC response to remove any surprises in transport,
+// content-type, or descriptor shape.
 
-mcpChatGpt.tool("search", searchDef as any);
-mcpChatGpt.tool("fetch", fetchDef as any);
-mcpChatGpt.tool("health_check", {
-  title: "Health Check",
-  description: "Verifies the underlying API is reachable. Returns a small status object.",
-  inputSchema: { type: "object", properties: {}, additionalProperties: false },
-  outputSchema: {
+const PROTOCOL_VERSION = "2025-06-18";
+
+const chatgptSearchDescriptor = {
+  name: "search",
+  title: "Search",
+  description:
+    "Search across assistances, buildings, suppliers, knowledge base and assembly items. Returns results with id, title and url. Compatible with the ChatGPT Apps SDK / deep research `search` standard.",
+  inputSchema: {
     type: "object",
     properties: {
-      status: { type: "string" },
-      version: { type: "string" },
-      timestamp: { type: "string" },
+      query: { type: "string", description: "Search query string" },
     },
-    required: ["status"],
-    additionalProperties: true,
+    required: ["query"],
+    additionalProperties: false,
   },
+  outputSchema: searchOutputSchema,
   annotations: {
     readOnlyHint: true,
     openWorldHint: false,
     destructiveHint: false,
     idempotentHint: true,
   },
-  handler: async () => asJsonText(await callAgentApi("GET", "/v1/health")),
-} as any);
+};
+
+const chatgptFetchDescriptor = {
+  name: "fetch",
+  title: "Fetch",
+  description:
+    "Fetch the full content of a single item by id (`type:uuid`, type ∈ assistance|building|supplier|knowledge|assembly). Compatible with the ChatGPT Apps SDK / deep research `fetch` standard.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      id: { type: "string", description: "Identifier in the form `type:uuid`" },
+    },
+    required: ["id"],
+    additionalProperties: false,
+  },
+  outputSchema: fetchOutputSchema,
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+  },
+};
+
+const chatgptToolsList = [chatgptSearchDescriptor, chatgptFetchDescriptor];
+
+async function runChatgptSearch(query: string) {
+  const q = (query ?? "").trim();
+  const results: Array<{ id: string; title: string; url: string }> = [];
+  if (!q) return { results };
+
+  const safe = async <T,>(p: Promise<T>): Promise<T | null> => {
+    try { return await p; } catch { return null; }
+  };
+
+  const [buildings, suppliers, knowledge, assemblyItems] = await Promise.all([
+    safe(callAgentApi("GET", "/v1/buildings", { query: { q, limit: "10" } }) as Promise<any>),
+    safe(callAgentApi("GET", "/v1/suppliers", { query: { q, limit: "10" } }) as Promise<any>),
+    safe(callAgentApi("GET", "/v1/knowledge", { query: { q, limit: "10" } }) as Promise<any>),
+    safe(callAgentApi("GET", "/v1/assembly-items", { query: { q, limit: "10" } }) as Promise<any>),
+  ]);
+
+  const pushArr = (data: any, key: string, mapper: (item: any) => { id: string; title: string; url: string } | null) => {
+    const arr = Array.isArray(data) ? data : (data?.[key] ?? data?.items ?? data?.data ?? []);
+    if (!Array.isArray(arr)) return;
+    for (const item of arr) {
+      const m = mapper(item);
+      if (m) results.push(m);
+    }
+  };
+
+  pushArr(buildings, "buildings", (b) => b?.id ? {
+    id: `building:${b.id}`,
+    title: `Edifício ${b.code ?? ""}${b.code && b.name ? " - " : ""}${b.name ?? ""}`.trim(),
+    url: `${APP_BASE_URL}/edificios`,
+  } : null);
+  pushArr(suppliers, "suppliers", (s) => s?.id ? {
+    id: `supplier:${s.id}`,
+    title: `Fornecedor: ${s.name ?? s.id}`,
+    url: `${APP_BASE_URL}/fornecedores`,
+  } : null);
+  pushArr(knowledge, "articles", (k) => k?.id ? {
+    id: `knowledge:${k.id}`,
+    title: k.title ?? "Artigo",
+    url: `${APP_BASE_URL}/knowledge`,
+  } : null);
+  pushArr(assemblyItems, "items", (item) => item?.id ? {
+    id: `assembly:${item.id}`,
+    title: `Ata/pendência: ${item.description ?? item.status_notes ?? item.id}`,
+    url: `${APP_BASE_URL}/assembly`,
+  } : null);
+
+  return { results: results.slice(0, 30) };
+}
+
+async function runChatgptFetch(id: string) {
+  const [type, uuid] = String(id ?? "").split(":");
+  if (!type || !uuid) {
+    return {
+      id, title: "Invalid id",
+      text: "id must be in the form `type:uuid` (assistance|building|supplier|knowledge|assembly).",
+      url: APP_BASE_URL, metadata: { error: "invalid_id" },
+    };
+  }
+  const pathMap: Record<string, string> = {
+    assistance: `/v1/assistances/${uuid}`,
+    building: `/v1/buildings/${uuid}`,
+    supplier: `/v1/suppliers/${uuid}`,
+    knowledge: `/v1/knowledge/${uuid}`,
+    assembly: `/v1/assembly-items/${uuid}`,
+  };
+  const urlMap: Record<string, string> = {
+    assistance: `${APP_BASE_URL}/assistencias`,
+    building: `${APP_BASE_URL}/edificios`,
+    supplier: `${APP_BASE_URL}/fornecedores`,
+    knowledge: `${APP_BASE_URL}/knowledge`,
+    assembly: `${APP_BASE_URL}/assembly`,
+  };
+  const path = pathMap[type];
+  if (!path) {
+    return {
+      id, title: `Unknown type: ${type}`,
+      text: "Allowed types: assistance, building, supplier, knowledge, assembly.",
+      url: APP_BASE_URL, metadata: { error: "unknown_type", type },
+    };
+  }
+  try {
+    const data: any = await callAgentApi("GET", path);
+    const title = data?.title ?? data?.name ?? `${type} ${uuid}`;
+    return {
+      id, title,
+      text: JSON.stringify(data, null, 2),
+      url: urlMap[type], metadata: { type, uuid },
+    };
+  } catch (err) {
+    return {
+      id, title: `${type} ${uuid}`,
+      text: `Could not fetch: ${(err as Error).message}`,
+      url: urlMap[type], metadata: { type, uuid, error: "fetch_failed" },
+    };
+  }
+}
+
+function jsonRpcResult(id: unknown, result: unknown) {
+  return { jsonrpc: "2.0" as const, id: id ?? null, result };
+}
+function jsonRpcError(id: unknown, code: number, message: string, data?: unknown) {
+  return { jsonrpc: "2.0" as const, id: id ?? null, error: { code, message, ...(data !== undefined ? { data } : {}) } };
+}
+
+// Native JSON-RPC handler for `/chatgpt`. Always responds with plain JSON
+// (never SSE) and only supports the MCP methods needed by ChatGPT:
+// initialize, notifications/initialized, ping, tools/list, tools/call.
+// Auth is enforced by the outer middleware.
+async function chatgptRpcHandler(req: Request): Promise<Response> {
+  const baseHeaders: Record<string, string> = {
+    ...corsHeaders,
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store",
+  };
+
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({
+      name: "condo-assist-mcp-chatgpt",
+      version: "2.0.0",
+      protocolVersion: PROTOCOL_VERSION,
+      tools: chatgptToolsList.map((t) => t.name),
+    }), { status: 200, headers: baseHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify(jsonRpcError(null, -32000, "Method Not Allowed")), {
+      status: 405, headers: baseHeaders,
+    });
+  }
+
+  let body: any = null;
+  try { body = await req.json(); }
+  catch {
+    return new Response(JSON.stringify(jsonRpcError(null, -32700, "Parse error")), {
+      status: 200, headers: baseHeaders,
+    });
+  }
+
+  const handleOne = async (msg: any): Promise<any | null> => {
+    const id = msg?.id;
+    const method = msg?.method;
+    if (typeof method !== "string") return jsonRpcError(id ?? null, -32600, "Invalid Request");
+    const isNotification = id === undefined || id === null;
+
+    switch (method) {
+      case "initialize":
+        return jsonRpcResult(id, {
+          protocolVersion: PROTOCOL_VERSION,
+          capabilities: { tools: { listChanged: false } },
+          serverInfo: { name: "condo-assist-mcp-chatgpt", version: "2.0.0" },
+          instructions: "Retrieval server exposing `search` and `fetch` tools for ChatGPT Apps / deep research.",
+        });
+      case "notifications/initialized":
+      case "notifications/cancelled":
+      case "notifications/roots/list_changed":
+        return null;
+      case "ping":
+        return jsonRpcResult(id, {});
+      case "tools/list":
+        return jsonRpcResult(id, { tools: chatgptToolsList });
+      case "tools/call": {
+        const params = msg?.params ?? {};
+        const name = params?.name;
+        const args = params?.arguments ?? {};
+        if (name === "search") {
+          const out = await runChatgptSearch(String(args?.query ?? ""));
+          return jsonRpcResult(id, {
+            content: [{ type: "text", text: JSON.stringify(out) }],
+            structuredContent: out,
+          });
+        }
+        if (name === "fetch") {
+          const out = await runChatgptFetch(String(args?.id ?? ""));
+          return jsonRpcResult(id, {
+            content: [{ type: "text", text: JSON.stringify(out) }],
+            structuredContent: out,
+          });
+        }
+        return jsonRpcError(id, -32601, `Unknown tool: ${name}`);
+      }
+      default:
+        if (isNotification) return null;
+        return jsonRpcError(id, -32601, `Method not found: ${method}`);
+    }
+  };
+
+  if (Array.isArray(body)) {
+    const results = (await Promise.all(body.map(handleOne))).filter((r) => r !== null);
+    return new Response(JSON.stringify(results), { status: 200, headers: baseHeaders });
+  }
+
+  const result = await handleOne(body);
+  if (result === null) {
+    return new Response(null, { status: 202, headers: corsHeaders });
+  }
+  return new Response(JSON.stringify(result), { status: 200, headers: baseHeaders });
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
