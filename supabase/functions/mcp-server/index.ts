@@ -1164,34 +1164,24 @@ mcp.tool("add_claim_note", {
 const APP_BASE_URL = "https://condo-assist.lovable.app";
 
 mcp.tool("search", {
-  description: "Pesquisa transversal em assistências (título/descrição), edifícios (código/nome), fornecedores (nome) e base de conhecimento. Devolve resultados no formato esperado pelo ChatGPT Apps SDK.",
+  title: "Search",
+  description: "Search across assistances, buildings, suppliers, knowledge base and assembly items. Returns a list of results with id, title and url, compatible with the ChatGPT/OpenAI Apps SDK search standard.",
   inputSchema: {
     type: "object",
-    properties: { query: { type: "string", description: "Termo de pesquisa" } },
+    properties: { query: { type: "string", description: "Search query" } },
     required: ["query"],
+    additionalProperties: false,
   },
-  outputSchema: {
-    type: "object",
-    properties: {
-      results: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            id: { type: "string" },
-            title: { type: "string" },
-            url: { type: "string" },
-          },
-          required: ["id", "title", "url"],
-        },
-      },
-    },
-    required: ["results"],
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
   },
   handler: async ({ query }: { query: string }) => {
     const q = (query ?? "").trim();
     const results: Array<{ id: string; title: string; url: string }> = [];
-    if (!q) return asText({ results });
+    if (!q) return asJsonText({ results });
 
     const safe = async <T,>(p: Promise<T>): Promise<T | null> => {
       try { return await p; } catch { return null; }
@@ -1234,21 +1224,29 @@ mcp.tool("search", {
       url: `${APP_BASE_URL}/assembly`,
     } : null);
 
-    return asText({ results: results.slice(0, 30) });
+    return asJsonText({ results: results.slice(0, 30) });
   },
 });
 
 mcp.tool("fetch", {
-  description: "Obtém o conteúdo completo de um item identificado por `tipo:uuid` (assistance|building|supplier|knowledge|assembly). Formato esperado pelo ChatGPT Apps SDK.",
+  title: "Fetch",
+  description: "Fetch the full content of a single item by id. The id must be in the form `type:uuid` (assistance|building|supplier|knowledge|assembly). Returns id, title, text, url and metadata, compatible with the ChatGPT/OpenAI Apps SDK fetch standard.",
   inputSchema: {
     type: "object",
-    properties: { id: { type: "string", description: "Identificador no formato `tipo:uuid`" } },
+    properties: { id: { type: "string", description: "Identifier in the form `type:uuid`" } },
     required: ["id"],
+    additionalProperties: false,
+  },
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
   },
   handler: async ({ id }: { id: string }) => {
     const [type, uuid] = String(id ?? "").split(":");
     if (!type || !uuid) {
-      return asText({ error: "id inválido. Use `tipo:uuid` (assistance|building|supplier|knowledge|assembly)." });
+      return asJsonText({ id, title: "Invalid id", text: "id must be in the form `type:uuid` (assistance|building|supplier|knowledge|assembly).", url: APP_BASE_URL, metadata: { error: "invalid_id" } });
     }
     const pathMap: Record<string, string> = {
       assistance: `/v1/assistances/${uuid}`,
@@ -1265,17 +1263,29 @@ mcp.tool("fetch", {
       assembly: `${APP_BASE_URL}/assembly`,
     };
     const path = pathMap[type];
-    if (!path) return asText({ error: `tipo desconhecido: ${type}` });
+    if (!path) {
+      return asJsonText({ id, title: `Unknown type: ${type}`, text: "Allowed types: assistance, building, supplier, knowledge, assembly.", url: APP_BASE_URL, metadata: { error: "unknown_type", type } });
+    }
 
-    const data: any = await callAgentApi("GET", path);
-    const title = data?.title ?? data?.name ?? `${type} ${uuid}`;
-    return asText({
-      id,
-      title,
-      text: JSON.stringify(data, null, 2),
-      url: urlMap[type],
-      metadata: { type, uuid },
-    });
+    try {
+      const data: any = await callAgentApi("GET", path);
+      const title = data?.title ?? data?.name ?? `${type} ${uuid}`;
+      return asJsonText({
+        id,
+        title,
+        text: JSON.stringify(data, null, 2),
+        url: urlMap[type],
+        metadata: { type, uuid },
+      });
+    } catch (err) {
+      return asJsonText({
+        id,
+        title: `${type} ${uuid}`,
+        text: `Could not fetch: ${(err as Error).message}`,
+        url: urlMap[type],
+        metadata: { type, uuid, error: "fetch_failed" },
+      });
+    }
   },
 });
 
