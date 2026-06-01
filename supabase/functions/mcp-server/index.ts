@@ -1164,6 +1164,24 @@ mcp.tool("search", {
     properties: { query: { type: "string", description: "Termo de pesquisa" } },
     required: ["query"],
   },
+  outputSchema: {
+    type: "object",
+    properties: {
+      results: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            url: { type: "string" },
+          },
+          required: ["id", "title", "url"],
+        },
+      },
+    },
+    required: ["results"],
+  },
   handler: async ({ query }: { query: string }) => {
     const q = (query ?? "").trim();
     const results: Array<{ id: string; title: string; url: string }> = [];
@@ -1173,15 +1191,15 @@ mcp.tool("search", {
       try { return await p; } catch { return null; }
     };
 
-    const [buildings, suppliers, knowledge, assistances] = await Promise.all([
+    const [buildings, suppliers, knowledge, assemblyItems] = await Promise.all([
       safe(callAgentApi("GET", "/v1/buildings", { query: { q, limit: "10" } }) as Promise<any>),
       safe(callAgentApi("GET", "/v1/suppliers", { query: { q, limit: "10" } }) as Promise<any>),
       safe(callAgentApi("GET", "/v1/knowledge", { query: { q, limit: "10" } }) as Promise<any>),
-      safe(callAgentApi("GET", "/v1/assistances", { query: { q, limit: "10" } }) as Promise<any>),
+      safe(callAgentApi("GET", "/v1/assembly-items", { query: { q, limit: "10" } }) as Promise<any>),
     ]);
 
-    const pushArr = (data: any, mapper: (item: any) => { id: string; title: string; url: string } | null) => {
-      const arr = Array.isArray(data) ? data : (data?.items ?? data?.data ?? []);
+    const pushArr = (data: any, key: string, mapper: (item: any) => { id: string; title: string; url: string } | null) => {
+      const arr = Array.isArray(data) ? data : (data?.[key] ?? data?.items ?? data?.data ?? []);
       if (!Array.isArray(arr)) return;
       for (const item of arr) {
         const m = mapper(item);
@@ -1189,28 +1207,28 @@ mcp.tool("search", {
       }
     };
 
-    pushArr(buildings, (b) => b?.id ? {
+    pushArr(buildings, "buildings", (b) => b?.id ? {
       id: `building:${b.id}`,
       title: `Edifício ${b.code ?? ""}${b.code && b.name ? " - " : ""}${b.name ?? ""}`.trim(),
       url: `${APP_BASE_URL}/edificios`,
     } : null);
-    pushArr(suppliers, (s) => s?.id ? {
+    pushArr(suppliers, "suppliers", (s) => s?.id ? {
       id: `supplier:${s.id}`,
       title: `Fornecedor: ${s.name ?? s.id}`,
       url: `${APP_BASE_URL}/fornecedores`,
     } : null);
-    pushArr(knowledge, (k) => k?.id ? {
+    pushArr(knowledge, "articles", (k) => k?.id ? {
       id: `knowledge:${k.id}`,
       title: k.title ?? "Artigo",
       url: `${APP_BASE_URL}/knowledge`,
     } : null);
-    pushArr(assistances, (a) => a?.id ? {
-      id: `assistance:${a.id}`,
-      title: a.title ?? `Assistência ${a.id}`,
-      url: `${APP_BASE_URL}/assistencias`,
+    pushArr(assemblyItems, "items", (item) => item?.id ? {
+      id: `assembly:${item.id}`,
+      title: `Ata/pendência: ${item.description ?? item.status_notes ?? item.id}`,
+      url: `${APP_BASE_URL}/assembly`,
     } : null);
 
-    return asText({ results });
+    return asText({ results: results.slice(0, 30) });
   },
 });
 
@@ -1231,12 +1249,14 @@ mcp.tool("fetch", {
       building: `/v1/buildings/${uuid}`,
       supplier: `/v1/suppliers/${uuid}`,
       knowledge: `/v1/knowledge/${uuid}`,
+      assembly: `/v1/assembly-items/${uuid}`,
     };
     const urlMap: Record<string, string> = {
       assistance: `${APP_BASE_URL}/assistencias`,
       building: `${APP_BASE_URL}/edificios`,
       supplier: `${APP_BASE_URL}/fornecedores`,
       knowledge: `${APP_BASE_URL}/knowledge`,
+      assembly: `${APP_BASE_URL}/assembly`,
     };
     const path = pathMap[type];
     if (!path) return asText({ error: `tipo desconhecido: ${type}` });
