@@ -1350,7 +1350,6 @@ const PROTOCOL_VERSION = "2025-06-18";
 
 const chatgptSearchDescriptor = {
   name: "search",
-  title: "Search",
   description:
     "Search across assistances, buildings, suppliers, knowledge base and assembly items. Returns results with id, title and url. Compatible with the ChatGPT Apps SDK / deep research `search` standard.",
   inputSchema: {
@@ -1361,18 +1360,15 @@ const chatgptSearchDescriptor = {
     required: ["query"],
     additionalProperties: false,
   },
-  outputSchema: searchOutputSchema,
   annotations: {
     readOnlyHint: true,
     openWorldHint: false,
     destructiveHint: false,
-    idempotentHint: true,
   },
 };
 
 const chatgptFetchDescriptor = {
   name: "fetch",
-  title: "Fetch",
   description:
     "Fetch the full content of a single item by id (`type:uuid`, type ∈ assistance|building|supplier|knowledge|assembly). Compatible with the ChatGPT Apps SDK / deep research `fetch` standard.",
   inputSchema: {
@@ -1383,12 +1379,10 @@ const chatgptFetchDescriptor = {
     required: ["id"],
     additionalProperties: false,
   },
-  outputSchema: fetchOutputSchema,
   annotations: {
     readOnlyHint: true,
     openWorldHint: false,
     destructiveHint: false,
-    idempotentHint: true,
   },
 };
 
