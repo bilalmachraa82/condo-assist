@@ -1,59 +1,104 @@
+## Diagnóstico atual
 
-## Causa raiz (hipótese forte, a confirmar com logs)
-
-`POST /functions/v1/mcp-server/chatgpt` responde **401** sem `x-api-key` já no `initialize`/`tools/list`. O ChatGPT Agent Builder **pode** estar a fazer discovery/indexação numa fase em que as credenciais ainda não estão a ser aplicadas ao request. Se isso acontecer, um 401 em `initialize` ou `tools/list` explica o estado de "0 actions" no catálogo. Tratamos isto como **hipótese principal muito forte**, a confirmar com logs observáveis após o deploy.
-
-O shape dos descriptors está correto — não é a causa principal, mas tem ruído (`title`, `outputSchema`, `idempotentHint`) que vale limpar na mesma iteração.
-
-## Fase 1 — Correção mínima no `/chatgpt`
-
-### 1.1 Discovery sem auth, execution com auth (bypass mínimo)
-
-No middleware Hono (`supabase/functions/mcp-server/index.ts`, linhas ~1605–1682), antes de validar `x-api-key`:
-
-- se `pathname` termina em `/chatgpt` E método HTTP é `POST` E body JSON-RPC tem `method ∈ { "initialize", "tools/list", "ping" }` → deixar passar **sem auth**.
-- **Tudo o resto continua com auth**, incluindo `tools/call`, `notifications/*` e qualquer outro método. Não alargamos o bypass além do estritamente necessário nesta iteração.
-- Suportar batch JSON-RPC (array): só passa sem auth se TODAS as entradas estiverem na whitelist acima; qualquer outra entrada força exigência de `x-api-key`.
-
-Implementação: ler o body uma vez (clone do Request), fazer peek do(s) `method`, reconstruir um novo `Request` com o mesmo body para o `chatgptRpcHandler`.
-
-### 1.2 Descriptors no contrato mínimo retrievable
-
-Em `chatgptSearchDescriptor` e `chatgptFetchDescriptor` (linhas ~1351–1393):
-
-- remover `title`
-- remover `outputSchema` do descriptor publicado (manter a implementação interna, que continua a devolver `structuredContent` no shape esperado)
-- remover `annotations.idempotentHint`
-- manter exatamente: `name`, `description`, `inputSchema { type, properties, required, additionalProperties: false }`, `annotations { readOnlyHint: true, openWorldHint: false, destructiveHint: false }`
-
-## Fase 2 — Verificação no endpoint real (não no /debug)
-
-Após o deploy, correr 4 testes contra `/functions/v1/mcp-server/chatgpt` e anexar os resultados:
+O servidor **está live** e responde corretamente no endpoint real:
 
 ```text
-POST initialize        sem auth → 200 (protocolVersion + serverInfo)
-POST tools/list        sem auth → 200 (tools = [search, fetch], shape mínimo)
-POST tools/call search sem auth → 401
-POST tools/call search com x-api-key → 200 (content[0].text JSON + structuredContent.results)
+GET /functions/v1/mcp-server/chatgpt                  -> 200
+POST initialize sem auth                              -> 200
+POST tools/list sem auth                              -> 200, devolve search + fetch
 ```
 
-Só avançamos para a Fase 3 se os 4 baterem certo.
+Os logs também mostram `mcp.request` e `mcp.response` com `status: 200`, portanto o problema já **não parece ser deploy, base de dados, nem 401 no discovery**.
 
-## Fase 3 — Atualizar `/mcp-diagnostics`
+A nova hipótese mais forte é: **o ChatGPT/Builder está a rejeitar ou não indexar o descriptor porque removemos `outputSchema`, mas a documentação oficial atual para data-only/deep research recomenda/espera `outputSchema` em `search` e `fetch`.**
 
-- Painel "Endpoint real (sem auth)": faz `initialize` e `tools/list` diretos a `/chatgpt` (não ao `/debug/tools`) e mostra status, content-type e body cru.
-- Painel "Tool call autenticado": input para colar a `EXTERNAL_API_KEY` (só client-side, nunca persistido) e botões para `tools/call search` / `tools/call fetch` contra `/chatgpt`.
-- Manter os painéis atuais para comparação histórica.
+## O que vou alterar
 
-## Fase 4 — Builder + confirmação observável
+### 1. Repor `outputSchema` nos descriptors do `/chatgpt`
 
-1. No ChatGPT Agent Builder: **apagar** o conector "Condo Assist".
-2. **Recriar** com URL `https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server/chatgpt` e `x-api-key`.
-3. Verificar que aparecem 2 actions (`search`, `fetch`) no catálogo.
-4. Abrir `Edge Function Logs` do `mcp-server` e procurar requests vindos do Builder com `correlationId` — confirmar (ou refutar) se o Builder está a fazer `initialize` / `tools/list` **sem** header `x-api-key`. Isso fecha a hipótese.
+Em `supabase/functions/mcp-server/index.ts`, nos descriptors públicos:
 
-## Notas de segurança
+- `search.outputSchema`:
+  - objeto com `results`
+  - `results[]` com `id`, `title`, `url`
+  - `additionalProperties: false`
 
-- O bypass sem auth expõe apenas: nome do servidor, versão de protocolo e o shape dos 2 descriptors públicos. Não expõe dados de negócio, não permite executar tools, não toca `tools/call`.
-- Toda a execução (`tools/call`), o handler `/mcp-server` completo e todos os outros endpoints continuam protegidos por `x-api-key`.
-- Sem alterações a tabelas, RLS, ou outros endpoints.
+- `fetch.outputSchema`:
+  - objeto com `id`, `title`, `text`, `url`, `metadata`
+  - `id`, `title`, `text`, `url` obrigatórios
+  - `metadata` opcional
+  - `additionalProperties: false`
+
+Vou manter fora os campos mais suspeitos/ruidosos:
+
+- não repor `title`
+- não repor `idempotentHint`
+
+### 2. Validar que a execução já devolve shape compatível
+
+Confirmar que `tools/call search` e `tools/call fetch` devolvem:
+
+```text
+structuredContent
+content[0].type = "text"
+content[0].text = JSON string do mesmo payload
+```
+
+Se faltar algum campo obrigatório, ajustar apenas o `/chatgpt` para cumprir o contrato.
+
+### 3. Deploy do edge function
+
+Deploy imediato de:
+
+```text
+supabase/functions/mcp-server
+```
+
+Sem migrações de base de dados, porque a listagem de ferramentas não depende da DB.
+
+### 4. Testes no endpoint real
+
+Testar de novo:
+
+```text
+GET /chatgpt                    -> 200 com tools + outputSchema
+POST initialize sem auth         -> 200
+POST tools/list sem auth         -> 200 com search + fetch + outputSchema
+POST tools/call search sem auth  -> 401
+```
+
+Se existir `EXTERNAL_API_KEY` disponível nos secrets, testar também:
+
+```text
+POST tools/call search com x-api-key -> 200
+```
+
+### 5. Atualizar diagnóstico visual, se necessário
+
+Atualizar `/mcp-diagnostics` para deixar de marcar `outputSchema` como erro e passar a validá-lo como esperado.
+
+## Passo obrigatório depois da correção
+
+Depois do deploy, no ChatGPT Builder:
+
+1. Apagar totalmente o conector/app **Condominio v8**.
+2. Criar um novo, não editar o antigo.
+3. Usar exatamente:
+
+```text
+https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server/chatgpt
+```
+
+4. Transport: HTTP / Streamable HTTP.
+5. Auth: custom header `x-api-key` com o valor de `EXTERNAL_API_KEY`.
+
+## Se ainda aparecer 0 actions depois disto
+
+Aí o mais provável passa a ser uma destas causas externas ao endpoint:
+
+- estás a configurar em **Actions/OpenAPI** e não em **MCP app/connector**;
+- a conta/plano/workspace ainda não tem MCP apps/full connectors ativo;
+- cache/recache do Builder mesmo após edição, exigindo delete + novo nome;
+- o Builder está a chamar outro URL que não `/chatgpt`.
+
+Os logs por `correlationId` vão confirmar qual destes casos está a acontecer.
