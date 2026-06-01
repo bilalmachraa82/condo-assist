@@ -83,16 +83,28 @@ const mcp = new McpServer({
   version: "1.0.0",
 });
 
+const registeredTools: Array<Record<string, unknown>> = [];
 const originalTool = mcp.tool.bind(mcp);
-(mcp as any).tool = (name: string, def: Record<string, unknown>) => originalTool(name, {
-  ...def,
-  title: (def.title as string | undefined) ?? titleFromName(name),
-  inputSchema: def.inputSchema ?? { type: "object", properties: {} },
-  annotations: {
-    ...defaultToolAnnotations(name),
-    ...((def.annotations as Record<string, unknown> | undefined) ?? {}),
-  },
-});
+(mcp as any).tool = (name: string, def: Record<string, unknown>) => {
+  const enriched = {
+    ...def,
+    title: (def.title as string | undefined) ?? titleFromName(name),
+    inputSchema: def.inputSchema ?? { type: "object", properties: {} },
+    annotations: {
+      ...defaultToolAnnotations(name),
+      ...((def.annotations as Record<string, unknown> | undefined) ?? {}),
+    },
+  };
+  registeredTools.push({
+    name,
+    title: enriched.title,
+    description: def.description,
+    inputSchema: enriched.inputSchema,
+    outputSchema: (def as any).outputSchema,
+    annotations: enriched.annotations,
+  });
+  return originalTool(name, enriched);
+};
 
 // 1. Health
 mcp.tool("health_check", {
