@@ -16,7 +16,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import { CHATGPT_URL, FULL_URL, rpc, type RpcResult } from "@/lib/mcpClient";
+import { CHATGPT_URL, FULL_URL, checkApiKey, rpc, type RpcResult } from "@/lib/mcpClient";
 
 type TestStatus = "idle" | "running" | "pass" | "fail" | "skipped";
 
@@ -43,6 +43,8 @@ const INITIAL_TESTS: TestCase[] = [
   { id: "8", label: "POST /mcp-server tools/list com chave real (diagnóstico)", blocking: false, endpoint: "mcp-server", status: "idle", expected: "HTTP 200, lista de tools nomeadas" },
   { id: "9", label: "POST /mcp-server tools/call health_check (diagnóstico)", blocking: false, endpoint: "mcp-server", status: "idle", expected: "HTTP 200" },
 ];
+
+const EXECUTION_TEST_IDS = new Set(["6", "7", "8", "9"]);
 
 function StatusBadge({ status, blocking }: { status: TestStatus; blocking: boolean }) {
   if (status === "running") return <Badge variant="secondary"><Loader2 className="h-3 w-3 mr-1 animate-spin" />a correr</Badge>;
@@ -132,6 +134,28 @@ export default function McpTest() {
       const r = await rpc(CHATGPT_URL, "tools/call", { name: "search", arguments: { query: "ping" } }, "OBVIOUSLY_WRONG_KEY_xxx");
       const ok = looksLikeAuthError(r);
       updateTest("5", { status: ok ? "pass" : "fail", result: r, failReason: ok ? undefined : "Deveria recusar com chave inválida" });
+    }
+
+    // Pré-validação da chave real: evita disparar vários 401 seguidos e torna claro
+    // se o problema é valor colado diferente do secret EXTERNAL_API_KEY ativo.
+    {
+      const r = await checkApiKey(apiKey.trim());
+      if (r.status !== 200 || r.body?.ok !== true) {
+        const reason = r.body?.reason === "invalid-key"
+          ? "A chave colada não coincide com a EXTERNAL_API_KEY ativa no edge function."
+          : "A EXTERNAL_API_KEY não está configurada ou não chegou no header x-api-key.";
+        for (const id of EXECUTION_TEST_IDS) {
+          updateTest(id, {
+            status: "fail",
+            result: id === "6" ? r : undefined,
+            failReason: id === "6" ? "Chave rejeitada antes do search" : "Saltado porque a chave real falhou a pré-validação",
+            hint: id === "6" ? `${reason} Atualiza o secret ou cola aqui exatamente o mesmo valor, sem Bearer e sem espaços.` : undefined,
+          });
+        }
+        setRunning(false);
+        setVerdict("red");
+        return;
+      }
     }
 
     // 6. tools/call search com chave real
