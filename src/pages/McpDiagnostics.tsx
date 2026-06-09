@@ -118,6 +118,12 @@ export default function McpDiagnostics() {
     if (!apiKey) return;
     setAuthLoading(true);
     try {
+      const check = await keyCheck(apiKey.trim());
+      if (check.status !== 200 || check.body?.ok !== true) {
+        setAuthSearch(check);
+        setAuthFetch(null);
+        return;
+      }
       const s = await rpc(CHATGPT_URL, "tools/call", { name: "search", arguments: { query: searchQuery } }, apiKey);
       setAuthSearch(s);
       if (fetchId.trim()) {
