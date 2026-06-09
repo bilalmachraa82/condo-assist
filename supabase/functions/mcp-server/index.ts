@@ -5,10 +5,17 @@
 
 import { Hono } from "hono";
 import { McpServer, StreamableHttpTransport } from "mcp-lite";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const AGENT_API_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1/agent-api`;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const AGENT_API_URL = `${SUPABASE_URL}/functions/v1/agent-api`;
 const EXTERNAL_API_KEY = Deno.env.get("EXTERNAL_API_KEY") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+const adminDb = SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  : null;
 
 // ── HTTP helper that calls the underlying agent-api ──
 async function callAgentApi(
@@ -1425,46 +1432,56 @@ async function runChatgptSearch(query: string) {
   const results: Array<{ id: string; title: string; url: string }> = [];
   if (!q) return { results };
 
-  const safe = async <T,>(p: Promise<T>): Promise<T | null> => {
-    try { return await p; } catch { return null; }
-  };
+  // Prefer direct DB search (broader, no building_id requirement, accent-insensitive ilike)
+  if (adminDb) {
+    const like = `%${q}%`;
+    const safe = async <T,>(p: PromiseLike<T>): Promise<T | null> => {
+      try { return await p; } catch { return null; }
+    };
+    const [a, b, s, k, ai] = await Promise.all([
+      safe(adminDb.from("assistances").select("id, title, assistance_number").or(`title.ilike.${like},description.ilike.${like}`).limit(15)),
+      safe(adminDb.from("buildings").select("id, code, name").or(`code.ilike.${like},name.ilike.${like},address.ilike.${like}`).limit(15)),
+      safe(adminDb.from("suppliers").select("id, name, specialization").or(`name.ilike.${like},specialization.ilike.${like},email.ilike.${like}`).limit(15)),
+      safe(adminDb.from("knowledge_articles").select("id, title").or(`title.ilike.${like},content.ilike.${like}`).limit(15)),
+      safe(adminDb.from("assembly_items").select("id, description, status_notes").or(`description.ilike.${like},status_notes.ilike.${like}`).limit(15)),
+    ]);
 
-  const [buildings, suppliers, knowledge, assemblyItems] = await Promise.all([
-    safe(callAgentApi("GET", "/v1/buildings", { query: { q, limit: "10" } }) as Promise<any>),
-    safe(callAgentApi("GET", "/v1/suppliers", { query: { q, limit: "10" } }) as Promise<any>),
-    safe(callAgentApi("GET", "/v1/knowledge", { query: { q, limit: "10" } }) as Promise<any>),
-    safe(callAgentApi("GET", "/v1/assembly-items", { query: { q, limit: "10" } }) as Promise<any>),
-  ]);
-
-  const pushArr = (data: any, key: string, mapper: (item: any) => { id: string; title: string; url: string } | null) => {
-    const arr = Array.isArray(data) ? data : (data?.[key] ?? data?.items ?? data?.data ?? []);
-    if (!Array.isArray(arr)) return;
-    for (const item of arr) {
-      const m = mapper(item);
-      if (m) results.push(m);
+    for (const row of (a?.data ?? [])) {
+      results.push({
+        id: `assistance:${row.id}`,
+        title: `Assistência ${row.assistance_number ?? ""}: ${row.title ?? ""}`.trim(),
+        url: `${APP_BASE_URL}/assistencias`,
+      });
     }
-  };
-
-  pushArr(buildings, "buildings", (b) => b?.id ? {
-    id: `building:${b.id}`,
-    title: `Edifício ${b.code ?? ""}${b.code && b.name ? " - " : ""}${b.name ?? ""}`.trim(),
-    url: `${APP_BASE_URL}/edificios`,
-  } : null);
-  pushArr(suppliers, "suppliers", (s) => s?.id ? {
-    id: `supplier:${s.id}`,
-    title: `Fornecedor: ${s.name ?? s.id}`,
-    url: `${APP_BASE_URL}/fornecedores`,
-  } : null);
-  pushArr(knowledge, "articles", (k) => k?.id ? {
-    id: `knowledge:${k.id}`,
-    title: k.title ?? "Artigo",
-    url: `${APP_BASE_URL}/knowledge`,
-  } : null);
-  pushArr(assemblyItems, "items", (item) => item?.id ? {
-    id: `assembly:${item.id}`,
-    title: `Ata/pendência: ${item.description ?? item.status_notes ?? item.id}`,
-    url: `${APP_BASE_URL}/assembly`,
-  } : null);
+    for (const row of (b?.data ?? [])) {
+      results.push({
+        id: `building:${row.id}`,
+        title: `Edifício ${row.code ?? ""}${row.code && row.name ? " - " : ""}${row.name ?? ""}`.trim(),
+        url: `${APP_BASE_URL}/edificios`,
+      });
+    }
+    for (const row of (s?.data ?? [])) {
+      results.push({
+        id: `supplier:${row.id}`,
+        title: `Fornecedor: ${row.name ?? row.id}${row.specialization ? ` (${row.specialization})` : ""}`,
+        url: `${APP_BASE_URL}/fornecedores`,
+      });
+    }
+    for (const row of (k?.data ?? [])) {
+      results.push({
+        id: `knowledge:${row.id}`,
+        title: row.title ?? "Artigo",
+        url: `${APP_BASE_URL}/knowledge`,
+      });
+    }
+    for (const row of (ai?.data ?? [])) {
+      results.push({
+        id: `assembly:${row.id}`,
+        title: `Ata/pendência: ${(row.description ?? row.status_notes ?? row.id).toString().slice(0, 120)}`,
+        url: `${APP_BASE_URL}/assembly`,
+      });
+    }
+  }
 
   return { results: results.slice(0, 30) };
 }
