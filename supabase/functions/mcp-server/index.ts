@@ -1768,10 +1768,10 @@ app.use("*", async (c, next) => {
   }
 
   const authHeader = c.req.header("authorization") ?? "";
-  const bearer = authHeader.replace(/^Bearer\s+/i, "");
-  const apiKey = c.req.header("x-api-key") ?? bearer ?? new URL(c.req.url).searchParams.get("api_key") ?? "";
+  const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const apiKey = (c.req.header("x-api-key") || bearer || new URL(c.req.url).searchParams.get("api_key") || "").trim();
 
-  if (!EXTERNAL_API_KEY || apiKey !== EXTERNAL_API_KEY) {
+  if (!EXTERNAL_API_KEY.trim() || apiKey !== EXTERNAL_API_KEY.trim()) {
     const correlationId = await logAuthRejected(c, pathname.endsWith("/chatgpt") ? "chatgpt" : "full", apiKey ? "invalid-key" : "missing-key");
     return c.json({ error: "Unauthorized. Provide x-api-key header or Bearer token.", correlationId }, 401, {
       ...corsHeaders,
