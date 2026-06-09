@@ -142,6 +142,9 @@ export default function McpDiagnostics() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button asChild variant="default">
+            <a href="/mcp-test">Validar a minha API key →</a>
+          </Button>
           <Button onClick={runLive} disabled={liveLoading} variant="outline">
             {liveLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             <span className="ml-2">Re-testar endpoint real</span>
