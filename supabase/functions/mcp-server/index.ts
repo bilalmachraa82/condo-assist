@@ -1730,6 +1730,24 @@ app.use("*", async (c, next) => {
 
 
 
+  // Public preflight used by /mcp-test. It validates whether the supplied
+  // x-api-key matches the active EXTERNAL_API_KEY without emitting a 401 that
+  // Lovable's preview overlay treats as a runtime error.
+  if (c.req.method === "GET" && pathname.endsWith("/debug/key-check")) {
+    const authHeader = c.req.header("authorization") ?? "";
+    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const providedKey = (c.req.header("x-api-key") ?? bearer ?? "").trim();
+    const configured = EXTERNAL_API_KEY.trim().length > 0;
+    const ok = configured && providedKey === EXTERNAL_API_KEY.trim();
+    return c.json({
+      ok,
+      configured,
+      authPresent: !!authHeader,
+      xApiKeyPresent: !!c.req.header("x-api-key"),
+      reason: ok ? "matched" : !configured ? "secret-missing" : providedKey ? "invalid-key" : "missing-key",
+    }, 200, corsHeaders);
+  }
+
   // Bypass auth on /chatgpt for discovery methods only (initialize, tools/list, ping).
   // tools/call and everything else stays protected by x-api-key.
   if (isChatgpt && c.req.method === "POST") {
@@ -1750,10 +1768,10 @@ app.use("*", async (c, next) => {
   }
 
   const authHeader = c.req.header("authorization") ?? "";
-  const bearer = authHeader.replace(/^Bearer\s+/i, "");
-  const apiKey = c.req.header("x-api-key") ?? bearer ?? new URL(c.req.url).searchParams.get("api_key") ?? "";
+  const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const apiKey = (c.req.header("x-api-key") || bearer || new URL(c.req.url).searchParams.get("api_key") || "").trim();
 
-  if (!EXTERNAL_API_KEY || apiKey !== EXTERNAL_API_KEY) {
+  if (!EXTERNAL_API_KEY.trim() || apiKey !== EXTERNAL_API_KEY.trim()) {
     const correlationId = await logAuthRejected(c, pathname.endsWith("/chatgpt") ? "chatgpt" : "full", apiKey ? "invalid-key" : "missing-key");
     return c.json({ error: "Unauthorized. Provide x-api-key header or Bearer token.", correlationId }, 401, {
       ...corsHeaders,

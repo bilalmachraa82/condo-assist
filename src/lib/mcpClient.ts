@@ -1,6 +1,7 @@
 export const MCP_BASE = "https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server";
 export const CHATGPT_URL = `${MCP_BASE}/chatgpt`;
 export const FULL_URL = MCP_BASE;
+export const KEY_CHECK_URL = `${MCP_BASE}/debug/key-check`;
 
 export type RpcResult = {
   status: number;
@@ -48,6 +49,35 @@ export async function rpc(
         body = JSON.parse(txt);
       } catch {}
     }
+    return {
+      status: res.status,
+      contentType: res.headers.get("content-type") ?? "",
+      body,
+      durationMs: Math.round(performance.now() - t0),
+    };
+  } catch (e: any) {
+    return {
+      status: 0,
+      contentType: "",
+      body: null,
+      durationMs: Math.round(performance.now() - t0),
+      error: e?.message ?? String(e),
+    };
+  }
+}
+
+export async function checkApiKey(apiKey?: string): Promise<RpcResult> {
+  const t0 = performance.now();
+  const headers: Record<string, string> = { accept: "application/json" };
+  if (apiKey?.trim()) headers["x-api-key"] = apiKey.trim();
+
+  try {
+    const res = await fetch(KEY_CHECK_URL, { method: "GET", headers, cache: "no-store" });
+    const txt = await res.text();
+    let body: any = txt;
+    try {
+      body = JSON.parse(txt);
+    } catch {}
     return {
       status: res.status,
       contentType: res.headers.get("content-type") ?? "",
