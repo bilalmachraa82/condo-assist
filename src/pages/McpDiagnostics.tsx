@@ -10,6 +10,7 @@ import { Loader2, CheckCircle2, XCircle, RefreshCw, PlayCircle } from "lucide-re
 const MCP_BASE = "https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server";
 const CHATGPT_URL = `${MCP_BASE}/chatgpt`;
 const DEBUG_URL = `${MCP_BASE}/debug/tools?variant=chatgpt`;
+const KEY_CHECK_URL = `${MCP_BASE}/debug/key-check`;
 
 const EXPECTED = [
   {
@@ -62,6 +63,17 @@ async function rpc(url: string, method: string, params: any, apiKey?: string): P
   return { status: res.status, contentType: res.headers.get("content-type") ?? "", body, durationMs: Math.round(performance.now() - t0) };
 }
 
+async function keyCheck(apiKey?: string): Promise<RpcResult> {
+  const t0 = performance.now();
+  const headers: Record<string, string> = { accept: "application/json" };
+  if (apiKey) headers["x-api-key"] = apiKey;
+  const res = await fetch(KEY_CHECK_URL, { method: "GET", headers, cache: "no-store" });
+  const txt = await res.text();
+  let body: any = txt;
+  try { body = JSON.parse(txt); } catch {}
+  return { status: res.status, contentType: res.headers.get("content-type") ?? "", body, durationMs: Math.round(performance.now() - t0) };
+}
+
 export default function McpDiagnostics() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -96,7 +108,7 @@ export default function McpDiagnostics() {
       const [a, b, c] = await Promise.all([
         rpc(CHATGPT_URL, "initialize", {}),
         rpc(CHATGPT_URL, "tools/list", {}),
-        rpc(CHATGPT_URL, "tools/call", { name: "search", arguments: { query: "test" } }),
+        keyCheck(),
       ]);
       setLiveInit(a); setLiveList(b); setLiveCallNoAuth(c);
     } finally { setLiveLoading(false); }
@@ -127,7 +139,7 @@ export default function McpDiagnostics() {
     </Badge>
   );
 
-  const phase2Pass = liveInit?.status === 200 && liveList?.status === 200 && liveCallNoAuth?.status === 401;
+  const phase2Pass = liveInit?.status === 200 && liveList?.status === 200 && liveCallNoAuth?.status === 200 && liveCallNoAuth?.body?.ok === false;
 
   return (
     <div className="container mx-auto max-w-6xl p-6 space-y-6">
@@ -162,14 +174,14 @@ export default function McpDiagnostics() {
             Endpoint real (sem auth)
             {phase2Pass !== undefined && (phase2Pass ? <StatusBadge ok label="Fase 2 OK" /> : <StatusBadge ok={false} label="Falha" />)}
           </CardTitle>
-          <CardDescription>POST direto a <code>/chatgpt</code> — discovery deve passar sem <code>x-api-key</code>, execução não.</CardDescription>
+          <CardDescription>POST direto a <code>/chatgpt</code> — discovery deve passar sem <code>x-api-key</code>; auth é validada sem gerar erro 401 na preview.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid md:grid-cols-3 gap-3">
             {[
               { label: "initialize → 200", r: liveInit, expect: 200 },
               { label: "tools/list → 200", r: liveList, expect: 200 },
-              { label: "tools/call → 401", r: liveCallNoAuth, expect: 401 },
+              { label: "key-check → ok=false", r: liveCallNoAuth, expect: 200 },
             ].map((row) => (
               <div key={row.label} className="rounded border p-3 space-y-1">
                 <div className="flex items-center justify-between">
