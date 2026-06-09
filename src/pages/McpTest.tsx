@@ -36,8 +36,8 @@ const INITIAL_TESTS: TestCase[] = [
   { id: "1", label: "POST /chatgpt initialize (sem auth)", blocking: true, endpoint: "chatgpt", status: "idle", expected: "HTTP 200, protocolVersion presente" },
   { id: "2", label: "POST /chatgpt ping (sem auth)", blocking: true, endpoint: "chatgpt", status: "idle", expected: "HTTP 200" },
   { id: "3", label: "POST /chatgpt tools/list (sem auth) — search + fetch descobríveis", blocking: true, endpoint: "chatgpt", status: "idle", expected: "HTTP 200, lista search e fetch com inputSchema e outputSchema" },
-  { id: "4", label: "POST /chatgpt tools/call search SEM auth → deve recusar", blocking: true, endpoint: "chatgpt", status: "idle", expected: "HTTP 401 / erro de auth" },
-  { id: "5", label: "POST /chatgpt tools/call search com chave INVÁLIDA → deve recusar", blocking: true, endpoint: "chatgpt", status: "idle", expected: "HTTP 401 / erro de auth" },
+  { id: "4", label: "GET /debug/key-check sem auth → deve recusar", blocking: true, endpoint: "chatgpt", status: "idle", expected: "HTTP 200 com ok=false e reason=missing-key" },
+  { id: "5", label: "GET /debug/key-check com chave INVÁLIDA → deve recusar", blocking: true, endpoint: "chatgpt", status: "idle", expected: "HTTP 200 com ok=false e reason=invalid-key" },
   { id: "6", label: "POST /chatgpt tools/call search com chave real", blocking: true, endpoint: "chatgpt", status: "idle", expected: "HTTP 200, results[] válido" },
   { id: "7", label: "POST /chatgpt tools/call fetch com id devolvido por search", blocking: true, endpoint: "chatgpt", status: "idle", expected: "HTTP 200, objecto com id, title, text, url" },
   { id: "8", label: "POST /mcp-server tools/list com chave real (diagnóstico)", blocking: false, endpoint: "mcp-server", status: "idle", expected: "HTTP 200, lista de tools nomeadas" },
@@ -122,17 +122,17 @@ export default function McpTest() {
       });
     }
 
-    // 4. tools/call sem auth → deve falhar
+    // 4. auth check sem auth → deve falhar sem gerar 401 na preview
     {
-      const r = await rpc(CHATGPT_URL, "tools/call", { name: "search", arguments: { query: "ping" } });
-      const ok = looksLikeAuthError(r);
-      updateTest("4", { status: ok ? "pass" : "fail", result: r, failReason: ok ? undefined : "Deveria recusar sem auth (401/403)", hint: ok ? undefined : "O endpoint está a aceitar chamadas anónimas — risco de segurança." });
+      const r = await checkApiKey();
+      const ok = r.status === 200 && r.body?.ok === false && r.body?.reason === "missing-key";
+      updateTest("4", { status: ok ? "pass" : "fail", result: r, failReason: ok ? undefined : "Deveria recusar sem auth", hint: ok ? undefined : "O endpoint está a aceitar chamadas anónimas — risco de segurança." });
     }
 
-    // 5. tools/call com chave errada → deve falhar
+    // 5. auth check com chave errada → deve falhar sem gerar 401 na preview
     {
-      const r = await rpc(CHATGPT_URL, "tools/call", { name: "search", arguments: { query: "ping" } }, "OBVIOUSLY_WRONG_KEY_xxx");
-      const ok = looksLikeAuthError(r);
+      const r = await checkApiKey("OBVIOUSLY_WRONG_KEY_xxx");
+      const ok = r.status === 200 && r.body?.ok === false && r.body?.reason === "invalid-key";
       updateTest("5", { status: ok ? "pass" : "fail", result: r, failReason: ok ? undefined : "Deveria recusar com chave inválida" });
     }
 
