@@ -5,10 +5,17 @@
 
 import { Hono } from "hono";
 import { McpServer, StreamableHttpTransport } from "mcp-lite";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const AGENT_API_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1/agent-api`;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const AGENT_API_URL = `${SUPABASE_URL}/functions/v1/agent-api`;
 const EXTERNAL_API_KEY = Deno.env.get("EXTERNAL_API_KEY") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+const adminDb = SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  : null;
 
 // ── HTTP helper that calls the underlying agent-api ──
 async function callAgentApi(
