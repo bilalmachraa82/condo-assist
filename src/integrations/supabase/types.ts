@@ -3447,6 +3447,7 @@ export type Database = {
         Returns: undefined
       }
       magic_code_valid_days: { Args: never; Returns: number }
+      mask_magic_code: { Args: { p_code: string }; Returns: string }
       process_pending_followups: { Args: never; Returns: number }
       pt_normalize_dates: { Args: { input: string }; Returns: string }
       purge_supplier_non_critical: {
