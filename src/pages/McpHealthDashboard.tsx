@@ -13,11 +13,10 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const AGENT_API = `${SUPABASE_URL}/functions/v1/agent-api`;
 
 type Probe = { tool: string; path: string; countKey?: string };
-const PROBES: Probe[] = [
+const BASE_PROBES: Probe[] = [
   { tool: "health_check", path: "/v1/health" },
   { tool: "list_buildings", path: "/v1/buildings", countKey: "items" },
   { tool: "list_intervention_types", path: "/v1/intervention-types", countKey: "items" },
-  { tool: "list_assistances", path: "/v1/assistances?limit=1", countKey: "items" },
   { tool: "list_follow_ups", path: "/v1/follow-ups?limit=1", countKey: "items" },
   { tool: "list_activity_log", path: "/v1/activity-log?limit=1", countKey: "items" },
 ];
@@ -76,7 +75,17 @@ export default function McpHealthDashboard() {
     if (!apiKey) return;
     setRunning(true);
     try {
-      const out = await Promise.all(PROBES.map(p => runProbe(p, apiKey.trim())));
+      // Resolve list_assistances dynamically (nested under a building)
+      const probes: Probe[] = [...BASE_PROBES];
+      try {
+        const r = await fetch(`${AGENT_API}/v1/buildings`, { headers: { "x-api-key": apiKey.trim() } });
+        if (r.ok) {
+          const j = await r.json();
+          const first = Array.isArray(j?.items) ? j.items[0] : null;
+          if (first?.id) probes.push({ tool: "list_assistances", path: `/v1/buildings/${first.id}/assistances?limit=1`, countKey: "items" });
+        }
+      } catch { /* ignore */ }
+      const out = await Promise.all(probes.map(p => runProbe(p, apiKey.trim())));
       setResults(out);
     } finally { setRunning(false); }
   };
