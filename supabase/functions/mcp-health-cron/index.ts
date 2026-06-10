@@ -113,7 +113,14 @@ Deno.serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
   const runId = crypto.randomUUID();
 
-  const results = await Promise.all(PROBES.map(probe));
+  const dynamicAssistances = await resolveAssistancesPath();
+  const probes = PROBES.map(p =>
+    p.path === "__DYNAMIC_LIST_ASSISTANCES__"
+      ? (dynamicAssistances ? { ...p, path: dynamicAssistances } : null)
+      : p
+  ).filter(Boolean) as Probe[];
+
+  const results = await Promise.all(probes.map(probe));
 
   // Persist all results
   const rows = results.map(r => ({
