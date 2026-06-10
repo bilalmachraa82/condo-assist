@@ -30,10 +30,22 @@ const PROBES: Probe[] = [
   { tool: "health_check", path: "/v1/health" },
   { tool: "list_buildings", path: "/v1/buildings", countKey: "items" },
   { tool: "list_intervention_types", path: "/v1/intervention-types", countKey: "items" },
-  { tool: "list_assistances", path: "/v1/assistances?limit=1", countKey: "items" },
+  // list_assistances is nested under a building → resolved dynamically below
+  { tool: "list_assistances", path: "__DYNAMIC_LIST_ASSISTANCES__", countKey: "items" },
   { tool: "list_follow_ups", path: "/v1/follow-ups?limit=1", countKey: "items" },
   { tool: "list_activity_log", path: "/v1/activity-log?limit=1", countKey: "items" },
 ];
+
+async function resolveAssistancesPath(): Promise<string | null> {
+  try {
+    const res = await fetch(`${AGENT_API}/v1/buildings`, { headers: { "x-api-key": EXTERNAL_API_KEY } });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const first = Array.isArray(json?.items) ? json.items[0] : null;
+    if (!first?.id) return null;
+    return `/v1/buildings/${first.id}/assistances?limit=1`;
+  } catch { return null; }
+}
 
 type Result = {
   tool: string;
