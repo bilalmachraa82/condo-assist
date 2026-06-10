@@ -32,10 +32,12 @@ async function callAgentApi(
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    // App-level auth for the agent-api (validated against EXTERNAL_API_KEY)
     "x-api-key": EXTERNAL_API_KEY,
-    // Supabase Edge runtime requires the apikey header for function-to-function calls
+    // Supabase Edge runtime routing header. We deliberately do NOT send
+    // "Authorization: Bearer <anon>" here — agent-api has verify_jwt=false,
+    // and sending it would shadow x-api-key in extractToken() and cause 401.
     "apikey": SUPABASE_ANON_KEY,
-    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
   };
   if (opts.idempotencyKey) headers["idempotency-key"] = opts.idempotencyKey;
 
