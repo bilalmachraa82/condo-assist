@@ -41,12 +41,14 @@ async function runProbe(p: Probe, apiKey: string): Promise<Result> {
       return { tool: p.tool, ok: false, httpStatus: res.status, latencyMs: latency, count: null, error: text.slice(0, 300), at: new Date().toISOString() };
     }
     let count: number | null = null;
-    if (p.countKey) {
-      try {
-        const json = JSON.parse(text);
-        if (Array.isArray(json?.[p.countKey])) count = json[p.countKey].length;
-      } catch { /* ignore */ }
-    }
+    try {
+      const json = JSON.parse(text);
+      if (json && typeof json === "object") {
+        for (const v of Object.values(json)) {
+          if (Array.isArray(v)) { count = (v as unknown[]).length; break; }
+        }
+      }
+    } catch { /* ignore */ }
     return { tool: p.tool, ok: true, httpStatus: res.status, latencyMs: latency, count, error: null, at: new Date().toISOString() };
   } catch (e) {
     return { tool: p.tool, ok: false, httpStatus: null, latencyMs: Math.round(performance.now() - t0), count: null, error: String((e as Error)?.message ?? e), at: new Date().toISOString() };
