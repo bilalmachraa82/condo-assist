@@ -41,7 +41,8 @@ async function resolveAssistancesPath(): Promise<string | null> {
     const res = await fetch(`${AGENT_API}/v1/buildings`, { headers: { "x-api-key": EXTERNAL_API_KEY } });
     if (!res.ok) return null;
     const json = await res.json();
-    const first = Array.isArray(json?.items) ? json.items[0] : null;
+    const arr = json?.buildings ?? json?.items ?? [];
+    const first = Array.isArray(arr) ? arr[0] : null;
     if (!first?.id) return null;
     return `/v1/buildings/${first.id}/assistances?limit=1`;
   } catch { return null; }
