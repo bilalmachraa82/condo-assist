@@ -76,12 +76,15 @@ async function probe(p: Probe): Promise<Result> {
       };
     }
     let size: number | null = text.length;
-    if (p.countKey) {
-      try {
-        const json = JSON.parse(text);
-        if (Array.isArray(json?.[p.countKey])) size = json[p.countKey].length;
-      } catch { /* ignore */ }
-    }
+    try {
+      const json = JSON.parse(text);
+      // Find first array in the response → use its length as record count
+      if (json && typeof json === "object") {
+        for (const v of Object.values(json)) {
+          if (Array.isArray(v)) { size = v.length; break; }
+        }
+      }
+    } catch { /* ignore */ }
     return {
       tool: p.tool,
       status: "ok",
