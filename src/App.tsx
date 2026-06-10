@@ -33,6 +33,7 @@ import Unsubscribe from "./pages/Unsubscribe";
 import NotFound from "./pages/NotFound";
 import McpDiagnostics from "./pages/McpDiagnostics";
 import McpTest from "./pages/McpTest";
+import McpHealthDashboard from "./pages/McpHealthDashboard";
 import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import ErrorBoundary from "./components/error/ErrorBoundary";
@@ -231,6 +232,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="/mcp-diagnostics" element={<McpDiagnostics />} />
               <Route path="/mcp-test" element={<McpTest />} />
+              <Route path="/mcp-health" element={<ProtectedRoute><DashboardLayout><McpHealthDashboard /></DashboardLayout></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -1,6 +1,6 @@
 ---
 name: MCP Server for Claude Desktop
-description: Edge function mcp-server exposing Agent API as 48 MCP tools via mcp-lite + Hono, full read/write parity with the website (assistances, buildings, suppliers, photos, quotations, supplier responses, follow-ups, notifications, knowledge base, actas, activity log)
+description: Edge function mcp-server exposing Agent API as 48 MCP tools via mcp-lite + Hono, full read/write parity with the website. Includes auth header priority fix and continuous health monitoring.
 type: feature
 ---
 
@@ -22,6 +22,11 @@ Claude Desktop → mcp-server (MCP/JSON-RPC) → agent-api (REST /v1/*) → Supa
 
 ### Auth
 Mesma `EXTERNAL_API_KEY` da agent-api. Aceita `x-api-key`, `Authorization: Bearer`, ou `?api_key=`.
+
+#### ⚠️ Auth header priority (regressão histórica — não inverter)
+`agent-api/extractToken` DEVE ler `x-api-key` **antes** de `Authorization`. A plataforma Supabase injecta `Authorization: Bearer <anon>` em cada chamada server-to-server; se for lido primeiro, é comparado contra a `EXTERNAL_API_KEY` e devolve **401** em todas as operações. O `mcp-server/callAgentApi` também NÃO envia `Authorization` (apenas `x-api-key` + `apikey` para routing).
+
+Cobertura: `supabase/functions/agent-api/auth_regression_test.ts` corre live contra 4 endpoints e valida que `x-api-key` ganha mesmo com `Authorization` inválido presente.
 
 ### Endpoints
 - `POST /mcp-server` — JSON-RPC MCP (requer auth)
@@ -54,7 +59,7 @@ Mesma `EXTERNAL_API_KEY` da agent-api. Aceita `x-api-key`, `Authorization: Beare
 **Contactos (1):** import_contacts
 
 ### Config
-- `supabase/config.toml`: `verify_jwt = false` para `mcp-server` (auth feita na camada da app via EXTERNAL_API_KEY)
+- `supabase/config.toml`: `verify_jwt = false` para `mcp-server`, `agent-api`, `mcp-health-cron`
 - `supabase/functions/mcp-server/deno.json`: imports para hono, mcp-lite
 
 ### IMPORTANTE: API mcp-lite
@@ -62,3 +67,29 @@ Usa `mcp.tool("name", { description, inputSchema, handler })` — assinatura pos
 
 ### Sincronização
 Sempre que adicionar novo endpoint REST em agent-api, adicionar tool MCP correspondente e actualizar contador `tools: N` em `mcp-server/index.ts` linha do `/info`.
+
+---
+
+## Health monitoring
+
+Pipeline contínuo de validação para garantir que as tools críticas continuam vivas.
+
+### Tabela `mcp_health_checks`
+Colunas: `id`, `run_id`, `tool_name`, `status` (`ok`/`fail`), `http_status`, `latency_ms`, `error`, `response_size`, `checked_at`. RLS: SELECT apenas para admins (`has_role`); INSERT apenas via service_role.
+
+### Edge function `mcp-health-cron`
+Corre 6 probes contra `agent-api` com a `EXTERNAL_API_KEY`:
+`health_check`, `list_buildings`, `list_intervention_types`, `list_assistances`, `list_follow_ups`, `list_activity_log`.
+
+Persiste 1 linha por probe em `mcp_health_checks` (mesmo `run_id`). Dispara email para `geral@luvimg.com` via Resend **só** quando ≥1 falha E o run imediatamente anterior estava limpo — evita spam em falhas persistentes.
+
+### Cron schedule
+`pg_cron` job `mcp-health-cron-5min` corre `*/5 * * * *` via `net.http_post` para a edge function.
+
+### Dashboard `/mcp-health`
+Página protegida que (a) corre os 6 probes ao vivo com a key colada no browser e (b) lê o histórico server-side da tabela. Mostra estado por tool, latência, contagem de registos, uptime 24h e tabela com últimos 120 runs.
+
+### Páginas relacionadas
+- `/mcp-health` — dashboard com testes ao vivo + histórico do cron
+- `/mcp-test` — validador completo das 48 tools
+- `/mcp-diagnostics` — contrato `/chatgpt` retrievable

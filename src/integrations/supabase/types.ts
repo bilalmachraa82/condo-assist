@@ -2610,6 +2610,42 @@ export type Database = {
         }
         Relationships: []
       }
+      mcp_health_checks: {
+        Row: {
+          checked_at: string
+          error: string | null
+          http_status: number | null
+          id: string
+          latency_ms: number | null
+          response_size: number | null
+          run_id: string | null
+          status: string
+          tool_name: string
+        }
+        Insert: {
+          checked_at?: string
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          latency_ms?: number | null
+          response_size?: number | null
+          run_id?: string | null
+          status: string
+          tool_name: string
+        }
+        Update: {
+          checked_at?: string
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          latency_ms?: number | null
+          response_size?: number | null
+          run_id?: string | null
+          status?: string
+          tool_name?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           assistance_id: string
