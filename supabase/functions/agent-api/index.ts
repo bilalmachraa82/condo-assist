@@ -65,9 +65,11 @@ function getSupabase() {
 
 // ── Auth (Correcção 2 — dual headers) ──
 function extractToken(req: Request): string | null {
+  // Prefer x-api-key so the Supabase platform "Authorization: Bearer <anon>"
+  // header (used for function-to-function routing) does not shadow the real API key.
   return (
-    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
     req.headers.get("x-api-key") ??
+    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
     null
   );
 }
