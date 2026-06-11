@@ -129,7 +129,7 @@ usa o adaptador oficial `mcp-remote`:
 ### Verificar conexão
 
 1. No Claude Desktop, abre uma nova conversa.
-2. Clica no ícone do martelo 🔨 (ferramentas) — deves ver as 48 ferramentas listadas.
+2. Clica no ícone do martelo 🔨 (ferramentas) — deves ver as 128 ferramentas listadas.
 3. Pergunta: *"Faz health check ao servidor condo-assist."* — Claude deve invocar `health_check`.
 4. Pergunta: *"Lista os tipos de intervenção disponíveis."*
 
