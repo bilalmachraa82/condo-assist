@@ -1671,11 +1671,13 @@ const searchDef = {
       try { return await p; } catch { return null; }
     };
 
-    const [buildings, suppliers, knowledge, assemblyItems] = await Promise.all([
+    const [buildings, suppliers, knowledge, assemblyItems, pendencies, assemblies] = await Promise.all([
       safe(callAgentApi("GET", "/v1/buildings", { query: { q, limit: "10" } }) as Promise<any>),
       safe(callAgentApi("GET", "/v1/suppliers", { query: { q, limit: "10" } }) as Promise<any>),
       safe(callAgentApi("GET", "/v1/knowledge", { query: { q, limit: "10" } }) as Promise<any>),
       safe(callAgentApi("GET", "/v1/assembly-items", { query: { q, limit: "10" } }) as Promise<any>),
+      safe(callAgentApi("GET", "/v1/email-pendencies", { query: { q, limit: "10" } }) as Promise<any>),
+      safe(callAgentApi("GET", "/v1/assemblies", { query: { limit: "10" } }) as Promise<any>),
     ]);
 
     const pushArr = (data: any, key: string, mapper: (item: any) => { id: string; title: string; url: string } | null) => {
@@ -1703,9 +1705,19 @@ const searchDef = {
       url: `${APP_BASE_URL}/knowledge`,
     } : null);
     pushArr(assemblyItems, "items", (item) => item?.id ? {
-      id: `assembly:${item.id}`,
-      title: `Ata/pendência: ${item.description ?? item.status_notes ?? item.id}`,
+      id: `assembly_item:${item.id}`,
+      title: `Acta (item): ${item.description ?? item.status_notes ?? item.id}`,
       url: `${APP_BASE_URL}/assembly`,
+    } : null);
+    pushArr(pendencies, "pendencies", (p) => p?.id ? {
+      id: `email_pendency:${p.id}`,
+      title: `Pendência Email: ${p.title ?? p.subject ?? p.id}`,
+      url: `${APP_BASE_URL}/pendencias`,
+    } : null);
+    pushArr(assemblies, "assemblies", (a) => a?.id ? {
+      id: `assembly:${a.id}`,
+      title: `Assembleia ${a.meeting_date ?? ""}${a.buildings?.name ? " - " + a.buildings.name : ""}`.trim(),
+      url: `${APP_BASE_URL}/assembleias`,
     } : null);
 
     return asJsonText({ results: results.slice(0, 30) });
