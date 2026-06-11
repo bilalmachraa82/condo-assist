@@ -2676,6 +2676,75 @@ Deno.serve(async (req: Request): Promise<Response> => {
         return await handleUpdateInsuranceClaim(req, route.params, supabase);
       case "addClaimNote":
         return await handleAddClaimNote(req, route.params, supabase);
+      // Email Pendencies
+      case "listEmailPendencies": return await handleListEmailPendencies(url, supabase);
+      case "getEmailPendency": return await handleGetEmailPendency(route.params, supabase);
+      case "createEmailPendency": return await handleCreateEmailPendency(req, supabase);
+      case "updateEmailPendency": return await handleUpdateEmailPendency(req, route.params, supabase);
+      case "deleteEmailPendency": return await handleDeleteEmailPendency(route.params, supabase);
+      case "listEmailPendencyNotes": return await handleListEmailPendencyNotes(route.params, supabase);
+      case "addEmailPendencyNote": return await handleAddEmailPendencyNote(req, route.params, supabase);
+      case "listEmailPendencyAttachments": return await handleListEmailPendencyAttachments(route.params, supabase);
+      case "deleteEmailPendencyAttachment": return await handleDeleteEmailPendencyAttachment(route.params, supabase);
+      case "listPendencyReminders": return await handleListPendencyReminders(route.params, supabase);
+      case "createPendencyReminder": return await handleCreatePendencyReminder(req, route.params, supabase);
+      case "updatePendencyReminder": return await handleUpdatePendencyReminder(req, route.params, supabase);
+      case "deletePendencyReminder": return await handleDeletePendencyReminder(route.params, supabase);
+      // Assistance internal notes
+      case "addAssistanceInternalNote": return await handleAddAssistanceInternalNote(req, route.params, supabase);
+      // Assemblies
+      case "listAssemblies": return await handleListAssemblies(url, supabase);
+      case "getAssembly": return await handleGetAssembly(route.params, supabase);
+      case "createAssembly": return await handleCreateAssembly(req, supabase);
+      case "updateAssembly": return await handleUpdateAssembly(req, route.params, supabase);
+      case "deleteAssembly": return await handleDeleteAssembly(route.params, supabase);
+      case "listAssemblyAgendaItems": return await handleListAssemblyAgendaItems(route.params, supabase);
+      case "createAssemblyAgendaItem": return await handleCreateAssemblyAgendaItem(req, route.params, supabase);
+      case "updateAssemblyAgendaItem": return await handleUpdateAssemblyAgendaItem(req, route.params, supabase);
+      case "deleteAssemblyAgendaItem": return await handleDeleteAssemblyAgendaItem(route.params, supabase);
+      case "listAssemblyResolutions": return await handleListAssemblyResolutions(route.params, supabase);
+      case "createAssemblyResolution": return await handleCreateAssemblyResolution(req, route.params, supabase);
+      case "updateAssemblyResolution": return await handleUpdateAssemblyResolution(req, route.params, supabase);
+      case "deleteAssemblyResolution": return await handleDeleteAssemblyResolution(route.params, supabase);
+      case "listAssemblyActionItems": return await handleListAssemblyActionItems(route.params, supabase);
+      case "createAssemblyActionItem": return await handleCreateAssemblyActionItem(req, route.params, supabase);
+      case "updateAssemblyActionItem": return await handleUpdateAssemblyActionItem(req, route.params, supabase);
+      case "deleteAssemblyActionItem": return await handleDeleteAssemblyActionItem(route.params, supabase);
+      case "listAssemblyAttendees": return await handleListAssemblyAttendees(route.params, supabase);
+      case "addAssemblyAttendee": return await handleAddAssemblyAttendee(req, route.params, supabase);
+      case "deleteAssemblyAttendee": return await handleDeleteAssemblyAttendee(route.params, supabase);
+      case "listAssemblyDispatches": return await handleListAssemblyDispatches(route.params, supabase);
+      case "listAssemblyMinutesVersions": return await handleListAssemblyMinutesVersions(route.params, supabase);
+      // Building fractions/inspections/insurances/categories
+      case "listBuildingFractions": return await handleListBuildingFractions(route.params, supabase);
+      case "createBuildingFraction": return await handleCreateBuildingFraction(req, route.params, supabase);
+      case "updateBuildingFraction": return await handleUpdateBuildingFraction(req, route.params, supabase);
+      case "deleteBuildingFraction": return await handleDeleteBuildingFraction(route.params, supabase);
+      case "listBuildingInspections": return await handleListBuildingInspections(route.params, supabase);
+      case "createBuildingInspection": return await handleCreateBuildingInspection(req, route.params, supabase);
+      case "updateBuildingInspection": return await handleUpdateBuildingInspection(req, route.params, supabase);
+      case "deleteBuildingInspection": return await handleDeleteBuildingInspection(route.params, supabase);
+      case "listBuildingInsurances": return await handleListBuildingInsurances(route.params, supabase);
+      case "createBuildingInsurance": return await handleCreateBuildingInsurance(req, route.params, supabase);
+      case "updateBuildingInsurance": return await handleUpdateBuildingInsurance(req, route.params, supabase);
+      case "deleteBuildingInsurance": return await handleDeleteBuildingInsurance(route.params, supabase);
+      case "listInspectionCategories": return await handleListInspectionCategories(url, supabase);
+      case "createInspectionCategory": return await handleCreateInspectionCategory(req, supabase);
+      case "updateInspectionCategory": return await handleUpdateInspectionCategory(req, route.params, supabase);
+      case "deleteInspectionCategory": return await handleDeleteInspectionCategory(route.params, supabase);
+      // Insurance attachments + fraction status
+      case "listInsuranceClaimAttachments": return await handleListInsuranceClaimAttachments(route.params, supabase);
+      case "deleteInsuranceClaimAttachment": return await handleDeleteInsuranceClaimAttachment(route.params, supabase);
+      case "listInsuranceFractionStatus": return await handleListInsuranceFractionStatus(url, supabase);
+      case "updateInsuranceFractionStatus": return await handleUpdateInsuranceFractionStatus(req, route.params, supabase);
+      // Condominium contacts CRUD
+      case "createBuildingContact": return await handleCreateBuildingContact(req, route.params, supabase);
+      case "updateBuildingContact": return await handleUpdateBuildingContact(req, route.params, supabase);
+      case "deleteBuildingContact": return await handleDeleteBuildingContact(route.params, supabase);
+      // Observability
+      case "listMcpHealthChecks": return await handleListMcpHealthChecks(url, supabase);
+      case "listEmailUnsubscribes": return await handleListEmailUnsubscribes(url, supabase);
+      case "listAppSettings": return await handleListAppSettings(url, supabase);
       default:
         return errorResponse(404, "Not found", "NOT_FOUND");
     }
