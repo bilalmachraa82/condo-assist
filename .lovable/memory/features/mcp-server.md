@@ -1,12 +1,12 @@
 ---
-name: MCP Server for Claude Desktop
-description: Edge function mcp-server exposing Agent API as 48 MCP tools via mcp-lite + Hono, full read/write parity with the website. Includes auth header priority fix and continuous health monitoring.
+name: MCP Server for Claude Desktop / ChatGPT
+description: Edge function mcp-server exposing Agent API as 128 MCP tools via mcp-lite + Hono, full read/write parity with the website. Includes email pendencies, full assemblies module, building structural data, observability tools, auth header priority fix, and continuous health monitoring.
 type: feature
 ---
 
 ## MCP Server (`supabase/functions/mcp-server`)
 
-Servidor Model Context Protocol que expõe **48 ferramentas** cobrindo TODAS as operações da Agent API (read + write). Paridade total com o que o utilizador faz na app web.
+Servidor Model Context Protocol que expõe **128 ferramentas** cobrindo TODA a informação da app (read + write). Cliente acede via Claude Desktop, ChatGPT Apps SDK ou MCP Inspector.
 
 ### Stack
 - **mcp-lite** v0.10.0 (npm:) — biblioteca MCP fetch-first
@@ -17,7 +17,7 @@ Servidor Model Context Protocol que expõe **48 ferramentas** cobrindo TODAS as 
 Camada fina que faz proxy para `agent-api` via fetch interna (mantém toda a lógica de negócio, validação, idempotência e rate limiting num único sítio).
 
 ```
-Claude Desktop → mcp-server (MCP/JSON-RPC) → agent-api (REST /v1/*) → Supabase
+Claude Desktop / ChatGPT → mcp-server (MCP/JSON-RPC) → agent-api (REST /v1/*) → Supabase
 ```
 
 ### Auth
@@ -29,34 +29,17 @@ Mesma `EXTERNAL_API_KEY` da agent-api. Aceita `x-api-key`, `Authorization: Beare
 Cobertura: `supabase/functions/agent-api/auth_regression_test.ts` corre live contra 4 endpoints e valida que `x-api-key` ganha mesmo com `Authorization` inválido presente.
 
 ### Endpoints
-- `POST /mcp-server` — JSON-RPC MCP (requer auth)
-- `GET /mcp-server/info` — metadata pública (sem auth) → `{ tools: 48 }`
+- `POST /mcp-server` — JSON-RPC MCP "full" (Claude Desktop, MCP Inspector) → 128 tools
+- `POST /mcp-server/chatgpt` — JSON-RPC MCP "chatgpt-safe" → só `search` + `fetch`
+- `GET /mcp-server/info` — metadata pública (sem auth) → `{ tools: 128, version: "1.3.0" }`
 
-### 48 Tools (agrupadas por área no description)
+### Inventário de tools (resumo)
 
-**Core (5):** health_check, lookup_building_by_email, list_intervention_types, create_intervention_type, update_intervention_type
+**Core (5)** · **Assistências (11, inclui `add_assistance_internal_note`)** · **Edifícios + estrutura (24: buildings, fractions, inspections, insurances, categories)** · **Administradores (4)** · **Contactos do condomínio (4: list + CRUD)** · **Fornecedores (4)** · **Actas items simples (5)** · **Assembleias módulo completo (21: assemblies, agenda, resolutions, action_items, attendees, dispatches, minutes_versions)** · **Pendências Email (13: pendencies, notes, attachments, reminders)** · **Orçamentos (5)** · **Sinistros (9, inclui anexos + insurance_fraction_status)** · **Chaves (3)** · **Documentos do edifício (3)** · **Knowledge Base (5)** · **Fotos (2)** · **Respostas Fornecedor (2)** · **Follow-ups & Notificações (4)** · **Activity Log (1)** · **Observabilidade (3: list_mcp_health_checks, list_email_unsubscribes, list_app_settings)** · **Import contactos (1)** · **ChatGPT SDK (2: search, fetch)**
 
-**Assistências (10):** list_assistances, get_assistance, create_assistance, update_assistance, add_communication, list_assistance_communications, list_assistance_photos, list_assistance_progress, save_email_draft, update_email_status
-
-**Edifícios (5):** list_buildings, get_building, create_building, update_building, list_building_contacts
-
-**Fornecedores (4):** list_suppliers, get_supplier, create_supplier, update_supplier
-
-**Actas / Seguimento (5):** list_assembly_items, get_assembly_item, create_assembly_item, update_assembly_item, delete_assembly_item
-
-**Orçamentos (5):** list_quotations, get_quotation, create_quotation, update_quotation, delete_quotation
-
-**Knowledge Base (5):** search_knowledge, get_knowledge_article, create_knowledge_article, update_knowledge_article, delete_knowledge_article
-
-**Fotos (2):** upload_assistance_photo (base64, máx 10MB), delete_assistance_photo
-
-**Respostas Fornecedor (2):** submit_supplier_response (accepted/declined/needs_info — auto-promove assistência para 'scheduled' quando aplicável), list_supplier_responses
-
-**Follow-ups & Notificações (4):** list_follow_ups, create_follow_up, list_notifications, update_notification
-
-**Activity Log (1):** list_activity_log
-
-**Contactos (1):** import_contacts
+### Search/fetch ChatGPT
+`search` agrega buildings, suppliers, knowledge, assembly_items, **email_pendencies** e **assemblies**.
+`fetch` resolve types: `assistance | building | supplier | knowledge | assembly_item | assembly | email_pendency` (formato `type:uuid`).
 
 ### Config
 - `supabase/config.toml`: `verify_jwt = false` para `mcp-server`, `agent-api`, `mcp-health-cron`
@@ -65,8 +48,8 @@ Cobertura: `supabase/functions/agent-api/auth_regression_test.ts` corre live con
 ### IMPORTANTE: API mcp-lite
 Usa `mcp.tool("name", { description, inputSchema, handler })` — assinatura posicional (name + config). NÃO usa `mcp.tool({ name, ... })`.
 
-### Sincronização
-Sempre que adicionar novo endpoint REST em agent-api, adicionar tool MCP correspondente e actualizar contador `tools: N` em `mcp-server/index.ts` linha do `/info`.
+### Sincronização — regra de ouro
+**Nunca alterar o nome ou URL de uma tool existente** (quebra a config já feita no Claude Desktop). Só ADICIONAR novas tools e endpoints. Sempre que adicionar novo endpoint REST em agent-api, adicionar tool MCP correspondente e actualizar contador `tools: N` em `mcp-server/index.ts` linha do `/info` e em `version`.
 
 ---
 
@@ -75,11 +58,11 @@ Sempre que adicionar novo endpoint REST em agent-api, adicionar tool MCP corresp
 Pipeline contínuo de validação para garantir que as tools críticas continuam vivas.
 
 ### Tabela `mcp_health_checks`
-Colunas: `id`, `run_id`, `tool_name`, `status` (`ok`/`fail`), `http_status`, `latency_ms`, `error`, `response_size`, `checked_at`. RLS: SELECT apenas para admins (`has_role`); INSERT apenas via service_role.
+Colunas: `id`, `run_id`, `tool_name`, `status` (`ok`/`fail`), `http_status`, `latency_ms`, `error`, `response_size`, `checked_at`. RLS: SELECT apenas para admins (`has_role`); INSERT apenas via service_role. Acessível também via MCP através de `list_mcp_health_checks`.
 
 ### Edge function `mcp-health-cron`
-Corre 6 probes contra `agent-api` com a `EXTERNAL_API_KEY`:
-`health_check`, `list_buildings`, `list_intervention_types`, `list_assistances`, `list_follow_ups`, `list_activity_log`.
+Corre 8 probes contra `agent-api` com a `EXTERNAL_API_KEY`:
+`health_check`, `list_buildings`, `list_intervention_types`, `list_assistances` (path dinâmico — usa primeiro building real), `list_follow_ups`, `list_activity_log`, `list_email_pendencies`, `list_assemblies`.
 
 Persiste 1 linha por probe em `mcp_health_checks` (mesmo `run_id`). Dispara email para `geral@luvimg.com` via Resend **só** quando ≥1 falha E o run imediatamente anterior estava limpo — evita spam em falhas persistentes.
 
@@ -87,9 +70,9 @@ Persiste 1 linha por probe em `mcp_health_checks` (mesmo `run_id`). Dispara emai
 `pg_cron` job `mcp-health-cron-5min` corre `*/5 * * * *` via `net.http_post` para a edge function.
 
 ### Dashboard `/mcp-health`
-Página protegida que (a) corre os 6 probes ao vivo com a key colada no browser e (b) lê o histórico server-side da tabela. Mostra estado por tool, latência, contagem de registos, uptime 24h e tabela com últimos 120 runs.
+Página protegida que (a) corre os probes ao vivo com a key colada no browser e (b) lê o histórico server-side da tabela. Mostra estado por tool, latência, contagem de registos, uptime 24h e tabela com últimos 120 runs.
 
 ### Páginas relacionadas
 - `/mcp-health` — dashboard com testes ao vivo + histórico do cron
-- `/mcp-test` — validador completo das 48 tools
+- `/mcp-test` — validador das tools
 - `/mcp-diagnostics` — contrato `/chatgpt` retrievable
