@@ -1750,14 +1750,18 @@ const fetchDef = {
       building: `/v1/buildings/${uuid}`,
       supplier: `/v1/suppliers/${uuid}`,
       knowledge: `/v1/knowledge/${uuid}`,
-      assembly: `/v1/assembly-items/${uuid}`,
+      assembly_item: `/v1/assembly-items/${uuid}`,
+      assembly: `/v1/assemblies/${uuid}`,
+      email_pendency: `/v1/email-pendencies/${uuid}`,
     };
     const urlMap: Record<string, string> = {
       assistance: `${APP_BASE_URL}/assistencias`,
       building: `${APP_BASE_URL}/edificios`,
       supplier: `${APP_BASE_URL}/fornecedores`,
       knowledge: `${APP_BASE_URL}/knowledge`,
-      assembly: `${APP_BASE_URL}/assembly`,
+      assembly_item: `${APP_BASE_URL}/assembly`,
+      assembly: `${APP_BASE_URL}/assembleias`,
+      email_pendency: `${APP_BASE_URL}/pendencias`,
     };
     const path = pathMap[type];
     if (!path) {
