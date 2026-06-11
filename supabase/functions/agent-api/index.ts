@@ -1829,6 +1829,680 @@ async function handleAddClaimNote(req: Request, params: Record<string, string>, 
   return json(data, 201);
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// Email Pendencies (notes + attachments + reminders)
+// ═══════════════════════════════════════════════════════════════════════
+async function handleListEmailPendencies(url: URL, supabase: ReturnType<typeof getSupabase>) {
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 200);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
+  const status = url.searchParams.get("status");
+  const priority = url.searchParams.get("priority");
+  const buildingId = url.searchParams.get("building_id");
+  const assignedTo = url.searchParams.get("assigned_to");
+  const supplierId = url.searchParams.get("supplier_id");
+  const assistanceId = url.searchParams.get("assistance_id");
+  const search = url.searchParams.get("q");
+
+  let q = supabase.from("email_pendencies")
+    .select("*, buildings:building_id(id,code,name), assistance:assistance_id(id,assistance_number,title), supplier:supplier_id(id,name)", { count: "exact" })
+    .order("last_activity_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (status) q = q.eq("status", status);
+  if (priority) q = q.eq("priority", priority);
+  if (buildingId) q = q.eq("building_id", buildingId);
+  if (assignedTo) q = q.eq("assigned_to", assignedTo);
+  if (supplierId) q = q.eq("supplier_id", supplierId);
+  if (assistanceId) q = q.eq("assistance_id", assistanceId);
+  if (search) q = q.or(`title.ilike.%${search}%,description.ilike.%${search}%,subject.ilike.%${search}%`);
+
+  const { data, error, count } = await q;
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ total: count ?? 0, limit, offset, pendencies: data || [] });
+}
+
+async function handleGetEmailPendency(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const id = params.pendencyId;
+  const [pendRes, notesRes, attRes, remRes] = await Promise.all([
+    supabase.from("email_pendencies")
+      .select("*, buildings:building_id(id,code,name), assistance:assistance_id(id,assistance_number,title,status), supplier:supplier_id(id,name,email)")
+      .eq("id", id).maybeSingle(),
+    supabase.from("email_pendency_notes").select("*").eq("pendency_id", id).order("created_at", { ascending: true }),
+    supabase.from("email_pendency_attachments").select("*").eq("pendency_id", id).order("created_at", { ascending: true }),
+    supabase.from("pendency_reminders").select("*").eq("pendency_id", id).order("scheduled_for", { ascending: true }),
+  ]);
+  if (pendRes.error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  if (!pendRes.data) return errorResponse(404, "Pendency not found", "NOT_FOUND");
+  return json({ ...pendRes.data, notes: notesRes.data || [], attachments: attRes.data || [], reminders: remRes.data || [] });
+}
+
+async function handleCreateEmailPendency(req: Request, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const title = requireString(body.title, "title");
+  const building_id = requireUUID(body.building_id, "building_id");
+  const insertData: Record<string, unknown> = {
+    title, building_id,
+    description: body.description || null,
+    subject: body.subject || null,
+    email_sent_at: body.email_sent_at || null,
+    assistance_id: body.assistance_id || null,
+    supplier_id: body.supplier_id || null,
+    status: body.status || "open",
+    priority: body.priority || "normal",
+    assigned_to: body.assigned_to || null,
+    due_date: body.due_date || null,
+  };
+  const { data, error } = await supabase.from("email_pendencies").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create pendency", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+
+async function handleUpdateEmailPendency(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const allowed = ["title","description","subject","email_sent_at","building_id","assistance_id","supplier_id","status","priority","assigned_to","due_date"];
+  const updateData: Record<string, unknown> = {};
+  for (const k of allowed) if (body[k] !== undefined) updateData[k] = body[k];
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  updateData.last_activity_at = new Date().toISOString();
+  const { data, error } = await supabase.from("email_pendencies").update(updateData).eq("id", params.pendencyId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+
+async function handleDeleteEmailPendency(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("email_pendencies").delete().eq("id", params.pendencyId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+async function handleListEmailPendencyNotes(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("email_pendency_notes").select("*").eq("pendency_id", params.pendencyId).order("created_at", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ pendency_id: params.pendencyId, notes: data || [] });
+}
+
+async function handleAddEmailPendencyNote(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const noteBody = requireString(body.body, "body");
+  const insertData = {
+    pendency_id: params.pendencyId,
+    body: noteBody,
+    note_type: body.note_type || "internal",
+    author_id: body.author_id || null,
+    metadata: body.metadata || null,
+  };
+  const { data, error } = await supabase.from("email_pendency_notes").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to add note", "INTERNAL_ERROR");
+  await supabase.from("email_pendencies").update({ last_activity_at: new Date().toISOString() }).eq("id", params.pendencyId);
+  return json(data, 201);
+}
+
+async function handleListEmailPendencyAttachments(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("email_pendency_attachments").select("*").eq("pendency_id", params.pendencyId).order("created_at", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ pendency_id: params.pendencyId, attachments: data || [] });
+}
+
+async function handleDeleteEmailPendencyAttachment(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data: att } = await supabase.from("email_pendency_attachments").select("file_path").eq("id", params.attachmentId).maybeSingle();
+  if (att?.file_path) await supabase.storage.from("pendency-attachments").remove([att.file_path]).catch(() => {});
+  const { error } = await supabase.from("email_pendency_attachments").delete().eq("id", params.attachmentId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+async function handleListPendencyReminders(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("pendency_reminders").select("*").eq("pendency_id", params.pendencyId).order("scheduled_for", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ pendency_id: params.pendencyId, reminders: data || [] });
+}
+
+async function handleCreatePendencyReminder(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const insertData = {
+    pendency_id: params.pendencyId,
+    reminder_type: body.reminder_type || "manual",
+    scheduled_for: requireString(body.scheduled_for, "scheduled_for"),
+    status: body.status || "pending",
+    max_attempts: body.max_attempts ?? 3,
+  };
+  const { data, error } = await supabase.from("pendency_reminders").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create reminder", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+
+async function handleUpdatePendencyReminder(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["reminder_type","scheduled_for","status","attempt_count","max_attempts"]) if (body[k] !== undefined) updateData[k] = body[k];
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("pendency_reminders").update(updateData).eq("id", params.reminderId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+
+async function handleDeletePendencyReminder(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("pendency_reminders").delete().eq("id", params.reminderId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Assistance internal notes (append-safe)
+// ═══════════════════════════════════════════════════════════════════════
+async function handleAddAssistanceInternalNote(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const note = requireString(body.note, "note");
+  const author = body.author ? String(body.author).slice(0, 80) : "agent";
+  const { data: row, error: fetchErr } = await supabase.from("assistances").select("admin_notes").eq("id", params.assistanceId).maybeSingle();
+  if (fetchErr || !row) throw new HttpError(404, "Assistance not found", "NOT_FOUND");
+  const prefix = row.admin_notes ? row.admin_notes + "\n\n" : "";
+  const stamp = `--- ${new Date().toISOString()} (${author}) ---`;
+  const merged = `${prefix}${stamp}\n${note}`;
+  const { data, error } = await supabase.from("assistances").update({ admin_notes: merged }).eq("id", params.assistanceId).select("id, admin_notes, updated_at").single();
+  if (error) throw new HttpError(500, "Failed to add internal note", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Assemblies (full module)
+// ═══════════════════════════════════════════════════════════════════════
+async function handleListAssemblies(url: URL, supabase: ReturnType<typeof getSupabase>) {
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 200);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
+  const buildingId = url.searchParams.get("building_id");
+  const status = url.searchParams.get("status");
+  let q = supabase.from("assemblies").select("*, buildings:building_id(id,code,name)", { count: "exact" })
+    .order("meeting_date", { ascending: false }).range(offset, offset + limit - 1);
+  if (buildingId) q = q.eq("building_id", buildingId);
+  if (status) q = q.eq("status", status);
+  const { data, error, count } = await q;
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ total: count ?? 0, limit, offset, assemblies: data || [] });
+}
+
+async function handleGetAssembly(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const id = params.assemblyId;
+  const [hdr, agenda, resolutions, actions, attendees] = await Promise.all([
+    supabase.from("assemblies").select("*, buildings:building_id(id,code,name)").eq("id", id).maybeSingle(),
+    supabase.from("assembly_agenda_items").select("*").eq("assembly_id", id).order("item_number", { ascending: true }),
+    supabase.from("assembly_resolutions").select("*").eq("assembly_id", id).order("created_at", { ascending: true }),
+    supabase.from("assembly_action_items").select("*").eq("assembly_id", id).order("due_date", { ascending: true }),
+    supabase.from("assembly_attendees").select("*").eq("assembly_id", id).order("owner_name", { ascending: true }),
+  ]);
+  if (hdr.error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  if (!hdr.data) return errorResponse(404, "Assembly not found", "NOT_FOUND");
+  return json({ ...hdr.data, agenda_items: agenda.data || [], resolutions: resolutions.data || [], action_items: actions.data || [], attendees: attendees.data || [] });
+}
+
+async function handleCreateAssembly(req: Request, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const building_id = requireUUID(body.building_id, "building_id");
+  const meeting_date = requireString(body.meeting_date, "meeting_date");
+  const insertData: Record<string, unknown> = {
+    building_id, meeting_date,
+    assembly_type: body.assembly_type || "ordinary",
+    start_time: body.start_time || null,
+    end_time: body.end_time || null,
+    location: body.location || null,
+    call_type: body.call_type || null,
+    chairperson_name: body.chairperson_name || null,
+    secretary_name: body.secretary_name || null,
+    status: body.status || "draft",
+    created_by: body.created_by || "00000000-0000-0000-0000-000000000000",
+  };
+  const { data, error } = await supabase.from("assemblies").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create assembly", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+
+async function handleUpdateAssembly(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["assembly_type","meeting_date","start_time","end_time","location","call_type","chairperson_name","secretary_name","status","approved_by","approved_at"]) {
+    if (body[k] !== undefined) updateData[k] = body[k];
+  }
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("assemblies").update(updateData).eq("id", params.assemblyId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+
+async function handleDeleteAssembly(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("assemblies").delete().eq("id", params.assemblyId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+async function handleListAssemblyAgendaItems(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("assembly_agenda_items").select("*").eq("assembly_id", params.assemblyId).order("item_number", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ assembly_id: params.assemblyId, items: data || [] });
+}
+
+async function handleCreateAssemblyAgendaItem(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const insertData = {
+    assembly_id: params.assemblyId,
+    item_number: body.item_number ?? 1,
+    title: requireString(body.title, "title"),
+    description: body.description || null,
+    source: body.source || "manual",
+  };
+  const { data, error } = await supabase.from("assembly_agenda_items").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+
+async function handleUpdateAssemblyAgendaItem(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["item_number","title","description","source"]) if (body[k] !== undefined) updateData[k] = body[k];
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("assembly_agenda_items").update(updateData).eq("id", params.itemId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+
+async function handleDeleteAssemblyAgendaItem(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("assembly_agenda_items").delete().eq("id", params.itemId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+async function handleListAssemblyResolutions(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("assembly_resolutions").select("*").eq("assembly_id", params.assemblyId).order("created_at", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ assembly_id: params.assemblyId, resolutions: data || [] });
+}
+
+async function handleCreateAssemblyResolution(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const insertData: Record<string, unknown> = {
+    assembly_id: params.assemblyId,
+    agenda_item_id: body.agenda_item_id || null,
+    resolution_title: requireString(body.resolution_title, "resolution_title"),
+    resolution_text: requireString(body.resolution_text, "resolution_text"),
+    vote_for_permillage: body.vote_for_permillage ?? null,
+    vote_against_permillage: body.vote_against_permillage ?? null,
+    vote_abstention_permillage: body.vote_abstention_permillage ?? null,
+    approved: body.approved ?? false,
+    financial_amount: body.financial_amount ?? null,
+    due_date: body.due_date || null,
+    vendor_name: body.vendor_name || null,
+    requires_followup: body.requires_followup ?? false,
+  };
+  const { data, error } = await supabase.from("assembly_resolutions").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+
+async function handleUpdateAssemblyResolution(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["agenda_item_id","resolution_title","resolution_text","vote_for_permillage","vote_against_permillage","vote_abstention_permillage","approved","financial_amount","due_date","vendor_name","requires_followup"]) {
+    if (body[k] !== undefined) updateData[k] = body[k];
+  }
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("assembly_resolutions").update(updateData).eq("id", params.resolutionId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+
+async function handleDeleteAssemblyResolution(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("assembly_resolutions").delete().eq("id", params.resolutionId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+async function handleListAssemblyActionItems(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("assembly_action_items").select("*").eq("assembly_id", params.assemblyId).order("due_date", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ assembly_id: params.assemblyId, action_items: data || [] });
+}
+
+async function handleCreateAssemblyActionItem(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  // Need building_id; fetch from assembly if not provided
+  let buildingId = body.building_id;
+  if (!buildingId) {
+    const { data: a } = await supabase.from("assemblies").select("building_id").eq("id", params.assemblyId).maybeSingle();
+    buildingId = a?.building_id;
+  }
+  if (!buildingId) throw new HttpError(400, "building_id required (assembly has no building)", "INVALID_INPUT");
+  const insertData: Record<string, unknown> = {
+    assembly_id: params.assemblyId,
+    building_id: buildingId,
+    resolution_id: body.resolution_id || null,
+    title: requireString(body.title, "title"),
+    description: body.description || null,
+    assigned_to: body.assigned_to || null,
+    due_date: body.due_date || null,
+    priority: body.priority || "normal",
+    status: body.status || "pending",
+    source: body.source || "manual",
+  };
+  const { data, error } = await supabase.from("assembly_action_items").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+
+async function handleUpdateAssemblyActionItem(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["title","description","assigned_to","due_date","priority","status","resolution_id"]) if (body[k] !== undefined) updateData[k] = body[k];
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("assembly_action_items").update(updateData).eq("id", params.actionItemId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+
+async function handleDeleteAssemblyActionItem(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("assembly_action_items").delete().eq("id", params.actionItemId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+async function handleListAssemblyAttendees(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("assembly_attendees").select("*").eq("assembly_id", params.assemblyId).order("owner_name", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ assembly_id: params.assemblyId, attendees: data || [] });
+}
+
+async function handleAddAssemblyAttendee(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const insertData = {
+    assembly_id: params.assemblyId,
+    owner_name: requireString(body.owner_name, "owner_name"),
+    fraction_label: body.fraction_label || null,
+    permillage: body.permillage ?? null,
+    attendance_type: body.attendance_type || "present",
+    representative_name: body.representative_name || null,
+    validated_manually: body.validated_manually ?? false,
+    notes: body.notes || null,
+  };
+  const { data, error } = await supabase.from("assembly_attendees").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to add attendee", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+
+async function handleDeleteAssemblyAttendee(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("assembly_attendees").delete().eq("id", params.attendeeId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+async function handleListAssemblyDispatches(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("assembly_dispatches").select("*").eq("assembly_id", params.assemblyId).order("created_at", { ascending: false });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ assembly_id: params.assemblyId, dispatches: data || [] });
+}
+
+async function handleListAssemblyMinutesVersions(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("assembly_minutes_versions")
+    .select("id, assembly_id, version_number, status, change_summary, validation_warnings, missing_fields, created_by, created_at")
+    .eq("assembly_id", params.assemblyId).order("version_number", { ascending: false });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ assembly_id: params.assemblyId, versions: data || [] });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Building fractions, inspections, insurances, inspection categories
+// ═══════════════════════════════════════════════════════════════════════
+async function handleListBuildingFractions(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("building_fractions").select("*").eq("building_id", params.buildingId).order("display_order", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ building_id: params.buildingId, fractions: data || [] });
+}
+async function handleCreateBuildingFraction(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const insertData = {
+    building_id: params.buildingId,
+    label: requireString(body.label, "label"),
+    permillage: body.permillage ?? null,
+    notes: body.notes || null,
+    display_order: body.display_order ?? 0,
+  };
+  const { data, error } = await supabase.from("building_fractions").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+async function handleUpdateBuildingFraction(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["label","permillage","notes","display_order"]) if (body[k] !== undefined) updateData[k] = body[k];
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("building_fractions").update(updateData).eq("id", params.fractionId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+async function handleDeleteBuildingFraction(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("building_fractions").delete().eq("id", params.fractionId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+async function handleListBuildingInspections(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("building_inspections")
+    .select("*, category:category_id(id,key,label,validity_years)")
+    .eq("building_id", params.buildingId).order("next_due_date", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ building_id: params.buildingId, inspections: data || [] });
+}
+async function handleCreateBuildingInspection(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const insertData = {
+    building_id: params.buildingId,
+    category_id: requireUUID(body.category_id, "category_id"),
+    inspection_date: requireString(body.inspection_date, "inspection_date"),
+    result: requireString(body.result, "result"),
+    next_due_date: requireString(body.next_due_date, "next_due_date"),
+    company_name: body.company_name || null,
+    company_contact: body.company_contact || null,
+    certificate_url: body.certificate_url || null,
+    notes: body.notes || null,
+  };
+  const { data, error } = await supabase.from("building_inspections").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+async function handleUpdateBuildingInspection(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["category_id","inspection_date","result","next_due_date","company_name","company_contact","certificate_url","notes"]) if (body[k] !== undefined) updateData[k] = body[k];
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("building_inspections").update(updateData).eq("id", params.inspectionId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+async function handleDeleteBuildingInspection(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("building_inspections").delete().eq("id", params.inspectionId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+async function handleListBuildingInsurances(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("building_insurances").select("*").eq("building_id", params.buildingId).order("renewal_date", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ building_id: params.buildingId, insurances: data || [] });
+}
+async function handleCreateBuildingInsurance(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const insertData = {
+    building_id: params.buildingId,
+    coverage_type: requireString(body.coverage_type, "coverage_type"),
+    policy_number: body.policy_number || null,
+    insurer: body.insurer || null,
+    broker: body.broker || null,
+    contact: body.contact || null,
+    fractions_included: body.fractions_included || null,
+    observations: body.observations || null,
+    renewal_date: body.renewal_date || null,
+    notes: body.notes || null,
+    policy_path: body.policy_path || null,
+  };
+  const { data, error } = await supabase.from("building_insurances").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+async function handleUpdateBuildingInsurance(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["coverage_type","policy_number","insurer","broker","contact","fractions_included","observations","renewal_date","notes","policy_path"]) if (body[k] !== undefined) updateData[k] = body[k];
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("building_insurances").update(updateData).eq("id", params.insuranceId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+async function handleDeleteBuildingInsurance(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("building_insurances").delete().eq("id", params.insuranceId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+async function handleListInspectionCategories(url: URL, supabase: ReturnType<typeof getSupabase>) {
+  const onlyActive = url.searchParams.get("active") === "true";
+  let q = supabase.from("inspection_categories").select("*").order("display_order", { ascending: true });
+  if (onlyActive) q = q.eq("is_active", true);
+  const { data, error } = await q;
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ categories: data || [] });
+}
+async function handleCreateInspectionCategory(req: Request, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const insertData = {
+    key: requireString(body.key, "key"),
+    label: requireString(body.label, "label"),
+    description: body.description || null,
+    validity_years: body.validity_years ?? 1,
+    alert_days: body.alert_days || [30, 60, 90],
+    legal_reference: body.legal_reference || null,
+    color: body.color || "blue",
+    icon: body.icon || "ShieldCheck",
+    is_active: body.is_active ?? true,
+    display_order: body.display_order ?? 0,
+  };
+  const { data, error } = await supabase.from("inspection_categories").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+async function handleUpdateInspectionCategory(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["key","label","description","validity_years","alert_days","legal_reference","color","icon","is_active","display_order"]) if (body[k] !== undefined) updateData[k] = body[k];
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("inspection_categories").update(updateData).eq("id", params.categoryId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+async function handleDeleteInspectionCategory(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("inspection_categories").delete().eq("id", params.categoryId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Insurance claim attachments + fraction status
+// ═══════════════════════════════════════════════════════════════════════
+async function handleListInsuranceClaimAttachments(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data, error } = await supabase.from("insurance_claim_attachments").select("*").eq("claim_id", params.claimId).order("created_at", { ascending: true });
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ claim_id: params.claimId, attachments: data || [] });
+}
+async function handleDeleteInsuranceClaimAttachment(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { data: att } = await supabase.from("insurance_claim_attachments").select("file_path").eq("id", params.attachmentId).maybeSingle();
+  if (att?.file_path) await supabase.storage.from("insurance-claim-attachments").remove([att.file_path]).catch(() => {});
+  const { error } = await supabase.from("insurance_claim_attachments").delete().eq("id", params.attachmentId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+async function handleListInsuranceFractionStatus(url: URL, supabase: ReturnType<typeof getSupabase>) {
+  const insuranceId = url.searchParams.get("insurance_id");
+  const fractionId = url.searchParams.get("fraction_id");
+  let q = supabase.from("insurance_fraction_status").select("*");
+  if (insuranceId) q = q.eq("insurance_id", insuranceId);
+  if (fractionId) q = q.eq("fraction_id", fractionId);
+  const { data, error } = await q;
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ statuses: data || [] });
+}
+async function handleUpdateInsuranceFractionStatus(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["status","notes"]) if (body[k] !== undefined) updateData[k] = body[k];
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("insurance_fraction_status").update(updateData).eq("id", params.statusId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Condominium contacts (CRUD — list já existe)
+// ═══════════════════════════════════════════════════════════════════════
+async function handleCreateBuildingContact(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const insertData = {
+    building_id: params.buildingId,
+    email: requireString(body.email, "email").toLowerCase(),
+    first_name: body.first_name || null,
+    last_name: body.last_name || null,
+    phone: body.phone || null,
+    fraction: body.fraction || null,
+    role: body.role || null,
+    is_primary_contact: body.is_primary_contact ?? false,
+  };
+  const { data, error } = await supabase.from("condominium_contacts").insert(insertData).select("*").single();
+  if (error) throw new HttpError(500, "Failed to create contact", "INTERNAL_ERROR");
+  return json(data, 201);
+}
+async function handleUpdateBuildingContact(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const body = await req.json();
+  const updateData: Record<string, unknown> = {};
+  for (const k of ["email","first_name","last_name","phone","fraction","role","is_primary_contact"]) if (body[k] !== undefined) updateData[k] = body[k];
+  if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+  const { data, error } = await supabase.from("condominium_contacts").update(updateData).eq("id", params.contactId).select("*").single();
+  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  return json(data);
+}
+async function handleDeleteBuildingContact(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const { error } = await supabase.from("condominium_contacts").delete().eq("id", params.contactId);
+  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  return json({ deleted: true });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Observability: mcp_health_checks, email_unsubscribes, app_settings
+// ═══════════════════════════════════════════════════════════════════════
+async function handleListMcpHealthChecks(url: URL, supabase: ReturnType<typeof getSupabase>) {
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "100"), 500);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
+  const status = url.searchParams.get("status");
+  const toolName = url.searchParams.get("tool_name");
+  let q = supabase.from("mcp_health_checks").select("*", { count: "exact" }).order("checked_at", { ascending: false }).range(offset, offset + limit - 1);
+  if (status) q = q.eq("status", status);
+  if (toolName) q = q.eq("tool_name", toolName);
+  const { data, error, count } = await q;
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ total: count ?? 0, limit, offset, checks: data || [] });
+}
+async function handleListEmailUnsubscribes(url: URL, supabase: ReturnType<typeof getSupabase>) {
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "100"), 500);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
+  const { data, error, count } = await supabase.from("email_unsubscribes")
+    .select("id, email, source, unsubscribed_at, created_at", { count: "exact" })
+    .order("unsubscribed_at", { ascending: false }).range(offset, offset + limit - 1);
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ total: count ?? 0, limit, offset, unsubscribes: data || [] });
+}
+async function handleListAppSettings(url: URL, supabase: ReturnType<typeof getSupabase>) {
+  const category = url.searchParams.get("category");
+  let q = supabase.from("app_settings").select("id, key, value, category, description, updated_at").order("category").order("key");
+  if (category) q = q.eq("category", category);
+  const { data, error } = await q;
+  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  return json({ settings: data || [] });
+}
+
 // ── Main handler ──
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
