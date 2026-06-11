@@ -23,21 +23,43 @@ Usa a mesma `EXTERNAL_API_KEY` da Agent API. Aceita:
 - Header: `Authorization: Bearer <KEY>`
 - Query param: `?api_key=<KEY>`
 
-## Ferramentas expostas (48)
+## Ferramentas expostas (128)
 
-Paridade completa com a app web — read e write em todas as áreas.
+Paridade completa com a app web — read e write em quase todas as áreas.
 
 **Core (5):** `health_check`, `lookup_building_by_email`, `list_intervention_types`, `create_intervention_type`, `update_intervention_type`
 
-**Assistências (10):** `list_assistances`, `get_assistance`, `create_assistance`, `update_assistance`, `add_communication`, `list_assistance_communications`, `list_assistance_photos`, `list_assistance_progress`, `save_email_draft`, `update_email_status`
+**Assistências (11):** `list_assistances`, `get_assistance`, `create_assistance`, `update_assistance`, `add_assistance_internal_note`, `add_communication`, `list_assistance_communications`, `list_assistance_photos`, `list_assistance_progress`, `save_email_draft`, `update_email_status`
 
 **Edifícios (5):** `list_buildings`, `get_building`, `create_building`, `update_building`, `list_building_contacts`
 
+**Contactos do Condomínio (3):** `create_building_contact`, `update_building_contact`, `delete_building_contact`
+
+**Administradores (4):** `list_building_administrators`, `create_building_administrator`, `update_building_administrator`, `delete_building_administrator`
+
+**Frações do Edifício (4):** `list_building_fractions`, `create_building_fraction`, `update_building_fraction`, `delete_building_fraction`
+
+**Inspeções (4):** `list_building_inspections`, `create_building_inspection`, `update_building_inspection`, `delete_building_inspection`
+
+**Categorias de Inspeção (4):** `list_inspection_categories`, `create_inspection_category`, `update_inspection_category`, `delete_inspection_category`
+
+**Seguros do Edifício (4):** `list_building_insurances`, `create_building_insurance`, `update_building_insurance`, `delete_building_insurance`
+
 **Fornecedores (4):** `list_suppliers`, `get_supplier`, `create_supplier`, `update_supplier`
 
-**Actas (5):** `list_assembly_items`, `get_assembly_item`, `create_assembly_item`, `update_assembly_item`, `delete_assembly_item`
+**Actas (itens simples) (5):** `list_assembly_items`, `get_assembly_item`, `create_assembly_item`, `update_assembly_item`, `delete_assembly_item`
+
+**Assembleias — módulo completo (21):** `list_assemblies`, `get_assembly`, `create_assembly`, `update_assembly`, `delete_assembly`, `list_assembly_agenda_items`, `create_assembly_agenda_item`, `update_assembly_agenda_item`, `delete_assembly_agenda_item`, `list_assembly_resolutions`, `create_assembly_resolution`, `update_assembly_resolution`, `delete_assembly_resolution`, `list_assembly_action_items`, `create_assembly_action_item`, `update_assembly_action_item`, `delete_assembly_action_item`, `list_assembly_attendees`, `add_assembly_attendee`, `delete_assembly_attendee`, `list_assembly_dispatches`, `list_assembly_minutes_versions`
+
+**Pendências de Email (13):** `list_email_pendencies`, `get_email_pendency`, `create_email_pendency`, `update_email_pendency`, `delete_email_pendency`, `list_email_pendency_notes`, `add_email_pendency_note`, `list_email_pendency_attachments`, `delete_email_pendency_attachment`, `list_pendency_reminders`, `create_pendency_reminder`, `update_pendency_reminder`, `delete_pendency_reminder`
 
 **Orçamentos (5):** `list_quotations`, `get_quotation`, `create_quotation`, `update_quotation`, `delete_quotation`
+
+**Sinistros (8):** `list_insurance_claims`, `get_insurance_claim`, `create_insurance_claim`, `update_insurance_claim`, `add_claim_note`, `list_insurance_claim_attachments`, `delete_insurance_claim_attachment`, `list_insurance_fraction_status` + `update_insurance_fraction_status`
+
+**Chaves (3):** `list_key_handovers`, `create_key_handover`, `update_key_handover`
+
+**Documentos do Edifício (3):** `list_building_documents`, `upload_building_document`, `delete_building_document`
 
 **Knowledge Base (5):** `search_knowledge`, `get_knowledge_article`, `create_knowledge_article`, `update_knowledge_article`, `delete_knowledge_article`
 
@@ -49,7 +71,11 @@ Paridade completa com a app web — read e write em todas as áreas.
 
 **Activity Log (1):** `list_activity_log`
 
-**Contactos (1):** `import_contacts`
+**Observabilidade (3):** `list_mcp_health_checks`, `list_email_unsubscribes`, `list_app_settings`
+
+**Contactos — Import (1):** `import_contacts`
+
+**ChatGPT Apps SDK (2):** `search`, `fetch`
 
 ## Conectar ao Claude Desktop
 
