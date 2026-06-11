@@ -23,59 +23,110 @@ Usa a mesma `EXTERNAL_API_KEY` da Agent API. Aceita:
 - Header: `Authorization: Bearer <KEY>`
 - Query param: `?api_key=<KEY>`
 
-## Ferramentas expostas (128)
+## Ferramentas expostas — inventário completo (128, v1.3.0)
 
-Paridade completa com a app web — read e write em quase todas as áreas.
+Paridade completa com a app web. Lista extraída diretamente de `index.ts`.
 
-**Core (5):** `health_check`, `lookup_building_by_email`, `list_intervention_types`, `create_intervention_type`, `update_intervention_type`
+### Sistema & Pesquisa (4)
+- `health_check` — verifica disponibilidade da Agent API
+- `lookup_building_by_email` — encontra edifício a partir de email de contacto
+- `search` — pesquisa global (ChatGPT Apps SDK)
+- `fetch` — obtém recurso por tipo+id (ChatGPT Apps SDK)
 
-**Assistências (11):** `list_assistances`, `get_assistance`, `create_assistance`, `update_assistance`, `add_assistance_internal_note`, `add_communication`, `list_assistance_communications`, `list_assistance_photos`, `list_assistance_progress`, `save_email_draft`, `update_email_status`
+### Assistências (10)
+- `list_assistances`, `get_assistance`, `create_assistance`, `update_assistance`
+- `add_assistance_internal_note` — append timestamped a `admin_notes`
+- `list_assistance_communications`, `list_assistance_photos`, `list_assistance_progress`
+- `upload_assistance_photo`, `delete_assistance_photo`
 
-**Edifícios (5):** `list_buildings`, `get_building`, `create_building`, `update_building`, `list_building_contacts`
+### Comunicações / Email da Assistência (4)
+- `add_communication`, `save_email_draft`, `update_email_status`, `import_contacts`
 
-**Contactos do Condomínio (3):** `create_building_contact`, `update_building_contact`, `delete_building_contact`
+### Tipos de Intervenção (3)
+- `list_intervention_types`, `create_intervention_type`, `update_intervention_type`
 
-**Administradores (4):** `list_building_administrators`, `create_building_administrator`, `update_building_administrator`, `delete_building_administrator`
+### Knowledge Base (5)
+- `search_knowledge`, `get_knowledge_article`, `create_knowledge_article`, `update_knowledge_article`, `delete_knowledge_article`
 
-**Frações do Edifício (4):** `list_building_fractions`, `create_building_fraction`, `update_building_fraction`, `delete_building_fraction`
+### Edifícios (4)
+- `list_buildings`, `get_building`, `create_building`, `update_building`
 
-**Inspeções (4):** `list_building_inspections`, `create_building_inspection`, `update_building_inspection`, `delete_building_inspection`
+### Contactos do Condomínio (4)
+- `list_building_contacts`, `create_building_contact`, `update_building_contact`, `delete_building_contact`
 
-**Categorias de Inspeção (4):** `list_inspection_categories`, `create_inspection_category`, `update_inspection_category`, `delete_inspection_category`
+### Administradores de Edifício (4)
+- `list_building_administrators`, `create_building_administrator`, `update_building_administrator`, `delete_building_administrator`
 
-**Seguros do Edifício (4):** `list_building_insurances`, `create_building_insurance`, `update_building_insurance`, `delete_building_insurance`
+### Frações (4)
+- `list_building_fractions`, `create_building_fraction`, `update_building_fraction`, `delete_building_fraction`
 
-**Fornecedores (4):** `list_suppliers`, `get_supplier`, `create_supplier`, `update_supplier`
+### Inspeções (4)
+- `list_building_inspections`, `create_building_inspection`, `update_building_inspection`, `delete_building_inspection`
 
-**Actas (itens simples) (5):** `list_assembly_items`, `get_assembly_item`, `create_assembly_item`, `update_assembly_item`, `delete_assembly_item`
+### Categorias de Inspeção (4)
+- `list_inspection_categories`, `create_inspection_category`, `update_inspection_category`, `delete_inspection_category`
 
-**Assembleias — módulo completo (21):** `list_assemblies`, `get_assembly`, `create_assembly`, `update_assembly`, `delete_assembly`, `list_assembly_agenda_items`, `create_assembly_agenda_item`, `update_assembly_agenda_item`, `delete_assembly_agenda_item`, `list_assembly_resolutions`, `create_assembly_resolution`, `update_assembly_resolution`, `delete_assembly_resolution`, `list_assembly_action_items`, `create_assembly_action_item`, `update_assembly_action_item`, `delete_assembly_action_item`, `list_assembly_attendees`, `add_assembly_attendee`, `delete_assembly_attendee`, `list_assembly_dispatches`, `list_assembly_minutes_versions`
+### Seguros de Edifício (4)
+- `list_building_insurances`, `create_building_insurance`, `update_building_insurance`, `delete_building_insurance`
 
-**Pendências de Email (13):** `list_email_pendencies`, `get_email_pendency`, `create_email_pendency`, `update_email_pendency`, `delete_email_pendency`, `list_email_pendency_notes`, `add_email_pendency_note`, `list_email_pendency_attachments`, `delete_email_pendency_attachment`, `list_pendency_reminders`, `create_pendency_reminder`, `update_pendency_reminder`, `delete_pendency_reminder`
+### Documentos de Edifício (3)
+- `list_building_documents`, `upload_building_document`, `delete_building_document`
 
-**Orçamentos (5):** `list_quotations`, `get_quotation`, `create_quotation`, `update_quotation`, `delete_quotation`
+### Entrega de Chaves (3)
+- `list_key_handovers`, `create_key_handover`, `update_key_handover`
 
-**Sinistros (8):** `list_insurance_claims`, `get_insurance_claim`, `create_insurance_claim`, `update_insurance_claim`, `add_claim_note`, `list_insurance_claim_attachments`, `delete_insurance_claim_attachment`, `list_insurance_fraction_status` + `update_insurance_fraction_status`
+### Fornecedores (4)
+- `list_suppliers`, `get_supplier`, `create_supplier`, `update_supplier`
 
-**Chaves (3):** `list_key_handovers`, `create_key_handover`, `update_key_handover`
+### Orçamentos / Cotações (5)
+- `list_quotations`, `get_quotation`, `create_quotation`, `update_quotation`, `delete_quotation`
 
-**Documentos do Edifício (3):** `list_building_documents`, `upload_building_document`, `delete_building_document`
+### Respostas de Fornecedor (2)
+- `submit_supplier_response`, `list_supplier_responses`
 
-**Knowledge Base (5):** `search_knowledge`, `get_knowledge_article`, `create_knowledge_article`, `update_knowledge_article`, `delete_knowledge_article`
+### Follow-ups & Notificações (4)
+- `list_follow_ups`, `create_follow_up`, `list_notifications`, `update_notification`
 
-**Fotos (2):** `upload_assistance_photo`, `delete_assistance_photo`
+### Sinistros / Insurance Claims (9)
+- `list_insurance_claims`, `get_insurance_claim`, `create_insurance_claim`, `update_insurance_claim`
+- `add_claim_note`
+- `list_insurance_claim_attachments`, `delete_insurance_claim_attachment`
+- `list_insurance_fraction_status`, `update_insurance_fraction_status`
 
-**Respostas Fornecedor (2):** `submit_supplier_response`, `list_supplier_responses`
+### Pendências de Email (13)
+- `list_email_pendencies`, `get_email_pendency`, `create_email_pendency`, `update_email_pendency`, `delete_email_pendency`
+- `list_email_pendency_notes`, `add_email_pendency_note`
+- `list_email_pendency_attachments`, `delete_email_pendency_attachment`
+- `list_pendency_reminders`, `create_pendency_reminder`, `update_pendency_reminder`, `delete_pendency_reminder`
 
-**Follow-ups & Notificações (4):** `list_follow_ups`, `create_follow_up`, `list_notifications`, `update_notification`
+### Assembleias — Itens (atas) (5)
+- `list_assembly_items`, `get_assembly_item`, `create_assembly_item`, `update_assembly_item`, `delete_assembly_item`
 
-**Activity Log (1):** `list_activity_log`
+### Assembleias — Gestão (5)
+- `list_assemblies`, `get_assembly`, `create_assembly`, `update_assembly`, `delete_assembly`
 
-**Observabilidade (3):** `list_mcp_health_checks`, `list_email_unsubscribes`, `list_app_settings`
+### Assembleias — Agenda (4)
+- `list_assembly_agenda_items`, `create_assembly_agenda_item`, `update_assembly_agenda_item`, `delete_assembly_agenda_item`
 
-**Contactos — Import (1):** `import_contacts`
+### Assembleias — Deliberações (4)
+- `list_assembly_resolutions`, `create_assembly_resolution`, `update_assembly_resolution`, `delete_assembly_resolution`
 
-**ChatGPT Apps SDK (2):** `search`, `fetch`
+### Assembleias — Ações de Seguimento (4)
+- `list_assembly_action_items`, `create_assembly_action_item`, `update_assembly_action_item`, `delete_assembly_action_item`
+
+### Assembleias — Presenças (3)
+- `list_assembly_attendees`, `add_assembly_attendee`, `delete_assembly_attendee`
+
+### Assembleias — Envios e Atas (2)
+- `list_assembly_dispatches`, `list_assembly_minutes_versions`
+
+### Activity Log (1)
+- `list_activity_log`
+
+### Observabilidade (3)
+- `list_mcp_health_checks`, `list_email_unsubscribes`, `list_app_settings`
+
+**Total: 128 tools.**
 
 ## Conectar ao Claude Desktop
 
