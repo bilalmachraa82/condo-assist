@@ -1181,6 +1181,434 @@ mcp.tool("add_claim_note", {
     asText(await callAgentApi("POST", `/v1/insurance-claims/${claim_id}/notes`, { body: { body } })),
 });
 
+// ═══════════════════════════════════════════════════════════════════════
+// Email Pendencies (notes + attachments + reminders)
+// ═══════════════════════════════════════════════════════════════════════
+mcp.tool("list_email_pendencies", {
+  description: "[Pendências Email] Lista pendências de email com filtros (status, priority, building_id, assigned_to, supplier_id, assistance_id, q).",
+  inputSchema: { type: "object", properties: {
+    status: { type: "string" }, priority: { type: "string" }, building_id: { type: "string" },
+    assigned_to: { type: "string" }, supplier_id: { type: "string" }, assistance_id: { type: "string" },
+    q: { type: "string", description: "Pesquisa em título/descrição/assunto" },
+    limit: { type: "number" }, offset: { type: "number" },
+  }},
+  handler: async (args: Record<string, unknown>) =>
+    asText(await callAgentApi("GET", "/v1/email-pendencies", { query: Object.fromEntries(Object.entries(args).map(([k, v]) => [k, v == null ? undefined : String(v)])) })),
+});
+mcp.tool("get_email_pendency", {
+  description: "[Pendências Email] Detalhe completo de uma pendência: dados, notas internas, anexos e lembretes.",
+  inputSchema: { type: "object", properties: { pendency_id: { type: "string" } }, required: ["pendency_id"] },
+  handler: async ({ pendency_id }: { pendency_id: string }) => asText(await callAgentApi("GET", `/v1/email-pendencies/${pendency_id}`)),
+});
+mcp.tool("create_email_pendency", {
+  description: "[Pendências Email] Cria nova pendência associada a um edifício (e opcionalmente assistência/fornecedor).",
+  inputSchema: { type: "object", properties: {
+    title: { type: "string" }, building_id: { type: "string" },
+    description: { type: "string" }, subject: { type: "string" }, email_sent_at: { type: "string" },
+    assistance_id: { type: "string" }, supplier_id: { type: "string" },
+    status: { type: "string" }, priority: { type: "string" }, assigned_to: { type: "string" }, due_date: { type: "string" },
+  }, required: ["title", "building_id"] },
+  handler: async (body: Record<string, unknown>) => asText(await callAgentApi("POST", "/v1/email-pendencies", { body })),
+});
+mcp.tool("update_email_pendency", {
+  description: "[Pendências Email] Atualiza campos de uma pendência (estado, prioridade, atribuição, prazo, etc.).",
+  inputSchema: { type: "object", properties: {
+    pendency_id: { type: "string" }, title: { type: "string" }, description: { type: "string" }, subject: { type: "string" },
+    email_sent_at: { type: "string" }, building_id: { type: "string" }, assistance_id: { type: "string" }, supplier_id: { type: "string" },
+    status: { type: "string" }, priority: { type: "string" }, assigned_to: { type: "string" }, due_date: { type: "string" },
+  }, required: ["pendency_id"] },
+  handler: async ({ pendency_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/email-pendencies/${pendency_id}`, { body })),
+});
+mcp.tool("delete_email_pendency", {
+  description: "[Pendências Email] Elimina uma pendência (e dados relacionados via cascade).",
+  inputSchema: { type: "object", properties: { pendency_id: { type: "string" } }, required: ["pendency_id"] },
+  handler: async ({ pendency_id }: { pendency_id: string }) => asText(await callAgentApi("DELETE", `/v1/email-pendencies/${pendency_id}`)),
+});
+mcp.tool("list_email_pendency_notes", {
+  description: "[Pendências Email] Lista notas internas de uma pendência (ordem cronológica).",
+  inputSchema: { type: "object", properties: { pendency_id: { type: "string" } }, required: ["pendency_id"] },
+  handler: async ({ pendency_id }: { pendency_id: string }) => asText(await callAgentApi("GET", `/v1/email-pendencies/${pendency_id}/notes`)),
+});
+mcp.tool("add_email_pendency_note", {
+  description: "[Pendências Email] Adiciona nota interna a uma pendência (timeline).",
+  inputSchema: { type: "object", properties: {
+    pendency_id: { type: "string" }, body: { type: "string" },
+    note_type: { type: "string", description: "internal (default), reply, system…" },
+    author_id: { type: "string" }, metadata: { type: "object" },
+  }, required: ["pendency_id", "body"] },
+  handler: async ({ pendency_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/email-pendencies/${pendency_id}/notes`, { body })),
+});
+mcp.tool("list_email_pendency_attachments", {
+  description: "[Pendências Email] Lista metadados de anexos de uma pendência.",
+  inputSchema: { type: "object", properties: { pendency_id: { type: "string" } }, required: ["pendency_id"] },
+  handler: async ({ pendency_id }: { pendency_id: string }) => asText(await callAgentApi("GET", `/v1/email-pendencies/${pendency_id}/attachments`)),
+});
+mcp.tool("delete_email_pendency_attachment", {
+  description: "[Pendências Email] Elimina um anexo (storage + metadados).",
+  inputSchema: { type: "object", properties: { attachment_id: { type: "string" } }, required: ["attachment_id"] },
+  handler: async ({ attachment_id }: { attachment_id: string }) => asText(await callAgentApi("DELETE", `/v1/email-pendency-attachments/${attachment_id}`)),
+});
+mcp.tool("list_pendency_reminders", {
+  description: "[Pendências Email] Lista lembretes agendados de uma pendência.",
+  inputSchema: { type: "object", properties: { pendency_id: { type: "string" } }, required: ["pendency_id"] },
+  handler: async ({ pendency_id }: { pendency_id: string }) => asText(await callAgentApi("GET", `/v1/email-pendencies/${pendency_id}/reminders`)),
+});
+mcp.tool("create_pendency_reminder", {
+  description: "[Pendências Email] Agenda novo lembrete para uma pendência.",
+  inputSchema: { type: "object", properties: {
+    pendency_id: { type: "string" }, scheduled_for: { type: "string", description: "ISO timestamp" },
+    reminder_type: { type: "string" }, status: { type: "string" }, max_attempts: { type: "number" },
+  }, required: ["pendency_id", "scheduled_for"] },
+  handler: async ({ pendency_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/email-pendencies/${pendency_id}/reminders`, { body })),
+});
+mcp.tool("update_pendency_reminder", {
+  description: "[Pendências Email] Atualiza um lembrete (alterar data, estado, tipo, contagem).",
+  inputSchema: { type: "object", properties: {
+    reminder_id: { type: "string" }, reminder_type: { type: "string" }, scheduled_for: { type: "string" },
+    status: { type: "string" }, attempt_count: { type: "number" }, max_attempts: { type: "number" },
+  }, required: ["reminder_id"] },
+  handler: async ({ reminder_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/pendency-reminders/${reminder_id}`, { body })),
+});
+mcp.tool("delete_pendency_reminder", {
+  description: "[Pendências Email] Elimina um lembrete agendado.",
+  inputSchema: { type: "object", properties: { reminder_id: { type: "string" } }, required: ["reminder_id"] },
+  handler: async ({ reminder_id }: { reminder_id: string }) => asText(await callAgentApi("DELETE", `/v1/pendency-reminders/${reminder_id}`)),
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Assistance internal notes (admin_notes append-safe)
+// ═══════════════════════════════════════════════════════════════════════
+mcp.tool("add_assistance_internal_note", {
+  description: "[Assistências] Acrescenta uma nota interna (admin_notes) a uma assistência, com timestamp e autor. Não substitui o conteúdo existente — faz append.",
+  inputSchema: { type: "object", properties: {
+    assistance_id: { type: "string" }, note: { type: "string" }, author: { type: "string", description: "Nome do autor (default: 'agent')" },
+  }, required: ["assistance_id", "note"] },
+  handler: async ({ assistance_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/assistances/${assistance_id}/internal-notes`, { body })),
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Assembleias (módulo cheio)
+// ═══════════════════════════════════════════════════════════════════════
+mcp.tool("list_assemblies", {
+  description: "[Assembleias] Lista assembleias (reuniões) com filtros opcionais.",
+  inputSchema: { type: "object", properties: { building_id: { type: "string" }, status: { type: "string" }, limit: { type: "number" }, offset: { type: "number" } } },
+  handler: async (args: any) => asText(await callAgentApi("GET", "/v1/assemblies", { query: Object.fromEntries(Object.entries(args).map(([k,v]) => [k, v==null?undefined:String(v)])) })),
+});
+mcp.tool("get_assembly", {
+  description: "[Assembleias] Detalhe completo: agenda, deliberações, action items e participantes.",
+  inputSchema: { type: "object", properties: { assembly_id: { type: "string" } }, required: ["assembly_id"] },
+  handler: async ({ assembly_id }: { assembly_id: string }) => asText(await callAgentApi("GET", `/v1/assemblies/${assembly_id}`)),
+});
+mcp.tool("create_assembly", {
+  description: "[Assembleias] Cria nova assembleia.",
+  inputSchema: { type: "object", properties: {
+    building_id: { type: "string" }, meeting_date: { type: "string" }, assembly_type: { type: "string" },
+    start_time: { type: "string" }, end_time: { type: "string" }, location: { type: "string" },
+    call_type: { type: "string" }, chairperson_name: { type: "string" }, secretary_name: { type: "string" }, status: { type: "string" },
+  }, required: ["building_id", "meeting_date"] },
+  handler: async (body: Record<string, unknown>) => asText(await callAgentApi("POST", "/v1/assemblies", { body })),
+});
+mcp.tool("update_assembly", {
+  description: "[Assembleias] Atualiza dados de uma assembleia (estado, data, presidente, etc.).",
+  inputSchema: { type: "object", properties: {
+    assembly_id: { type: "string" }, assembly_type: { type: "string" }, meeting_date: { type: "string" },
+    start_time: { type: "string" }, end_time: { type: "string" }, location: { type: "string" }, call_type: { type: "string" },
+    chairperson_name: { type: "string" }, secretary_name: { type: "string" }, status: { type: "string" },
+    approved_by: { type: "string" }, approved_at: { type: "string" },
+  }, required: ["assembly_id"] },
+  handler: async ({ assembly_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/assemblies/${assembly_id}`, { body })),
+});
+mcp.tool("delete_assembly", {
+  description: "[Assembleias] Elimina uma assembleia (cascade para itens/votações).",
+  inputSchema: { type: "object", properties: { assembly_id: { type: "string" } }, required: ["assembly_id"] },
+  handler: async ({ assembly_id }: { assembly_id: string }) => asText(await callAgentApi("DELETE", `/v1/assemblies/${assembly_id}`)),
+});
+mcp.tool("list_assembly_agenda_items", {
+  description: "[Assembleias] Lista itens da agenda de uma assembleia.",
+  inputSchema: { type: "object", properties: { assembly_id: { type: "string" } }, required: ["assembly_id"] },
+  handler: async ({ assembly_id }: { assembly_id: string }) => asText(await callAgentApi("GET", `/v1/assemblies/${assembly_id}/agenda-items`)),
+});
+mcp.tool("create_assembly_agenda_item", {
+  description: "[Assembleias] Adiciona item à agenda.",
+  inputSchema: { type: "object", properties: {
+    assembly_id: { type: "string" }, title: { type: "string" }, item_number: { type: "number" },
+    description: { type: "string" }, source: { type: "string" },
+  }, required: ["assembly_id", "title"] },
+  handler: async ({ assembly_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/assemblies/${assembly_id}/agenda-items`, { body })),
+});
+mcp.tool("update_assembly_agenda_item", {
+  description: "[Assembleias] Atualiza item da agenda.",
+  inputSchema: { type: "object", properties: { item_id: { type: "string" }, item_number: { type: "number" }, title: { type: "string" }, description: { type: "string" }, source: { type: "string" } }, required: ["item_id"] },
+  handler: async ({ item_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/agenda-items/${item_id}`, { body })),
+});
+mcp.tool("delete_assembly_agenda_item", {
+  description: "[Assembleias] Elimina item da agenda.",
+  inputSchema: { type: "object", properties: { item_id: { type: "string" } }, required: ["item_id"] },
+  handler: async ({ item_id }: { item_id: string }) => asText(await callAgentApi("DELETE", `/v1/agenda-items/${item_id}`)),
+});
+mcp.tool("list_assembly_resolutions", {
+  description: "[Assembleias] Lista deliberações de uma assembleia.",
+  inputSchema: { type: "object", properties: { assembly_id: { type: "string" } }, required: ["assembly_id"] },
+  handler: async ({ assembly_id }: { assembly_id: string }) => asText(await callAgentApi("GET", `/v1/assemblies/${assembly_id}/resolutions`)),
+});
+mcp.tool("create_assembly_resolution", {
+  description: "[Assembleias] Regista nova deliberação (com votação opcional).",
+  inputSchema: { type: "object", properties: {
+    assembly_id: { type: "string" }, resolution_title: { type: "string" }, resolution_text: { type: "string" },
+    agenda_item_id: { type: "string" }, vote_for_permillage: { type: "number" }, vote_against_permillage: { type: "number" },
+    vote_abstention_permillage: { type: "number" }, approved: { type: "boolean" },
+    financial_amount: { type: "number" }, due_date: { type: "string" }, vendor_name: { type: "string" }, requires_followup: { type: "boolean" },
+  }, required: ["assembly_id", "resolution_title", "resolution_text"] },
+  handler: async ({ assembly_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/assemblies/${assembly_id}/resolutions`, { body })),
+});
+mcp.tool("update_assembly_resolution", {
+  description: "[Assembleias] Atualiza dados de uma deliberação.",
+  inputSchema: { type: "object", properties: {
+    resolution_id: { type: "string" }, resolution_title: { type: "string" }, resolution_text: { type: "string" },
+    agenda_item_id: { type: "string" }, vote_for_permillage: { type: "number" }, vote_against_permillage: { type: "number" },
+    vote_abstention_permillage: { type: "number" }, approved: { type: "boolean" },
+    financial_amount: { type: "number" }, due_date: { type: "string" }, vendor_name: { type: "string" }, requires_followup: { type: "boolean" },
+  }, required: ["resolution_id"] },
+  handler: async ({ resolution_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/resolutions/${resolution_id}`, { body })),
+});
+mcp.tool("delete_assembly_resolution", {
+  description: "[Assembleias] Elimina deliberação.",
+  inputSchema: { type: "object", properties: { resolution_id: { type: "string" } }, required: ["resolution_id"] },
+  handler: async ({ resolution_id }: { resolution_id: string }) => asText(await callAgentApi("DELETE", `/v1/resolutions/${resolution_id}`)),
+});
+mcp.tool("list_assembly_action_items", {
+  description: "[Assembleias] Lista ações de seguimento de uma assembleia.",
+  inputSchema: { type: "object", properties: { assembly_id: { type: "string" } }, required: ["assembly_id"] },
+  handler: async ({ assembly_id }: { assembly_id: string }) => asText(await callAgentApi("GET", `/v1/assemblies/${assembly_id}/action-items`)),
+});
+mcp.tool("create_assembly_action_item", {
+  description: "[Assembleias] Cria nova ação de seguimento (action item).",
+  inputSchema: { type: "object", properties: {
+    assembly_id: { type: "string" }, title: { type: "string" }, building_id: { type: "string" },
+    resolution_id: { type: "string" }, description: { type: "string" }, assigned_to: { type: "string" },
+    due_date: { type: "string" }, priority: { type: "string" }, status: { type: "string" }, source: { type: "string" },
+  }, required: ["assembly_id", "title"] },
+  handler: async ({ assembly_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/assemblies/${assembly_id}/action-items`, { body })),
+});
+mcp.tool("update_assembly_action_item", {
+  description: "[Assembleias] Atualiza ação de seguimento.",
+  inputSchema: { type: "object", properties: {
+    action_item_id: { type: "string" }, title: { type: "string" }, description: { type: "string" },
+    assigned_to: { type: "string" }, due_date: { type: "string" }, priority: { type: "string" }, status: { type: "string" }, resolution_id: { type: "string" },
+  }, required: ["action_item_id"] },
+  handler: async ({ action_item_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/action-items/${action_item_id}`, { body })),
+});
+mcp.tool("delete_assembly_action_item", {
+  description: "[Assembleias] Elimina ação de seguimento.",
+  inputSchema: { type: "object", properties: { action_item_id: { type: "string" } }, required: ["action_item_id"] },
+  handler: async ({ action_item_id }: { action_item_id: string }) => asText(await callAgentApi("DELETE", `/v1/action-items/${action_item_id}`)),
+});
+mcp.tool("list_assembly_attendees", {
+  description: "[Assembleias] Lista presenças/representações da assembleia.",
+  inputSchema: { type: "object", properties: { assembly_id: { type: "string" } }, required: ["assembly_id"] },
+  handler: async ({ assembly_id }: { assembly_id: string }) => asText(await callAgentApi("GET", `/v1/assemblies/${assembly_id}/attendees`)),
+});
+mcp.tool("add_assembly_attendee", {
+  description: "[Assembleias] Regista presença/representação na assembleia.",
+  inputSchema: { type: "object", properties: {
+    assembly_id: { type: "string" }, owner_name: { type: "string" }, fraction_label: { type: "string" },
+    permillage: { type: "number" }, attendance_type: { type: "string" }, representative_name: { type: "string" },
+    validated_manually: { type: "boolean" }, notes: { type: "string" },
+  }, required: ["assembly_id", "owner_name"] },
+  handler: async ({ assembly_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/assemblies/${assembly_id}/attendees`, { body })),
+});
+mcp.tool("delete_assembly_attendee", {
+  description: "[Assembleias] Remove uma presença/representação.",
+  inputSchema: { type: "object", properties: { attendee_id: { type: "string" } }, required: ["attendee_id"] },
+  handler: async ({ attendee_id }: { attendee_id: string }) => asText(await callAgentApi("DELETE", `/v1/attendees/${attendee_id}`)),
+});
+mcp.tool("list_assembly_dispatches", {
+  description: "[Assembleias] Lista envios/notificações associados à assembleia.",
+  inputSchema: { type: "object", properties: { assembly_id: { type: "string" } }, required: ["assembly_id"] },
+  handler: async ({ assembly_id }: { assembly_id: string }) => asText(await callAgentApi("GET", `/v1/assemblies/${assembly_id}/dispatches`)),
+});
+mcp.tool("list_assembly_minutes_versions", {
+  description: "[Assembleias] Lista versões da ata da assembleia (metadados, sem conteúdo grande).",
+  inputSchema: { type: "object", properties: { assembly_id: { type: "string" } }, required: ["assembly_id"] },
+  handler: async ({ assembly_id }: { assembly_id: string }) => asText(await callAgentApi("GET", `/v1/assemblies/${assembly_id}/minutes-versions`)),
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Edifício: fractions, inspections, insurances, inspection categories
+// ═══════════════════════════════════════════════════════════════════════
+mcp.tool("list_building_fractions", {
+  description: "[Edifício] Lista frações de um edifício.",
+  inputSchema: { type: "object", properties: { building_id: { type: "string" } }, required: ["building_id"] },
+  handler: async ({ building_id }: { building_id: string }) => asText(await callAgentApi("GET", `/v1/buildings/${building_id}/fractions`)),
+});
+mcp.tool("create_building_fraction", {
+  description: "[Edifício] Cria nova fração.",
+  inputSchema: { type: "object", properties: { building_id: { type: "string" }, label: { type: "string" }, permillage: { type: "number" }, notes: { type: "string" }, display_order: { type: "number" } }, required: ["building_id", "label"] },
+  handler: async ({ building_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/buildings/${building_id}/fractions`, { body })),
+});
+mcp.tool("update_building_fraction", {
+  description: "[Edifício] Atualiza dados de uma fração.",
+  inputSchema: { type: "object", properties: { fraction_id: { type: "string" }, label: { type: "string" }, permillage: { type: "number" }, notes: { type: "string" }, display_order: { type: "number" } }, required: ["fraction_id"] },
+  handler: async ({ fraction_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/fractions/${fraction_id}`, { body })),
+});
+mcp.tool("delete_building_fraction", {
+  description: "[Edifício] Elimina uma fração.",
+  inputSchema: { type: "object", properties: { fraction_id: { type: "string" } }, required: ["fraction_id"] },
+  handler: async ({ fraction_id }: { fraction_id: string }) => asText(await callAgentApi("DELETE", `/v1/fractions/${fraction_id}`)),
+});
+mcp.tool("list_building_inspections", {
+  description: "[Edifício] Lista inspeções periódicas do edifício (incl. categoria e próxima data).",
+  inputSchema: { type: "object", properties: { building_id: { type: "string" } }, required: ["building_id"] },
+  handler: async ({ building_id }: { building_id: string }) => asText(await callAgentApi("GET", `/v1/buildings/${building_id}/inspections`)),
+});
+mcp.tool("create_building_inspection", {
+  description: "[Edifício] Regista nova inspeção periódica.",
+  inputSchema: { type: "object", properties: {
+    building_id: { type: "string" }, category_id: { type: "string" }, inspection_date: { type: "string" },
+    result: { type: "string" }, next_due_date: { type: "string" },
+    company_name: { type: "string" }, company_contact: { type: "string" }, certificate_url: { type: "string" }, notes: { type: "string" },
+  }, required: ["building_id", "category_id", "inspection_date", "result", "next_due_date"] },
+  handler: async ({ building_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/buildings/${building_id}/inspections`, { body })),
+});
+mcp.tool("update_building_inspection", {
+  description: "[Edifício] Atualiza inspeção.",
+  inputSchema: { type: "object", properties: {
+    inspection_id: { type: "string" }, category_id: { type: "string" }, inspection_date: { type: "string" },
+    result: { type: "string" }, next_due_date: { type: "string" },
+    company_name: { type: "string" }, company_contact: { type: "string" }, certificate_url: { type: "string" }, notes: { type: "string" },
+  }, required: ["inspection_id"] },
+  handler: async ({ inspection_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/inspections/${inspection_id}`, { body })),
+});
+mcp.tool("delete_building_inspection", {
+  description: "[Edifício] Elimina inspeção.",
+  inputSchema: { type: "object", properties: { inspection_id: { type: "string" } }, required: ["inspection_id"] },
+  handler: async ({ inspection_id }: { inspection_id: string }) => asText(await callAgentApi("DELETE", `/v1/inspections/${inspection_id}`)),
+});
+mcp.tool("list_building_insurances", {
+  description: "[Edifício] Lista seguros do edifício (apólices, datas de renovação).",
+  inputSchema: { type: "object", properties: { building_id: { type: "string" } }, required: ["building_id"] },
+  handler: async ({ building_id }: { building_id: string }) => asText(await callAgentApi("GET", `/v1/buildings/${building_id}/insurances`)),
+});
+mcp.tool("create_building_insurance", {
+  description: "[Edifício] Cria novo seguro do edifício.",
+  inputSchema: { type: "object", properties: {
+    building_id: { type: "string" }, coverage_type: { type: "string" }, policy_number: { type: "string" },
+    insurer: { type: "string" }, broker: { type: "string" }, contact: { type: "string" },
+    fractions_included: { type: "string" }, observations: { type: "string" }, renewal_date: { type: "string" }, notes: { type: "string" }, policy_path: { type: "string" },
+  }, required: ["building_id", "coverage_type"] },
+  handler: async ({ building_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/buildings/${building_id}/insurances`, { body })),
+});
+mcp.tool("update_building_insurance", {
+  description: "[Edifício] Atualiza seguro.",
+  inputSchema: { type: "object", properties: {
+    insurance_id: { type: "string" }, coverage_type: { type: "string" }, policy_number: { type: "string" },
+    insurer: { type: "string" }, broker: { type: "string" }, contact: { type: "string" },
+    fractions_included: { type: "string" }, observations: { type: "string" }, renewal_date: { type: "string" }, notes: { type: "string" }, policy_path: { type: "string" },
+  }, required: ["insurance_id"] },
+  handler: async ({ insurance_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/insurances/${insurance_id}`, { body })),
+});
+mcp.tool("delete_building_insurance", {
+  description: "[Edifício] Elimina seguro.",
+  inputSchema: { type: "object", properties: { insurance_id: { type: "string" } }, required: ["insurance_id"] },
+  handler: async ({ insurance_id }: { insurance_id: string }) => asText(await callAgentApi("DELETE", `/v1/insurances/${insurance_id}`)),
+});
+mcp.tool("list_inspection_categories", {
+  description: "[Inspeções] Lista categorias de inspeção configuradas.",
+  inputSchema: { type: "object", properties: { active: { type: "boolean", description: "Só categorias ativas" } } },
+  handler: async ({ active }: { active?: boolean }) => asText(await callAgentApi("GET", "/v1/inspection-categories", { query: { active: active ? "true" : undefined } })),
+});
+mcp.tool("create_inspection_category", {
+  description: "[Inspeções] Cria nova categoria de inspeção.",
+  inputSchema: { type: "object", properties: {
+    key: { type: "string" }, label: { type: "string" }, description: { type: "string" }, validity_years: { type: "number" },
+    alert_days: { type: "array", items: { type: "number" } }, legal_reference: { type: "string" },
+    color: { type: "string" }, icon: { type: "string" }, is_active: { type: "boolean" }, display_order: { type: "number" },
+  }, required: ["key", "label"] },
+  handler: async (body: Record<string, unknown>) => asText(await callAgentApi("POST", "/v1/inspection-categories", { body })),
+});
+mcp.tool("update_inspection_category", {
+  description: "[Inspeções] Atualiza categoria.",
+  inputSchema: { type: "object", properties: {
+    category_id: { type: "string" }, key: { type: "string" }, label: { type: "string" }, description: { type: "string" },
+    validity_years: { type: "number" }, alert_days: { type: "array", items: { type: "number" } }, legal_reference: { type: "string" },
+    color: { type: "string" }, icon: { type: "string" }, is_active: { type: "boolean" }, display_order: { type: "number" },
+  }, required: ["category_id"] },
+  handler: async ({ category_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/inspection-categories/${category_id}`, { body })),
+});
+mcp.tool("delete_inspection_category", {
+  description: "[Inspeções] Elimina categoria.",
+  inputSchema: { type: "object", properties: { category_id: { type: "string" } }, required: ["category_id"] },
+  handler: async ({ category_id }: { category_id: string }) => asText(await callAgentApi("DELETE", `/v1/inspection-categories/${category_id}`)),
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Sinistros — anexos + estado por fração
+// ═══════════════════════════════════════════════════════════════════════
+mcp.tool("list_insurance_claim_attachments", {
+  description: "[Sinistros] Lista anexos de um sinistro.",
+  inputSchema: { type: "object", properties: { claim_id: { type: "string" } }, required: ["claim_id"] },
+  handler: async ({ claim_id }: { claim_id: string }) => asText(await callAgentApi("GET", `/v1/insurance-claims/${claim_id}/attachments`)),
+});
+mcp.tool("delete_insurance_claim_attachment", {
+  description: "[Sinistros] Elimina anexo de sinistro.",
+  inputSchema: { type: "object", properties: { attachment_id: { type: "string" } }, required: ["attachment_id"] },
+  handler: async ({ attachment_id }: { attachment_id: string }) => asText(await callAgentApi("DELETE", `/v1/insurance-claim-attachments/${attachment_id}`)),
+});
+mcp.tool("list_insurance_fraction_status", {
+  description: "[Sinistros] Estado de cobertura por fração (relacionado com seguros).",
+  inputSchema: { type: "object", properties: { insurance_id: { type: "string" }, fraction_id: { type: "string" } } },
+  handler: async (args: any) => asText(await callAgentApi("GET", "/v1/insurance-fraction-status", { query: Object.fromEntries(Object.entries(args).map(([k,v]) => [k, v==null?undefined:String(v)])) })),
+});
+mcp.tool("update_insurance_fraction_status", {
+  description: "[Sinistros] Atualiza estado de uma fração no contexto de um seguro.",
+  inputSchema: { type: "object", properties: { status_id: { type: "string" }, status: { type: "string" }, notes: { type: "string" } }, required: ["status_id"] },
+  handler: async ({ status_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/insurance-fraction-status/${status_id}`, { body })),
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Condóminos / contactos do condomínio (CRUD)
+// ═══════════════════════════════════════════════════════════════════════
+mcp.tool("create_building_contact", {
+  description: "[Contactos] Cria contacto de condomínio para um edifício.",
+  inputSchema: { type: "object", properties: {
+    building_id: { type: "string" }, email: { type: "string" }, first_name: { type: "string" }, last_name: { type: "string" },
+    phone: { type: "string" }, fraction: { type: "string" }, role: { type: "string" }, is_primary_contact: { type: "boolean" },
+  }, required: ["building_id", "email"] },
+  handler: async ({ building_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/buildings/${building_id}/contacts`, { body })),
+});
+mcp.tool("update_building_contact", {
+  description: "[Contactos] Atualiza contacto de condomínio.",
+  inputSchema: { type: "object", properties: {
+    contact_id: { type: "string" }, email: { type: "string" }, first_name: { type: "string" }, last_name: { type: "string" },
+    phone: { type: "string" }, fraction: { type: "string" }, role: { type: "string" }, is_primary_contact: { type: "boolean" },
+  }, required: ["contact_id"] },
+  handler: async ({ contact_id, ...body }: any) => asText(await callAgentApi("PATCH", `/v1/contacts/${contact_id}`, { body })),
+});
+mcp.tool("delete_building_contact", {
+  description: "[Contactos] Elimina contacto.",
+  inputSchema: { type: "object", properties: { contact_id: { type: "string" } }, required: ["contact_id"] },
+  handler: async ({ contact_id }: { contact_id: string }) => asText(await callAgentApi("DELETE", `/v1/contacts/${contact_id}`)),
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Observabilidade
+// ═══════════════════════════════════════════════════════════════════════
+mcp.tool("list_mcp_health_checks", {
+  description: "[Observabilidade] Histórico de health checks do próprio MCP (cron a cada 5 min).",
+  inputSchema: { type: "object", properties: { status: { type: "string", description: "ok|fail" }, tool_name: { type: "string" }, limit: { type: "number" }, offset: { type: "number" } } },
+  handler: async (args: any) => asText(await callAgentApi("GET", "/v1/mcp-health", { query: Object.fromEntries(Object.entries(args).map(([k,v]) => [k, v==null?undefined:String(v)])) })),
+});
+mcp.tool("list_email_unsubscribes", {
+  description: "[Observabilidade] Lista emails descadastrados (unsubscribe).",
+  inputSchema: { type: "object", properties: { limit: { type: "number" }, offset: { type: "number" } } },
+  handler: async (args: any) => asText(await callAgentApi("GET", "/v1/email-unsubscribes", { query: Object.fromEntries(Object.entries(args).map(([k,v]) => [k, v==null?undefined:String(v)])) })),
+});
+mcp.tool("list_app_settings", {
+  description: "[Observabilidade] Lista configurações da aplicação (filtra por categoria).",
+  inputSchema: { type: "object", properties: { category: { type: "string" } } },
+  handler: async ({ category }: { category?: string }) => asText(await callAgentApi("GET", "/v1/app-settings", { query: { category } })),
+});
+
 // ── ChatGPT Apps SDK compatibility: required `search` and `fetch` tools ──
 const APP_BASE_URL = "https://condo-assist.lovable.app";
 
