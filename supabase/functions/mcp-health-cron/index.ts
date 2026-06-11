@@ -34,6 +34,8 @@ const PROBES: Probe[] = [
   { tool: "list_assistances", path: "__DYNAMIC_LIST_ASSISTANCES__", countKey: "items" },
   { tool: "list_follow_ups", path: "/v1/follow-ups?limit=1", countKey: "items" },
   { tool: "list_activity_log", path: "/v1/activity-log?limit=1", countKey: "items" },
+  { tool: "list_email_pendencies", path: "/v1/email-pendencies?limit=1", countKey: "pendencies" },
+  { tool: "list_assemblies", path: "/v1/assemblies?limit=1", countKey: "assemblies" },
 ];
 
 async function resolveAssistancesPath(): Promise<string | null> {
