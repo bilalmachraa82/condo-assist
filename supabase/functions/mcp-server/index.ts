@@ -2114,9 +2114,9 @@ app.use("*", async (c, next) => {
   if (c.req.method === "GET" && pathname.endsWith("/info")) {
     return c.json({
       name: "condo-assist-mcp",
-      version: "1.2.0",
+      version: "1.3.0",
       transport: "streamable-http",
-      tools: 66,
+      tools: 128,
       protocol: "MCP Streamable HTTP",
       compatibility: ["ChatGPT Apps SDK", "ChatGPT Agent Builder", "Claude Desktop", "MCP Inspector"],
       required_tools: { search: true, fetch: true },
