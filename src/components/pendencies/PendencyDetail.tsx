@@ -68,9 +68,12 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   if (!p) return null;
   const sla = pendencySLA(p);
 
-  const onUpload = async (f: File | null) => {
-    if (!f || !p) return;
-    await upload.mutateAsync({ pendencyId: p.id, file: f, kind: "attachment" });
+  const onUpload = async (files: FileList | File[] | null) => {
+    if (!files || !p) return;
+    // LUV-004: permitir vários anexos de uma vez
+    for (const f of Array.from(files)) {
+      await upload.mutateAsync({ pendencyId: p.id, file: f, kind: "attachment" });
+    }
   };
 
   return (
@@ -182,12 +185,18 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
 
           {/* RESUMO */}
           <TabsContent value="resumo" className="space-y-3">
-            {p.subject && (
-              <div className="text-sm">
-                <div className="text-xs text-muted-foreground">Assunto do email</div>
-                <div>{p.subject}</div>
-              </div>
-            )}
+            <div className="text-sm">
+              <div className="text-xs text-muted-foreground">Assunto do email</div>
+              <Input
+                key={p.id}
+                defaultValue={p.subject ?? ""}
+                placeholder="Assunto do email…"
+                onBlur={(e) => {
+                  const v = e.target.value;
+                  if (v !== (p.subject ?? "")) update.mutate({ id: p.id, subject: v || null });
+                }}
+              />
+            </div>
             {p.email_sent_at && (
               <div className="text-sm">
                 <div className="text-xs text-muted-foreground">Email enviado em</div>
@@ -221,14 +230,15 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
             <div
               className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition"
               onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => { e.preventDefault(); onUpload(e.dataTransfer.files?.[0] ?? null); }}
+              onDrop={(e) => { e.preventDefault(); onUpload(e.dataTransfer.files ?? null); }}
             >
               <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground mb-2">Arrasta um ficheiro ou</p>
+              <p className="text-sm text-muted-foreground mb-2">Arrasta ficheiros ou</p>
               <Input
                 type="file"
+                multiple
                 accept=".pdf,.png,.jpg,.jpeg,.eml"
-                onChange={(e) => onUpload(e.target.files?.[0] ?? null)}
+                onChange={(e) => onUpload(e.target.files)}
                 className="max-w-xs mx-auto"
                 disabled={upload.isPending}
               />

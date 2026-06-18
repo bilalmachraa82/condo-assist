@@ -49,6 +49,11 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderWhen, setReminderWhen] = useState<string>("");
   const [reminderNote, setReminderNote] = useState<string>("");
+  // LUV-002: o título começa pré-preenchido com o nome do ficheiro; só consideramos
+  // "tocado" quando o utilizador escreve, para a IA poder substituí-lo.
+  const [titleTouched, setTitleTouched] = useState(false);
+  // LUV-002: garante que a análise IA corre só uma vez por ficheiro.
+  const [analyzedFileKey, setAnalyzedFileKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -65,6 +70,8 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     const dt = new Date(Date.now() + 3 * 86400000); dt.setHours(9, 0, 0, 0);
     setReminderWhen(dt.toISOString().slice(0, 16));
     setReminderNote("");
+    setTitleTouched(false);
+    setAnalyzedFileKey(null);
   }, [open, initialFile, defaults]);
 
   const { data: buildings } = useQuery({
@@ -139,7 +146,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
         if (matchedBuilding && !buildingId) setBuildingId(matchedBuilding.id);
       }
       // Apply only if user fields empty. Prefix title with building code when available.
-      if (data?.title && !title) {
+      if (data?.title && !titleTouched) {
         let newTitle = String(data.title);
         const code = matchedBuilding?.code;
         if (code && !newTitle.toLowerCase().startsWith(code.toLowerCase())) {
@@ -157,13 +164,33 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
         const match = suppliers.find((s: any) => s.name?.toLowerCase().includes(hint));
         if (match) setSupplierId(match.id);
       }
-      toast({ title: "Auto-preenchido com IA", description: "Revê e ajusta antes de criar." });
+      const gotSomething = !!(data?.title || data?.subject || data?.description || data?.building_hint || data?.supplier_hint);
+      if (gotSomething) {
+        toast({ title: "Auto-preenchido com IA", description: "Revê e ajusta antes de criar." });
+      } else {
+        toast({
+          title: "IA não extraiu dados",
+          description: "Não foi possível ler o documento automaticamente. Preenche manualmente.",
+          variant: "destructive",
+        });
+      }
     } catch (e: any) {
       toast({ title: "Erro a analisar PDF", description: e?.message ?? String(e), variant: "destructive" });
     } finally {
       setAiBusy(false);
     }
   };
+
+  // LUV-002: ao anexar um ficheiro novo, corre a análise IA automaticamente
+  // (pedido original: "anexar PDF → IA lê e preenche título/assunto/morada").
+  useEffect(() => {
+    if (!open || !file) return;
+    const key = `${file.name}:${file.size}:${file.lastModified}`;
+    if (key === analyzedFileKey) return;
+    setAnalyzedFileKey(key);
+    void runAutoFill();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, file]);
 
   const submit = async () => {
     if (!buildingId || !title) return;
@@ -247,7 +274,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <Label>Título *</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Pedido orçamento elevador" />
+              <Input value={title} onChange={(e) => { setTitle(e.target.value); setTitleTouched(true); }} placeholder="Ex.: Pedido orçamento elevador" />
             </div>
 
             <div>

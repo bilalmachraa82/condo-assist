@@ -106,6 +106,10 @@ Deno.serve(async (req) => {
     const content: string = json?.choices?.[0]?.message?.content ?? "{}";
     let parsed: any = {};
     try { parsed = JSON.parse(content); } catch { parsed = {}; }
+    if (!parsed || Object.keys(parsed).length === 0) {
+      // LUV-002: ajuda a diagnosticar regressões de leitura de anexos (logs Supabase)
+      console.error("parse-pendency-pdf: conteúdo IA vazio/inválido:", content.slice(0, 500));
+    }
 
     return new Response(JSON.stringify({
       title: String(parsed.title ?? "").slice(0, 200),
