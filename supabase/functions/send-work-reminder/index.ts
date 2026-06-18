@@ -32,7 +32,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from('assistances')
       .select(`
         title, description, priority, scheduled_start_date,
-        buildings(name, address, nif),
+        buildings(name, address, nif, cadastral_code),
         intervention_types(name)
       `)
       .eq('id', followup.assistance_id)
@@ -98,6 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
           priority: assistance.priority,
           buildingName: assistance.buildings?.[0]?.name,
           buildingAddress: assistance.buildings?.[0]?.address,
+          buildingPostalCode: assistance.buildings?.[0]?.cadastral_code,
           buildingNif: assistance.buildings?.[0]?.nif,
           interventionType: assistance.intervention_types?.[0]?.name,
           scheduledDate: assistance.scheduled_start_date
