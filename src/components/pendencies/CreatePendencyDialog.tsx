@@ -352,7 +352,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
 
             <div className="sm:col-span-2">
               <Label>Notas / contexto interno</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detalhes do que foi pedido, o que falta, etc." />
+              <Textarea value={description} onChange={(e) => { touchedRef.current.description = true; setDescription(e.target.value); }} rows={3} placeholder="Detalhes do que foi pedido, o que falta, etc." />
             </div>
           </div>
 
