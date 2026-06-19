@@ -1,52 +1,44 @@
-## Plano R1 — pronto para implementar
+## Plano — auto-disparo do parse-pendency-pdf
 
-PDF de amostra anónimo recebido. Carrega em **Implementar plano** para eu poder escrever os ficheiros (estou bloqueado em plan mode).
+Apenas `src/components/pendencies/CreatePendencyDialog.tsx`. Sem backend, sem migrations.
 
-## Ficheiros a alterar
+### Alterações
 
-1. `supabase/functions/parse-pendency-pdf/index.ts` — reescrita completa
-2. `src/components/pendencies/CreatePendencyDialog.tsx` — `touchedRef` + `fileKey`
-3. `src/components/pendencies/PendencyDetail.tsx` — assunto controlado + upload `Promise.allSettled`
+1. **Derivar `fileKey`** a partir de `file` no corpo do componente:
+   ```ts
+   const fileKey = file ? `${file.name}:${file.size}:${file.lastModified}` : null;
+   ```
 
-Sem migrations (auditoria do schema não revelou falta para o R1).
+2. **Converter `runAutoFill` em `useCallback`** com deps `[file, buildings, suppliers, toast]`. Sem `eslint-disable`. Dentro, manter a verificação `activeFileKeyRef.current !== fileKeyAtStart` para descartar resposta obsoleta.
 
-## Mudanças por ficheiro
+3. **Marcar `autoFillRanForFileKeyRef.current = fileKey` no início** de `runAutoFill` (antes do `await`), em vez de só no fim. Assim duas montagens/efeitos não disparam duas chamadas.
 
-**`parse-pendency-pdf/index.ts`**
-- AuthN: `supabase.auth.getUser(token)` → 401 sem token.
-- AuthZ: `rpc("is_admin")` → 403 não-admin (mesmo padrão de `upload-pendency-file`).
-- Rate limit: 20 chamadas / 10 min por user via `agent_api_rate_limit`.
-- Formato PDF correto: bloco `{ type: "file", file: { filename, file_data: dataUrl } }` (doc Lovable AI Gateway multimodal). Imagens continuam em `image_url`. Outros MIME → 415.
-- Tamanho > 15 MB → 413.
-- Resposta IA vazia (sem `title`/`subject`/`description`/`building_hint`) → 422 com aviso explícito "possível PDF digitalizado sem texto", em vez de 200 silencioso.
-- Logs: só `mime`, `bytes`, `status`, `model`, duração. Nunca corpo da IA nem texto do PDF (RGPD).
+4. **Novo `useEffect`** com deps `[open, file, fileKey, aiBusy, runAutoFill]`:
+   ```ts
+   useEffect(() => {
+     if (!open || !file || !fileKey) return;
+     if (aiBusy) return;
+     if (autoFillRanForFileKeyRef.current === fileKey) return;
+     runAutoFill();
+   }, [open, file, fileKey, aiBusy, runAutoFill]);
+   ```
 
-**`CreatePendencyDialog.tsx`**
-- `touchedRef = { title, subject, description, building, supplier, priority }`. Marcado `true` no primeiro `onChange`.
-- Reset ao mudar `open` ou `file`.
-- `activeFileKeyRef = ${name}:${size}:${lastModified}`. Resposta IA descartada se `fileKey` mudou entretanto.
-- Auto-fill dispara automaticamente uma vez por `fileKey` (botão manual mantido).
-- IA só preenche campos com `touched === false`.
+5. **Reset no `useEffect` de abertura**: já existe `autoFillRanForFileKeyRef.current = null` quando muda `open/initialFile/defaults`. Manter. Quando o utilizador troca de ficheiro via `handleFile`, NÃO mexer no ref — o novo `fileKey` diferente do último processado faz o auto-disparo correr novamente; o guard `activeFileKeyRef` no `runAutoFill` em curso descarta a resposta da chamada antiga.
 
-**`PendencyDetail.tsx`**
-- `titleDraft` e `subjectDraft` controlados, reinicializados em `useEffect([p.id])`.
-- Flush no `onBlur` e ao fechar o `Sheet` se há draft pendente.
-- Upload múltiplo: `Promise.allSettled`, toast com `${ok} anexado(s), ${fail} falha(s)`, `input.value = ""` no `finally`, validação client-side de 15 MB com mensagem PT-PT.
+6. **Botão manual mantido** — chama `runAutoFill()` diretamente; permite re-análise mesmo quando `autoFillRanForFileKeyRef.current === fileKey` (o botão limpa o ref antes de chamar):
+   ```tsx
+   onClick={() => { autoFillRanForFileKeyRef.current = null; runAutoFill(); }}
+   ```
 
-## Validação prevista
+7. **UI**: texto do banner muda para "A analisar automaticamente…" quando `aiBusy`, e botão fica como "Voltar a analisar" (re-run manual).
 
-1. Build (automático na plataforma).
-2. Edge function: `supabase--curl_edge_functions` com o PDF anónimo (admin token automático) → confirmar 200 + JSON preenchido.
-3. Mesma chamada sem token → 401; com token não-admin (se existir) → 403.
-4. Teste visual Playwright headless: anexar PDF no dialog, ver auto-fill; editar título durante análise não é sobrescrito; trocar de ficheiro descarta resposta antiga.
-5. Editar assunto na pendência, fechar/reabrir → persistente.
-6. Upload de 3 ficheiros (1 demasiado grande) → 2 ok + toast de falha parcial.
+### Critérios de aceitação cobertos
 
-## Relatório final que vou entregar
+1. Anexar PDF → `useEffect` dispara `runAutoFill` automaticamente.
+2. Mesmo ficheiro re-selecionado → `fileKey` igual → guard `autoFillRanForFileKeyRef` impede duplicado.
+3. Trocar ficheiro → `activeFileKeyRef` no `runAutoFill` em voo descarta resposta antiga; novo `fileKey` dispara nova análise.
+4. Campos tocados continuam protegidos pelo `touchedRef` já existente.
 
-Conforme acordado:
-> *"Formato PDF corrigido tecnicamente, validação real com PDF do André ainda pendente."*
+### Validação
 
-Para LUV-002 reportarei `sim` apenas se o PDF anónimo passar a chamada real; caso contrário fica `parcial` com a frase acima.
-
-Pendentes fase 2: PDFs Luvimg de contas correntes (`relovimgcontascorrentes`), assistências com código postal, atas =136=, dedupe — fora do âmbito deste R1.
+Playwright headless contra preview local: abrir dialog, anexar PDF de teste, aguardar pelo toast "Auto-preenchido com IA" sem clicar no botão; confirmar 1 só request POST a `parse-pendency-pdf` na rede; trocar ficheiro e confirmar nova chamada.
