@@ -153,15 +153,22 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
       toast({ title: "Anexa um PDF/imagem primeiro", variant: "destructive" });
       return;
     }
+    const fileKeyAtStart = activeFileKeyRef.current;
     setAiBusy(true);
     try {
       const fileBase64 = await fileToBase64(file);
       const { data, error } = await supabase.functions.invoke("parse-pendency-pdf", {
-        body: { fileBase64, mimeType: file.type || "application/pdf" },
+        body: { fileBase64, mimeType: file.type || "application/pdf", fileName: file.name },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      // Try to match building by code/name hint first (so we can use code in title)
+      // Descartar resposta se o ficheiro mudou entretanto.
+      if (activeFileKeyRef.current !== fileKeyAtStart) {
+        return;
+      }
+      autoFillRanForFileKeyRef.current = fileKeyAtStart;
+      const t = touchedRef.current;
+      // Match building first so we can prefixar título com código.
       let matchedBuilding: any = null;
       if (data?.building_hint && buildings) {
         const hint = String(data.building_hint).toLowerCase().trim();
@@ -170,23 +177,21 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
           b.code?.toLowerCase().includes(hint) ||
           b.name?.toLowerCase().includes(hint)
         );
-        if (matchedBuilding && !buildingId) setBuildingId(matchedBuilding.id);
+        if (matchedBuilding && !t.building) setBuildingId(matchedBuilding.id);
       }
-      // Apply only if user fields empty. Prefix title with building code when available.
-      if (data?.title && !title) {
+      if (data?.title && !t.title) {
         let newTitle = String(data.title);
         const code = matchedBuilding?.code;
         if (code && !newTitle.toLowerCase().startsWith(code.toLowerCase())) {
-          // strip any leading code-like prefix from AI title to avoid duplication
           newTitle = newTitle.replace(/^\s*[A-Z0-9]{2,4}\s*[-–]\s*/i, "");
           newTitle = `${code} - ${newTitle}`;
         }
         setTitle(newTitle.slice(0, 200));
       }
-      if (data?.subject && !subject) setSubject(data.subject);
-      if (data?.description && !description) setDescription(data.description);
-      if (data?.priority) setPriority(data.priority);
-      if (data?.supplier_hint && !supplierId && suppliers) {
+      if (data?.subject && !t.subject) setSubject(data.subject);
+      if (data?.description && !t.description) setDescription(data.description);
+      if (data?.priority && !t.priority) setPriority(data.priority);
+      if (data?.supplier_hint && !t.supplier && suppliers) {
         const hint = String(data.supplier_hint).toLowerCase();
         const match = suppliers.find((s: any) => s.name?.toLowerCase().includes(hint));
         if (match) setSupplierId(match.id);
