@@ -325,7 +325,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
 
             <div>
               <Label>Prioridade</Label>
-              <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
+              <Select value={priority} onValueChange={(v: any) => { touchedRef.current.priority = true; setPriority(v); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="normal">Normal</SelectItem>
