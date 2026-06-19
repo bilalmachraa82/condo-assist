@@ -65,12 +65,61 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   const [reminderNote, setReminderNote] = useState("");
   const [previewAttachment, setPreviewAttachment] = useState<PreviewAttachment | null>(null);
 
+  // Drafts controlados para que o estado do textarea/input persista durante refetches.
+  const [titleDraft, setTitleDraft] = useState("");
+  const [subjectDraft, setSubjectDraft] = useState("");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const lastPendencyIdRef = useRef<string | null>(null);
+  const [uploadBusy, setUploadBusy] = useState(false);
+
+  // (Re)inicializar drafts quando muda a pendência selecionada.
+  useEffect(() => {
+    if (!p) return;
+    if (lastPendencyIdRef.current !== p.id) {
+      lastPendencyIdRef.current = p.id;
+      setTitleDraft(p.title ?? "");
+      setSubjectDraft(p.subject ?? "");
+      setDescriptionDraft(p.description ?? "");
+    }
+  }, [p]);
+
+  const flushDrafts = async () => {
+    if (!p) return;
+    const patch: any = {};
+    if (titleDraft.trim() && titleDraft !== (p.title ?? "")) patch.title = titleDraft.trim();
+    if (subjectDraft !== (p.subject ?? "")) patch.subject = subjectDraft || null;
+    if (descriptionDraft !== (p.description ?? "")) patch.description = descriptionDraft;
+    if (Object.keys(patch).length > 0) {
+      try { await update.mutateAsync({ id: p.id, ...patch }); } catch { /* toast no hook */ }
+    }
+  };
+
   if (!p) return null;
   const sla = pendencySLA(p);
 
-  const onUpload = async (f: File | null) => {
-    if (!f || !p) return;
-    await upload.mutateAsync({ pendencyId: p.id, file: f, kind: "attachment" });
+  const onUploadMany = async (files: FileList | File[] | null) => {
+    if (!files || !p) return;
+    const list = Array.from(files);
+    if (list.length === 0) return;
+    setUploadBusy(true);
+    try {
+      const tooBig = list.filter((f) => f.size > 15 * 1024 * 1024);
+      const valid = list.filter((f) => f.size <= 15 * 1024 * 1024);
+      const results = await Promise.allSettled(
+        valid.map((f) => upload.mutateAsync({ pendencyId: p.id, file: f, kind: "attachment" })),
+      );
+      const ok = results.filter((r) => r.status === "fulfilled").length;
+      const fail = results.length - ok + tooBig.length;
+      if (ok > 0 && fail === 0) {
+        toast({ title: `${ok} anexo(s) adicionado(s)` });
+      } else if (ok > 0 && fail > 0) {
+        toast({ title: `${ok} anexado(s), ${fail} falha(s)`, description: tooBig.length ? `${tooBig.length} ficheiro(s) acima de 15 MB.` : undefined, variant: "destructive" });
+      } else if (ok === 0 && fail > 0) {
+        toast({ title: "Falha ao anexar ficheiros", description: tooBig.length ? "Todos acima de 15 MB." : undefined, variant: "destructive" });
+      }
+    } finally {
+      setUploadBusy(false);
+    }
   };
 
   return (
