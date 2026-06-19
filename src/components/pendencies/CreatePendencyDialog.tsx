@@ -124,10 +124,21 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
   });
 
   const handleFile = (f: File | null) => {
-    if (!f) return setFile(null);
-    if (f.size > 15 * 1024 * 1024) return;
+    if (!f) {
+      setFile(null);
+      activeFileKeyRef.current = null;
+      return;
+    }
+    if (f.size > 15 * 1024 * 1024) {
+      toast({ title: "Ficheiro demasiado grande", description: "Máximo 15 MB.", variant: "destructive" });
+      return;
+    }
     setFile(f);
-    if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
+    activeFileKeyRef.current = `${f.name}:${f.size}:${f.lastModified}`;
+    // Auto-preencher só uma vez por ficheiro distinto, e só se o título estiver intacto.
+    if (!touchedRef.current.title && !title) {
+      setTitle(f.name.replace(/\.[^.]+$/, ""));
+    }
   };
 
   const fileToBase64 = (f: File) => new Promise<string>((resolve, reject) => {
