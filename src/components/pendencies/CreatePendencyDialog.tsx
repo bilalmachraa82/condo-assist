@@ -303,7 +303,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
 
             <div>
               <Label>Fornecedor (opcional)</Label>
-              <Select value={supplierId || "none"} onValueChange={(v) => setSupplierId(v === "none" ? "" : v)}>
+              <Select value={supplierId || "none"} onValueChange={(v) => { touchedRef.current.supplier = true; setSupplierId(v === "none" ? "" : v); }}>
                 <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— Nenhum —</SelectItem>
