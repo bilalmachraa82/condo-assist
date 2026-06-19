@@ -270,18 +270,22 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
             <div
               className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition"
               onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => { e.preventDefault(); onUpload(e.dataTransfer.files?.[0] ?? null); }}
+              onDrop={(e) => { e.preventDefault(); onUploadMany(e.dataTransfer.files); }}
             >
               <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground mb-2">Arrasta um ficheiro ou</p>
+              <p className="text-sm text-muted-foreground mb-2">Arrasta ficheiros ou</p>
               <Input
                 type="file"
+                multiple
                 accept=".pdf,.png,.jpg,.jpeg,.eml"
-                onChange={(e) => onUpload(e.target.files?.[0] ?? null)}
+                onChange={(e) => {
+                  const files = e.target.files;
+                  onUploadMany(files).finally(() => { e.target.value = ""; });
+                }}
                 className="max-w-xs mx-auto"
-                disabled={upload.isPending}
+                disabled={uploadBusy || upload.isPending}
               />
-            </div>
+              <p className="text-xs text-muted-foreground mt-1">Máx. 15 MB por ficheiro</p>
             <div className="space-y-2">
               {attachments?.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Sem anexos.</p>}
               {attachments?.map((a) => (
