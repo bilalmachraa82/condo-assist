@@ -418,8 +418,11 @@ function parseWorkbook(wb: XLSX.WorkBook): ArticleDraft[] {
         all.push(...parseListaGeral(rows));
         break;
       case "Administradores":
-        all.push(...parseAdministradores(rows));
+        // Os administradores são geridos no módulo "Administradores por edifício".
+        // Importar este sheet aqui criava artigos duplicados na base de conhecimento.
+        // Mantemos o parser definido em código para histórico, mas deixamos de o usar.
         break;
+
       case "Empresa de Limpeza":
         all.push(...parseEmpresaLimpeza(rows));
         break;
