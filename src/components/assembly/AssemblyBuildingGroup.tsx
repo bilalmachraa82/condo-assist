@@ -14,6 +14,7 @@ import { useUpdateAssemblyItem, type AssemblyItem } from "@/hooks/useAssemblyIte
 interface Props {
   buildingCode: number;
   address: string;
+  name?: string;
   buildingId?: string | null;
   items: AssemblyItem[];
   onViewItem: (item: AssemblyItem) => void;
@@ -152,6 +153,7 @@ function InlineNotes({ item }: { item: AssemblyItem }) {
 export default function AssemblyBuildingGroup({
   buildingCode,
   address,
+  name,
   buildingId,
   items,
   onViewItem,
@@ -177,12 +179,12 @@ export default function AssemblyBuildingGroup({
             <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 ${open ? "rotate-90" : ""}`} />
             <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <span className="font-semibold text-sm">
-                {String(buildingCode).padStart(3, "0")}
-              </span>
-              {address && (
-                <span className="text-sm text-muted-foreground ml-1.5">— {address}</span>
-              )}
+              <div className="truncate text-sm" title={name || address || undefined}>
+                <span className="font-semibold">{String(buildingCode).padStart(3, "0")}</span>
+                {(name || address) && (
+                  <span className="text-muted-foreground ml-1.5">— {name || address}</span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               {pendingCount > 0 && (

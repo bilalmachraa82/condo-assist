@@ -53,13 +53,14 @@ export interface Pendency {
   supplier_id: string | null;
   status: PendencyStatus;
   priority: "normal" | "urgent" | "critical";
+  source_fingerprint: string | null;
   assigned_to: string | null;
   due_date: string | null;
   last_activity_at: string;
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  buildings?: { id: string; code: string; name: string } | null;
+  buildings?: { id: string; code: string; name: string; address: string | null } | null;
   assistances?: { id: string; assistance_number: number; title: string } | null;
   suppliers?: { id: string; name: string; email: string | null } | null;
 }
@@ -74,7 +75,7 @@ export function usePendencies() {
         .from("email_pendencies")
         .select(`
           *,
-          buildings:building_id (id, code, name),
+          buildings:building_id (id, code, name, address),
           assistances:assistance_id (id, assistance_number, title),
           suppliers:supplier_id (id, name, email)
         `)
@@ -94,7 +95,7 @@ export function usePendency(id: string | null) {
         .from("email_pendencies")
         .select(`
           *,
-          buildings:building_id (id, code, name),
+          buildings:building_id (id, code, name, address),
           assistances:assistance_id (id, assistance_number, title),
           suppliers:supplier_id (id, name, email)
         `)

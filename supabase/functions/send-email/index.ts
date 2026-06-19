@@ -14,19 +14,59 @@ const corsHeaders = {
 
 const LOGO_URL = 'https://547ef223-c1fa-45ad-b53c-1ad4427f0d14.sandbox.lovable.dev/lovable-uploads/9e67bd21-c565-405a-918d-e9aac10336e8.png';
 
+interface AssistanceEmailDetails {
+  title?: string;
+  priority?: string;
+  buildingName?: string;
+  buildingNif?: string | null;
+  buildingAddress?: string | null;
+  buildingPostalCode?: string | null;
+  interventionType?: string;
+  description?: string | null;
+}
+
+interface EmailTemplateData {
+  supplierName?: string;
+  magicCode?: string;
+  assistanceDetails?: AssistanceEmailDetails | null;
+  portalUrl?: string;
+  workDate?: string;
+  expectedDate?: string;
+  daysOverdue?: number | string;
+  isOverdue?: boolean;
+}
+
 interface EmailRequest {
-  to: string;
+  to: string | string[];
   subject: string;
   html?: string;
   text?: string;
   from?: string;
   template?: string;
-  data?: any;
+  data?: EmailTemplateData;
   bcc?: string | string[];
 }
 
+interface EmailPayload {
+  from: string;
+  to: string[];
+  subject: string;
+  reply_to: string;
+  headers: Record<string, string>;
+  bcc?: string[];
+  html?: string;
+  text?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string;
+    cid: string;
+    contentType: string;
+    contentDisposition: string;
+  }>;
+}
+
 // Enhanced email template for maximum Outlook compatibility
-const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magic_code') => {
+const createOutlookCompatibleTemplate = (data: EmailTemplateData, templateType: string = 'magic_code') => {
   const { 
     supplierName = "Fornecedor", 
     magicCode = "", 
@@ -50,7 +90,7 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
     }
   };
 
-  const getEmailTitle = (templateType: string, assistanceDetails: any) => {
+  const getEmailTitle = (templateType: string, assistanceDetails: AssistanceEmailDetails | null) => {
     switch (templateType) {
       case 'quotation_reminder':
         return '💰 Lembrete de Orçamento';
@@ -65,7 +105,7 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
     }
   };
 
-  const getEmailMessage = (templateType: string, data: any) => {
+  const getEmailMessage = (templateType: string, data: EmailTemplateData) => {
     const { assistanceDetails, workDate, expectedDate, daysOverdue, isOverdue } = data;
     
     switch (templateType) {
@@ -187,6 +227,16 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
                           <p style="color: #6b7280; margin: 10px 0 5px 0; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
                             <strong>🏢 Edifício:</strong> ${assistanceDetails.buildingName}${assistanceDetails.buildingNif ? ` (NIF: ${assistanceDetails.buildingNif})` : ''}
                           </p>
+                          ${assistanceDetails.buildingAddress ? `
+                          <p style="color: #6b7280; margin: 5px 0; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                            <strong>📍 Morada:</strong> ${assistanceDetails.buildingAddress}
+                          </p>
+                          ` : ''}
+                          ${assistanceDetails.buildingPostalCode ? `
+                          <p style="color: #6b7280; margin: 5px 0; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                            <strong>📮 Código Postal:</strong> ${assistanceDetails.buildingPostalCode}
+                          </p>
+                          ` : ''}
                           <p style="color: #6b7280; margin: 5px 0; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
                             <strong>🔧 Tipo:</strong> ${assistanceDetails.interventionType}
                           </p>
@@ -308,7 +358,7 @@ const createOutlookCompatibleTemplate = (data: any, templateType: string = 'magi
 };
 
 // Plain text version for better deliverability
-const createPlainTextVersion = (data: any, templateType: string = 'magic_code') => {
+const createPlainTextVersion = (data: EmailTemplateData, templateType: string = 'magic_code') => {
   const { 
     supplierName = "Fornecedor", 
     magicCode = "", 
@@ -342,6 +392,12 @@ const createPlainTextVersion = (data: any, templateType: string = 'magic_code') 
     text += `📋 ${assistanceDetails.title}\n`;
     text += `🚨 Prioridade: ${assistanceDetails.priority === 'critical' ? 'CRÍTICO' : assistanceDetails.priority === 'urgent' ? 'URGENTE' : 'NORMAL'}\n`;
     text += `🏢 Edifício: ${assistanceDetails.buildingName}${assistanceDetails.buildingNif ? ` (NIF: ${assistanceDetails.buildingNif})` : ''}\n`;
+    if (assistanceDetails.buildingAddress) {
+      text += `📍 Morada: ${assistanceDetails.buildingAddress}\n`;
+    }
+    if (assistanceDetails.buildingPostalCode) {
+      text += `📮 Código Postal: ${assistanceDetails.buildingPostalCode}\n`;
+    }
     text += `🔧 Tipo: ${assistanceDetails.interventionType}\n`;
     if (assistanceDetails.description) {
       text += `📝 Descrição: ${assistanceDetails.description}\n`;
@@ -539,7 +595,7 @@ const handler = async (req: Request): Promise<Response> => {
       headers['List-Unsubscribe'] = '<mailto:geral@luvimg.com?subject=unsubscribe>';
     }
 
-    const emailPayload: any = {
+    const emailPayload: EmailPayload = {
       from: from || "Luvimg - Administração de Condomínios <geral@luvimg.com>",
       to: Array.isArray(to) ? to : [to],
       subject: subject,
@@ -608,21 +664,23 @@ const handler = async (req: Request): Promise<Response> => {
         ...corsHeaders,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in send-email function:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
     
     // Enhanced error logging
     const errorDetails = {
-      message: error.message,
+      message: errorMessage,
       timestamp: new Date().toISOString(),
-      stack: error.stack
+      stack: errorStack
     };
     
     console.error("Detailed error:", errorDetails);
     
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: errorMessage,
         details: errorDetails
       }),
       {

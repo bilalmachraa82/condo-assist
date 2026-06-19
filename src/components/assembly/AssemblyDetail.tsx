@@ -81,7 +81,11 @@ export default function AssemblyDetail({ item, open, onOpenChange, onEdit, onDel
               )}
               <div className="flex-1 min-w-0">
                 <DialogTitle className="text-lg leading-tight">
-                  Cond. {item.building_code} — Assunto de Acta
+                  <span className="block truncate" title={item.buildings?.name ?? undefined}>
+                    Cond. {item.building_code}
+                    {item.buildings?.name ? ` · ${item.buildings.name}` : ""}
+                  </span>
+                  <span className="text-sm font-normal text-muted-foreground">Assunto de Acta</span>
                 </DialogTitle>
                 <div className="flex items-center gap-2 mt-1">
                   {cat && <Badge className={`${cat.bgClass} ${cat.textClass} border-0`}>{cat.label}</Badge>}

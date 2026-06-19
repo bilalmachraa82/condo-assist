@@ -143,7 +143,7 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
               <SheetDescription className="flex items-center gap-2 flex-wrap mt-1">
                 {p.buildings && (
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <Building2 className="h-3 w-3" />{p.buildings.code} - {p.buildings.name}
+                    <Building2 className="h-3 w-3" />{p.buildings.address || p.buildings.name || "Sem morada"}
                   </span>
                 )}
                 {p.assistances && (

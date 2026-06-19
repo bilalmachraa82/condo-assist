@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,17 +11,13 @@ import { Label } from "@/components/ui/label"
 import { 
   Plus, 
   Search, 
-  Filter, 
   Wrench,
   Clock,
   CheckCircle,
   XCircle,
-  AlertTriangle,
-  Calendar,
   Building2,
   User,
   FileText,
-  Euro,
   Trash2,
   RefreshCw,
   ArrowUpDown,
@@ -43,7 +39,6 @@ import { PDFExportButton } from "@/components/assistance/PDFExportButton"
 import { AssistanceListPDFTemplate } from "@/components/assistance/AssistanceListPDFTemplate"
 import { AssistanceFiltersComponent, type AssistanceFilters } from "@/components/assistance/AssistanceFilters"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { useToast } from "@/hooks/use-toast"
 import { SwipeableCard } from "@/components/mobile/SwipeableCard"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useQueryClient } from "@tanstack/react-query"
@@ -148,7 +143,6 @@ function QuickQuotationAction({ assistance }: { assistance: Assistance }) {
 // Delete assistance component
 function DeleteAssistanceAction({ assistance, onDeleted }: { assistance: Assistance; onDeleted?: () => void }) {
   const deleteAssistance = useDeleteAssistance()
-  const { toast } = useToast()
 
   const handleDelete = () => {
     deleteAssistance.mutate(assistance.id, {
@@ -213,6 +207,17 @@ export default function Assistencias() {
   const queryClient = useQueryClient();
   const { data: remindersMap } = useAssistanceReminders();
 
+  const dashboardStats = useMemo(() => {
+    const total = assistances?.length ?? stats?.total ?? 0;
+    const closed = assistances?.filter((a) => ["completed", "cancelled"].includes(a.status)).length
+      ?? ((stats?.completed ?? 0) + (stats?.cancelled ?? 0));
+    return {
+      total,
+      open: Math.max(0, total - closed),
+      closed,
+    };
+  }, [assistances, stats]);
+
   // Count active elevator assistances
   const elevatorCount = useQuery({
     queryKey: ["elevator-count"],
@@ -273,6 +278,8 @@ export default function Assistencias() {
       assistance.description?.toLowerCase().includes(cleanedSearchTerm) ||
       // Nome do edifício
       assistance.buildings?.name?.toLowerCase().includes(cleanedSearchTerm) ||
+      // Morada do edifício
+      assistance.buildings?.address?.toLowerCase().includes(cleanedSearchTerm) ||
       // Código do edifício
       assistance.buildings?.code?.toLowerCase().includes(cleanedSearchTerm) ||
       // Nome do fornecedor
@@ -414,10 +421,9 @@ export default function Assistencias() {
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statsLoading ? (
           <>
-            <Skeleton className="h-20" />
             <Skeleton className="h-20" />
             <Skeleton className="h-20" />
             <Skeleton className="h-20" />
@@ -428,32 +434,10 @@ export default function Assistencias() {
             <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
-                  <Wrench className="h-5 w-5 text-primary" />
+                  <Clock className="h-5 w-5 text-primary" />
                   <div>
-                    <p className="text-2xl font-bold text-primary">{stats?.total || 0}</p>
-                    <p className="text-xs text-muted-foreground">Total</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-warning/10 to-warning/5">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-warning" />
-                  <div>
-                    <p className="text-2xl font-bold text-warning">{stats?.pending || 0}</p>
-                    <p className="text-xs text-muted-foreground">Pendentes</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-accent/10 to-accent/5">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-accent" />
-                  <div>
-                    <p className="text-2xl font-bold text-accent">{stats?.in_progress || 0}</p>
-                    <p className="text-xs text-muted-foreground">Em Progresso</p>
+                    <p className="text-2xl font-bold text-primary">{dashboardStats.open}</p>
+                    <p className="text-xs text-muted-foreground">Abertas</p>
                   </div>
                 </div>
               </CardContent>
@@ -463,8 +447,19 @@ export default function Assistencias() {
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-success" />
                   <div>
-                    <p className="text-2xl font-bold text-success">{stats?.completed || 0}</p>
-                    <p className="text-xs text-muted-foreground">Concluídas</p>
+                    <p className="text-2xl font-bold text-success">{dashboardStats.closed}</p>
+                    <p className="text-xs text-muted-foreground">Fechadas</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-accent/10 to-accent/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-5 w-5 text-accent" />
+                  <div>
+                    <p className="text-2xl font-bold text-accent">{dashboardStats.total}</p>
+                    <p className="text-xs text-muted-foreground">Total</p>
                   </div>
                 </div>
               </CardContent>
@@ -475,10 +470,10 @@ export default function Assistencias() {
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
-                  <ArrowUpDown className={`h-5 w-5 text-warning ${elevatorOnly ? 'animate-pulse' : ''}`} />
+                    <ArrowUpDown className={`h-5 w-5 text-warning ${elevatorOnly ? 'animate-pulse' : ''}`} />
                   <div>
                     <p className="text-2xl font-bold text-warning">{elevatorCount.data ?? 0}</p>
-                    <p className="text-xs text-muted-foreground">Elevador</p>
+                    <p className="text-xs text-muted-foreground">Elevadores</p>
                   </div>
                 </div>
               </CardContent>
@@ -505,9 +500,9 @@ export default function Assistencias() {
               setSelectedAssistance(assistance);
             };
 
-            const buildingInfo = assistance.buildings ? 
-              `${assistance.buildings.code ? assistance.buildings.code + ' - ' : ''}${assistance.buildings.name}` : 
-              'Sem edifício';
+            const buildingInfo = assistance.buildings
+              ? (assistance.buildings.address || assistance.buildings.name || 'Sem morada')
+              : 'Sem edifício';
             const assistanceTitle = assistance.title || 'Assistência';
             const interventionType = assistance.intervention_types?.name || 'Sem tipo definido';
             const reminder = remindersMap?.get(assistance.id);
@@ -556,7 +551,7 @@ export default function Assistencias() {
                       <div className="flex items-center gap-1">
                         <Building2 className="h-3 w-3" />
                         <span className="truncate max-w-[120px]">
-                          {assistance.buildings?.name || 'Sem edifício'}
+                          {assistance.buildings?.address || assistance.buildings?.name || 'Sem edifício'}
                         </span>
                       </div>
                       {assistance.suppliers && (

@@ -137,7 +137,7 @@ export function useDeleteInsurance() {
 
 export const INSURANCE_STATUS_META: Record<InsuranceStatus, { label: string; color: string; bg: string; border: string }> = {
   ok:          { label: "Em dia",        color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
-  due_soon_30: { label: "Renova em 30d", color: "text-amber-700 dark:text-amber-300",     bg: "bg-amber-500/10",   border: "border-amber-500/30" },
+  due_soon_30: { label: "Vencer 30 dias", color: "text-amber-700 dark:text-amber-300",     bg: "bg-amber-500/10",   border: "border-amber-500/30" },
   overdue:     { label: "Vencido",       color: "text-red-700 dark:text-red-300",         bg: "bg-red-500/10",     border: "border-red-500/40" },
   missing:     { label: "Sem registo",   color: "text-slate-600 dark:text-slate-300",     bg: "bg-slate-500/10",   border: "border-slate-500/30" },
 };

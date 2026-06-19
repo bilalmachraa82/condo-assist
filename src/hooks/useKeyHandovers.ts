@@ -5,10 +5,13 @@ import { useToast } from "@/hooks/use-toast";
 export interface KeyHandover {
   id: string;
   building_id: string;
+  company_name: string | null;
   picked_up_by_name: string;
   picked_up_by_phone: string | null;
+  picked_up_collaborator: string | null;
   picked_up_at: string;
   returned_by_name: string | null;
+  returned_collaborator: string | null;
   returned_at: string | null;
   purpose: string | null;
   notes: string | null;
@@ -17,7 +20,7 @@ export interface KeyHandover {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  buildings?: { id: string; code: string; name: string } | null;
+  buildings?: { id: string; code: string; name: string; address: string | null } | null;
 }
 
 export function useKeyHandovers() {
@@ -26,7 +29,7 @@ export function useKeyHandovers() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("key_handovers")
-        .select("*, buildings:building_id (id, code, name)")
+        .select("*, buildings:building_id (id, code, name, address)")
         .order("picked_up_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as KeyHandover[];

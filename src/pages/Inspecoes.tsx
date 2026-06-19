@@ -5,13 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useInspectionStatus, useInspectionCategories, STATUS_META, InspectionStatus } from "@/hooks/useInspections";
+import { useInspectionStatus, useInspectionCategories, STATUS_META, InspectionStatus, type BuildingInspection, type InspectionStatusRow } from "@/hooks/useInspections";
 import { InspectionForm } from "@/components/inspections/InspectionForm";
 import { ShieldCheck, AlertTriangle, Clock, CalendarX, HelpCircle, Plus, Search, Hourglass, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const STATUS_ORDER: InspectionStatus[] = ["overdue", "due_soon_15", "due_soon_30", "pending", "missing", "ok"];
+const DUE_SOON_FILTER = "due_soon_window";
+type InspectionEdit = Pick<BuildingInspection, "id" | "building_id" | "category_id" | "inspection_date" | "company_name" | "company_contact" | "notes" | "certificate_url"> & {
+  result: BuildingInspection["result"] | string;
+};
 
 export default function Inspecoes() {
   const { data: rows = [], isLoading } = useInspectionStatus();
@@ -19,7 +23,7 @@ export default function Inspecoes() {
   const [openForm, setOpenForm] = useState(false);
   const [presetBuilding, setPresetBuilding] = useState<string | undefined>();
   const [presetCategory, setPresetCategory] = useState<string | undefined>();
-  const [editInspection, setEditInspection] = useState<any>(null);
+  const [editInspection, setEditInspection] = useState<InspectionEdit | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -50,7 +54,11 @@ export default function Inspecoes() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows
-      .filter(r => statusFilter === "all" || r.status === statusFilter)
+      .filter(r => statusFilter === "all" || (
+        statusFilter === DUE_SOON_FILTER
+          ? r.status === "due_soon_15" || r.status === "due_soon_30"
+          : r.status === statusFilter
+      ))
       .filter(r => categoryFilter === "all" || r.category_id === categoryFilter)
       .filter(r => !q || `${r.building_code} ${r.building_name} ${r.category_label} ${r.company_name ?? ""}`.toLowerCase().includes(q))
       .sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
@@ -61,7 +69,7 @@ export default function Inspecoes() {
     setPresetBuilding(buildingId); setPresetCategory(categoryId); setOpenForm(true);
   };
 
-  const openEdit = (r: any) => {
+  const openEdit = (r: InspectionStatusRow) => {
     if (!r.inspection_id) return openFor(r.building_id, r.category_id);
     setEditInspection({
       id: r.inspection_id,
@@ -92,10 +100,10 @@ export default function Inspecoes() {
         <Button onClick={() => openFor()}><Plus className="h-4 w-4 mr-1" /> Registar inspeção</Button>
       </div>
 
-      {/* KPI cards — simplificado: Em dia / A vencer 30d / Vencidos */}
+      {/* KPI cards — simplificado: Em dia / Vencer 30 dias / Vencidos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <KpiCard label="Em dia" value={stats.ok} icon={<ShieldCheck />} status="ok" onClick={() => setStatusFilter("ok")} />
-        <KpiCard label="A vencer 30d" value={stats.due_soon_30 + stats.due_soon_15} icon={<Clock />} status="due_soon_30" onClick={() => setStatusFilter("due_soon_30")} />
+        <KpiCard label="Vencer 30 dias" value={stats.due_soon_30 + stats.due_soon_15} icon={<Clock />} status="due_soon_30" onClick={() => setStatusFilter(DUE_SOON_FILTER)} />
         <KpiCard label="Vencidos" value={stats.overdue} icon={<CalendarX />} status="overdue" onClick={() => setStatusFilter("overdue")} />
       </div>
 
@@ -145,7 +153,7 @@ export default function Inspecoes() {
       </Card>
 
 
-      <Card ref={tableRef as any}>
+      <Card ref={tableRef}>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Compliance por edifício e categoria</CardTitle>
         </CardHeader>
@@ -160,8 +168,9 @@ export default function Inspecoes() {
               <SelectContent>
                 <SelectItem value="all">Todos os estados</SelectItem>
                 <SelectItem value="overdue">Vencidos</SelectItem>
-                <SelectItem value="due_soon_15">A vencer 15d</SelectItem>
-                <SelectItem value="due_soon_30">A vencer 30d</SelectItem>
+                <SelectItem value={DUE_SOON_FILTER}>Vencer 30 dias</SelectItem>
+                <SelectItem value="due_soon_15">Vencer 15 dias</SelectItem>
+                <SelectItem value="due_soon_30">Vencer 30 dias exatos</SelectItem>
                 <SelectItem value="pending">Pendentes</SelectItem>
                 <SelectItem value="missing">Sem registo</SelectItem>
                 <SelectItem value="ok">Em dia</SelectItem>

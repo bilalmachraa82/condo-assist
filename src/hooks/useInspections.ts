@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 
 export type InspectionStatus = "ok" | "due_soon_30" | "due_soon_15" | "overdue" | "missing" | "pending";
@@ -55,11 +56,13 @@ export interface InspectionStatusRow {
   status: InspectionStatus;
 }
 
+type InspectionCategoryJoin = Pick<InspectionCategory, "label" | "key" | "color" | "icon" | "validity_years">;
+
 export function useInspectionCategories() {
   return useQuery({
     queryKey: ["inspection_categories"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("inspection_categories")
         .select("*")
         .eq("is_active", true)
@@ -74,7 +77,7 @@ export function useInspectionStatus() {
   return useQuery({
     queryKey: ["inspection_status"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("building_inspection_status")
         .select("*")
         .order("building_code")
@@ -90,13 +93,13 @@ export function useBuildingInspections(buildingId?: string) {
     queryKey: ["building_inspections", buildingId],
     enabled: !!buildingId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("building_inspections")
         .select("*, inspection_categories(label, key, color, icon, validity_years)")
         .eq("building_id", buildingId)
         .order("inspection_date", { ascending: false });
       if (error) throw error;
-      return data as (BuildingInspection & { inspection_categories: any })[];
+      return data as unknown as (BuildingInspection & { inspection_categories: InspectionCategoryJoin | null })[];
     },
   });
 }
@@ -116,9 +119,10 @@ export function useCreateInspection() {
       certificate_url?: string | null;
     }) => {
       const { data: userData } = await supabase.auth.getUser();
-      const { data, error } = await (supabase as any)
+      const payload = { ...input, created_by: userData?.user?.id ?? null } as TablesInsert<"building_inspections">;
+      const { data, error } = await supabase
         .from("building_inspections")
-        .insert({ ...input, created_by: userData?.user?.id ?? null })
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
@@ -147,9 +151,9 @@ export function useUpdateInspection() {
       notes?: string | null;
       certificate_url?: string | null;
     }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("building_inspections")
-        .update(patch)
+        .update(patch as TablesUpdate<"building_inspections">)
         .eq("id", id)
         .select()
         .single();
@@ -169,7 +173,7 @@ export function useDeleteInspection() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("building_inspections").delete().eq("id", id);
+      const { error } = await supabase.from("building_inspections").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -182,8 +186,8 @@ export function useDeleteInspection() {
 
 export const STATUS_META: Record<InspectionStatus, { label: string; color: string; bg: string; border: string }> = {
   ok:          { label: "Em dia",        color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
-  due_soon_30: { label: "Vence em 30d",  color: "text-amber-700 dark:text-amber-300",     bg: "bg-amber-500/10",   border: "border-amber-500/30" },
-  due_soon_15: { label: "Vence em 15d",  color: "text-orange-700 dark:text-orange-300",   bg: "bg-orange-500/10",  border: "border-orange-500/30" },
+  due_soon_30: { label: "Vencer 30 dias", color: "text-amber-700 dark:text-amber-300",     bg: "bg-amber-500/10",   border: "border-amber-500/30" },
+  due_soon_15: { label: "Vencer 15 dias", color: "text-orange-700 dark:text-orange-300",   bg: "bg-orange-500/10",  border: "border-orange-500/30" },
   overdue:     { label: "Vencido",       color: "text-red-700 dark:text-red-300",         bg: "bg-red-500/10",     border: "border-red-500/40" },
   missing:     { label: "Sem registo",   color: "text-slate-600 dark:text-slate-300",     bg: "bg-slate-500/10",   border: "border-slate-500/30" },
   pending:     { label: "Pendente",      color: "text-violet-700 dark:text-violet-300",   bg: "bg-violet-500/10",  border: "border-violet-500/30" },

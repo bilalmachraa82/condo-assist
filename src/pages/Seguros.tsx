@@ -84,7 +84,7 @@ export default function Seguros() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard label="Em dia" value={stats.ok} icon={<ShieldCheck />} status="ok" onClick={() => setStatusFilter("ok")} />
-        <KpiCard label="A renovar 30d" value={stats.due_soon_30} icon={<Clock />} status="due_soon_30" onClick={() => setStatusFilter("due_soon_30")} />
+        <KpiCard label="Vencer 30 dias" value={stats.due_soon_30} icon={<Clock />} status="due_soon_30" onClick={() => setStatusFilter("due_soon_30")} />
         <KpiCard label="Vencidos" value={stats.overdue} icon={<CalendarX />} status="overdue" onClick={() => setStatusFilter("overdue")} />
         <KpiCard label="Sem registo" value={stats.missing} icon={<HelpCircle />} status="missing" onClick={() => setStatusFilter("missing")} />
       </div>
@@ -122,7 +122,7 @@ export default function Seguros() {
               <SelectContent>
                 <SelectItem value="all">Todos os estados</SelectItem>
                 <SelectItem value="overdue">Vencidos</SelectItem>
-                <SelectItem value="due_soon_30">A renovar 30d</SelectItem>
+                <SelectItem value="due_soon_30">Vencer 30 dias</SelectItem>
                 <SelectItem value="missing">Sem registo</SelectItem>
                 <SelectItem value="ok">Em dia</SelectItem>
               </SelectContent>

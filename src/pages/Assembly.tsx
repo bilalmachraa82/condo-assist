@@ -52,10 +52,10 @@ export default function Assembly() {
 
   // Group items by building_code
   const grouped = useMemo(() => {
-    const map = new Map<number, { address: string; building_id: string | null; items: AssemblyItem[] }>();
+    const map = new Map<number, { address: string; name: string; building_id: string | null; items: AssemblyItem[] }>();
     for (const item of displayedItems) {
       if (!map.has(item.building_code)) {
-        map.set(item.building_code, { address: item.building_address || "", building_id: item.building_id, items: [] });
+        map.set(item.building_code, { address: item.building_address || "", name: item.buildings?.name || "", building_id: item.building_id, items: [] });
       }
       map.get(item.building_code)!.items.push(item);
     }
@@ -148,6 +148,7 @@ export default function Assembly() {
                 key={code}
                 buildingCode={code}
                 address={group.address}
+                name={group.name}
                 buildingId={group.building_id}
                 items={group.items}
                 onViewItem={setViewItem}

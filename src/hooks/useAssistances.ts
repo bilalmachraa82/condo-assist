@@ -54,7 +54,9 @@ export const useAssistanceStats = () => {
       };
 
       statusData?.forEach((item) => {
-        counts[item.status as keyof typeof counts]++;
+        if (item.status in counts) {
+          counts[item.status as keyof typeof counts]++;
+        }
       });
 
       return {

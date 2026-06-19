@@ -17,12 +17,16 @@ import { useKeyHandovers, useCreateKeyHandover, useUpdateKeyHandover, useDeleteK
 const emptyForm = {
   building_id: "",
   picked_up_by_name: "",
-  picked_up_by_phone: "",
-  picked_up_collaborator: "",
   company_name: "",
-  purpose: "",
   notes: "",
 };
+
+const escapeHtml = (value: string | null | undefined) =>
+  (value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 
 export default function Keys() {
   const { data: handovers = [], isLoading } = useKeyHandovers();
@@ -38,17 +42,31 @@ export default function Keys() {
   const [returnRow, setReturnRow] = useState<KeyHandover | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [returnedBy, setReturnedBy] = useState("");
-  const [returnedCollaborator, setReturnedCollaborator] = useState("");
 
-  const filtered = useMemo(() => handovers.filter((h: any) => {
+  const buildingLabel = (h: KeyHandover) =>
+    h.buildings ? (h.buildings.address || h.buildings.name || "—") : "—";
+
+  const filtered = useMemo(() => handovers.filter((h) => {
     if (statusFilter === "open" && h.returned_at) return false;
     if (statusFilter === "returned" && !h.returned_at) return false;
     if (search) {
       const s = search.toLowerCase();
-      const hay = [h.picked_up_by_name, h.returned_by_name, h.purpose, h.buildings?.code, h.buildings?.name, h.company_name, h.picked_up_collaborator, h.returned_collaborator].filter(Boolean).join(" ").toLowerCase();
+      const hay = [
+        h.picked_up_by_name,
+        h.returned_by_name,
+        h.notes,
+        h.buildings?.code,
+        h.buildings?.name,
+        h.buildings?.address,
+        h.company_name,
+      ].filter(Boolean).join(" ").toLowerCase();
       if (!hay.includes(s)) return false;
     }
     return true;
+  }).sort((a, b) => {
+    const cmp = (a.buildings?.code ?? "zzz").localeCompare(b.buildings?.code ?? "zzz", "pt", { numeric: true });
+    if (cmp !== 0) return cmp;
+    return new Date(b.picked_up_at).getTime() - new Date(a.picked_up_at).getTime();
   }), [handovers, search, statusFilter]);
 
   const stats = useMemo(() => ({
@@ -62,24 +80,18 @@ export default function Keys() {
     setForm({
       building_id: h.building_id,
       picked_up_by_name: h.picked_up_by_name ?? "",
-      picked_up_by_phone: h.picked_up_by_phone ?? "",
-      picked_up_collaborator: (h as any).picked_up_collaborator ?? "",
-      company_name: (h as any).company_name ?? "",
-      purpose: h.purpose ?? "",
-      notes: h.notes ?? "",
+      company_name: h.company_name ?? "",
+      notes: h.notes ?? h.purpose ?? "",
     });
     setOpen(true);
   };
 
   const onSave = async () => {
     if (!form.building_id || !form.picked_up_by_name.trim()) return;
-    const payload: any = {
+    const payload: Partial<KeyHandover> & { building_id: string; picked_up_by_name: string } = {
       building_id: form.building_id,
       picked_up_by_name: form.picked_up_by_name.trim(),
-      picked_up_by_phone: form.picked_up_by_phone || null,
-      picked_up_collaborator: form.picked_up_collaborator || null,
       company_name: form.company_name || null,
-      purpose: form.purpose || null,
       notes: form.notes || null,
     };
     if (editing) {
@@ -99,21 +111,23 @@ export default function Keys() {
       id: returnRow.id,
       returned_by_name: returnedBy.trim(),
       returned_at: new Date().toISOString(),
-      ...(returnedCollaborator ? { returned_collaborator: returnedCollaborator } as any : {}),
-    } as any);
-    setReturnRow(null); setReturnedBy(""); setReturnedCollaborator("");
+    });
+    setReturnRow(null); setReturnedBy("");
   };
 
   const printInUse = () => {
-    const inUse = handovers.filter((h) => !h.returned_at);
-    const rows = inUse.map((h: any) => `
+    const inUse = handovers.filter((h) => !h.returned_at).sort((a, b) => {
+      const cmp = (a.buildings?.code ?? "zzz").localeCompare(b.buildings?.code ?? "zzz", "pt", { numeric: true });
+      if (cmp !== 0) return cmp;
+      return new Date(b.picked_up_at).getTime() - new Date(a.picked_up_at).getTime();
+    });
+    const rows = inUse.map((h) => `
       <tr>
-        <td>${h.buildings ? `${h.buildings.code} - ${h.buildings.name}` : "—"}</td>
-        <td>${h.picked_up_by_name ?? ""}${h.picked_up_by_phone ? `<br/><small>${h.picked_up_by_phone}</small>` : ""}</td>
-        <td>${h.company_name ?? "—"}</td>
-        <td>${h.picked_up_collaborator ?? "—"}</td>
+        <td>${escapeHtml(buildingLabel(h))}</td>
+        <td>${escapeHtml(h.picked_up_by_name)}</td>
+        <td>${escapeHtml(h.company_name || "—")}</td>
         <td>${format(new Date(h.picked_up_at), "dd/MM/yyyy HH:mm", { locale: pt })}</td>
-        <td>${h.purpose ?? "—"}</td>
+        <td>${escapeHtml(h.notes || "—")}</td>
       </tr>`).join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Chaves em uso</title>
       <style>
@@ -127,8 +141,8 @@ export default function Keys() {
       <h1>Chaves em uso</h1>
       <div class="sub">Emitido em ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: pt })} · Total: ${inUse.length}</div>
       <table><thead><tr>
-        <th>Edifício</th><th>Quem pegou</th><th>Empresa</th><th>Colaborador Luvimg</th><th>Data levantamento</th><th>Motivo</th>
-      </tr></thead><tbody>${rows || `<tr><td colspan="6" style="text-align:center;color:#666">Sem chaves em uso.</td></tr>`}</tbody></table>
+        <th>Edifício</th><th>Colaborador Luvimg</th><th>Empresa</th><th>Data levantamento</th><th>Notas</th>
+      </tr></thead><tbody>${rows || `<tr><td colspan="5" style="text-align:center;color:#666">Sem chaves em uso.</td></tr>`}</tbody></table>
       <script>window.onload=()=>{window.print();}</script>
       </body></html>`;
     const w = window.open("", "_blank");
@@ -158,14 +172,14 @@ export default function Keys() {
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Procurar pessoa, edifício, motivo, empresa…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input className="pl-9" placeholder="Procurar colaborador, morada, notas, empresa…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="sm:w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="open">Em uso</SelectItem>
-            <SelectItem value="returned">Devolvidas</SelectItem>
+            <SelectItem value="open">Entregues</SelectItem>
+            <SelectItem value="returned">Recebidas</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -176,39 +190,38 @@ export default function Keys() {
             <TableHeader>
               <TableRow>
                 <TableHead>Edifício</TableHead>
-                <TableHead>Quem pegou</TableHead>
+                <TableHead>Colaborador Luvimg</TableHead>
                 <TableHead>Empresa</TableHead>
-                <TableHead>Colab. Luvimg</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Devolução</TableHead>
-                <TableHead>Motivo</TableHead>
+                <TableHead>Notas</TableHead>
                 <TableHead className="w-32 text-right">Acções</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
+              {isLoading && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
               {!isLoading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sem registos.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Sem registos.</TableCell></TableRow>
               )}
-              {filtered.map((h: any) => (
+              {filtered.map((h) => (
                 <TableRow key={h.id}>
-                  <TableCell className="font-medium">{h.buildings ? `${h.buildings.code} - ${h.buildings.name}` : "—"}</TableCell>
-                  <TableCell>{h.picked_up_by_name}{h.picked_up_by_phone ? <div className="text-xs text-muted-foreground">{h.picked_up_by_phone}</div> : null}</TableCell>
+                  <TableCell className="font-medium">{buildingLabel(h)}</TableCell>
+                  <TableCell>{h.picked_up_by_name}</TableCell>
                   <TableCell className="text-sm">{h.company_name ?? "—"}</TableCell>
-                  <TableCell className="text-sm">{h.picked_up_collaborator ?? "—"}</TableCell>
                   <TableCell className="text-sm">{format(new Date(h.picked_up_at), "dd/MM/yy HH:mm", { locale: pt })}</TableCell>
                   <TableCell className="text-sm">
                     {h.returned_at ? (
-                      <div>
+                      <div className="space-y-1">
+                        <Badge variant="outline" className="bg-success/15 text-success border-success/30">Recebida</Badge>
                         <div>{format(new Date(h.returned_at), "dd/MM/yy HH:mm", { locale: pt })}</div>
-                        <div className="text-xs text-muted-foreground">{h.returned_by_name}{h.returned_collaborator ? ` · ${h.returned_collaborator}` : ""}</div>
+                        <div className="text-xs text-muted-foreground">{h.returned_by_name}</div>
                       </div>
-                    ) : <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Em uso</Badge>}
+                    ) : <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Entregue</Badge>}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{h.purpose ?? "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{h.notes ?? "—"}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     {!h.returned_at && (
-                      <Button size="sm" variant="ghost" onClick={() => setReturnRow(h)} title="Marcar devolução">
+                      <Button size="sm" variant="ghost" onClick={() => setReturnRow(h)} title="Marcar receção">
                         <CheckCircle2 className="h-4 w-4" />
                       </Button>
                     )}
@@ -235,19 +248,12 @@ export default function Keys() {
               <Select value={form.building_id} onValueChange={(v) => setForm((f) => ({ ...f, building_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecionar edifício" /></SelectTrigger>
                 <SelectContent>
-                  {buildings.map((b) => <SelectItem key={b.id} value={b.id}>{b.code} - {b.name}</SelectItem>)}
+                  {buildings.map((b) => <SelectItem key={b.id} value={b.id}>{b.code} - {b.address || b.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Quem pegou *</Label><Input value={form.picked_up_by_name} onChange={(e) => setForm((f) => ({ ...f, picked_up_by_name: e.target.value }))} /></div>
-              <div><Label>Telemóvel</Label><Input value={form.picked_up_by_phone} onChange={(e) => setForm((f) => ({ ...f, picked_up_by_phone: e.target.value }))} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Empresa</Label><Input value={form.company_name} onChange={(e) => setForm((f) => ({ ...f, company_name: e.target.value }))} placeholder="Ex: Schindler" /></div>
-              <div><Label>Colaborador Luvimg</Label><Input value={form.picked_up_collaborator} onChange={(e) => setForm((f) => ({ ...f, picked_up_collaborator: e.target.value }))} placeholder="Quem entregou a chave" /></div>
-            </div>
-            <div><Label>Motivo / Para quem</Label><Input value={form.purpose} onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))} placeholder="Ex: Entrega ao fornecedor X" /></div>
+            <div><Label>Colaborador Luvimg *</Label><Input value={form.picked_up_by_name} onChange={(e) => setForm((f) => ({ ...f, picked_up_by_name: e.target.value }))} placeholder="Quem ficou responsável pela chave" /></div>
+            <div><Label>Empresa</Label><Input value={form.company_name} onChange={(e) => setForm((f) => ({ ...f, company_name: e.target.value }))} placeholder="Ex: Schindler" /></div>
             <div><Label>Notas</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
           </div>
           <DialogFooter>
@@ -260,12 +266,11 @@ export default function Keys() {
       </Dialog>
 
       {/* Return */}
-      <Dialog open={!!returnRow} onOpenChange={(o) => !o && setReturnRow(null)}>
+      <Dialog open={!!returnRow} onOpenChange={(o) => { if (!o) { setReturnRow(null); setReturnedBy(""); } }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Marcar como devolvida</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Marcar como recebida</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>Quem devolveu *</Label><Input value={returnedBy} onChange={(e) => setReturnedBy(e.target.value)} placeholder="Nome de quem devolveu (obrigatório)" /></div>
-            <div><Label>Colaborador Luvimg que recebeu</Label><Input value={returnedCollaborator} onChange={(e) => setReturnedCollaborator(e.target.value)} placeholder="Quem recebeu a chave" /></div>
+            <div><Label>Colaborador Luvimg que recebeu *</Label><Input value={returnedBy} onChange={(e) => setReturnedBy(e.target.value)} placeholder="Nome do colaborador" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReturnRow(null)}>Cancelar</Button>

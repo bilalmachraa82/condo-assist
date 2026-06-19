@@ -25,6 +25,7 @@ interface AssistanceData {
     code: string;
     name: string;
     address?: string | null;
+    cadastral_code?: string | null;
     nif?: string | null;
   };
   intervention_types?: {
@@ -717,7 +718,7 @@ const generateRealPDF = async (
     { label: "Edificio:", value: assistance.buildings?.name || "N/A" },
     { label: "NIF do Condominio:", value: assistance.buildings?.nif || "N/A" },
     { label: "Morada Completa:", value: assistance.buildings?.address || "N/A" },
-    { label: "Codigo Postal:", value: extractPostalCode(assistance.buildings?.address) || "N/A" },
+    { label: "Codigo Postal:", value: assistance.buildings?.cadastral_code || extractPostalCode(assistance.buildings?.address) || "N/A" },
     { label: "Tipo de Intervencao:", value: assistance.intervention_types?.name || "N/A" },
     { label: "Fornecedor:", value: assistance.suppliers?.name || "Nao atribuido" },
   ];
@@ -898,7 +899,7 @@ const handler = async (req: Request): Promise<Response> => {
         requires_quotation,
         quotation_deadline,
         assistance_number,
-        buildings (code, name, address, nif),
+        buildings (code, name, address, cadastral_code, nif),
         intervention_types (name, category),
         suppliers:assigned_supplier_id (id, name, email, phone, specialization)
       `)

@@ -86,7 +86,7 @@ export default function EmailPendencies() {
       }
       if (search) {
         const s = search.toLowerCase();
-        const hay = [p.title, p.description, p.subject, p.buildings?.code, p.buildings?.name, p.suppliers?.name]
+        const hay = [p.title, p.description, p.subject, p.buildings?.code, p.buildings?.name, p.buildings?.address, p.suppliers?.name]
           .filter(Boolean).join(" ").toLowerCase();
         if (!hay.includes(s)) return false;
       }
@@ -127,7 +127,14 @@ export default function EmailPendencies() {
           <p className="text-sm text-muted-foreground">Casos pendentes do condomínio com email anexado.</p>
         </div>
         <div className="flex items-center gap-2">
-          <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as any)} size="sm">
+          <ToggleGroup
+            type="single"
+            value={view}
+            onValueChange={(v) => {
+              if (v === "list" || v === "kanban") setView(v);
+            }}
+            size="sm"
+          >
             <ToggleGroupItem value="list" aria-label="Lista"><LayoutList className="h-4 w-4" /></ToggleGroupItem>
             <ToggleGroupItem value="kanban" aria-label="Kanban"><Columns3 className="h-4 w-4" /></ToggleGroupItem>
           </ToggleGroup>
@@ -184,10 +191,10 @@ export default function EmailPendencies() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="min-w-0 flex-1">
-                    {/* Negrito: edifício (código + nome). Cinzento: assunto/título da pendência */}
+                    {/* Negrito: morada do edifício. Cinzento: assunto/título da pendência */}
                     <div className="font-semibold truncate flex items-center gap-1.5">
                       <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                      {p.buildings ? `${p.buildings.code} - ${p.buildings.name}` : "Sem edifício"}
+                      {p.buildings ? (p.buildings.address || p.buildings.name || "Sem morada") : "Sem edifício"}
                     </div>
                     <div className="text-sm text-muted-foreground truncate mt-0.5">
                       {p.subject || p.title}
