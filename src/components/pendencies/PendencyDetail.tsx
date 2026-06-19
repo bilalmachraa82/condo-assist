@@ -124,14 +124,15 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
 
   return (
     <>
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={async (o) => { if (!o) { await flushDrafts(); } onOpenChange(o); }}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <SheetTitle className="text-lg">
                 <Input
-                  defaultValue={p.title}
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
                   className="text-lg font-semibold border-transparent hover:border-input focus:border-input px-2 -mx-2 h-auto py-1"
                   onBlur={(e) => {
                     const v = e.target.value.trim();
