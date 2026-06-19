@@ -286,7 +286,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <Label>Título *</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Pedido orçamento elevador" />
+              <Input value={title} onChange={(e) => { touchedRef.current.title = true; setTitle(e.target.value); }} placeholder="Ex.: Pedido orçamento elevador" />
             </div>
 
             <div>
