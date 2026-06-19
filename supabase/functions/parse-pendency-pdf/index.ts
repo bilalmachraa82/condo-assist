@@ -1,20 +1,39 @@
 // Parse a pendency-related PDF/image with Lovable AI Gateway and return structured fields.
-// Used by the "Auto-fill" button in CreatePendencyDialog.
+// Used by the "Auto-preencher com IA" button in CreatePendencyDialog.
+//
+// Security:
+//  - Requires a valid Supabase auth token (401 otherwise).
+//  - Requires admin role via RPC is_admin (403 otherwise).
+//  - Rate limited per user via public.agent_api_rate_limit (20 calls / 10 min).
+//  - Logs only safe metadata (mime, size, status, model, duration).
+//    Never logs the raw model response, the document text, or excerpts (RGPD).
+//
+// PDF handling per Lovable AI Gateway multimodal docs:
+//  - image/*           → { type: "image_url", image_url: { url: dataUrl } }
+//  - application/pdf   → { type: "file", file: { filename, file_data: dataUrl } }
+//  - other types       → 415
+//  - empty AI response → 422 ("possível PDF digitalizado sem texto") in vez de 200 silencioso.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
+const RATE_LIMIT_WINDOW_MIN = 10;
+const RATE_LIMIT_MAX = 20;
+
 interface ParseRequest {
-  // Either a base64 file (data URL or raw base64) or a storage path in 'pendency-attachments' bucket
   fileBase64?: string;
   storagePath?: string;
   mimeType?: string;
+  fileName?: string;
 }
 
-const SYSTEM = `És um assistente que extrai metadados de emails/documentos PDF de gestão de condomínios em português.
+const SYSTEM = `És um assistente que extrai metadados de emails/documentos PDF de gestão de condomínios em português de Portugal.
 Devolve apenas JSON válido com os campos:
 {
   "title": "título curto (máx 80 chars). Se houver código de prédio (ex: '088', '074', 'GAL'), começa o título com o código seguido de ' - ' e depois o resumo do pedido. Ex: '088 - Pedido orçamento elevador'",
@@ -26,98 +45,164 @@ Devolve apenas JSON válido com os campos:
 }
 Se um campo não for identificável, devolve string vazia. Não inventes dados.`;
 
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const t0 = Date.now();
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!supabaseUrl || !serviceKey) {
+      console.error("[parse-pendency-pdf] missing supabase env");
+      return json({ error: "Servidor mal configurado" }, 500);
+    }
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY não configurada" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("[parse-pendency-pdf] missing LOVABLE_API_KEY");
+      return json({ error: "LOVABLE_API_KEY não configurada" }, 500);
     }
 
+    // --- AuthN ---
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) return json({ error: "Sessão inválida" }, 401);
+    const supabase = createClient(supabaseUrl, serviceKey);
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
+    const user = userData?.user;
+    if (authError || !user) return json({ error: "Não autenticado" }, 401);
+
+    // --- AuthZ (admin only) ---
+    const { data: isAdmin, error: adminErr } = await supabase.rpc("is_admin", { _user_id: user.id });
+    if (adminErr) {
+      console.error("[parse-pendency-pdf] is_admin RPC error");
+      return json({ error: "Falha na verificação de permissões" }, 500);
+    }
+    if (!isAdmin) {
+      console.warn("[parse-pendency-pdf] non-admin attempt");
+      return json({ error: "Sem permissão" }, 403);
+    }
+
+    // --- Rate limit (per user) ---
+    const rlKey = `parse-pendency-pdf:${user.id}`;
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MIN * 60_000).toISOString();
+    try {
+      const { count } = await supabase
+        .from("agent_api_rate_limit")
+        .select("*", { count: "exact", head: true })
+        .eq("api_key_hash", rlKey)
+        .gte("request_at", windowStart);
+      if ((count ?? 0) >= RATE_LIMIT_MAX) {
+        return json({ error: "Demasiados pedidos. Tenta novamente daqui a alguns minutos." }, 429);
+      }
+      await supabase.from("agent_api_rate_limit").insert({ api_key_hash: rlKey });
+    } catch (_e) {
+      // Don't block on rate-limit failures.
+    }
+
+    // --- Input ---
     const body = (await req.json()) as ParseRequest;
     let base64: string | undefined = body.fileBase64;
-    let mimeType = body.mimeType || "application/pdf";
+    let mimeType = (body.mimeType || "application/pdf").toLowerCase().split(";")[0].trim();
+    const fileName = (body.fileName || "documento").slice(0, 120);
 
     if (!base64 && body.storagePath) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const sb = createClient(supabaseUrl, serviceKey);
-      const { data, error } = await sb.storage.from("pendency-attachments").download(body.storagePath);
-      if (error || !data) throw new Error("Não foi possível ler o ficheiro: " + (error?.message || ""));
-      mimeType = data.type || mimeType;
+      const { data, error } = await supabase.storage.from("pendency-attachments").download(body.storagePath);
+      if (error || !data) return json({ error: "Não foi possível ler o ficheiro" }, 400);
+      mimeType = (data.type || mimeType).toLowerCase();
       const buf = new Uint8Array(await data.arrayBuffer());
       let bin = ""; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
       base64 = btoa(bin);
     }
 
-    if (!base64) {
-      return new Response(JSON.stringify({ error: "É necessário fileBase64 ou storagePath" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!base64) return json({ error: "É necessário fileBase64 ou storagePath" }, 400);
+    if (base64.startsWith("data:")) base64 = base64.split(",", 2)[1] ?? base64;
+
+    const approxBytes = Math.floor(base64.length * 0.75);
+    if (approxBytes > MAX_BYTES) {
+      return json({ error: "Ficheiro demasiado grande (máx. 15 MB)" }, 413);
     }
 
-    if (base64.startsWith("data:")) {
-      const [, b64] = base64.split(",", 2);
-      base64 = b64;
+    const isPdf = mimeType === "application/pdf";
+    const isImage = mimeType.startsWith("image/");
+    if (!isPdf && !isImage) {
+      return json({ error: `Tipo de ficheiro não suportado para análise IA: ${mimeType}` }, 415);
     }
 
     const dataUrl = `data:${mimeType};base64,${base64}`;
 
+    const userContent: unknown[] = [
+      { type: "text", text: "Extrai os metadados deste documento e devolve apenas JSON." },
+    ];
+    if (isPdf) {
+      userContent.push({
+        type: "file",
+        file: {
+          filename: fileName.toLowerCase().endsWith(".pdf") ? fileName : `${fileName}.pdf`,
+          file_data: dataUrl,
+        },
+      });
+    } else {
+      userContent.push({ type: "image_url", image_url: { url: dataUrl } });
+    }
+
+    const model = "google/gemini-2.5-flash";
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": apiKey,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model,
         messages: [
           { role: "system", content: SYSTEM },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Extrai os metadados deste documento e devolve apenas JSON." },
-              { type: "image_url", image_url: { url: dataUrl } },
-            ],
-          },
+          { role: "user", content: userContent },
         ],
         response_format: { type: "json_object" },
       }),
     });
 
-    if (resp.status === 429) {
-      return new Response(JSON.stringify({ error: "Limite de chamadas atingido. Tenta novamente em breve." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    if (resp.status === 402) {
-      return new Response(JSON.stringify({ error: "Créditos AI esgotados. Adiciona créditos no workspace." }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const duration = Date.now() - t0;
+    console.log(`[parse-pendency-pdf] mime=${mimeType} bytes=${approxBytes} status=${resp.status} model=${model} dur=${duration}ms`);
+
+    if (resp.status === 429) return json({ error: "Limite de chamadas IA atingido. Tenta novamente em breve." }, 429);
+    if (resp.status === 402) return json({ error: "Créditos AI esgotados. Adiciona créditos no workspace." }, 402);
     if (!resp.ok) {
-      const txt = await resp.text();
-      return new Response(JSON.stringify({ error: "Erro AI Gateway", detail: txt }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      try { await resp.text(); } catch { /* nunca logar conteúdo */ }
+      return json({ error: "Erro no AI Gateway" }, 502);
     }
 
-    const json = await resp.json();
-    const content: string = json?.choices?.[0]?.message?.content ?? "{}";
+    let aiJson: any;
+    try { aiJson = await resp.json(); } catch { aiJson = null; }
+    const content: string = aiJson?.choices?.[0]?.message?.content ?? "{}";
+
     let parsed: any = {};
     try { parsed = JSON.parse(content); } catch { parsed = {}; }
 
-    return new Response(JSON.stringify({
+    const result = {
       title: String(parsed.title ?? "").slice(0, 200),
       subject: String(parsed.subject ?? "").slice(0, 300),
       description: String(parsed.description ?? "").slice(0, 1000),
       building_hint: String(parsed.building_hint ?? ""),
       supplier_hint: String(parsed.supplier_hint ?? ""),
       priority: ["normal", "urgent", "critical"].includes(parsed.priority) ? parsed.priority : "normal",
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    };
+
+    const hasContent = !!(result.title || result.subject || result.description || result.building_hint);
+    if (!hasContent) {
+      return json({
+        error: "Não foi possível extrair conteúdo do documento. Pode ser um PDF digitalizado sem texto.",
+        warning: true,
+      }, 422);
+    }
+
+    return json(result);
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e?.message ?? String(e) }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("[parse-pendency-pdf] unexpected:", e?.message ?? "unknown");
+    return json({ error: "Erro inesperado" }, 500);
   }
 });
