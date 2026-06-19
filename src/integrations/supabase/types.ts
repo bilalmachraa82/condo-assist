@@ -1752,7 +1752,6 @@ export type Database = {
           id: string
           last_activity_at: string
           priority: Database["public"]["Enums"]["assistance_priority"]
-          source_fingerprint: string | null
           status: Database["public"]["Enums"]["pendency_status"]
           subject: string | null
           supplier_id: string | null
@@ -1771,7 +1770,6 @@ export type Database = {
           id?: string
           last_activity_at?: string
           priority?: Database["public"]["Enums"]["assistance_priority"]
-          source_fingerprint?: string | null
           status?: Database["public"]["Enums"]["pendency_status"]
           subject?: string | null
           supplier_id?: string | null
@@ -1790,7 +1788,6 @@ export type Database = {
           id?: string
           last_activity_at?: string
           priority?: Database["public"]["Enums"]["assistance_priority"]
-          source_fingerprint?: string | null
           status?: Database["public"]["Enums"]["pendency_status"]
           subject?: string | null
           supplier_id?: string | null
