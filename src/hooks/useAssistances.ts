@@ -42,30 +42,37 @@ export const useAssistanceStats = () => {
       // Get counts by status
       const { data: statusData, error: statusError } = await supabase
         .from("assistances")
-        .select("status");
+        .select("status, intervention_types(category)");
 
       if (statusError) throw statusError;
-      
+
       const counts = {
         pending: 0,
         in_progress: 0,
         completed: 0,
         cancelled: 0,
       };
+      let elevators = 0;
 
-      statusData?.forEach((item) => {
+      statusData?.forEach((item: any) => {
         if (item.status in counts) {
           counts[item.status as keyof typeof counts]++;
+        }
+        const cat = (item.intervention_types?.category ?? "").toLowerCase();
+        if (cat.includes("elevador") || cat.includes("elevator")) {
+          elevators++;
         }
       });
 
       return {
         total: totalCount || 0,
+        elevators,
         ...counts,
       };
     },
   });
 };
+
 
 export const useCreateAssistance = () => {
   const queryClient = useQueryClient();

@@ -17,8 +17,10 @@ import {
   AlertTriangle,
   TrendingUp,
   Calendar,
-  Building
+  Building,
+  ArrowUpDown
 } from "lucide-react"
+
 import { useAssistanceStats } from "@/hooks/useAssistances"
 import { useBuildingStats } from "@/hooks/useBuildings"
 import { useSupplierStats } from "@/hooks/useSuppliers"
@@ -78,9 +80,10 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {isLoading ? (
           <>
+            <Skeleton className="h-32" />
             <Skeleton className="h-32" />
             <Skeleton className="h-32" />
             <Skeleton className="h-32" />
@@ -89,40 +92,44 @@ export default function Dashboard() {
         ) : (
           <>
             <StatsCard
+              title="Abertas"
+              value={((assistanceStats?.pending ?? 0) + (assistanceStats?.in_progress ?? 0)).toString()}
+              description="Pendentes ou em curso"
+              icon={Clock}
+              variant="warning"
+            />
+            <StatsCard
+              title="Fechadas"
+              value={((assistanceStats?.completed ?? 0) + (assistanceStats?.cancelled ?? 0)).toString()}
+              description="Concluídas ou canceladas"
+              icon={CheckCircle}
+              variant="success"
+            />
+            <StatsCard
               title="Total Assistências"
               value={assistanceStats?.total.toString() || "0"}
               description="Total no sistema"
               icon={Wrench}
-              trend={{ value: 12, label: "vs mês anterior", isPositive: true }}
               variant="primary"
             />
             <StatsCard
-              title="Pendentes"
-              value={assistanceStats?.pending.toString() || "0"}
-              description="Aguardam resposta"
-              icon={Clock}
-              trend={{ value: -8, label: "vs semana anterior", isPositive: false }}
-              variant="warning"
-            />
-            <StatsCard
-              title="Concluídas"
-              value={assistanceStats?.completed.toString() || "0"}
-              description="Finalizadas"
-              icon={CheckCircle}
-              trend={{ value: 15, label: "vs mês anterior", isPositive: true }}
-              variant="success"
+              title="Elevadores"
+              value={assistanceStats?.elevators?.toString() || "0"}
+              description="Assistências a elevadores"
+              icon={ArrowUpDown}
+              variant="primary"
             />
             <StatsCard
               title="Canceladas"
               value={assistanceStats?.cancelled.toString() || "0"}
               description="Canceladas"
               icon={XCircle}
-              trend={{ value: -2, label: "vs mês anterior", isPositive: true }}
               variant="destructive"
             />
           </>
         )}
       </div>
+
 
       {/* Tabs for different views */}
       <Tabs defaultValue="overview" className="space-y-6">

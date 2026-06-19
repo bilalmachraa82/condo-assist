@@ -14,8 +14,10 @@ interface Assistance {
     code: string;
     name: string;
     address?: string | null;
+    cadastral_code?: string | null;
     nif?: string | null;
   };
+
   intervention_types?: {
     name: string;
     category?: string | null;
@@ -64,6 +66,14 @@ const formatDate = (dateString: string): string => {
     minute: "2-digit",
   });
 };
+
+// Extrai código postal pt (NNNN-NNN) da morada se não estiver no campo dedicado.
+const extractPostalCode = (address?: string | null): string | null => {
+  if (!address) return null;
+  const m = address.match(/(\d{4})[\s-]?(\d{3})/);
+  return m ? `${m[1]}-${m[2]}` : null;
+};
+
 
 export const AssistanceEmailPDFTemplate: React.FC<AssistanceEmailPDFTemplateProps> = ({
   assistance,
@@ -192,6 +202,15 @@ export const AssistanceEmailPDFTemplate: React.FC<AssistanceEmailPDFTemplateProp
                 <td style={{ padding: "8px 0" }}>{assistance.buildings.address}</td>
               </tr>
             )}
+            {(assistance.buildings?.cadastral_code || extractPostalCode(assistance.buildings?.address)) && (
+              <tr>
+                <td style={{ padding: "8px 0", color: "#666" }}>Código Postal:</td>
+                <td style={{ padding: "8px 0", fontWeight: "bold" }}>
+                  {assistance.buildings?.cadastral_code || extractPostalCode(assistance.buildings?.address)}
+                </td>
+              </tr>
+            )}
+
           </tbody>
         </table>
       </div>
