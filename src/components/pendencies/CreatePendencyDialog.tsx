@@ -50,6 +50,21 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
   const [reminderWhen, setReminderWhen] = useState<string>("");
   const [reminderNote, setReminderNote] = useState<string>("");
 
+  // Track which fields the user touched manually. The IA only fills fields where touched === false.
+  type TouchKey = "title" | "subject" | "description" | "building" | "supplier" | "priority";
+  const touchedRef = useRef<Record<TouchKey, boolean>>({
+    title: false, subject: false, description: false, building: false, supplier: false, priority: false,
+  });
+  // Used to discard a stale AI response if the user changes the file mid-analysis.
+  const activeFileKeyRef = useRef<string | null>(null);
+  const autoFillRanForFileKeyRef = useRef<string | null>(null);
+
+  const resetTouched = () => {
+    touchedRef.current = {
+      title: false, subject: false, description: false, building: false, supplier: false, priority: false,
+    };
+  };
+
   useEffect(() => {
     if (!open) return;
     setFile(initialFile ?? null);
@@ -65,6 +80,14 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     const dt = new Date(Date.now() + 3 * 86400000); dt.setHours(9, 0, 0, 0);
     setReminderWhen(dt.toISOString().slice(0, 16));
     setReminderNote("");
+    resetTouched();
+    // If caller pre-filled defaults, treat those fields as touched so IA não escreve por cima.
+    if (defaults?.title) touchedRef.current.title = true;
+    if (defaults?.subject) touchedRef.current.subject = true;
+    if (defaults?.building_id) touchedRef.current.building = true;
+    if (defaults?.supplier_id) touchedRef.current.supplier = true;
+    activeFileKeyRef.current = initialFile ? `${initialFile.name}:${initialFile.size}:${initialFile.lastModified}` : null;
+    autoFillRanForFileKeyRef.current = null;
   }, [open, initialFile, defaults]);
 
   const { data: buildings } = useQuery({
