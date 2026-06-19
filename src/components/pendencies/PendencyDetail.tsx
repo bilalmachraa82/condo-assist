@@ -232,12 +232,19 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
 
           {/* RESUMO */}
           <TabsContent value="resumo" className="space-y-3">
-            {p.subject && (
-              <div className="text-sm">
-                <div className="text-xs text-muted-foreground">Assunto do email</div>
-                <div>{p.subject}</div>
-              </div>
-            )}
+            <div>
+              <div className="text-xs text-muted-foreground">Assunto do email</div>
+              <Input
+                value={subjectDraft}
+                onChange={(e) => setSubjectDraft(e.target.value)}
+                onBlur={(e) => {
+                  if (e.target.value !== (p.subject ?? "")) {
+                    update.mutate({ id: p.id, subject: e.target.value || null });
+                  }
+                }}
+                placeholder="Assunto do email (editável)"
+              />
+            </div>
             {p.email_sent_at && (
               <div className="text-sm">
                 <div className="text-xs text-muted-foreground">Email enviado em</div>
@@ -247,7 +254,8 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
             <div>
               <div className="text-xs text-muted-foreground">Descrição / contexto</div>
               <Textarea
-                defaultValue={p.description ?? ""}
+                value={descriptionDraft}
+                onChange={(e) => setDescriptionDraft(e.target.value)}
                 onBlur={(e) => {
                   if (e.target.value !== (p.description ?? "")) {
                     update.mutate({ id: p.id, description: e.target.value });
