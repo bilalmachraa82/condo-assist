@@ -1,46 +1,49 @@
-## Auditoria ponto-a-ponto dos 50 itens do email para o André
+## Plano: auditoria 50 pontos + plano de correções + execução em lote
 
-Objetivo: verificar no código atual (não nas mensagens de commit) se cada um dos 50 pontos está realmente implementado e funcional, e produzir um relatório com prova por ponto. Não vou alterar código nesta fase — só auditar.
+Já validei os pontos críticos (bundle público alinhado, auto-IA nas pendências, código postal no PDF do admin). Falta auditar os restantes 44 pontos do email do Bilal, listar as falhas, e só depois aplicar correções em lote.
 
-### Método
+### Fase A — Auditoria ponto-a-ponto (sem alterar código)
 
-Para cada ponto faço uma das três classificações, com prova ligada a ficheiros/linhas ou a uma query/execução:
+Para cada um dos 50 pontos do email, classifico:
+- **CONFIRMADO** — código existe (cito `ficheiro:linha`)
+- **PARCIAL** — comportamento incompleto (descrevo o que falta)
+- **NÃO CONFIRMADO** — não existe ou está contrário
 
-- **CONFIRMADO** — existe código que implementa o comportamento descrito; cito ficheiro:linha.
-- **PARCIAL** — existe parte do comportamento mas falta algo (ex.: UI ok, sem persistência; validação no cliente sem RLS; etc.).
-- **NÃO CONFIRMADO** — não encontro evidência ou encontro evidência contrária; descrevo o que falta.
+Agrupado por área para minimizar leituras repetidas:
 
-Para fluxos que só se validam em runtime (ex.: ponto 5/40/47/48 — IA a ler PDF e auto-preencher) corro Playwright headless contra o preview local, anexo screenshot e log de rede do `parse-pendency-pdf`. Para o bundle público de `condo-assist.lovable.app` faço `curl` ao HTML/JS publicado e procuro uma string-âncora recente (ex.: "Voltar a analisar", "Vencer 30 dias") para confirmar que o snapshot servido corresponde ao código novo — exatamente o que a nota interna do email pede.
+| Área | Pontos | Ficheiros principais |
+|---|---|---|
+| Pendências email | 3,4,5,34,35,36,38,39,40,41,42,45,47,48 | `EmailPendencies.tsx`, `pendencies/*`, `usePendencies.ts`, `parse-pendency-pdf/` |
+| Atas / Assembly | 6,7,37 | `assembly/*`, `parse-assembly-minutes/` |
+| Compliance | 8–21,28,29,46 | `inspections/*`, `insurances/*`, hooks |
+| Chaves | 23–27,30,31,32,43,44 | `Keys.tsx`, `useKeyHandovers.ts` |
+| Edifícios/Admins/KB | 1,2,22,33 | `Edificios.tsx`, `Dashboard.tsx`, `BuildingAdministratorsManager.tsx`, `useKnowledgeArticles.ts` |
+| Emails assistência (CP) | 49,50 | `AssistanceEmailPDFTemplate.tsx`, `send-assistance-pdf-to-admin/`, `send-email/` |
 
-### Agrupamento da auditoria
+Já pré-validado:
+- ✅ Bundle público `condo-assist.lovable.app` contém âncoras novas ("Voltar a analisar", "Vencer 30 dias", "Análise automática concluída")
+- ✅ Pontos 5/40/47/48 (auto-IA): `useEffect` L216-221 + guard `autoFillRanForFileKeyRef`, descarte por troca de ficheiro, respeita `touchedRef`, backend multimodal correcto
+- ✅ Ponto 49 PDF admin: `send-assistance-pdf-to-admin/index.ts:721` mostra `cadastral_code || extractPostalCode(address)`
+- ⚠️ Ponto 49 PDF de reencaminhamento ao fornecedor: `AssistanceEmailPDFTemplate.tsx` **não** mostra código postal (só `address`). Provável fix necessário.
 
-Faço a auditoria por área para reduzir leituras repetidas; o relatório final volta a ser ponto-a-ponto pela numeração do email.
+### Fase B — Relatório + plano de correções R1.1
 
-1. **Pendências de email** (pontos 3, 4, 5, 34, 35, 36, 38, 39, 40, 41, 42, 45, 47, 48)
-   `src/pages/EmailPendencies.tsx`, `src/components/pendencies/*`, `supabase/functions/parse-pendency-pdf/`, `usePendencies.ts`.
-2. **Atas / Assembly** (pontos 6, 7, 37)
-   `src/components/assembly/*`, `parse-assembly-minutes/`.
-3. **Compliance — elevadores, gás, extintores, seguros** (pontos 8–21, 28, 29, 46)
-   `src/components/inspections/*`, `src/components/insurances/*`, `useInspections.ts`, `useInsurances.ts`, schema das tabelas relevantes.
-4. **Chaves** (pontos 23–27, 30, 31, 32, 43, 44)
-   `src/pages/Keys.tsx`, `useKeyHandovers.ts`, schema.
-5. **Edifícios / administradores / base de conhecimento** (pontos 1, 2, 22, 33)
-   `src/pages/Edificios.tsx`, `Dashboard.tsx`, `BuildingAdministratorsManager.tsx`, `useKnowledgeArticles.ts`.
-6. **Emails de assistência com código postal** (pontos 49, 50)
-   `AssistanceEmailPDFTemplate.tsx`, `send-assistance-pdf-to-admin/`, `send-email/`, templates que montam a morada.
+Entrego no chat:
+1. Tabela `Ponto | Estado | Prova`
+2. Lista de **PARCIAL/NÃO CONFIRMADO** com fix proposto por ponto (1-2 linhas cada)
+3. Agrupamento dos fixes por ficheiro para edição em lote
 
-### Validação runtime adicional
+### Fase C — Execução em lote (após aprovação)
 
-- Playwright headless: abrir "Nova pendência de email", anexar um PDF de teste, observar que `parse-pendency-pdf` é invocado uma única vez sem clique e que os campos ficam preenchidos. Cobre 5/40/47/48.
-- `curl -s https://condo-assist.lovable.app/ | rg <hash do bundle>` e depois fetch do JS para procurar a string-âncora. Reporto: bundle público está alinhado com o commit novo, ou ainda serve versão antiga.
+Aplico todas as correções em paralelo (file edits em batch), depois:
+- `tsc` automático via harness valida build
+- Para fluxos de PDF/IA: Playwright headless contra `localhost:8080` com PDF de teste, screenshots
+- Para PDF de email (ponto 49): re-render local e inspecção visual
+- Reporto: o que mudou, prova de funcionamento, próximos passos para validação manual do André
 
-### Entregável
+### O que NÃO faço nesta plano
 
-Relatório no chat com:
+- Não toco no ponto 7 (IA a ler ata completa e criar deliberações) — confirmado como fase 2 pelo Bilal.
+- Não publico/anuncio nada como "live" até o bundle público refletir o novo commit (verifico via âncora string nova).
 
-1. Tabela: `Ponto | Estado | Prova (ficheiro:linha ou screenshot/log)`.
-2. Lista separada dos pontos PARCIAL/NÃO CONFIRMADO com o que falta para fechar.
-3. Estado do bundle público vs commit (âncora encontrada / não encontrada).
-4. Recomendação por ponto aberto: correção a fazer já (R1) ou mover para fase 2.
-
-Sem alterações de código nesta fase. Se a auditoria encontrar regressões, listo-as no relatório e abrimos um plano R1.1 separado.
+Aprovas para arrancar a Fase A?
