@@ -52,6 +52,7 @@ export interface InspectionStatusRow {
   company_name: string | null;
   company_contact: string | null;
   notes: string | null;
+  certificate_url: string | null;
   days_until_due: number | null;
   status: InspectionStatus;
 }
