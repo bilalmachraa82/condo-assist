@@ -286,6 +286,7 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
                 disabled={uploadBusy || upload.isPending}
               />
               <p className="text-xs text-muted-foreground mt-1">Máx. 15 MB por ficheiro</p>
+            </div>
             <div className="space-y-2">
               {attachments?.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Sem anexos.</p>}
               {attachments?.map((a) => (
