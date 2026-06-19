@@ -337,7 +337,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
 
             <div className="sm:col-span-2">
               <Label>Assunto do email (opcional)</Label>
-              <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Assunto original do email" />
+              <Input value={subject} onChange={(e) => { touchedRef.current.subject = true; setSubject(e.target.value); }} placeholder="Assunto original do email" />
             </div>
 
             <div>
