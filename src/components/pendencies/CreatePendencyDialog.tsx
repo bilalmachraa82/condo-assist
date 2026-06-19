@@ -291,7 +291,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
 
             <div>
               <Label>Edifício *</Label>
-              <Select value={buildingId} onValueChange={setBuildingId}>
+              <Select value={buildingId} onValueChange={(v) => { touchedRef.current.building = true; setBuildingId(v); }}>
                 <SelectTrigger><SelectValue placeholder="Escolher edifício…" /></SelectTrigger>
                 <SelectContent>
                   {buildings?.map((b) => (
