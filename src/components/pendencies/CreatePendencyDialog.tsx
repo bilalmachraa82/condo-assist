@@ -148,12 +148,17 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     r.readAsDataURL(f);
   });
 
-  const runAutoFill = async () => {
+  // Derived from `file` — used as guard key for the auto-fill effect.
+  const fileKey = file ? `${file.name}:${file.size}:${file.lastModified}` : null;
+
+  const runAutoFill = useCallback(async () => {
     if (!file) {
       toast({ title: "Anexa um PDF/imagem primeiro", variant: "destructive" });
       return;
     }
     const fileKeyAtStart = activeFileKeyRef.current;
+    // Marcar imediatamente para evitar dupla chamada do useEffect.
+    autoFillRanForFileKeyRef.current = fileKeyAtStart;
     setAiBusy(true);
     try {
       const fileBase64 = await fileToBase64(file);
@@ -166,7 +171,6 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
       if (activeFileKeyRef.current !== fileKeyAtStart) {
         return;
       }
-      autoFillRanForFileKeyRef.current = fileKeyAtStart;
       const t = touchedRef.current;
       // Match building first so we can prefixar título com código.
       let matchedBuilding: any = null;
@@ -198,11 +202,23 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
       }
       toast({ title: "Auto-preenchido com IA", description: "Revê e ajusta antes de criar." });
     } catch (e: any) {
+      // Permitir nova tentativa manual se falhou.
+      if (autoFillRanForFileKeyRef.current === fileKeyAtStart) {
+        autoFillRanForFileKeyRef.current = null;
+      }
       toast({ title: "Erro a analisar PDF", description: e?.message ?? String(e), variant: "destructive" });
     } finally {
       setAiBusy(false);
     }
-  };
+  }, [file, buildings, suppliers, toast]);
+
+  // Auto-disparo: uma vez por fileKey distinto.
+  useEffect(() => {
+    if (!open || !file || !fileKey) return;
+    if (aiBusy) return;
+    if (autoFillRanForFileKeyRef.current === fileKey) return;
+    runAutoFill();
+  }, [open, file, fileKey, aiBusy, runAutoFill]);
 
   const submit = async () => {
     if (!buildingId || !title) return;
