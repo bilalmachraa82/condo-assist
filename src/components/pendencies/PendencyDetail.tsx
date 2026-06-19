@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -65,24 +65,74 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   const [reminderNote, setReminderNote] = useState("");
   const [previewAttachment, setPreviewAttachment] = useState<PreviewAttachment | null>(null);
 
+  // Drafts controlados para que o estado do textarea/input persista durante refetches.
+  const [titleDraft, setTitleDraft] = useState("");
+  const [subjectDraft, setSubjectDraft] = useState("");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const lastPendencyIdRef = useRef<string | null>(null);
+  const [uploadBusy, setUploadBusy] = useState(false);
+
+  // (Re)inicializar drafts quando muda a pendência selecionada.
+  useEffect(() => {
+    if (!p) return;
+    if (lastPendencyIdRef.current !== p.id) {
+      lastPendencyIdRef.current = p.id;
+      setTitleDraft(p.title ?? "");
+      setSubjectDraft(p.subject ?? "");
+      setDescriptionDraft(p.description ?? "");
+    }
+  }, [p]);
+
+  const flushDrafts = async () => {
+    if (!p) return;
+    const patch: any = {};
+    if (titleDraft.trim() && titleDraft !== (p.title ?? "")) patch.title = titleDraft.trim();
+    if (subjectDraft !== (p.subject ?? "")) patch.subject = subjectDraft || null;
+    if (descriptionDraft !== (p.description ?? "")) patch.description = descriptionDraft;
+    if (Object.keys(patch).length > 0) {
+      try { await update.mutateAsync({ id: p.id, ...patch }); } catch { /* toast no hook */ }
+    }
+  };
+
   if (!p) return null;
   const sla = pendencySLA(p);
 
-  const onUpload = async (f: File | null) => {
-    if (!f || !p) return;
-    await upload.mutateAsync({ pendencyId: p.id, file: f, kind: "attachment" });
+  const onUploadMany = async (files: FileList | File[] | null) => {
+    if (!files || !p) return;
+    const list = Array.from(files);
+    if (list.length === 0) return;
+    setUploadBusy(true);
+    try {
+      const tooBig = list.filter((f) => f.size > 15 * 1024 * 1024);
+      const valid = list.filter((f) => f.size <= 15 * 1024 * 1024);
+      const results = await Promise.allSettled(
+        valid.map((f) => upload.mutateAsync({ pendencyId: p.id, file: f, kind: "attachment" })),
+      );
+      const ok = results.filter((r) => r.status === "fulfilled").length;
+      const fail = results.length - ok + tooBig.length;
+      if (ok > 0 && fail === 0) {
+        toast({ title: `${ok} anexo(s) adicionado(s)` });
+      } else if (ok > 0 && fail > 0) {
+        toast({ title: `${ok} anexado(s), ${fail} falha(s)`, description: tooBig.length ? `${tooBig.length} ficheiro(s) acima de 15 MB.` : undefined, variant: "destructive" });
+      } else if (ok === 0 && fail > 0) {
+        toast({ title: "Falha ao anexar ficheiros", description: tooBig.length ? "Todos acima de 15 MB." : undefined, variant: "destructive" });
+      }
+    } finally {
+      setUploadBusy(false);
+    }
   };
 
   return (
     <>
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={async (o) => { if (!o) { await flushDrafts(); } onOpenChange(o); }}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <SheetTitle className="text-lg">
                 <Input
-                  defaultValue={p.title}
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
                   className="text-lg font-semibold border-transparent hover:border-input focus:border-input px-2 -mx-2 h-auto py-1"
                   onBlur={(e) => {
                     const v = e.target.value.trim();
@@ -182,12 +232,19 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
 
           {/* RESUMO */}
           <TabsContent value="resumo" className="space-y-3">
-            {p.subject && (
-              <div className="text-sm">
-                <div className="text-xs text-muted-foreground">Assunto do email</div>
-                <div>{p.subject}</div>
-              </div>
-            )}
+            <div>
+              <div className="text-xs text-muted-foreground">Assunto do email</div>
+              <Input
+                value={subjectDraft}
+                onChange={(e) => setSubjectDraft(e.target.value)}
+                onBlur={(e) => {
+                  if (e.target.value !== (p.subject ?? "")) {
+                    update.mutate({ id: p.id, subject: e.target.value || null });
+                  }
+                }}
+                placeholder="Assunto do email (editável)"
+              />
+            </div>
             {p.email_sent_at && (
               <div className="text-sm">
                 <div className="text-xs text-muted-foreground">Email enviado em</div>
@@ -197,7 +254,8 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
             <div>
               <div className="text-xs text-muted-foreground">Descrição / contexto</div>
               <Textarea
-                defaultValue={p.description ?? ""}
+                value={descriptionDraft}
+                onChange={(e) => setDescriptionDraft(e.target.value)}
                 onBlur={(e) => {
                   if (e.target.value !== (p.description ?? "")) {
                     update.mutate({ id: p.id, description: e.target.value });
@@ -221,17 +279,22 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
             <div
               className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/30 transition"
               onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => { e.preventDefault(); onUpload(e.dataTransfer.files?.[0] ?? null); }}
+              onDrop={(e) => { e.preventDefault(); onUploadMany(e.dataTransfer.files); }}
             >
               <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground mb-2">Arrasta um ficheiro ou</p>
+              <p className="text-sm text-muted-foreground mb-2">Arrasta ficheiros ou</p>
               <Input
                 type="file"
+                multiple
                 accept=".pdf,.png,.jpg,.jpeg,.eml"
-                onChange={(e) => onUpload(e.target.files?.[0] ?? null)}
+                onChange={(e) => {
+                  const files = e.target.files;
+                  onUploadMany(files).finally(() => { e.target.value = ""; });
+                }}
                 className="max-w-xs mx-auto"
-                disabled={upload.isPending}
+                disabled={uploadBusy || upload.isPending}
               />
+              <p className="text-xs text-muted-foreground mt-1">Máx. 15 MB por ficheiro</p>
             </div>
             <div className="space-y-2">
               {attachments?.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Sem anexos.</p>}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -50,6 +50,21 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
   const [reminderWhen, setReminderWhen] = useState<string>("");
   const [reminderNote, setReminderNote] = useState<string>("");
 
+  // Track which fields the user touched manually. The IA only fills fields where touched === false.
+  type TouchKey = "title" | "subject" | "description" | "building" | "supplier" | "priority";
+  const touchedRef = useRef<Record<TouchKey, boolean>>({
+    title: false, subject: false, description: false, building: false, supplier: false, priority: false,
+  });
+  // Used to discard a stale AI response if the user changes the file mid-analysis.
+  const activeFileKeyRef = useRef<string | null>(null);
+  const autoFillRanForFileKeyRef = useRef<string | null>(null);
+
+  const resetTouched = () => {
+    touchedRef.current = {
+      title: false, subject: false, description: false, building: false, supplier: false, priority: false,
+    };
+  };
+
   useEffect(() => {
     if (!open) return;
     setFile(initialFile ?? null);
@@ -65,6 +80,14 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     const dt = new Date(Date.now() + 3 * 86400000); dt.setHours(9, 0, 0, 0);
     setReminderWhen(dt.toISOString().slice(0, 16));
     setReminderNote("");
+    resetTouched();
+    // If caller pre-filled defaults, treat those fields as touched so IA não escreve por cima.
+    if (defaults?.title) touchedRef.current.title = true;
+    if (defaults?.subject) touchedRef.current.subject = true;
+    if (defaults?.building_id) touchedRef.current.building = true;
+    if (defaults?.supplier_id) touchedRef.current.supplier = true;
+    activeFileKeyRef.current = initialFile ? `${initialFile.name}:${initialFile.size}:${initialFile.lastModified}` : null;
+    autoFillRanForFileKeyRef.current = null;
   }, [open, initialFile, defaults]);
 
   const { data: buildings } = useQuery({
@@ -101,10 +124,21 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
   });
 
   const handleFile = (f: File | null) => {
-    if (!f) return setFile(null);
-    if (f.size > 15 * 1024 * 1024) return;
+    if (!f) {
+      setFile(null);
+      activeFileKeyRef.current = null;
+      return;
+    }
+    if (f.size > 15 * 1024 * 1024) {
+      toast({ title: "Ficheiro demasiado grande", description: "Máximo 15 MB.", variant: "destructive" });
+      return;
+    }
     setFile(f);
-    if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
+    activeFileKeyRef.current = `${f.name}:${f.size}:${f.lastModified}`;
+    // Auto-preencher só uma vez por ficheiro distinto, e só se o título estiver intacto.
+    if (!touchedRef.current.title && !title) {
+      setTitle(f.name.replace(/\.[^.]+$/, ""));
+    }
   };
 
   const fileToBase64 = (f: File) => new Promise<string>((resolve, reject) => {
@@ -119,15 +153,22 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
       toast({ title: "Anexa um PDF/imagem primeiro", variant: "destructive" });
       return;
     }
+    const fileKeyAtStart = activeFileKeyRef.current;
     setAiBusy(true);
     try {
       const fileBase64 = await fileToBase64(file);
       const { data, error } = await supabase.functions.invoke("parse-pendency-pdf", {
-        body: { fileBase64, mimeType: file.type || "application/pdf" },
+        body: { fileBase64, mimeType: file.type || "application/pdf", fileName: file.name },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      // Try to match building by code/name hint first (so we can use code in title)
+      // Descartar resposta se o ficheiro mudou entretanto.
+      if (activeFileKeyRef.current !== fileKeyAtStart) {
+        return;
+      }
+      autoFillRanForFileKeyRef.current = fileKeyAtStart;
+      const t = touchedRef.current;
+      // Match building first so we can prefixar título com código.
       let matchedBuilding: any = null;
       if (data?.building_hint && buildings) {
         const hint = String(data.building_hint).toLowerCase().trim();
@@ -136,23 +177,21 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
           b.code?.toLowerCase().includes(hint) ||
           b.name?.toLowerCase().includes(hint)
         );
-        if (matchedBuilding && !buildingId) setBuildingId(matchedBuilding.id);
+        if (matchedBuilding && !t.building) setBuildingId(matchedBuilding.id);
       }
-      // Apply only if user fields empty. Prefix title with building code when available.
-      if (data?.title && !title) {
+      if (data?.title && !t.title) {
         let newTitle = String(data.title);
         const code = matchedBuilding?.code;
         if (code && !newTitle.toLowerCase().startsWith(code.toLowerCase())) {
-          // strip any leading code-like prefix from AI title to avoid duplication
           newTitle = newTitle.replace(/^\s*[A-Z0-9]{2,4}\s*[-–]\s*/i, "");
           newTitle = `${code} - ${newTitle}`;
         }
         setTitle(newTitle.slice(0, 200));
       }
-      if (data?.subject && !subject) setSubject(data.subject);
-      if (data?.description && !description) setDescription(data.description);
-      if (data?.priority) setPriority(data.priority);
-      if (data?.supplier_hint && !supplierId && suppliers) {
+      if (data?.subject && !t.subject) setSubject(data.subject);
+      if (data?.description && !t.description) setDescription(data.description);
+      if (data?.priority && !t.priority) setPriority(data.priority);
+      if (data?.supplier_hint && !t.supplier && suppliers) {
         const hint = String(data.supplier_hint).toLowerCase();
         const match = suppliers.find((s: any) => s.name?.toLowerCase().includes(hint));
         if (match) setSupplierId(match.id);
@@ -247,12 +286,12 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <Label>Título *</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Pedido orçamento elevador" />
+              <Input value={title} onChange={(e) => { touchedRef.current.title = true; setTitle(e.target.value); }} placeholder="Ex.: Pedido orçamento elevador" />
             </div>
 
             <div>
               <Label>Edifício *</Label>
-              <Select value={buildingId} onValueChange={setBuildingId}>
+              <Select value={buildingId} onValueChange={(v) => { touchedRef.current.building = true; setBuildingId(v); }}>
                 <SelectTrigger><SelectValue placeholder="Escolher edifício…" /></SelectTrigger>
                 <SelectContent>
                   {buildings?.map((b) => (
@@ -264,7 +303,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
 
             <div>
               <Label>Fornecedor (opcional)</Label>
-              <Select value={supplierId || "none"} onValueChange={(v) => setSupplierId(v === "none" ? "" : v)}>
+              <Select value={supplierId || "none"} onValueChange={(v) => { touchedRef.current.supplier = true; setSupplierId(v === "none" ? "" : v); }}>
                 <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— Nenhum —</SelectItem>
@@ -286,7 +325,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
 
             <div>
               <Label>Prioridade</Label>
-              <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
+              <Select value={priority} onValueChange={(v: any) => { touchedRef.current.priority = true; setPriority(v); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="normal">Normal</SelectItem>
@@ -298,7 +337,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
 
             <div className="sm:col-span-2">
               <Label>Assunto do email (opcional)</Label>
-              <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Assunto original do email" />
+              <Input value={subject} onChange={(e) => { touchedRef.current.subject = true; setSubject(e.target.value); }} placeholder="Assunto original do email" />
             </div>
 
             <div>
@@ -313,7 +352,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
 
             <div className="sm:col-span-2">
               <Label>Notas / contexto interno</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detalhes do que foi pedido, o que falta, etc." />
+              <Textarea value={description} onChange={(e) => { touchedRef.current.description = true; setDescription(e.target.value); }} rows={3} placeholder="Detalhes do que foi pedido, o que falta, etc." />
             </div>
           </div>
 
