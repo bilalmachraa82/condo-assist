@@ -65,6 +65,28 @@ function normalizeCode(raw: string): string {
   return raw.replace(/^Cond\.\s*'?/i, "").trim();
 }
 
+function normalizeHeader(raw: string): string {
+  return raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+function findElevatorQuantityColumn(rows: unknown[][]): number {
+  const headerRows = rows.slice(0, 3);
+  for (const row of headerRows) {
+    for (let i = 1; i < row.length; i++) {
+      const header = normalizeHeader(cellStr(row[i]));
+      if (!header) continue;
+      const mentionsElevator = header.includes("elevador");
+      const mentionsQuantity =
+        header.includes("quant") ||
+        header.includes("qtd") ||
+        header.includes("numero");
+      const mentionsNumberOnly = /\bn[ºo]?\b/.test(header);
+      if (mentionsQuantity || (mentionsElevator && mentionsNumberOnly)) return i;
+    }
+  }
+  return -1;
+}
+
 // ── Sheet parsers ──
 function parseListaGeral(rows: unknown[][]): ArticleDraft[] {
   const articles: ArticleDraft[] = [];
@@ -163,23 +185,28 @@ function parseEmpresaLimpeza(rows: unknown[][]): ArticleDraft[] {
 
 function parseElevadores(rows: unknown[][]): ArticleDraft[] {
   const articles: ArticleDraft[] = [];
+  const quantityColumn = findElevatorQuantityColumn(rows);
   for (let i = 2; i < rows.length; i++) {
     const r = rows[i];
     const code = cellStr(r[0]);
     if (!isCondoCode(code)) continue;
-    const hasData = [1, 2, 3].some((c) => cellStr(r[c]) && cellStr(r[c]) !== "-");
+    const quantity = quantityColumn >= 0 ? cellStr(r[quantityColumn]) : "";
+    const hasQuantity = !!quantity && quantity !== "-";
+    const cellExceptQuantity = (index: number) => index === quantityColumn ? "" : cellStr(r[index]);
+    const hasData = [1, 2, 3].some((c) => cellStr(r[c]) && cellStr(r[c]) !== "-") || hasQuantity;
     if (!hasData) continue;
 
     const lines = ["## Inspeção de Elevadores\n"];
-    if (cellStr(r[1]) && cellStr(r[1]) !== "-") lines.push(`- **Data Inspeção:** ${cellStr(r[1])}`);
-    if (cellStr(r[2]) && cellStr(r[2]) !== "-") lines.push(`- **Situação:** ${cellStr(r[2])}`);
-    if (cellStr(r[3]) && cellStr(r[3]) !== "-") lines.push(`- **Empresa:** ${cellStr(r[3])}`);
-    if (cellStr(r[4]) && cellStr(r[4]) !== "-") lines.push(`- **Telefone:** ${cellStr(r[4])}`);
-    if (cellStr(r[5]) && cellStr(r[5]) !== "-") lines.push(`- **Email:** ${cellStr(r[5])}`);
-    if (cellStr(r[6]) && cellStr(r[6]) !== "-") lines.push(`- **Duração Contrato:** ${cellStr(r[6])}`);
-    if (cellStr(r[7])) lines.push(`- **Início Contrato:** ${cellStr(r[7])}`);
-    if (cellStr(r[8])) lines.push(`- **Tipo Contrato:** ${cellStr(r[8])}`);
-    if (cellStr(r[9])) lines.push(`\n### Observações\n${cellStr(r[9])}`);
+    if (hasQuantity) lines.push(`- **Quantidade de Elevadores:** ${quantity}`);
+    if (cellExceptQuantity(1) && cellExceptQuantity(1) !== "-") lines.push(`- **Data Inspeção:** ${cellExceptQuantity(1)}`);
+    if (cellExceptQuantity(2) && cellExceptQuantity(2) !== "-") lines.push(`- **Situação:** ${cellExceptQuantity(2)}`);
+    if (cellExceptQuantity(3) && cellExceptQuantity(3) !== "-") lines.push(`- **Empresa:** ${cellExceptQuantity(3)}`);
+    if (cellExceptQuantity(4) && cellExceptQuantity(4) !== "-") lines.push(`- **Telefone:** ${cellExceptQuantity(4)}`);
+    if (cellExceptQuantity(5) && cellExceptQuantity(5) !== "-") lines.push(`- **Email:** ${cellExceptQuantity(5)}`);
+    if (cellExceptQuantity(6) && cellExceptQuantity(6) !== "-") lines.push(`- **Duração Contrato:** ${cellExceptQuantity(6)}`);
+    if (cellExceptQuantity(7)) lines.push(`- **Início Contrato:** ${cellExceptQuantity(7)}`);
+    if (cellExceptQuantity(8)) lines.push(`- **Tipo Contrato:** ${cellExceptQuantity(8)}`);
+    if (cellExceptQuantity(9)) lines.push(`\n### Observações\n${cellExceptQuantity(9)}`);
 
     articles.push({
       title: `${normalizeCode(code)} - Elevadores`,

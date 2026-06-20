@@ -121,8 +121,9 @@ export default function Keys() {
       if (cmp !== 0) return cmp;
       return new Date(b.picked_up_at).getTime() - new Date(a.picked_up_at).getTime();
     });
-    const rows = inUse.map((h) => `
+    const rows = inUse.map((h, index) => `
       <tr>
+        <td>${index + 1}</td>
         <td>${escapeHtml(buildingLabel(h))}</td>
         <td>${escapeHtml(h.picked_up_by_name)}</td>
         <td>${escapeHtml(h.company_name || "—")}</td>
@@ -141,8 +142,8 @@ export default function Keys() {
       <h1>Chaves em uso</h1>
       <div class="sub">Emitido em ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: pt })} · Total: ${inUse.length}</div>
       <table><thead><tr>
-        <th>Edifício</th><th>Colaborador Luvimg</th><th>Empresa</th><th>Data levantamento</th><th>Notas</th>
-      </tr></thead><tbody>${rows || `<tr><td colspan="5" style="text-align:center;color:#666">Sem chaves em uso.</td></tr>`}</tbody></table>
+        <th>N.º</th><th>Edifício</th><th>Colaborador Luvimg</th><th>Empresa</th><th>Data levantamento</th><th>Notas</th>
+      </tr></thead><tbody>${rows || `<tr><td colspan="6" style="text-align:center;color:#666">Sem chaves em uso.</td></tr>`}</tbody></table>
       <script>window.onload=()=>{window.print();}</script>
       </body></html>`;
     const w = window.open("", "_blank");
@@ -189,6 +190,7 @@ export default function Keys() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-14">N.º</TableHead>
                 <TableHead>Edifício</TableHead>
                 <TableHead>Colaborador Luvimg</TableHead>
                 <TableHead>Empresa</TableHead>
@@ -199,12 +201,13 @@ export default function Keys() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
+              {isLoading && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>}
               {!isLoading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Sem registos.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sem registos.</TableCell></TableRow>
               )}
-              {filtered.map((h) => (
+              {filtered.map((h, index) => (
                 <TableRow key={h.id}>
+                  <TableCell className="text-sm text-muted-foreground">{index + 1}</TableCell>
                   <TableCell className="font-medium">{buildingLabel(h)}</TableCell>
                   <TableCell>{h.picked_up_by_name}</TableCell>
                   <TableCell className="text-sm">{h.company_name ?? "—"}</TableCell>
@@ -221,7 +224,7 @@ export default function Keys() {
                   <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{h.notes ?? "—"}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     {!h.returned_at && (
-                      <Button size="sm" variant="ghost" onClick={() => setReturnRow(h)} title="Marcar receção">
+                      <Button size="sm" variant="ghost" onClick={() => { setReturnedBy(""); setReturnRow(h); }} title="Marcar receção">
                         <CheckCircle2 className="h-4 w-4" />
                       </Button>
                     )}
@@ -270,7 +273,7 @@ export default function Keys() {
         <DialogContent>
           <DialogHeader><DialogTitle>Marcar como recebida</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>Colaborador Luvimg que recebeu *</Label><Input value={returnedBy} onChange={(e) => setReturnedBy(e.target.value)} placeholder="Nome do colaborador" /></div>
+            <div><Label>Colaborador Luvimg *</Label><Input value={returnedBy} onChange={(e) => setReturnedBy(e.target.value)} placeholder="Nome do colaborador" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReturnRow(null)}>Cancelar</Button>

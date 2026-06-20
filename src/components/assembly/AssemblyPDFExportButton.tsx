@@ -6,6 +6,7 @@ import type { AssemblyItem } from "@/hooks/useAssemblyItems";
 interface BuildingGroup {
   buildingCode: number;
   address: string;
+  name?: string;
   items: AssemblyItem[];
 }
 
@@ -89,7 +90,7 @@ export const AssemblyPDFExportButton = ({
 
     const yearLabel = year ?? new Date().getFullYear();
     const titleSuffix = groups.length === 1
-      ? `Prédio ${String(groups[0].buildingCode).padStart(3, "0")}`
+      ? `Prédio ${String(groups[0].buildingCode).padStart(3, "0")}${groups[0].name ? ` - ${groups[0].name}` : ""}`
       : `${yearLabel}`;
 
     // Build active filter chips mirroring the UI
@@ -140,6 +141,8 @@ export const AssemblyPDFExportButton = ({
     const groupsHtml = groups
       .map((g) => {
         const code = String(g.buildingCode).padStart(3, "0");
+        const buildingName = g.name?.trim();
+        const buildingAddress = g.address?.trim();
         const pending = g.items.filter((i) => i.status === "pending").length;
         const inProgress = g.items.filter((i) => i.status === "in_progress").length;
         const done = g.items.filter(
@@ -176,7 +179,8 @@ export const AssemblyPDFExportButton = ({
             <div class="building-header">
               <div class="building-title">
                 <span class="building-code">${code}</span>
-                <span class="building-address">${escapeHtml(g.address || "")}</span>
+                <span class="building-address">${escapeHtml(buildingName || buildingAddress || "")}</span>
+                ${buildingName && buildingAddress ? `<div class="building-subaddress">${escapeHtml(buildingAddress)}</div>` : ""}
               </div>
               <div class="building-meta">${g.items.length} assunto${g.items.length !== 1 ? "s" : ""}</div>
             </div>
@@ -283,9 +287,10 @@ export const AssemblyPDFExportButton = ({
     display: flex; justify-content: space-between; align-items: center;
     padding: 10px 14px; background: #1e3a8a; color: white;
   }
-  .building-title { font-size: 13px; font-weight: 600; }
+  .building-title { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; }
   .building-code { font-family: ui-monospace, monospace; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; margin-right: 10px; }
   .building-address { font-weight: 400; opacity: 0.95; }
+  .building-subaddress { margin-top: 3px; padding-left: 58px; font-size: 10px; font-weight: 400; opacity: 0.82; }
   .building-meta { font-size: 10px; opacity: 0.9; }
 
   .items-table { width: 100%; border-collapse: collapse; }

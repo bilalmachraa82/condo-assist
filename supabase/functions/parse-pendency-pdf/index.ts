@@ -36,8 +36,8 @@ interface ParseRequest {
 const SYSTEM = `És um assistente que extrai metadados de emails/documentos PDF de gestão de condomínios em português de Portugal.
 Devolve apenas JSON válido com os campos:
 {
-  "title": "título curto (máx 80 chars). Se houver código de prédio (ex: '088', '074', 'GAL'), começa o título com o código seguido de ' - ' e depois o resumo do pedido. Ex: '088 - Pedido orçamento elevador'",
-  "subject": "assunto do email se identificável",
+  "title": "título curto (máx 80 chars), sem código de prédio. Ex: 'Pedido orçamento elevador'",
+  "subject": "assunto do email se identificável. Se houver código de prédio (ex: '088', '074', 'GAL'), começa o assunto com o código seguido de ' - '. Ex: '088 - Pedido orçamento elevador'",
   "description": "resumo do conteúdo (máx 400 chars)",
   "building_hint": "código do prédio se identificável (3 dígitos como '088','074' ou sigla como 'GAL'). Procura no assunto, cabeçalho ou primeira linha. Devolve apenas o código, não o nome.",
   "supplier_hint": "nome do fornecedor mencionado se houver",

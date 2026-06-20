@@ -214,7 +214,7 @@ export default function AssemblyBuildingGroup({
             </Button>
           )}
           <AssemblyPDFExportButton
-            groups={[{ buildingCode, address, items }]}
+            groups={[{ buildingCode, address, name, items }]}
             iconOnly
           />
         </div>

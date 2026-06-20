@@ -31,6 +31,27 @@ interface Props {
   onCreated?: (pendencyId: string) => void;
 }
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const stripLeadingBuildingCode = (value: string, buildingCode?: string | null) => {
+  const text = value.trim();
+  if (!text) return "";
+  if (buildingCode) {
+    const exactCode = new RegExp(`^\\s*(?:cond\\.\\s*)?'?${escapeRegExp(buildingCode)}\\s*[-–—:=]+\\s*`, "i");
+    return text.replace(exactCode, "").trim();
+  }
+  return text.replace(/^\s*(?:cond\.\s*)?'?[A-Z0-9]{2,4}\s*[-–—:=]+\s*/i, "").trim();
+};
+
+const ensureBuildingCodeInSubject = (subject: string, fallbackTitle: string, buildingCode?: string | null) => {
+  const source = (subject || fallbackTitle).trim();
+  if (!source || !buildingCode) return source;
+  const startsWithCode = new RegExp(`^\\s*(?:cond\\.\\s*)?'?${escapeRegExp(buildingCode)}\\b`, "i").test(source);
+  if (startsWithCode) return source;
+  const withoutOtherCode = stripLeadingBuildingCode(stripLeadingBuildingCode(source, buildingCode));
+  return `${buildingCode} - ${withoutOtherCode || source}`;
+};
+
 export default function CreatePendencyDialog({ open, onOpenChange, initialFile, defaults, onCreated }: Props) {
   const create = useCreatePendency();
   const upload = useUploadPendencyFile();
@@ -183,16 +204,16 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
         );
         if (matchedBuilding && !t.building) setBuildingId(matchedBuilding.id);
       }
-      if (data?.title && !t.title) {
-        let newTitle = String(data.title);
-        const code = matchedBuilding?.code;
-        if (code && !newTitle.toLowerCase().startsWith(code.toLowerCase())) {
-          newTitle = newTitle.replace(/^\s*[A-Z0-9]{2,4}\s*[-–]\s*/i, "");
-          newTitle = `${code} - ${newTitle}`;
-        }
-        setTitle(newTitle.slice(0, 200));
+      const buildingCode = matchedBuilding?.code;
+      const rawTitle = String(data?.title ?? "");
+      const extractedTitle = rawTitle ? (stripLeadingBuildingCode(rawTitle, buildingCode) || rawTitle.trim()) : "";
+      if (extractedTitle && !t.title) {
+        setTitle(extractedTitle.slice(0, 200));
       }
-      if (data?.subject && !t.subject) setSubject(data.subject);
+      if (!t.subject) {
+        const extractedSubject = ensureBuildingCodeInSubject(String(data?.subject ?? ""), extractedTitle, buildingCode);
+        if (extractedSubject) setSubject(extractedSubject.slice(0, 300));
+      }
       if (data?.description && !t.description) setDescription(data.description);
       if (data?.priority && !t.priority) setPriority(data.priority);
       if (data?.supplier_hint && !t.supplier && suppliers) {
@@ -222,10 +243,13 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
 
   const submit = async () => {
     if (!buildingId || !title) return;
+    const selectedBuilding = buildings?.find((b) => b.id === buildingId);
+    const cleanTitle = stripLeadingBuildingCode(title, selectedBuilding?.code) || title.trim();
+    const cleanSubject = ensureBuildingCodeInSubject(subject, cleanTitle, selectedBuilding?.code);
     const created = await create.mutateAsync({
-      title,
+      title: cleanTitle,
       description: description || null,
-      subject: subject || null,
+      subject: cleanSubject || null,
       email_sent_at: emailSentAt || null,
       building_id: buildingId,
       assistance_id: assistanceId || null,

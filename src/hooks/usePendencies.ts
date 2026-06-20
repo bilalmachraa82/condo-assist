@@ -16,6 +16,15 @@ async function getFunctionErrorMessage(error: any): Promise<string> {
   }
 }
 
+function getPendencyErrorMessage(error: unknown) {
+  const err = error as { code?: string; message?: string; details?: string };
+  const raw = [err.code, err.message, err.details].filter(Boolean).join(" ");
+  if (err.code === "23505" || /duplicate email pendency|duplicad/i.test(raw)) {
+    return "Esta pendência já existe para este prédio. Abre o registo existente em vez de criar outro.";
+  }
+  return err.message ?? "Erro ao guardar pendência";
+}
+
 export type PendencyStatus =
   | "aberto"
   | "aguarda_resposta"
@@ -170,7 +179,7 @@ export function useCreatePendency() {
       qc.invalidateQueries({ queryKey: ["email-pendencies"] });
       toast({ title: "Pendência criada" });
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: "Erro", description: getPendencyErrorMessage(e), variant: "destructive" }),
   });
 }
 

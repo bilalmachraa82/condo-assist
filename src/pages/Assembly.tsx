@@ -116,7 +116,7 @@ export default function Assembly() {
             <Upload className="h-4 w-4 mr-2" /> Importar Excel
           </Button>
           <AssemblyPDFExportButton
-            groups={grouped.map(([code, g]) => ({ buildingCode: code, address: g.address, items: g.items }))}
+            groups={grouped.map(([code, g]) => ({ buildingCode: code, address: g.address, name: g.name, items: g.items }))}
             year={filters.year}
             category={filters.category}
             status={filters.status}

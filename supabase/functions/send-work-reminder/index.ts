@@ -6,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const extractPostalCode = (address?: string | null) => {
+  const match = address?.match(/\b\d{4}-\d{3}\b/);
+  return match?.[0] ?? null;
+};
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -98,7 +103,7 @@ const handler = async (req: Request): Promise<Response> => {
           priority: assistance.priority,
           buildingName: assistance.buildings?.[0]?.name,
           buildingAddress: assistance.buildings?.[0]?.address,
-          buildingPostalCode: assistance.buildings?.[0]?.cadastral_code,
+          buildingPostalCode: assistance.buildings?.[0]?.cadastral_code || extractPostalCode(assistance.buildings?.[0]?.address),
           buildingNif: assistance.buildings?.[0]?.nif,
           interventionType: assistance.intervention_types?.[0]?.name,
           scheduledDate: assistance.scheduled_start_date
