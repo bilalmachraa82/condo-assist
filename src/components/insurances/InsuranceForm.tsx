@@ -11,6 +11,7 @@ import { addYears, format } from "date-fns";
 import { CalendarCheck2, Plus, Trash2, Upload, FileText, Eye, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface Props {
   open: boolean;
@@ -169,7 +170,7 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
               <SelectTrigger><SelectValue placeholder="Selecionar edifício" /></SelectTrigger>
               <SelectContent>
                 {buildings?.map(b => (
-                  <SelectItem key={b.id} value={b.id}>{b.code} - {b.name}</SelectItem>
+                  <SelectItem key={b.id} value={b.id}>{formatBuildingLabel(b)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

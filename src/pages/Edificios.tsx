@@ -38,6 +38,7 @@ import { BuildingListPDFTemplate } from "@/components/buildings/BuildingListPDFT
 import AssistanceDetail from "@/components/assistance/AssistanceDetail";
 import { CLOSED_ASSISTANCE_STATUSES } from "@/utils/constants";
 import { HighlightText } from "@/components/ui/highlight-text";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 // Building assistances view component
 function BuildingAssistancesView({ building, onBack }: { building: Building; onBack: () => void }) {
@@ -503,7 +504,7 @@ export default function Edificios() {
 
     // Snapshot impact info BEFORE delete (deps query is cleared on success)
     const impact = deleteDeps;
-    const buildingLabel = `${buildingToDelete.code} — ${buildingToDelete.name}`;
+    const buildingLabel = formatBuildingLabel(buildingToDelete);
 
     try {
       await deleteBuilding.mutateAsync(buildingToDelete.id);
@@ -840,7 +841,7 @@ export default function Edificios() {
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p className="text-foreground">
-                  Edifício: <strong>{buildingToDelete?.code} — {buildingToDelete?.name}</strong>
+                  Edifício: <strong>{formatBuildingLabel(buildingToDelete)}</strong>
                 </p>
 
                 {depsLoading ? (

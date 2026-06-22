@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Search, Key, CheckCircle2, Trash2, Pencil, Printer } from "lucide-react";
 import { useBuildings } from "@/hooks/useBuildings";
 import { useKeyHandovers, useCreateKeyHandover, useUpdateKeyHandover, useDeleteKeyHandover, type KeyHandover } from "@/hooks/useKeyHandovers";
+import { formatBuildingAddress, formatBuildingLabel } from "@/utils/buildingDisplay";
 
 const emptyForm = {
   building_id: "",
@@ -43,8 +44,7 @@ export default function Keys() {
   const [form, setForm] = useState({ ...emptyForm });
   const [returnedBy, setReturnedBy] = useState("");
 
-  const buildingLabel = (h: KeyHandover) =>
-    h.buildings ? (h.buildings.address || h.buildings.name || "—") : "—";
+  const buildingLabel = (h: KeyHandover) => formatBuildingAddress(h.buildings, "—");
 
   const filtered = useMemo(() => handovers.filter((h) => {
     if (statusFilter === "open" && h.returned_at) return false;
@@ -251,7 +251,7 @@ export default function Keys() {
               <Select value={form.building_id} onValueChange={(v) => setForm((f) => ({ ...f, building_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecionar edifício" /></SelectTrigger>
                 <SelectContent>
-                  {buildings.map((b) => <SelectItem key={b.id} value={b.id}>{b.code} - {b.address || b.name}</SelectItem>)}
+                  {buildings.map((b) => <SelectItem key={b.id} value={b.id}>{formatBuildingLabel(b)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

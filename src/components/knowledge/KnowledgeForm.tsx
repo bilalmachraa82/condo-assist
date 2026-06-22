@@ -18,6 +18,7 @@ import {
   useUpdateKnowledgeArticle,
   type KnowledgeArticle,
 } from "@/hooks/useKnowledgeArticles";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface Props {
   open: boolean;
@@ -145,7 +146,7 @@ export default function KnowledgeForm({ open, onOpenChange, article }: Props) {
                   <SelectItem value="none">Nenhum</SelectItem>
                   {buildings?.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
-                      {b.code} - {b.name}
+                      {formatBuildingLabel(b)}
                     </SelectItem>
                   ))}
                 </SelectContent>

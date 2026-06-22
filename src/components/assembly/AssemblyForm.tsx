@@ -9,6 +9,7 @@ import { Save, Loader2 } from "lucide-react";
 import { ASSEMBLY_CATEGORIES } from "@/utils/assemblyCategories";
 import { useBuildings } from "@/hooks/useBuildings";
 import { useCreateAssemblyItem, useUpdateAssemblyItem, type AssemblyItem } from "@/hooks/useAssemblyItems";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface Props {
   item?: AssemblyItem | null;
@@ -121,7 +122,7 @@ export default function AssemblyForm({ item, open, onOpenChange, defaultBuilding
               <SelectTrigger><SelectValue placeholder="Selecionar edifício" /></SelectTrigger>
               <SelectContent>
                 {buildings?.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>{b.code} - {b.name}</SelectItem>
+                  <SelectItem key={b.id} value={b.id}>{formatBuildingLabel(b)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

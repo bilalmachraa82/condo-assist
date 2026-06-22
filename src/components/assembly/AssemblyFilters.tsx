@@ -6,6 +6,7 @@ import { Search, X } from "lucide-react";
 import { ASSEMBLY_CATEGORIES } from "@/utils/assemblyCategories";
 import { useBuildings } from "@/hooks/useBuildings";
 import type { AssemblyFilters as Filters } from "@/hooks/useAssemblyItems";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface Props {
   filters: Filters;
@@ -64,7 +65,7 @@ export default function AssemblyFilters({ filters, onChange, categoryCounts }: P
             <SelectItem value="all">Todos os edifícios</SelectItem>
             {buildings?.map((b) => (
               <SelectItem key={b.id} value={b.id}>
-                {b.code} - {b.name}
+                {formatBuildingLabel(b)}
               </SelectItem>
             ))}
           </SelectContent>

@@ -11,6 +11,7 @@ import { useInterventionTypes } from "@/hooks/useInterventionTypes";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, Building2 } from "lucide-react";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface QuickElevatorFormProps {
   open: boolean;
@@ -47,9 +48,7 @@ export default function QuickElevatorForm({ open, onOpenChange }: QuickElevatorF
 
     setIsSubmitting(true);
     try {
-      const buildingLabel = selectedBuilding
-        ? `${selectedBuilding.code ? selectedBuilding.code + " - " : ""}${selectedBuilding.name}`
-        : "";
+      const buildingLabel = formatBuildingLabel(selectedBuilding, "");
 
       const title = `Avaria Elevador - ${buildingLabel}`;
 
@@ -116,7 +115,7 @@ export default function QuickElevatorForm({ open, onOpenChange }: QuickElevatorF
                     <SelectItem key={building.id} value={building.id}>
                       <div className="flex items-center gap-2">
                         <Building2 className="h-3 w-3" />
-                        {building.code ? `${building.code} - ` : ""}{building.name}
+                        {formatBuildingLabel(building)}
                       </div>
                     </SelectItem>
                   ))}

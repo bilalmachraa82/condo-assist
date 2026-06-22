@@ -12,6 +12,7 @@ import AdministratorsImportDialog from "@/components/buildings/AdministratorsImp
 import {
   Accordion, AccordionItem, AccordionTrigger, AccordionContent,
 } from "@/components/ui/accordion";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 function BuildingAdminCount({ buildingId }: { buildingId: string }) {
   const { data = [] } = useBuildingAdministrators(buildingId);
@@ -91,7 +92,7 @@ export default function Administradores() {
                     <div className="flex items-center gap-2 flex-1 text-left">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">
-                        {b.code} - {b.name}
+                        {formatBuildingLabel(b)}
                       </span>
                       <BuildingAdminCount buildingId={b.id} />
                     </div>

@@ -11,6 +11,7 @@ import { PriorityBadge } from "@/components/ui/status-badges";
 import { Building2, User, Wrench, Clock, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 const COLUMN_ACCENT: Partial<Record<PendencyStatus, string>> = {
   aguarda_resposta: "border-t-warning",
@@ -113,7 +114,7 @@ export default function PendencyKanban({ pendencies, onSelect }: Props) {
                           {p.buildings && (
                             <div className="flex items-center gap-1 truncate">
                               <Building2 className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{p.buildings.code} - {p.buildings.name}</span>
+                              <span className="truncate">{formatBuildingLabel(p.buildings)}</span>
                             </div>
                           )}
                           {p.suppliers && (

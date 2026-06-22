@@ -42,6 +42,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { SwipeableCard } from "@/components/mobile/SwipeableCard"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useQueryClient } from "@tanstack/react-query"
+import { formatBuildingAddress, formatBuildingLabel } from "@/utils/buildingDisplay"
 import { FloatingActionButton } from "@/components/mobile/FloatingActionButton"
 import { SkeletonList } from "@/components/mobile/SkeletonList"
 import { PullToRefreshIndicator } from "@/components/mobile/PullToRefreshIndicator"
@@ -500,9 +501,8 @@ export default function Assistencias() {
               setSelectedAssistance(assistance);
             };
 
-            const buildingInfo = assistance.buildings
-              ? (assistance.buildings.address || assistance.buildings.name || 'Sem morada')
-              : 'Sem edifício';
+            const buildingInfo = formatBuildingLabel(assistance.buildings);
+            const buildingAddress = formatBuildingAddress(assistance.buildings);
             const assistanceTitle = assistance.title || 'Assistência';
             const interventionType = assistance.intervention_types?.name || 'Sem tipo definido';
             const reminder = remindersMap?.get(assistance.id);
@@ -551,7 +551,7 @@ export default function Assistencias() {
                       <div className="flex items-center gap-1">
                         <Building2 className="h-3 w-3" />
                         <span className="truncate max-w-[120px]">
-                          {assistance.buildings?.address || assistance.buildings?.name || 'Sem edifício'}
+                          {buildingAddress}
                         </span>
                       </div>
                       {assistance.suppliers && (

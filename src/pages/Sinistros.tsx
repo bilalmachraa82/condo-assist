@@ -20,6 +20,7 @@ import {
   CLAIM_STATUS_LABELS, CLAIM_OPEN_STATUSES, type ClaimStatus, type InsuranceClaim,
 } from "@/hooks/useInsuranceClaims";
 import AttachmentPreviewDialog, { type PreviewAttachment } from "@/components/pendencies/AttachmentPreviewDialog";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 const statusColor = (s: ClaimStatus) => {
   if (s === "pago") return "bg-success/15 text-success border-success/30";
@@ -127,7 +128,7 @@ export default function Sinistros() {
                     <span className="truncate">{c.description}</span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3">
-                    {c.buildings && <span>{c.buildings.code} - {c.buildings.name}</span>}
+                    {c.buildings && <span>{formatBuildingLabel(c.buildings)}</span>}
                     {c.occurrence_date && <span>Ocorrência: {format(new Date(c.occurrence_date), "dd/MM/yyyy", { locale: pt })}</span>}
                     {c.estimated_amount != null && <span>Estimado: {Number(c.estimated_amount).toFixed(2)} €</span>}
                   </div>
@@ -147,7 +148,7 @@ export default function Sinistros() {
             <div><Label>Edifício *</Label>
               <Select value={bId} onValueChange={setBId}>
                 <SelectTrigger><SelectValue placeholder="Selecionar edifício" /></SelectTrigger>
-                <SelectContent>{buildings.map((b) => <SelectItem key={b.id} value={b.id}>{b.code} - {b.name}</SelectItem>)}</SelectContent>
+                <SelectContent>{buildings.map((b) => <SelectItem key={b.id} value={b.id}>{formatBuildingLabel(b)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Descrição do que se passou *</Label>

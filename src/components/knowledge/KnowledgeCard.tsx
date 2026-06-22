@@ -6,6 +6,7 @@ import { MoreHorizontal, Pencil, Trash2, Globe, Building2 } from "lucide-react";
 import { getCategoryConfig } from "@/utils/knowledgeCategories";
 import { stripMarkdown } from "@/utils/stripMarkdown";
 import type { KnowledgeArticle } from "@/hooks/useKnowledgeArticles";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface Props {
   article: KnowledgeArticle;
@@ -76,7 +77,7 @@ export default function KnowledgeCard({ article, onEdit, onDelete, onClick }: Pr
             ) : article.buildings ? (
               <>
                 <Building2 className="h-3.5 w-3.5" />
-                <span>{article.buildings.code} - {article.buildings.name}</span>
+                <span>{formatBuildingLabel(article.buildings)}</span>
               </>
             ) : null}
           </div>

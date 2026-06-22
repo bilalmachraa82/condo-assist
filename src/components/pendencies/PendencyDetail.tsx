@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { usePendencyReminders, useCreatePendencyReminder, useCancelPendencyReminder } from "@/hooks/usePendencyReminders";
 import AttachmentPreviewDialog, { type PreviewAttachment } from "./AttachmentPreviewDialog";
+import { formatBuildingAddress } from "@/utils/buildingDisplay";
 
 interface Props {
   pendencyId: string | null;
@@ -143,7 +144,7 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
               <SheetDescription className="flex items-center gap-2 flex-wrap mt-1">
                 {p.buildings && (
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <Building2 className="h-3 w-3" />{p.buildings.address || p.buildings.name || "Sem morada"}
+                    <Building2 className="h-3 w-3" />{formatBuildingAddress(p.buildings)}
                   </span>
                 )}
                 {p.assistances && (

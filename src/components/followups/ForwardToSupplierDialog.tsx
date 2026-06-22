@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import type { FollowUpWithDetails } from "@/hooks/useFollowUpSchedules";
 import CreatePendencyDialog from "@/components/pendencies/CreatePendencyDialog";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface Props {
   open: boolean;
@@ -52,9 +53,7 @@ export default function ForwardToSupplierDialog({ open, onOpenChange, followUp }
       if (!supplier?.email) throw new Error("Fornecedor sem email");
 
       const a = followUp.assistances;
-      const buildingLabel = a?.buildings
-        ? `${a.buildings.code ? `${a.buildings.code} - ` : ""}${a.buildings.name}`
-        : "—";
+      const buildingLabel = formatBuildingLabel(a?.buildings, "—");
       const note = (followUp.metadata as any)?.note ?? "";
       const subject = `Pedido de assistência: #${a?.assistance_number ?? ""} ${a?.title ?? ""} — ${buildingLabel}`;
       const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#f4f5f7;padding:20px;color:#222;">
@@ -114,8 +113,7 @@ export default function ForwardToSupplierDialog({ open, onOpenChange, followUp }
           <div className="rounded-md border bg-muted/30 p-3 text-sm">
             <div className="font-medium">#{followUp.assistances?.assistance_number ?? "—"} {followUp.assistances?.title}</div>
             <div className="text-muted-foreground text-xs mt-1">
-              {followUp.assistances?.buildings?.code ? `${followUp.assistances.buildings.code} - ` : ""}
-              {followUp.assistances?.buildings?.name ?? "Sem edifício"}
+              {formatBuildingLabel(followUp.assistances?.buildings)}
             </div>
           </div>
 

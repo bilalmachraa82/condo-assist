@@ -19,6 +19,7 @@ import { useBuildings } from "@/hooks/useBuildings";
 import { useAllSuppliers } from "@/hooks/useSuppliers";
 import { sendMagicCodeToSupplier } from "@/utils/sendMagicCode";
 import { useAppSetting } from "@/hooks/useAppSettings";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 const FORM_STORAGE_KEY = 'assistance_form_draft';
 
@@ -534,7 +535,7 @@ export default function CreateAssistanceForm({ onClose, onSuccess }: CreateAssis
                         <SelectContent>
                           {buildings.map((building) => (
                             <SelectItem key={building.id} value={building.id}>
-                              {building.code} - {building.name}
+                              {formatBuildingLabel(building)}
                             </SelectItem>
                           ))}
                         </SelectContent>

@@ -10,6 +10,7 @@ import { InspectionForm } from "@/components/inspections/InspectionForm";
 import { ShieldCheck, AlertTriangle, Clock, CalendarX, HelpCircle, Plus, Search, Hourglass, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 const STATUS_ORDER: InspectionStatus[] = ["overdue", "due_soon_15", "due_soon_30", "pending", "missing", "ok"];
 const DUE_SOON_FILTER = "due_soon_window";
@@ -207,7 +208,7 @@ export default function Inspecoes() {
                   const meta = STATUS_META[r.status];
                   return (
                     <TableRow key={`${r.building_id}-${r.category_id}`}>
-                      <TableCell className="font-medium">{r.building_code} - {r.building_name}</TableCell>
+                      <TableCell className="font-medium">{formatBuildingLabel({ code: r.building_code, name: r.building_name })}</TableCell>
                       <TableCell>
                         <span className="inline-flex items-center gap-2">
                           <span className="h-2.5 w-2.5 rounded-full" style={{ background: r.category_color }} />

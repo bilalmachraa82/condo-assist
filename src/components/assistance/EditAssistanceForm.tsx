@@ -17,6 +17,7 @@ import { useBuildings } from "@/hooks/useBuildings";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useUpdateAssistance } from "@/hooks/useAssistances";
 import type { Assistance } from "@/hooks/useAssistances";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 const assistanceSchema = z.object({
   title: z.string().min(3, "Título deve ter pelo menos 3 caracteres"),
@@ -161,7 +162,7 @@ export default function EditAssistanceForm({ assistance, onClose, onSuccess }: E
                       <SelectContent>
                         {buildings.map((building) => (
                           <SelectItem key={building.id} value={building.id}>
-                            {building.code} - {building.name}
+                            {formatBuildingLabel(building)}
                           </SelectItem>
                         ))}
                       </SelectContent>

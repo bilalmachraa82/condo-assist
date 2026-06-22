@@ -29,6 +29,7 @@ import type { Assistance } from "@/hooks/useAssistances";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface AssistanceDetailProps {
   assistance: Assistance;
@@ -368,13 +369,8 @@ export default function AssistanceDetail({ assistance, onBack, onDeleted }: Assi
                 <div className="flex-1">
                   <p className="text-sm font-medium">Edifício</p>
                   <p className="text-sm text-muted-foreground">
-                    {assistance.buildings?.name || 'Não especificado'}
+                    {formatBuildingLabel(assistance.buildings, 'Não especificado')}
                   </p>
-                  {assistance.buildings?.code && (
-                    <p className="text-xs text-muted-foreground">
-                      Código: {assistance.buildings.code}
-                    </p>
-                  )}
                 </div>
               </div>
 

@@ -16,6 +16,7 @@ import { useCreatePendency, useUploadPendencyFile, PENDENCY_STATUS_LABELS, PENDE
 import { useCreatePendencyReminder } from "@/hooks/usePendencyReminders";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface Props {
   open: boolean;
@@ -345,7 +346,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
                 <SelectTrigger><SelectValue placeholder="Escolher edifício…" /></SelectTrigger>
                 <SelectContent>
                   {buildings?.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>{b.code} - {b.name}</SelectItem>
+                    <SelectItem key={b.id} value={b.id}>{formatBuildingLabel(b)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

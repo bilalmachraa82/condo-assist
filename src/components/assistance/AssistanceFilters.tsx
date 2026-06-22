@@ -9,6 +9,7 @@ import { Filter, X } from "lucide-react";
 import { useBuildings } from "@/hooks/useBuildings";
 import { useAllSuppliers } from "@/hooks/useSuppliers";
 import { VALID_ASSISTANCE_STATES, ASSISTANCE_STATUS_TRANSLATIONS } from "@/utils/assistanceStates";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 export interface AssistanceFilters {
   status?: string;
@@ -140,7 +141,7 @@ export const AssistanceFiltersComponent = ({ filters, onFiltersChange }: Assista
                 <SelectItem value="all">Todos os edifícios</SelectItem>
                 {buildings.map(building => (
                   <SelectItem key={building.id} value={building.id}>
-                    {building.name}
+                    {formatBuildingLabel(building)}
                   </SelectItem>
                 ))}
               </SelectContent>

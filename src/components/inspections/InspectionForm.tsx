@@ -11,6 +11,7 @@ import { addYears, format } from "date-fns";
 import { CalendarCheck2, Paperclip, FileCheck2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 export type InspectionResult = "aprovado" | "aprovado_clausulas" | "pendente_relatorio" | "chumbou";
 
@@ -170,7 +171,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
               <SelectTrigger><SelectValue placeholder="Selecionar edifício" /></SelectTrigger>
               <SelectContent>
                 {buildings?.map(b => (
-                  <SelectItem key={b.id} value={b.id}>{b.code} - {b.name}</SelectItem>
+                  <SelectItem key={b.id} value={b.id}>{formatBuildingLabel(b)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

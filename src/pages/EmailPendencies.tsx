@@ -18,6 +18,7 @@ import CreatePendencyDialog from "@/components/pendencies/CreatePendencyDialog";
 import PendencyDetail from "@/components/pendencies/PendencyDetail";
 import PendencyKanban from "@/components/pendencies/PendencyKanban";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { formatBuildingAddress } from "@/utils/buildingDisplay";
 
 const slaColor = (s: "ok" | "warn" | "danger") =>
   s === "danger" ? "bg-destructive/15 text-destructive border-destructive/30"
@@ -194,7 +195,7 @@ export default function EmailPendencies() {
                     {/* Negrito: morada do edifício. Cinzento: assunto/título da pendência */}
                     <div className="font-semibold truncate flex items-center gap-1.5">
                       <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                      {p.buildings ? (p.buildings.address || p.buildings.name || "Sem morada") : "Sem edifício"}
+                      {formatBuildingAddress(p.buildings, "Sem edifício")}
                     </div>
                     <div className="text-sm text-muted-foreground truncate mt-0.5">
                       {p.subject || p.title}

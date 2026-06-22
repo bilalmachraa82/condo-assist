@@ -11,6 +11,7 @@ import { useBuildingAdministrators } from "@/hooks/useBuildingAdministrators";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Phone, Home } from "lucide-react";
 import type { KnowledgeArticle } from "@/hooks/useKnowledgeArticles";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface Props {
   article: KnowledgeArticle | null;
@@ -65,7 +66,7 @@ export default function KnowledgeDetail({ article, open, onOpenChange, onEdit }:
             {article.buildings && (
               <div className="flex items-center gap-1">
                 <Building2 className="h-3.5 w-3.5" />
-                <span>{article.buildings.code} - {article.buildings.name}</span>
+                <span>{formatBuildingLabel(article.buildings)}</span>
               </div>
             )}
             <div className="flex items-center gap-1">

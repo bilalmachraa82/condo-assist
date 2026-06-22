@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { getAssemblyCategoryConfig } from "@/utils/assemblyCategories";
+import { formatPlainBuildingLabel } from "@/utils/buildingDisplay";
 import type { AssemblyItem } from "@/hooks/useAssemblyItems";
 
 interface BuildingGroup {
@@ -90,7 +91,7 @@ export const AssemblyPDFExportButton = ({
 
     const yearLabel = year ?? new Date().getFullYear();
     const titleSuffix = groups.length === 1
-      ? `Prédio ${String(groups[0].buildingCode).padStart(3, "0")}${groups[0].name ? ` - ${groups[0].name}` : ""}`
+      ? `Prédio ${formatPlainBuildingLabel({ code: groups[0].buildingCode, name: groups[0].name || groups[0].address })}`
       : `${yearLabel}`;
 
     // Build active filter chips mirroring the UI

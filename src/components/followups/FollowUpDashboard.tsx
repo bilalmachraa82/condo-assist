@@ -32,6 +32,7 @@ import {
   useTriggerManualReminders,
   type FollowUpWithDetails,
 } from "@/hooks/useFollowUpSchedules";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -561,9 +562,7 @@ function FollowUpCard({
   const isManual = followUp.follow_up_type === "manual_reminder";
   const note = (followUp.metadata as any)?.note as string | undefined;
   const building = followUp.assistances?.buildings;
-  const buildingLabel = building
-    ? `${building.code ? `${building.code} - ` : ""}${building.name}`
-    : "Sem edifício";
+  const buildingLabel = formatBuildingLabel(building);
   const assistanceId = followUp.assistances?.id ?? followUp.assistance_id;
 
   return (

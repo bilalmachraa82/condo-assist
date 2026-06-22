@@ -44,6 +44,7 @@ import FollowUpStatsCards from "./FollowUpStatsCards";
 import FollowUpEmptyState from "./FollowUpEmptyState";
 import FollowUpCardSkeleton from "./FollowUpCardSkeleton";
 import { cn } from "@/lib/utils";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 const statusLabels: Record<string, string> = {
   pending: "Pendente",
@@ -311,9 +312,7 @@ function ReminderCard({
   const isManual = reminder.reminder_type === "manual";
   const p = reminder.email_pendencies;
   const building = p?.buildings;
-  const buildingLabel = building
-    ? `${building.code ? `${building.code} - ` : ""}${building.name}`
-    : "Sem edifício";
+  const buildingLabel = formatBuildingLabel(building);
 
   return (
     <div

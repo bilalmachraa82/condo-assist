@@ -7,6 +7,7 @@ import { Search, X } from "lucide-react";
 import { KNOWLEDGE_CATEGORIES } from "@/utils/knowledgeCategories";
 import { useBuildings } from "@/hooks/useBuildings";
 import type { KnowledgeFilters as Filters } from "@/hooks/useKnowledgeArticles";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface Props {
   filters: Filters;
@@ -58,7 +59,7 @@ export default function KnowledgeFilters({ filters, onChange, categoryCounts }: 
             <SelectItem value="all">Todos os edifícios</SelectItem>
             {buildings?.map((b) => (
               <SelectItem key={b.id} value={b.id}>
-                {b.code} - {b.name}
+                {formatBuildingLabel(b)}
               </SelectItem>
             ))}
           </SelectContent>

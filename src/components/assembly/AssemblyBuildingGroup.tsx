@@ -10,6 +10,7 @@ import { getAssemblyCategoryConfig } from "@/utils/assemblyCategories";
 import AssemblyPDFExportButton from "./AssemblyPDFExportButton";
 import AssemblyAttachMinutesDialog from "./AssemblyAttachMinutesDialog";
 import { useUpdateAssemblyItem, type AssemblyItem } from "@/hooks/useAssemblyItems";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 interface Props {
   buildingCode: number;
@@ -167,6 +168,7 @@ export default function AssemblyBuildingGroup({
   const [attachOpen, setAttachOpen] = useState(false);
   const latestYear = items.reduce((acc, it) => (it.year > acc ? it.year : acc), 0) || new Date().getFullYear();
 
+  const buildingLabel = formatBuildingLabel({ code: buildingCode, name: name || address }, "Sem edifício");
   const doneCount = items.filter((i) => i.status === "done" || i.status === "cancelled").length;
   const pendingCount = items.filter((i) => i.status === "pending").length;
   const progressPercent = items.length > 0 ? Math.round((doneCount / items.length) * 100) : 0;
@@ -179,11 +181,8 @@ export default function AssemblyBuildingGroup({
             <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 ${open ? "rotate-90" : ""}`} />
             <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="truncate text-sm" title={name || address || undefined}>
-                <span className="font-semibold">{String(buildingCode).padStart(3, "0")}</span>
-                {(name || address) && (
-                  <span className="text-muted-foreground ml-1.5">— {name || address}</span>
-                )}
+              <div className="truncate text-sm font-semibold" title={buildingLabel}>
+                {buildingLabel}
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -225,7 +224,7 @@ export default function AssemblyBuildingGroup({
           open={attachOpen}
           onOpenChange={setAttachOpen}
           buildingId={buildingId}
-          buildingLabel={`${String(buildingCode).padStart(3, "0")}${address ? ` — ${address}` : ""}`}
+          buildingLabel={buildingLabel}
           defaultYear={latestYear}
         />
       )}

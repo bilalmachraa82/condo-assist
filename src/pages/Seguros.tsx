@@ -16,6 +16,7 @@ import {
   useInsuranceStatus,
 } from "@/hooks/useInsurances";
 import { InsuranceForm } from "@/components/insurances/InsuranceForm";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 const STATUS_ORDER: InsuranceStatus[] = ["overdue", "due_soon_30", "missing", "ok"];
 
@@ -159,7 +160,7 @@ export default function Seguros() {
                   const meta = INSURANCE_STATUS_META[r.status];
                   return (
                     <TableRow key={`${r.building_id}-${r.insurance_id ?? "none"}`}>
-                      <TableCell className="font-medium">{r.building_code} - {r.building_name}</TableCell>
+                      <TableCell className="font-medium">{formatBuildingLabel({ code: r.building_code, name: r.building_name })}</TableCell>
                       <TableCell>{r.insurer ?? <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell className="font-mono text-xs">{r.policy_number ?? <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{r.broker ?? "—"}</TableCell>

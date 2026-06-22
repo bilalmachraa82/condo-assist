@@ -17,6 +17,7 @@ import {
   type AssemblyItem, type AssemblyFilters as Filters,
 } from "@/hooks/useAssemblyItems";
 import { useBuildings } from "@/hooks/useBuildings";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 const PAGE_SIZE = 200;
 
@@ -40,9 +41,7 @@ export default function Assembly() {
   const selectedBuilding = filters.building_id
     ? buildings?.find((b) => b.id === filters.building_id)
     : undefined;
-  const buildingLabel = selectedBuilding
-    ? `${selectedBuilding.code} - ${selectedBuilding.name}`
-    : undefined;
+  const buildingLabel = selectedBuilding ? formatBuildingLabel(selectedBuilding) : undefined;
 
   const currentPage = filters.page || 0;
   const items = data?.items ?? [];
