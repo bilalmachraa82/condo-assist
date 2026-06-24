@@ -16,7 +16,9 @@ import { useCreatePendency, useUploadPendencyFile, PENDENCY_STATUS_LABELS, PENDE
 import { useCreatePendencyReminder } from "@/hooks/usePendencyReminders";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { formatBuildingLabel } from "@/utils/buildingDisplay";
+import { formatBuildingLabel, normalizeBuildingCode } from "@/utils/buildingDisplay";
+import { inferPendencyFileType } from "@/utils/pendencyFiles";
+import { cleanPendencyTitle, ensureBuildingCodeInSubject } from "@/utils/pendencyText";
 
 interface Props {
   open: boolean;
@@ -31,27 +33,6 @@ interface Props {
   };
   onCreated?: (pendencyId: string) => void;
 }
-
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const stripLeadingBuildingCode = (value: string, buildingCode?: string | null) => {
-  const text = value.trim();
-  if (!text) return "";
-  if (buildingCode) {
-    const exactCode = new RegExp(`^\\s*(?:cond\\.\\s*)?'?${escapeRegExp(buildingCode)}\\s*[-–—:=]+\\s*`, "i");
-    return text.replace(exactCode, "").trim();
-  }
-  return text.replace(/^\s*(?:cond\.\s*)?'?[A-Z0-9]{2,4}\s*[-–—:=]+\s*/i, "").trim();
-};
-
-const ensureBuildingCodeInSubject = (subject: string, fallbackTitle: string, buildingCode?: string | null) => {
-  const source = (subject || fallbackTitle).trim();
-  if (!source || !buildingCode) return source;
-  const startsWithCode = new RegExp(`^\\s*(?:cond\\.\\s*)?'?${escapeRegExp(buildingCode)}\\b`, "i").test(source);
-  if (startsWithCode) return source;
-  const withoutOtherCode = stripLeadingBuildingCode(stripLeadingBuildingCode(source, buildingCode));
-  return `${buildingCode} - ${withoutOtherCode || source}`;
-};
 
 export default function CreatePendencyDialog({ open, onOpenChange, initialFile, defaults, onCreated }: Props) {
   const create = useCreatePendency();
@@ -116,7 +97,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     queryKey: ["buildings-for-pendency"],
     enabled: open,
     queryFn: async () => {
-      const { data, error } = await supabase.from("buildings").select("id, code, name").eq("is_active", true).order("code");
+      const { data, error } = await supabase.from("buildings").select("id, code, name, address").eq("is_active", true).order("code");
       if (error) throw error;
       return data;
     },
@@ -175,7 +156,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
 
   const runAutoFill = useCallback(async () => {
     if (!file) {
-      toast({ title: "Anexa um PDF/imagem primeiro", variant: "destructive" });
+      toast({ title: "Anexa um PDF, imagem ou .eml primeiro", variant: "destructive" });
       return;
     }
     const fileKeyAtStart = activeFileKeyRef.current;
@@ -185,7 +166,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
     try {
       const fileBase64 = await fileToBase64(file);
       const { data, error } = await supabase.functions.invoke("parse-pendency-pdf", {
-        body: { fileBase64, mimeType: file.type || "application/pdf", fileName: file.name },
+        body: { fileBase64, mimeType: inferPendencyFileType(file), fileName: file.name },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -198,21 +179,23 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
       let matchedBuilding: any = null;
       if (data?.building_hint && buildings) {
         const hint = String(data.building_hint).toLowerCase().trim();
+        const normalizedHint = normalizeBuildingCode(hint);
         matchedBuilding = buildings.find((b: any) =>
+          normalizeBuildingCode(b.code) === normalizedHint ||
           b.code?.toLowerCase() === hint ||
           b.code?.toLowerCase().includes(hint) ||
-          b.name?.toLowerCase().includes(hint)
+          b.name?.toLowerCase().includes(hint) ||
+          b.address?.toLowerCase().includes(hint)
         );
         if (matchedBuilding && !t.building) setBuildingId(matchedBuilding.id);
       }
-      const buildingCode = matchedBuilding?.code;
       const rawTitle = String(data?.title ?? "");
-      const extractedTitle = rawTitle ? (stripLeadingBuildingCode(rawTitle, buildingCode) || rawTitle.trim()) : "";
+      const extractedTitle = cleanPendencyTitle(rawTitle, matchedBuilding, String(data?.subject ?? ""));
       if (extractedTitle && !t.title) {
         setTitle(extractedTitle.slice(0, 200));
       }
       if (!t.subject) {
-        const extractedSubject = ensureBuildingCodeInSubject(String(data?.subject ?? ""), extractedTitle, buildingCode);
+        const extractedSubject = ensureBuildingCodeInSubject(String(data?.subject ?? ""), extractedTitle, matchedBuilding);
         if (extractedSubject) setSubject(extractedSubject.slice(0, 300));
       }
       if (data?.description && !t.description) setDescription(data.description);
@@ -228,7 +211,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
       if (autoFillRanForFileKeyRef.current === fileKeyAtStart) {
         autoFillRanForFileKeyRef.current = null;
       }
-      toast({ title: "Erro a analisar PDF", description: e?.message ?? String(e), variant: "destructive" });
+      toast({ title: "Erro a analisar ficheiro", description: e?.message ?? String(e), variant: "destructive" });
     } finally {
       setAiBusy(false);
     }
@@ -245,8 +228,8 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
   const submit = async () => {
     if (!buildingId || !title) return;
     const selectedBuilding = buildings?.find((b) => b.id === buildingId);
-    const cleanTitle = stripLeadingBuildingCode(title, selectedBuilding?.code) || title.trim();
-    const cleanSubject = ensureBuildingCodeInSubject(subject, cleanTitle, selectedBuilding?.code);
+    const cleanTitle = cleanPendencyTitle(title, selectedBuilding, subject) || title.trim();
+    const cleanSubject = ensureBuildingCodeInSubject(subject, cleanTitle, selectedBuilding);
     const created = await create.mutateAsync({
       title: cleanTitle,
       description: description || null,
@@ -280,7 +263,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova pendência de email</DialogTitle>
-          <DialogDescription>Anexa o PDF do email enviado e regista o caso para seguimento.</DialogDescription>
+          <DialogDescription>Anexa o email, PDF ou imagem e regista o caso para seguimento.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -302,7 +285,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
             ) : (
               <>
                 <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-2">Arrasta o PDF do email para aqui</p>
+                <p className="text-sm text-muted-foreground mb-2">Arrasta o email, PDF ou imagem para aqui</p>
                 <Input
                   type="file"
                   accept=".pdf,.png,.jpg,.jpeg,.eml,application/pdf,image/*,message/rfc822"
@@ -316,7 +299,7 @@ export default function CreatePendencyDialog({ open, onOpenChange, initialFile, 
           <div className="flex items-center justify-between gap-2 -mt-2 rounded-md border bg-primary/5 p-2">
             <p className="text-xs text-muted-foreground">
               {!file
-                ? "Anexa um PDF/imagem acima para análise automática."
+                ? "Anexa um email, PDF ou imagem acima para análise automática."
                 : aiBusy
                   ? "A analisar automaticamente com IA…"
                   : "Análise automática concluída — podes voltar a analisar se precisares."}

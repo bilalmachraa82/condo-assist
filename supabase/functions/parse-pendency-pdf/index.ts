@@ -25,6 +25,16 @@ const corsHeaders = {
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
 const RATE_LIMIT_WINDOW_MIN = 10;
 const RATE_LIMIT_MAX = 20;
+const MIME_BY_EXTENSION: Record<string, string> = {
+  pdf: "application/pdf",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  eml: "message/rfc822",
+  txt: "text/plain",
+};
 
 interface ParseRequest {
   fileBase64?: string;
@@ -33,16 +43,48 @@ interface ParseRequest {
   fileName?: string;
 }
 
+function base64ToBytes(base64: string): Uint8Array {
+  const cleaned = base64.replace(/\s/g, "");
+  const binary = atob(cleaned);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function decodeBase64Text(base64: string): string {
+  return new TextDecoder("utf-8", { fatal: false }).decode(base64ToBytes(base64));
+}
+
+function compactEmailText(raw: string): string {
+  return raw
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .filter((line) => !/^[A-Za-z0-9+/=]{200,}$/.test(line.trim()))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .slice(0, 20_000);
+}
+
+function inferMimeType(mimeType: string, fileName: string) {
+  const normalized = mimeType.toLowerCase().split(";")[0].trim();
+  const extension = fileName.toLowerCase().split(".").pop() ?? "";
+  return MIME_BY_EXTENSION[extension] ?? (normalized || "application/octet-stream");
+}
+
 const SYSTEM = `És um assistente que extrai metadados de emails/documentos PDF de gestão de condomínios em português de Portugal.
 Devolve apenas JSON válido com os campos:
 {
-  "title": "título curto (máx 80 chars), sem código de prédio. Ex: 'Pedido orçamento elevador'",
-  "subject": "assunto do email se identificável. Se houver código de prédio (ex: '088', '074', 'GAL'), começa o assunto com o código seguido de ' - '. Ex: '088 - Pedido orçamento elevador'",
+  "title": "título curto do assunto/tarefa (máx 80 chars), sem código, sem nome do prédio e sem morada. Ex: 'Pedido orçamento elevador'. Se só vires o prédio/morada, devolve string vazia.",
+  "subject": "assunto original do email se identificável, sem nome do prédio e sem morada. Se houver código de prédio (ex: '088', '074', 'GAL'), começa com o código seguido de ' - '. Ex: '088 - Pedido orçamento elevador'. Se só vires o prédio/morada, devolve string vazia.",
   "description": "resumo do conteúdo (máx 400 chars)",
-  "building_hint": "código do prédio se identificável (3 dígitos como '088','074' ou sigla como 'GAL'). Procura no assunto, cabeçalho ou primeira linha. Devolve apenas o código, não o nome.",
+  "building_hint": "código do prédio se identificável (3 dígitos como '088','074' ou sigla como 'GAL'). Procura no assunto, cabeçalho, nome ou morada. Devolve apenas o código, não o nome nem a morada.",
   "supplier_hint": "nome do fornecedor mencionado se houver",
   "priority": "normal|urgent|critical (urgente apenas se palavras como 'urgente','crítico','emergência')"
 }
+Regras importantes:
+- Nunca copies a morada ou o nome do condomínio para title ou subject.
+- A morada/nome do condomínio serve apenas para identificar building_hint.
+- Se o email tiver subject do tipo '=003= COND. RUA ...', subject deve ficar vazio ou apenas o texto útil depois do prédio, se existir.
 Se um campo não for identificável, devolve string vazia. Não inventes dados.`;
 
 function json(body: unknown, status = 200) {
@@ -111,11 +153,13 @@ Deno.serve(async (req) => {
     let base64: string | undefined = body.fileBase64;
     let mimeType = (body.mimeType || "application/pdf").toLowerCase().split(";")[0].trim();
     const fileName = (body.fileName || "documento").slice(0, 120);
+    mimeType = inferMimeType(mimeType, fileName);
 
     if (!base64 && body.storagePath) {
-      const { data, error } = await supabase.storage.from("pendency-attachments").download(body.storagePath);
+      // Matches upload-pendency-file and email_pendency_attachments.file_path.
+      const { data, error } = await supabase.storage.from("email-pendencies").download(body.storagePath);
       if (error || !data) return json({ error: "Não foi possível ler o ficheiro" }, 400);
-      mimeType = (data.type || mimeType).toLowerCase();
+      mimeType = inferMimeType(data.type || mimeType, fileName);
       const buf = new Uint8Array(await data.arrayBuffer());
       let bin = ""; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
       base64 = btoa(bin);
@@ -131,7 +175,8 @@ Deno.serve(async (req) => {
 
     const isPdf = mimeType === "application/pdf";
     const isImage = mimeType.startsWith("image/");
-    if (!isPdf && !isImage) {
+    const isEmailText = mimeType === "message/rfc822" || mimeType === "text/plain";
+    if (!isPdf && !isImage && !isEmailText) {
       return json({ error: `Tipo de ficheiro não suportado para análise IA: ${mimeType}` }, 415);
     }
 
@@ -140,7 +185,16 @@ Deno.serve(async (req) => {
     const userContent: unknown[] = [
       { type: "text", text: "Extrai os metadados deste documento e devolve apenas JSON." },
     ];
-    if (isPdf) {
+    if (isEmailText) {
+      const emailText = compactEmailText(decodeBase64Text(base64));
+      if (!emailText.trim()) {
+        return json({ error: "Não foi possível ler texto do ficheiro de email." }, 422);
+      }
+      userContent[0] = {
+        type: "text",
+        text: `Extrai os metadados deste email em bruto e devolve apenas JSON. Ignora anexos codificados e assinaturas repetidas.\n\n${emailText}`,
+      };
+    } else if (isPdf) {
       userContent.push({
         type: "file",
         file: {

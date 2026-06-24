@@ -32,7 +32,9 @@ import {
 } from "lucide-react";
 import { usePendencyReminders, useCreatePendencyReminder, useCancelPendencyReminder } from "@/hooks/usePendencyReminders";
 import AttachmentPreviewDialog, { type PreviewAttachment } from "./AttachmentPreviewDialog";
-import { formatBuildingAddress } from "@/utils/buildingDisplay";
+import { useBuildings } from "@/hooks/useBuildings";
+import { formatBuildingAddress, formatBuildingLabel } from "@/utils/buildingDisplay";
+import { cleanPendencyTitle, ensureBuildingCodeInSubject, isPendencyBuildingDescriptor } from "@/utils/pendencyText";
 
 interface Props {
   pendencyId: string | null;
@@ -52,6 +54,7 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   const { data: p } = usePendency(pendencyId);
   const { data: notes } = usePendencyNotes(pendencyId);
   const { data: attachments } = usePendencyAttachments(pendencyId);
+  const { data: buildings = [] } = useBuildings();
   const update = useUpdatePendency();
   const addNote = useAddPendencyNote();
   const upload = useUploadPendencyFile();
@@ -78,8 +81,13 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
     if (!p) return;
     if (lastPendencyIdRef.current !== p.id) {
       lastPendencyIdRef.current = p.id;
-      setTitleDraft(p.title ?? "");
-      setSubjectDraft(p.subject ?? "");
+      const cleanTitle = cleanPendencyTitle(p.title ?? "", p.buildings, p.subject ?? "");
+      const titleIsOnlyBuilding = isPendencyBuildingDescriptor(p.title ?? "", p.buildings);
+      const cleanSubject = p.subject
+        ? ensureBuildingCodeInSubject(p.subject, cleanTitle, p.buildings)
+        : "";
+      setTitleDraft(cleanTitle || (titleIsOnlyBuilding ? "" : p.title ?? ""));
+      setSubjectDraft(cleanSubject);
       setDescriptionDraft(p.description ?? "");
     }
   }, [p]);
@@ -87,8 +95,12 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
   const flushDrafts = async () => {
     if (!p) return;
     const patch: any = {};
-    if (titleDraft.trim() && titleDraft !== (p.title ?? "")) patch.title = titleDraft.trim();
-    if (subjectDraft !== (p.subject ?? "")) patch.subject = subjectDraft || null;
+    const cleanTitle = cleanPendencyTitle(titleDraft, p.buildings, subjectDraft) || titleDraft.trim();
+    const cleanSubject = subjectDraft.trim()
+      ? ensureBuildingCodeInSubject(subjectDraft, cleanTitle, p.buildings)
+      : "";
+    if (cleanTitle && cleanTitle !== (p.title ?? "")) patch.title = cleanTitle;
+    if (cleanSubject !== (p.subject ?? "")) patch.subject = cleanSubject || null;
     if (descriptionDraft !== (p.description ?? "")) patch.description = descriptionDraft;
     if (Object.keys(patch).length > 0) {
       try { await update.mutateAsync({ id: p.id, ...patch }); } catch { /* toast no hook */ }
@@ -123,6 +135,41 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
     }
   };
 
+  const saveTitle = (value: string) => {
+    const cleanTitle = cleanPendencyTitle(value, p.buildings, subjectDraft) || value.trim();
+    if (!cleanTitle) return;
+    setTitleDraft(cleanTitle);
+    if (cleanTitle !== p.title) update.mutate({ id: p.id, title: cleanTitle });
+  };
+
+  const saveSubject = (value: string) => {
+    const nextSubject = value.trim()
+      ? ensureBuildingCodeInSubject(value, titleDraft, p.buildings)
+      : "";
+    setSubjectDraft(nextSubject);
+    if (nextSubject !== (p.subject ?? "")) update.mutate({ id: p.id, subject: nextSubject || null });
+  };
+
+  const saveBuilding = (buildingId: string) => {
+    const selectedBuilding = buildings.find((building) => building.id === buildingId);
+    const cleanTitle = cleanPendencyTitle(titleDraft, selectedBuilding, subjectDraft) || titleDraft.trim();
+    // Ao trocar o edifício, manter o assunto alinhado com o código do prédio.
+    // Isto evita o erro reportado de morada/título sem código ou com código errado.
+    const nextSubject = subjectDraft.trim()
+      ? ensureBuildingCodeInSubject(subjectDraft, cleanTitle, selectedBuilding)
+      : ensureBuildingCodeInSubject("", cleanTitle, selectedBuilding);
+
+    if (cleanTitle) setTitleDraft(cleanTitle);
+    if (nextSubject) setSubjectDraft(nextSubject);
+
+    update.mutate({
+      id: p.id,
+      building_id: buildingId,
+      ...(cleanTitle ? { title: cleanTitle } : {}),
+      ...(nextSubject ? { subject: nextSubject } : {}),
+    });
+  };
+
   return (
     <>
     <Sheet open={open} onOpenChange={async (o) => { if (!o) { await flushDrafts(); } onOpenChange(o); }}>
@@ -135,16 +182,13 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
                   value={titleDraft}
                   onChange={(e) => setTitleDraft(e.target.value)}
                   className="text-lg font-semibold border-transparent hover:border-input focus:border-input px-2 -mx-2 h-auto py-1"
-                  onBlur={(e) => {
-                    const v = e.target.value.trim();
-                    if (v && v !== p.title) update.mutate({ id: p.id, title: v });
-                  }}
+                  onBlur={(e) => saveTitle(e.target.value)}
                 />
               </SheetTitle>
               <SheetDescription className="flex items-center gap-2 flex-wrap mt-1">
                 {p.buildings && (
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <Building2 className="h-3 w-3" />{formatBuildingAddress(p.buildings)}
+                    <Building2 className="h-3 w-3" />{formatBuildingLabel(p.buildings)}
                   </span>
                 )}
                 {p.assistances && (
@@ -234,15 +278,36 @@ export default function PendencyDetail({ pendencyId, open, onOpenChange }: Props
           {/* RESUMO */}
           <TabsContent value="resumo" className="space-y-3">
             <div>
+              <div className="text-xs text-muted-foreground">Título</div>
+              <Input
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={(e) => saveTitle(e.target.value)}
+                placeholder="Título da pendência"
+              />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Edifício / morada</div>
+              <Select value={p.building_id} onValueChange={saveBuilding}>
+                <SelectTrigger><SelectValue placeholder="Escolher edifício" /></SelectTrigger>
+                <SelectContent>
+                  {buildings.map((building) => (
+                    <SelectItem key={building.id} value={building.id}>
+                      {formatBuildingLabel(building)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="text-xs text-muted-foreground mt-1">
+                {formatBuildingAddress(p.buildings, "Sem morada")}
+              </div>
+            </div>
+            <div>
               <div className="text-xs text-muted-foreground">Assunto do email</div>
               <Input
                 value={subjectDraft}
                 onChange={(e) => setSubjectDraft(e.target.value)}
-                onBlur={(e) => {
-                  if (e.target.value !== (p.subject ?? "")) {
-                    update.mutate({ id: p.id, subject: e.target.value || null });
-                  }
-                }}
+                onBlur={(e) => saveSubject(e.target.value)}
                 placeholder="Assunto do email (editável)"
               />
             </div>

@@ -18,7 +18,8 @@ import CreatePendencyDialog from "@/components/pendencies/CreatePendencyDialog";
 import PendencyDetail from "@/components/pendencies/PendencyDetail";
 import PendencyKanban from "@/components/pendencies/PendencyKanban";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { formatBuildingAddress } from "@/utils/buildingDisplay";
+import { formatBuildingLabel } from "@/utils/buildingDisplay";
+import { cleanPendencyTitle, ensureBuildingCodeInSubject } from "@/utils/pendencyText";
 
 const slaColor = (s: "ok" | "warn" | "danger") =>
   s === "danger" ? "bg-destructive/15 text-destructive border-destructive/30"
@@ -115,7 +116,7 @@ export default function EmailPendencies() {
         <div className="fixed inset-0 z-50 bg-primary/10 backdrop-blur-sm border-4 border-dashed border-primary pointer-events-none flex items-center justify-center">
           <div className="bg-card rounded-lg shadow-lg px-6 py-4 flex items-center gap-3">
             <FileText className="h-6 w-6 text-primary" />
-            <span className="font-medium">Largar PDF para criar pendência</span>
+            <span className="font-medium">Largar ficheiro para criar pendência</span>
           </div>
         </div>
       )}
@@ -182,23 +183,26 @@ export default function EmailPendencies() {
         {!isLoading && filtered.length === 0 && (
           <Card><CardContent className="py-10 text-center text-muted-foreground">
             <MailQuestion className="h-8 w-8 mx-auto mb-2 opacity-60" />
-            Sem pendências. Arrasta um PDF para esta página ou clica em "Nova pendência".
+            Sem pendências. Arrasta um PDF, imagem ou .eml para esta página ou clica em "Nova pendência".
           </CardContent></Card>
         )}
         {filtered.map((p) => {
           const sla = pendencySLA(p);
+          const cleanTitle = cleanPendencyTitle(p.title ?? "", p.buildings, p.subject);
+          const subjectLabel = ensureBuildingCodeInSubject(p.subject ?? "", cleanTitle, p.buildings);
+          const primaryLabel = subjectLabel || cleanTitle || "Sem assunto";
+          const buildingLabel = formatBuildingLabel(p.buildings, "Sem edifício");
           return (
             <Card key={p.id} className="cursor-pointer hover:shadow-md transition" onClick={() => setSelectedId(p.id)}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="min-w-0 flex-1">
-                    {/* Negrito: morada do edifício. Cinzento: assunto/título da pendência */}
-                    <div className="font-semibold truncate flex items-center gap-1.5">
-                      <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                      {formatBuildingAddress(p.buildings, "Sem edifício")}
+                    <div className="font-semibold truncate">
+                      {primaryLabel}
                     </div>
                     <div className="text-sm text-muted-foreground truncate mt-0.5">
-                      {p.subject || p.title}
+                      <Building2 className="h-3.5 w-3.5 text-primary shrink-0 inline mr-1.5" />
+                      {buildingLabel}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1">
                       {p.suppliers && (

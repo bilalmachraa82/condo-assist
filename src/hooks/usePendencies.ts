@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { inferPendencyFileType } from "@/utils/pendencyFiles";
 
 async function getFunctionErrorMessage(error: any): Promise<string> {
   const fallback = error?.message || "Erro ao comunicar com o servidor";
@@ -286,7 +287,7 @@ export function useUploadPendencyFile() {
         body: {
           pendencyId,
           fileName: file.name,
-          fileType: file.type || "application/pdf",
+          fileType: inferPendencyFileType(file),
           fileData: dataUrl,
           kind,
           description,

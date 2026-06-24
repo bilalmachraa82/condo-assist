@@ -12,6 +12,7 @@ import { Building2, User, Wrench, Clock, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { formatBuildingLabel } from "@/utils/buildingDisplay";
+import { cleanPendencyTitle, ensureBuildingCodeInSubject } from "@/utils/pendencyText";
 
 const COLUMN_ACCENT: Partial<Record<PendencyStatus, string>> = {
   aguarda_resposta: "border-t-warning",
@@ -88,6 +89,9 @@ export default function PendencyKanban({ pendencies, onSelect }: Props) {
                 )}
                 {items.map((p) => {
                   const sla = pendencySLA(p);
+                  const cleanTitle = cleanPendencyTitle(p.title ?? "", p.buildings, p.subject);
+                  const subjectLabel = ensureBuildingCodeInSubject(p.subject ?? "", cleanTitle, p.buildings);
+                  const primaryLabel = subjectLabel || cleanTitle || "Sem assunto";
                   return (
                     <Card
                       key={p.id}
@@ -107,7 +111,7 @@ export default function PendencyKanban({ pendencies, onSelect }: Props) {
                       <CardContent className="p-3 space-y-2">
                         <div className="flex items-start gap-2">
                           <GripVertical className="h-4 w-4 text-muted-foreground/50 mt-0.5 shrink-0" />
-                          <div className="font-medium text-sm leading-snug line-clamp-2 flex-1">{p.title}</div>
+                          <div className="font-medium text-sm leading-snug line-clamp-2 flex-1">{primaryLabel}</div>
                           <span className={cn("h-2 w-2 rounded-full mt-1 shrink-0", slaDot(sla))} title={`SLA: ${sla}`} />
                         </div>
                         <div className="text-[11px] text-muted-foreground space-y-0.5 pl-6">
