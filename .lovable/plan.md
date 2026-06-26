@@ -1,49 +1,129 @@
-## Plano: auditoria 50 pontos + plano de correções + execução em lote
 
-Já validei os pontos críticos (bundle público alinhado, auto-IA nas pendências, código postal no PDF do admin). Falta auditar os restantes 44 pontos do email do Bilal, listar as falhas, e só depois aplicar correções em lote.
+# Plano: Documento de integração Hermes Agent ↔ MCP Luvimg
 
-### Fase A — Auditoria ponto-a-ponto (sem alterar código)
+## Contexto verificado
 
-Para cada um dos 50 pontos do email, classifico:
-- **CONFIRMADO** — código existe (cito `ficheiro:linha`)
-- **PARCIAL** — comportamento incompleto (descrevo o que falta)
-- **NÃO CONFIRMADO** — não existe ou está contrário
+**Hermes Agent** = produto da **Nous Research** (open-source, MIT, `NousResearch/hermes-agent`). Suporta nativamente:
+- MCP via **Streamable HTTP** (sem precisar de `mcp-remote`/bridge) e stdio.
+- Auth via header arbitrário (`x-api-key`, `Authorization: Bearer`, ...), OAuth 2.1 PKCE e mTLS.
+- Config 100% YAML em `~/.hermes/config.yaml`, com `${VAR}` para secrets em `~/.hermes/.env`.
+- Email: gateway IMAP/SMTP nativo (funciona com Outlook/365) + skill Himalaya + Composio MCP (282 tools Outlook).
+- Telefone (fase 2): skill `telephony` (Twilio + Vapi/Bland.ai) para outbound IA; inbound real-time ainda não nativo — Grok Live confirmado para fase 2.
 
-Agrupado por área para minimizar leituras repetidas:
+**Estado MCP Luvimg confirmado por leitura do código:**
+- `mcp-server/index.ts` v1.3.0, transport Streamable HTTP, URL `https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server`.
+- Auth: header `x-api-key: $EXTERNAL_API_KEY` (prioridade confirmada; ver `auth_regression_test.ts`).
+- **128 tools registadas** (contagem feita por grep — coincide com versão 1.3.0).
+- Single-tenant Luvimg confirmado pelo utilizador.
 
-| Área | Pontos | Ficheiros principais |
-|---|---|---|
-| Pendências email | 3,4,5,34,35,36,38,39,40,41,42,45,47,48 | `EmailPendencies.tsx`, `pendencies/*`, `usePendencies.ts`, `parse-pendency-pdf/` |
-| Atas / Assembly | 6,7,37 | `assembly/*`, `parse-assembly-minutes/` |
-| Compliance | 8–21,28,29,46 | `inspections/*`, `insurances/*`, hooks |
-| Chaves | 23–27,30,31,32,43,44 | `Keys.tsx`, `useKeyHandovers.ts` |
-| Edifícios/Admins/KB | 1,2,22,33 | `Edificios.tsx`, `Dashboard.tsx`, `BuildingAdministratorsManager.tsx`, `useKnowledgeArticles.ts` |
-| Emails assistência (CP) | 49,50 | `AssistanceEmailPDFTemplate.tsx`, `send-assistance-pdf-to-admin/`, `send-email/` |
+## Entregável
 
-Já pré-validado:
-- ✅ Bundle público `condo-assist.lovable.app` contém âncoras novas ("Voltar a analisar", "Vencer 30 dias", "Análise automática concluída")
-- ✅ Pontos 5/40/47/48 (auto-IA): `useEffect` L216-221 + guard `autoFillRanForFileKeyRef`, descarte por troca de ficheiro, respeita `touchedRef`, backend multimodal correcto
-- ✅ Ponto 49 PDF admin: `send-assistance-pdf-to-admin/index.ts:721` mostra `cadastral_code || extractPostalCode(address)`
-- ⚠️ Ponto 49 PDF de reencaminhamento ao fornecedor: `AssistanceEmailPDFTemplate.tsx` **não** mostra código postal (só `address`). Provável fix necessário.
+Um único ficheiro markdown:
 
-### Fase B — Relatório + plano de correções R1.1
+`/mnt/documents/hermes-luvimg-mcp-integration.md`
 
-Entrego no chat:
-1. Tabela `Ponto | Estado | Prova`
-2. Lista de **PARCIAL/NÃO CONFIRMADO** com fix proposto por ponto (1-2 linhas cada)
-3. Agrupamento dos fixes por ficheiro para edição em lote
+Estrutura (≈ 8 secções, pronto a colar / partilhar):
 
-### Fase C — Execução em lote (após aprovação)
+### 1. TL;DR — Setup em 5 minutos
+- Instalar Hermes (one-liner curl/iex).
+- Criar `~/.hermes/.env` com `LUVIMG_MCP_API_KEY=...`.
+- Colar bloco `mcp_servers:` no `~/.hermes/config.yaml`.
+- `hermes chat` → testar com `mcp_luvimg_health_check`.
 
-Aplico todas as correções em paralelo (file edits em batch), depois:
-- `tsc` automático via harness valida build
-- Para fluxos de PDF/IA: Playwright headless contra `localhost:8080` com PDF de teste, screenshots
-- Para PDF de email (ponto 49): re-render local e inspecção visual
-- Reporto: o que mudou, prova de funcionamento, próximos passos para validação manual do André
+### 2. Bloco YAML pronto a colar
+```yaml
+mcp_servers:
+  luvimg:
+    url: "https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server"
+    headers:
+      x-api-key: "${LUVIMG_MCP_API_KEY}"
+    connect_timeout: 30
+    timeout: 180
+    supports_parallel_tool_calls: true
+    tools:
+      resources: false
+      prompts: false
+```
++ variante com Composio Outlook em paralelo para email Microsoft 365.
 
-### O que NÃO faço nesta plano
+### 3. Identidade do servidor MCP
+- Nome / versão / transport / endpoints (`POST /` JSON-RPC, headers obrigatórios `Accept: application/json, text/event-stream`).
+- Como Hermes prefixará as tools: `mcp_luvimg_<tool_name>`.
+- Health dashboard interno (`/mcp-health`) e cron de 5min para o agente saber se há degradação.
 
-- Não toco no ponto 7 (IA a ler ata completa e criar deliberações) — confirmado como fase 2 pelo Bilal.
-- Não publico/anuncio nada como "live" até o bundle público refletir o novo commit (verifico via âncora string nova).
+### 4. Catálogo COMPLETO das 128 tools — agrupado por domínio
+Tabela com `nome | parâmetros chave | quando usar | escreve?`:
 
-Aprovas para arrancar a Fase A?
+- **Sistema (3)**: health_check, list_app_settings, list_mcp_health_checks, list_email_unsubscribes
+- **Search/Fetch ChatGPT-compat (2)**: search, fetch
+- **Assistências (10)**: list_assistances, get_assistance, create_assistance, update_assistance, list_assistance_communications, list_assistance_photos, upload_assistance_photo, delete_assistance_photo, list_assistance_progress, add_assistance_internal_note
+- **Comunicações & emails (4)**: add_communication, save_email_draft, update_email_status, lookup_building_by_email
+- **Follow-ups & notificações (4)**: list_follow_ups, create_follow_up, list_notifications, update_notification
+- **Tipos de intervenção (3)**: list_intervention_types, create_intervention_type, update_intervention_type
+- **Fornecedores & cotações (10)**: list_suppliers, get_supplier, create_supplier, update_supplier, list_quotations, get_quotation, create_quotation, update_quotation, delete_quotation, list_supplier_responses, submit_supplier_response
+- **Edifícios (5)**: list_buildings, get_building, create_building, update_building, lookup_building_by_email
+- **Frações (4)**: list_building_fractions, create_building_fraction, update_building_fraction, delete_building_fraction
+- **Contactos & administradores (8)**: list_building_contacts/administrators × CRUD, import_contacts
+- **Documentos edifício (3)**: list_building_documents, upload_building_document, delete_building_document
+- **Inspeções (6)**: categorias (4) + inspeções (4)
+- **Seguros & sinistros (12)**: insurances CRUD + claims + attachments + fraction_status
+- **Chaves (3)**: list_key_handovers, create_key_handover, update_key_handover
+- **Pendências Email (10)**: CRUD pendências + attachments + notes + reminders
+- **Assembleias (21)**: assemblies CRUD + items + agenda_items + resolutions + action_items + attendees + dispatches + minutes_versions
+- **Base conhecimento (4)**: list/search/get/create/update/delete_knowledge_article
+- **Logs/Activity (1)**: list_activity_log
+
+Para cada categoria: **exemplos de prompts** que o agente deve saber reconhecer ("quais as assistências pendentes do GAL?", "responde à pendência X com a minuta Y", etc.).
+
+### 5. System prompt recomendado para o agente Hermes
+Bloco pronto a colar no Hermes (`hermes prompts` ou na config), que ensina o agente:
+- Identidade (atende em PT-PT, formal, em nome da Luvimg).
+- Formato edifícios `CÓDIGO - Nome`.
+- Email oficial `geral@luvimg.com`.
+- Estado "Agendado" derivado de `scheduled_start_date`.
+- Quando pedir confirmação humana (writes em assistências, contratos, envios de email reais).
+- Tools obrigatórias para fluxos típicos (triage de pendências email, criar assistência a partir de email, follow-up de fornecedor).
+
+### 6. Playbook Fase 1 — Email (Outlook 365)
+Duas opções, comparação clara:
+
+**Opção A (recomendada): Composio MCP Outlook + Luvimg MCP em paralelo**
+- Hermes lê inbox via `mcp_composio_*` (282 tools Outlook).
+- Cria/atualiza pendências e assistências via `mcp_luvimg_*`.
+- Sem necessidade de credenciais SMTP no servidor.
+
+**Opção B: Email gateway nativo Hermes (IMAP/SMTP 365)**
+- Vars `EMAIL_*` em `~/.hermes/.env` com App Password 365.
+- Bom para "agente endereçável" (assistente@luvimg.com).
+
+Para cada uma: fluxos passo-a-passo:
+1. Receber email → `lookup_building_by_email` → `create_email_pendency` ou `create_assistance`.
+2. Triagem com `add_email_pendency_note` + `create_pendency_reminder`.
+3. Resposta com `save_email_draft` + (Composio) `Send Email`.
+
+### 7. Playbook Fase 2 — Voz / Atendimento telefónico (Grok Live)
+- Arquitetura: Grok Live como front voz → webhook → Hermes Agent → MCP Luvimg.
+- Alternativas: Vapi + Twilio (skill telephony nativa) caso Grok não exponha MCP cliente.
+- Tools mais usadas nesta fase: `lookup_building_by_email`, `list_assistances`, `create_assistance`, `list_email_pendencies`, `add_communication`.
+- Notas sobre limites Hermes (sem inbound real-time nativo) e qual gateway colocar à frente.
+
+### 8. Operação, segurança e troubleshooting
+- Como rotar `EXTERNAL_API_KEY` no Supabase + atualizar `LUVIMG_MCP_API_KEY` em `.env` Hermes (`/reload-mcp`).
+- Comandos úteis: `hermes mcp`, `hermes mcp configure luvimg`, `/reload-mcp`.
+- Erros frequentes:
+  - `406 Not Acceptable` → faltam headers Accept (Hermes trata).
+  - `401` → ordem de auth (já corrigida; ver `auth_regression_test.ts`).
+  - `404 list_assistances` antigo → resolvido (registos antigos limpos).
+- Onde ver logs: dashboard `/mcp-health`, edge function logs Supabase.
+- Limites: 1000 rows por query Supabase; tool timeout default 300s.
+
+## Anexos no documento
+- Link para health dashboard interno.
+- Link para `auth_regression_test.ts`.
+- Tabela de equivalências "se o utilizador diz X, agente chama tool Y".
+
+## Fora de âmbito (não toca em código)
+Este turn cria **apenas o documento** em `/mnt/documents/`. Sem alterações ao MCP server, agent-api, base de dados, ou config do projeto. O multi-tenant SaaS continua em plano anterior.
+
+## Aprovação
+Ao aprovar, gero o ficheiro markdown e devolvo-o com `<presentation-artifact>` para descarregares e colares na máquina onde o Hermes vai correr.
