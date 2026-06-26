@@ -231,8 +231,23 @@ mcp.tool("lookup_building_by_email", {
     properties: { email: { type: "string", description: "Email do condómino" } },
     required: ["email"],
   },
-  handler: async ({ email }: { email: string }) =>
-    asText(await callAgentApi("POST", "/v1/lookup-building-by-email", { body: { email } })),
+  handler: async ({ email }: { email: string }) => {
+    const normalized = String(email ?? "").trim().toLowerCase();
+    if (!normalized) {
+      const payload = { tool: "lookup_building_by_email", error: "Parâmetro obrigatório em falta: email", cause: "missing_required_parameter" };
+      return { isError: true, content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }], structuredContent: payload };
+    }
+    try {
+      return asText(await callAgentApi("POST", "/v1/lookup-building-by-email", { body: { email: normalized } }));
+    } catch (err) {
+      // 404 → "não encontrado" limpo (não é erro)
+      if (err instanceof AgentApiError && err.status === 404) {
+        const payload = { found: false, email: normalized, message: "Nenhum edifício associado a este email" };
+        return { content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }], structuredContent: payload };
+      }
+      throw err;
+    }
+  },
 });
 
 // 3. List assistances for a building
