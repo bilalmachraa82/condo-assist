@@ -18,6 +18,25 @@ const adminDb = SUPABASE_SERVICE_ROLE_KEY
   : null;
 
 // ── HTTP helper that calls the underlying agent-api ──
+class AgentApiError extends Error {
+  status: number;
+  path: string;
+  method: string;
+  body: unknown;
+  code?: string;
+  constructor(method: string, path: string, status: number, body: unknown) {
+    const code = (body && typeof body === "object" && (body as any).code) || undefined;
+    const apiMsg = (body && typeof body === "object" && (body as any).error) || (typeof body === "string" ? body : JSON.stringify(body));
+    super(`agent-api ${method} ${path} → ${status}: ${apiMsg}`);
+    this.name = "AgentApiError";
+    this.status = status;
+    this.path = path;
+    this.method = method;
+    this.body = body;
+    this.code = code;
+  }
+}
+
 async function callAgentApi(
   method: string,
   path: string,
@@ -32,11 +51,7 @@ async function callAgentApi(
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    // App-level auth for the agent-api (validated against EXTERNAL_API_KEY)
     "x-api-key": EXTERNAL_API_KEY,
-    // Supabase Edge runtime routing header. We deliberately do NOT send
-    // "Authorization: Bearer <anon>" here — agent-api has verify_jwt=false,
-    // and sending it would shadow x-api-key in extractToken() and cause 401.
     "apikey": SUPABASE_ANON_KEY,
   };
   if (opts.idempotencyKey) headers["idempotency-key"] = opts.idempotencyKey;
@@ -51,9 +66,7 @@ async function callAgentApi(
   let data: unknown;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
 
-  if (!res.ok) {
-    throw new Error(`agent-api ${method} ${path} → ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
-  }
+  if (!res.ok) throw new AgentApiError(method, path, res.status, data);
   return data;
 }
 
@@ -66,10 +79,65 @@ function asText(data: unknown) {
   return result;
 }
 
-// Strict OpenAI search/fetch standard: exactly one content item with JSON-encoded text,
-// no structuredContent, no extra fields.
+// Strict OpenAI search/fetch standard: JSON-encoded text + structuredContent
+// (mcp-lite v0.10 enforces structuredContent when the tool declares an outputSchema).
 function asJsonText(data: unknown) {
-  return { content: [{ type: "text" as const, text: JSON.stringify(data) }] };
+  const text = JSON.stringify(data);
+  const out: { content: Array<{ type: "text"; text: string }>; structuredContent?: unknown } = {
+    content: [{ type: "text" as const, text }],
+  };
+  if (data !== null && typeof data === "object") out.structuredContent = data;
+  return out;
+}
+
+// Build a descriptive, structured error result for a failed tool call.
+// Returning `isError: true` keeps the JSON-RPC envelope as a normal result while
+// surfacing a clear message to the caller (instead of a generic "Internal error").
+function toolErrorResult(toolName: string, err: unknown) {
+  let status: number | undefined;
+  let cause: string;
+  let message: string;
+  let body: unknown;
+  if (err instanceof AgentApiError) {
+    status = err.status;
+    body = err.body;
+    if (status === 404) {
+      message = `Não encontrado em ${err.path}`;
+      cause = "not_found";
+    } else if (status === 400 || status === 422) {
+      message = (body && typeof body === "object" && (body as any).error) || err.message;
+      cause = "validation_error";
+    } else if (status === 401 || status === 403) {
+      message = "Não autorizado a aceder a este recurso";
+      cause = "unauthorized";
+    } else {
+      message = (body && typeof body === "object" && (body as any).error) || err.message;
+      cause = "agent_api_error";
+    }
+  } else {
+    message = (err as Error)?.message ?? String(err);
+    cause = "internal_error";
+  }
+  const payload = { tool: toolName, error: message, cause, status, details: body };
+  return {
+    isError: true,
+    content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
+    structuredContent: payload,
+  };
+}
+
+// Verifica que todos os parâmetros listados em inputSchema.required estão presentes
+// e são strings não vazias (ou números/objetos válidos). Devolve mensagem em PT se falhar.
+function validateRequired(args: Record<string, unknown> | undefined, schema: any): string | null {
+  const required: string[] = Array.isArray(schema?.required) ? schema.required : [];
+  if (required.length === 0) return null;
+  const a = args ?? {};
+  for (const k of required) {
+    const v = (a as any)[k];
+    if (v === undefined || v === null) return `Parâmetro obrigatório em falta: ${k}`;
+    if (typeof v === "string" && v.trim() === "") return `Parâmetro obrigatório em falta (vazio): ${k}`;
+  }
+  return null;
 }
 
 function titleFromName(name: string) {
@@ -89,20 +157,44 @@ function defaultToolAnnotations(name: string) {
 // ── MCP Server ──
 const mcp = new McpServer({
   name: "condo-assist-mcp",
-  version: "1.0.0",
+  version: "1.3.1",
 });
 
 const registeredTools: Array<Record<string, unknown>> = [];
 const originalTool = mcp.tool.bind(mcp);
 (mcp as any).tool = (name: string, def: Record<string, unknown>) => {
+  const inputSchema = def.inputSchema ?? { type: "object", properties: {} };
+  const originalHandler = (def as any).handler as (args: any) => Promise<unknown> | unknown;
+  // Wrap every handler: (1) validate required params, (2) convert thrown
+  // errors into descriptive structured results so the agent never sees a
+  // generic "Internal error". search/fetch keep their own try/catch logic
+  // because they have their own fallback shape.
+  const wrappedHandler = async (args: any) => {
+    const missing = validateRequired(args, inputSchema);
+    if (missing) {
+      const payload = { tool: name, error: missing, cause: "missing_required_parameter" };
+      return {
+        isError: true,
+        content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
+        structuredContent: payload,
+      };
+    }
+    try {
+      return await originalHandler(args);
+    } catch (err) {
+      console.error(`[mcp tool ${name}] error:`, (err as Error)?.message ?? err);
+      return toolErrorResult(name, err);
+    }
+  };
   const enriched = {
     ...def,
     title: (def.title as string | undefined) ?? titleFromName(name),
-    inputSchema: def.inputSchema ?? { type: "object", properties: {} },
+    inputSchema,
     annotations: {
       ...defaultToolAnnotations(name),
       ...((def.annotations as Record<string, unknown> | undefined) ?? {}),
     },
+    handler: wrappedHandler,
   };
   registeredTools.push({
     name,
@@ -139,8 +231,23 @@ mcp.tool("lookup_building_by_email", {
     properties: { email: { type: "string", description: "Email do condómino" } },
     required: ["email"],
   },
-  handler: async ({ email }: { email: string }) =>
-    asText(await callAgentApi("POST", "/v1/lookup-building-by-email", { body: { email } })),
+  handler: async ({ email }: { email: string }) => {
+    const normalized = String(email ?? "").trim().toLowerCase();
+    if (!normalized) {
+      const payload = { tool: "lookup_building_by_email", error: "Parâmetro obrigatório em falta: email", cause: "missing_required_parameter" };
+      return { isError: true, content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }], structuredContent: payload };
+    }
+    try {
+      return asText(await callAgentApi("POST", "/v1/lookup-building-by-email", { body: { email: normalized } }));
+    } catch (err) {
+      // 404 → "não encontrado" limpo (não é erro)
+      if (err instanceof AgentApiError && err.status === 404) {
+        const payload = { found: false, email: normalized, message: "Nenhum edifício associado a este email" };
+        return { content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }], structuredContent: payload };
+      }
+      throw err;
+    }
+  },
 });
 
 // 3. List assistances for a building
