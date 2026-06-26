@@ -163,14 +163,38 @@ const mcp = new McpServer({
 const registeredTools: Array<Record<string, unknown>> = [];
 const originalTool = mcp.tool.bind(mcp);
 (mcp as any).tool = (name: string, def: Record<string, unknown>) => {
+  const inputSchema = def.inputSchema ?? { type: "object", properties: {} };
+  const originalHandler = (def as any).handler as (args: any) => Promise<unknown> | unknown;
+  // Wrap every handler: (1) validate required params, (2) convert thrown
+  // errors into descriptive structured results so the agent never sees a
+  // generic "Internal error". search/fetch keep their own try/catch logic
+  // because they have their own fallback shape.
+  const wrappedHandler = async (args: any) => {
+    const missing = validateRequired(args, inputSchema);
+    if (missing) {
+      const payload = { tool: name, error: missing, cause: "missing_required_parameter" };
+      return {
+        isError: true,
+        content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
+        structuredContent: payload,
+      };
+    }
+    try {
+      return await originalHandler(args);
+    } catch (err) {
+      console.error(`[mcp tool ${name}] error:`, (err as Error)?.message ?? err);
+      return toolErrorResult(name, err);
+    }
+  };
   const enriched = {
     ...def,
     title: (def.title as string | undefined) ?? titleFromName(name),
-    inputSchema: def.inputSchema ?? { type: "object", properties: {} },
+    inputSchema,
     annotations: {
       ...defaultToolAnnotations(name),
       ...((def.annotations as Record<string, unknown> | undefined) ?? {}),
     },
+    handler: wrappedHandler,
   };
   registeredTools.push({
     name,
