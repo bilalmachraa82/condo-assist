@@ -51,8 +51,8 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-function errorResponse(status: number, error: string, code: string): Response {
-  return json({ error, code }, status);
+function errorResponse(status: number, error: string, code: string, extra?: Record<string, unknown>): Response {
+  return json({ error, code, ...(extra ?? {}) }, status);
 }
 
 // ── Supabase client (service role — bypasses RLS) ──
