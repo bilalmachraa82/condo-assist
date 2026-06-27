@@ -2223,7 +2223,7 @@ app.use("*", async (c, next) => {
   if (c.req.method === "GET" && pathname.endsWith("/info")) {
     return c.json({
       name: "condo-assist-mcp",
-      version: "1.3.0",
+      version: "1.3.2",
       transport: "streamable-http",
       tools: 128,
       protocol: "MCP Streamable HTTP",
