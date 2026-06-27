@@ -23,14 +23,19 @@ Usa a mesma `EXTERNAL_API_KEY` da Agent API. Aceita:
 - Header: `Authorization: Bearer <KEY>`
 - Query param: `?api_key=<KEY>`
 
-## Ferramentas expostas — inventário completo (128, v1.3.0)
+## Ferramentas expostas — inventário completo (128, v1.3.2)
 
 Paridade completa com a app web. Lista extraída diretamente de `index.ts`.
 
+### Notas v1.3.2 (bugfixes)
+- `search` aceita **`q` ou `query`** (alias). Sem termo devolve `{results:[]}`.
+- `list_email_pendencies` e `list_assistances` aceitam `status` em **alias inglês** (`open`/`closed`) ou enum real (`aberto`, `aguarda_resposta`, … / `pending`, `in_progress`, …). Status inválido → **400 `INVALID_STATUS`** com `valid_values[]`, nunca 500.
+- `lookup_building_by_email` procura em **`building_administrators` E `condominium_contacts`** (email normalizado `lower(trim)`); sem match faz fallback por **domínio** (`%@dominio`). Devolve `{found, building_id, building_code, match_type: administrator|contact|domain, contact, matches[]}`.
+
 ### Sistema & Pesquisa (4)
 - `health_check` — verifica disponibilidade da Agent API
-- `lookup_building_by_email` — encontra edifício a partir de email de contacto
-- `search` — pesquisa global (ChatGPT Apps SDK)
+- `lookup_building_by_email` — encontra edifício a partir de email (admins + contactos + domínio)
+- `search` — pesquisa global (ChatGPT Apps SDK); aceita `q` ou `query`
 - `fetch` — obtém recurso por tipo+id (ChatGPT Apps SDK)
 
 ### Assistências (10)
