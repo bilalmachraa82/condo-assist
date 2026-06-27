@@ -279,34 +279,114 @@ async function handleHealth(): Promise<Response> {
 
 async function handleLookupBuilding(req: Request, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
   const body = await req.json();
-  const email = requireString(body.email, "email").toLowerCase();
+  const emailRaw = requireString(body.email, "email");
+  const email = emailRaw.trim().toLowerCase();
+  const domain = email.includes("@") ? email.split("@")[1] : "";
 
-  const { data: contact, error } = await supabase
-    .from("condominium_contacts")
-    .select("*, buildings(*)")
-    .ilike("email", email)
-    .maybeSingle();
+  const [adminRes, contactRes] = await Promise.all([
+    supabase
+      .from("building_administrators")
+      .select("building_id, name, email, role, buildings!inner(id, code, name, address)")
+      .ilike("email", email),
+    supabase
+      .from("condominium_contacts")
+      .select("building_id, first_name, last_name, fraction, role, email, buildings!inner(id, code, name, address)")
+      .ilike("email", email),
+  ]);
 
-  if (error) {
-    console.error("Lookup error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  if (adminRes.error) console.error("Lookup admin error:", maskPII(JSON.stringify(adminRes.error)));
+  if (contactRes.error) console.error("Lookup contact error:", maskPII(JSON.stringify(contactRes.error)));
+
+  type Match = {
+    building_id: string;
+    building_code: string;
+    name: string;
+    address: string | null;
+    match_type: "administrator" | "contact" | "domain";
+    role: string | null;
+    contact: Record<string, unknown>;
+  };
+  const matches: Match[] = [];
+
+  for (const a of (adminRes.data ?? []) as any[]) {
+    if (!a?.buildings) continue;
+    matches.push({
+      building_id: a.buildings.id,
+      building_code: a.buildings.code,
+      name: a.buildings.name,
+      address: a.buildings.address ?? null,
+      match_type: "administrator",
+      role: a.role ?? null,
+      contact: { name: a.name, email: a.email, role: a.role },
+    });
+  }
+  for (const c of (contactRes.data ?? []) as any[]) {
+    if (!c?.buildings) continue;
+    matches.push({
+      building_id: c.buildings.id,
+      building_code: c.buildings.code,
+      name: c.buildings.name,
+      address: c.buildings.address ?? null,
+      match_type: "contact",
+      role: c.role ?? null,
+      contact: { first_name: c.first_name, last_name: c.last_name, fraction: c.fraction, role: c.role, email: c.email },
+    });
   }
 
-  if (!contact) {
+  if (matches.length === 0 && domain) {
+    const pattern = `%@${domain}`;
+    const [adminDom, contactDom] = await Promise.all([
+      supabase.from("building_administrators")
+        .select("building_id, name, email, role, buildings!inner(id, code, name, address)")
+        .ilike("email", pattern).limit(20),
+      supabase.from("condominium_contacts")
+        .select("building_id, first_name, last_name, fraction, role, email, buildings!inner(id, code, name, address)")
+        .ilike("email", pattern).limit(20),
+    ]);
+    for (const a of (adminDom.data ?? []) as any[]) {
+      if (!a?.buildings) continue;
+      matches.push({
+        building_id: a.buildings.id, building_code: a.buildings.code, name: a.buildings.name,
+        address: a.buildings.address ?? null, match_type: "domain", role: a.role ?? null,
+        contact: { name: a.name, email: a.email, role: a.role, source: "administrator" },
+      });
+    }
+    for (const c of (contactDom.data ?? []) as any[]) {
+      if (!c?.buildings) continue;
+      matches.push({
+        building_id: c.buildings.id, building_code: c.buildings.code, name: c.buildings.name,
+        address: c.buildings.address ?? null, match_type: "domain", role: c.role ?? null,
+        contact: { first_name: c.first_name, last_name: c.last_name, email: c.email, source: "contact" },
+      });
+    }
+  }
+
+  if (matches.length === 0) {
     return errorResponse(404, "No building found for this email", "NOT_FOUND");
   }
 
+  const seen = new Set<string>();
+  const order = { administrator: 0, contact: 1, domain: 2 } as const;
+  const unique = matches
+    .sort((a, b) => order[a.match_type] - order[b.match_type])
+    .filter((m) => {
+      const k = `${m.building_id}:${m.match_type}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
+  const primary = unique[0];
   return json({
-    building_id: contact.buildings.id,
-    building_code: contact.buildings.code,
-    name: contact.buildings.name,
-    address: contact.buildings.address,
-    contact: {
-      first_name: contact.first_name,
-      last_name: contact.last_name,
-      fraction: contact.fraction,
-      role: contact.role,
-    },
+    found: true,
+    email,
+    building_id: primary.building_id,
+    building_code: primary.building_code,
+    name: primary.name,
+    address: primary.address,
+    match_type: primary.match_type,
+    contact: primary.contact,
+    matches: unique,
   });
 }
 
