@@ -1755,11 +1755,13 @@ const fetchOutputSchema = {
 
 const searchDef = {
   title: "Search",
-  description: "Search across assistances, buildings, suppliers, knowledge base and assembly items. Returns a list of results with id, title and url, compatible with the ChatGPT/OpenAI Apps SDK search standard.",
+  description: "Search across assistances, buildings, suppliers, knowledge base and assembly items. Aceita 'query' ou 'q' como termo de pesquisa. Returns a list of results with id, title and url, compatible with the ChatGPT/OpenAI Apps SDK search standard.",
   inputSchema: {
     type: "object",
-    properties: { query: { type: "string", description: "Search query" } },
-    required: ["query"],
+    properties: {
+      query: { type: "string", description: "Search query (alias: q)" },
+      q: { type: "string", description: "Alias para 'query'" },
+    },
     additionalProperties: false,
   },
   outputSchema: searchOutputSchema,
@@ -1769,8 +1771,8 @@ const searchDef = {
     destructiveHint: false,
     idempotentHint: true,
   },
-  handler: async ({ query }: { query: string }) => {
-    const q = (query ?? "").trim();
+  handler: async (args: { query?: string; q?: string }) => {
+    const q = String(args?.query ?? args?.q ?? "").trim();
     const results: Array<{ id: string; title: string; url: string }> = [];
     if (!q) return asJsonText({ results });
 
