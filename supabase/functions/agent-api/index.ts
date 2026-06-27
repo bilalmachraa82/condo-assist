@@ -1922,7 +1922,7 @@ async function handleAddClaimNote(req: Request, params: Record<string, string>, 
 async function handleListEmailPendencies(url: URL, supabase: ReturnType<typeof getSupabase>) {
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 200);
   const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
-  const status = url.searchParams.get("status");
+  const statusRaw = url.searchParams.get("status")?.trim().toLowerCase() || null;
   const priority = url.searchParams.get("priority");
   const buildingId = url.searchParams.get("building_id");
   const assignedTo = url.searchParams.get("assigned_to");
@@ -1930,11 +1930,21 @@ async function handleListEmailPendencies(url: URL, supabase: ReturnType<typeof g
   const assistanceId = url.searchParams.get("assistance_id");
   const search = url.searchParams.get("q");
 
+  const PEND_STATUSES = ["aberto","aguarda_resposta","resposta_recebida","precisa_decisao","escalado","resolvido","cancelado"];
+  const PEND_OPEN = ["aberto","aguarda_resposta","resposta_recebida","precisa_decisao","escalado"];
+  const PEND_CLOSED = ["resolvido","cancelado"];
+
   let q = supabase.from("email_pendencies")
     .select("*, buildings:building_id(id,code,name), assistance:assistance_id(id,assistance_number,title), supplier:supplier_id(id,name)", { count: "exact" })
     .order("last_activity_at", { ascending: false })
     .range(offset, offset + limit - 1);
-  if (status) q = q.eq("status", status);
+
+  if (statusRaw) {
+    if (statusRaw === "open") q = q.in("status", PEND_OPEN);
+    else if (statusRaw === "closed") q = q.in("status", PEND_CLOSED);
+    else if (PEND_STATUSES.includes(statusRaw)) q = q.eq("status", statusRaw);
+    else return errorResponse(400, `Invalid status: ${statusRaw}`, "INVALID_STATUS", { valid_values: [...PEND_STATUSES, "open", "closed"] });
+  }
   if (priority) q = q.eq("priority", priority);
   if (buildingId) q = q.eq("building_id", buildingId);
   if (assignedTo) q = q.eq("assigned_to", assignedTo);
@@ -1943,7 +1953,10 @@ async function handleListEmailPendencies(url: URL, supabase: ReturnType<typeof g
   if (search) q = q.or(`title.ilike.%${search}%,description.ilike.%${search}%,subject.ilike.%${search}%`);
 
   const { data, error, count } = await q;
-  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  if (error) {
+    console.error("List pendencies error:", maskPII(JSON.stringify(error)));
+    return errorResponse(400, error.message || "Query failed", "QUERY_ERROR", { details: error.message });
+  }
   return json({ total: count ?? 0, limit, offset, pendencies: data || [] });
 }
 
