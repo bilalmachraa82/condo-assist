@@ -157,7 +157,7 @@ function defaultToolAnnotations(name: string) {
 // ── MCP Server ──
 const mcp = new McpServer({
   name: "condo-assist-mcp",
-  version: "1.3.1",
+  version: "1.3.2",
 });
 
 const registeredTools: Array<Record<string, unknown>> = [];
