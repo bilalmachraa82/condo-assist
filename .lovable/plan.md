@@ -1,129 +1,87 @@
+## Bugs confirmados (e causa real)
 
-# Plano: Documento de integração Hermes Agent ↔ MCP Luvimg
+**BUG 1 — `lookup_building_by_email` ignora administradores**
+`agent-api` linha 280-311 (`handleLookupBuilding`) só procura em `condominium_contacts`. A tabela `building_administrators` (que tem coluna `email` e é onde estão os admins do edifício 175) nunca é consultada. Mesmo o `condominium_contacts` está a usar `.ilike(email, normalized)` (sem `lower(trim())` no lado da BD), correcto para emails simples mas falha em variações com espaços.
 
-## Contexto verificado
+**BUG 2 — `list_email_pendencies` 500 em `status="open"`**
+Confirmado com query directa: o enum real é `pendency_status` com valores **`aberto, aguarda_resposta, resposta_recebida, precisa_decisao, escalado, resolvido, cancelado`** (40 + 18 linhas em `aberto`/`aguarda_resposta`). Em `agent-api` linha 1850 faz `q.eq("status", status)` directo; quando o agente envia `"open"` o Postgres rejeita o cast para o enum e devolve erro → handler converte em 500 genérico.
 
-**Hermes Agent** = produto da **Nous Research** (open-source, MIT, `NousResearch/hermes-agent`). Suporta nativamente:
-- MCP via **Streamable HTTP** (sem precisar de `mcp-remote`/bridge) e stdio.
-- Auth via header arbitrário (`x-api-key`, `Authorization: Bearer`, ...), OAuth 2.1 PKCE e mTLS.
-- Config 100% YAML em `~/.hermes/config.yaml`, com `${VAR}` para secrets em `~/.hermes/.env`.
-- Email: gateway IMAP/SMTP nativo (funciona com Outlook/365) + skill Himalaya + Composio MCP (282 tools Outlook).
-- Telefone (fase 2): skill `telephony` (Twilio + Vapi/Bland.ai) para outbound IA; inbound real-time ainda não nativo — Grok Live confirmado para fase 2.
+**BUG 3 — `search` exige `query`, agente envia `q`**
+`searchDef` (mcp-server linha 1756-1772) só aceita `query`. Outras tools usam `q`. Validação automática do wrapper acusa "Parâmetro obrigatório em falta: query".
 
-**Estado MCP Luvimg confirmado por leitura do código:**
-- `mcp-server/index.ts` v1.3.0, transport Streamable HTTP, URL `https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server`.
-- Auth: header `x-api-key: $EXTERNAL_API_KEY` (prioridade confirmada; ver `auth_regression_test.ts`).
-- **128 tools registadas** (contagem feita por grep — coincide com versão 1.3.0).
-- Single-tenant Luvimg confirmado pelo utilizador.
+## Bugs adicionais detectados durante a auditoria
 
-## Entregável
+**BUG 4 — Aliases de status em `list_assistances` também são frágeis**
+A tool documenta `status: open/closed/...` mas `assistances.status` é também enum próprio (`pending/in_progress/completed/...`). Hoje passa só por tal e qual; se o agente mandar um alias inglês explode com 500 igual ao bug 2. Aplicar a mesma normalização (alias → lista de estados reais + 400 se inválido).
 
-Um único ficheiro markdown:
+**BUG 5 — `.single()` residual em `create/update` handlers de pendências e administrators**
+Linhas 1674/1685/1894/1906 ainda usam `.single()`; em insert/update normalmente devolve 1 linha, mas se um trigger filtrar via RLS dá 500. Trocar por `.maybeSingle()` + erro descritivo.
 
-`/mnt/documents/hermes-luvimg-mcp-integration.md`
+**BUG 6 — Inputs do agente com `status` em maiúsculas/acentos**
+Normalizar `status?.trim().toLowerCase()` em todos os filtros enum antes da query.
 
-Estrutura (≈ 8 secções, pronto a colar / partilhar):
+## Plano de correção (sem renomear tools)
 
-### 1. TL;DR — Setup em 5 minutos
-- Instalar Hermes (one-liner curl/iex).
-- Criar `~/.hermes/.env` com `LUVIMG_MCP_API_KEY=...`.
-- Colar bloco `mcp_servers:` no `~/.hermes/config.yaml`.
-- `hermes chat` → testar com `mcp_luvimg_health_check`.
+### 1. `supabase/functions/agent-api/index.ts` — `handleLookupBuilding`
 
-### 2. Bloco YAML pronto a colar
-```yaml
-mcp_servers:
-  luvimg:
-    url: "https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server"
-    headers:
-      x-api-key: "${LUVIMG_MCP_API_KEY}"
-    connect_timeout: 30
-    timeout: 180
-    supports_parallel_tool_calls: true
-    tools:
-      resources: false
-      prompts: false
+Reescrever para procurar em paralelo nas duas tabelas, com email normalizado:
+
+- `email_norm = email.trim().toLowerCase()`
+- Query 1: `building_administrators` `.select("building_id, name, email, role, buildings(id,code,name,address)").ilike("email", email_norm)`
+- Query 2: `condominium_contacts` `.select("first_name,last_name,fraction,role,email, buildings(id,code,name,address)").ilike("email", email_norm)`
+- Se 0 resultados → 404 `NOT_FOUND` (mcp-server já trata como `{found:false}`).
+- Se ≥1 → devolver `{ found:true, matches:[{building_id, building_code, name, address, match_type:"administrator"|"contact", role, contact:{...}}] }` ordenado por `match_type` (admin primeiro).
+- Fallback opcional por domínio: se 0 matches por email exacto, tentar `email.split('@')[1]` em ambas as tabelas via `ilike('email', '%@'+domain)` e marcar `match_type:"domain"`.
+
+### 2. `supabase/functions/agent-api/index.ts` — `handleListEmailPendencies`
+
+Adicionar mapa de aliases imediatamente antes de `q.eq("status", status)`:
+
 ```
-+ variante com Composio Outlook em paralelo para email Microsoft 365.
+const PENDENCY_STATUS = ["aberto","aguarda_resposta","resposta_recebida","precisa_decisao","escalado","resolvido","cancelado"];
+const OPEN_STATES = ["aberto","aguarda_resposta","resposta_recebida","precisa_decisao","escalado"];
+const CLOSED_STATES = ["resolvido","cancelado"];
+```
 
-### 3. Identidade do servidor MCP
-- Nome / versão / transport / endpoints (`POST /` JSON-RPC, headers obrigatórios `Accept: application/json, text/event-stream`).
-- Como Hermes prefixará as tools: `mcp_luvimg_<tool_name>`.
-- Health dashboard interno (`/mcp-health`) e cron de 5min para o agente saber se há degradação.
+- `status === "open"` → `q.in("status", OPEN_STATES)`
+- `status === "closed"` → `q.in("status", CLOSED_STATES)`
+- enum válido → `q.eq("status", status)`
+- inválido → `400 { error, code:"INVALID_STATUS", valid_values:[...,"open","closed"] }` (NUNCA 500).
 
-### 4. Catálogo COMPLETO das 128 tools — agrupado por domínio
-Tabela com `nome | parâmetros chave | quando usar | escreve?`:
+Envolver a query em try/catch e devolver 400 com `details` se o Postgres ainda assim rejeitar.
 
-- **Sistema (3)**: health_check, list_app_settings, list_mcp_health_checks, list_email_unsubscribes
-- **Search/Fetch ChatGPT-compat (2)**: search, fetch
-- **Assistências (10)**: list_assistances, get_assistance, create_assistance, update_assistance, list_assistance_communications, list_assistance_photos, upload_assistance_photo, delete_assistance_photo, list_assistance_progress, add_assistance_internal_note
-- **Comunicações & emails (4)**: add_communication, save_email_draft, update_email_status, lookup_building_by_email
-- **Follow-ups & notificações (4)**: list_follow_ups, create_follow_up, list_notifications, update_notification
-- **Tipos de intervenção (3)**: list_intervention_types, create_intervention_type, update_intervention_type
-- **Fornecedores & cotações (10)**: list_suppliers, get_supplier, create_supplier, update_supplier, list_quotations, get_quotation, create_quotation, update_quotation, delete_quotation, list_supplier_responses, submit_supplier_response
-- **Edifícios (5)**: list_buildings, get_building, create_building, update_building, lookup_building_by_email
-- **Frações (4)**: list_building_fractions, create_building_fraction, update_building_fraction, delete_building_fraction
-- **Contactos & administradores (8)**: list_building_contacts/administrators × CRUD, import_contacts
-- **Documentos edifício (3)**: list_building_documents, upload_building_document, delete_building_document
-- **Inspeções (6)**: categorias (4) + inspeções (4)
-- **Seguros & sinistros (12)**: insurances CRUD + claims + attachments + fraction_status
-- **Chaves (3)**: list_key_handovers, create_key_handover, update_key_handover
-- **Pendências Email (10)**: CRUD pendências + attachments + notes + reminders
-- **Assembleias (21)**: assemblies CRUD + items + agenda_items + resolutions + action_items + attendees + dispatches + minutes_versions
-- **Base conhecimento (4)**: list/search/get/create/update/delete_knowledge_article
-- **Logs/Activity (1)**: list_activity_log
+### 3. Aplicar a mesma normalização em `handleListAssistances` (status assistências)
 
-Para cada categoria: **exemplos de prompts** que o agente deve saber reconhecer ("quais as assistências pendentes do GAL?", "responde à pendência X com a minuta Y", etc.).
+Construir alias map equivalente para o enum `assistance_status` (`pending/in_progress/completed/...`) e devolver 400 em vez de 500 quando alias é desconhecido.
 
-### 5. System prompt recomendado para o agente Hermes
-Bloco pronto a colar no Hermes (`hermes prompts` ou na config), que ensina o agente:
-- Identidade (atende em PT-PT, formal, em nome da Luvimg).
-- Formato edifícios `CÓDIGO - Nome`.
-- Email oficial `geral@luvimg.com`.
-- Estado "Agendado" derivado de `scheduled_start_date`.
-- Quando pedir confirmação humana (writes em assistências, contratos, envios de email reais).
-- Tools obrigatórias para fluxos típicos (triage de pendências email, criar assistência a partir de email, follow-up de fornecedor).
+### 4. `supabase/functions/mcp-server/index.ts` — `searchDef`
 
-### 6. Playbook Fase 1 — Email (Outlook 365)
-Duas opções, comparação clara:
+- `inputSchema.properties` aceita `query` E `q` (ambos string).
+- `required: []` (validação manual no handler).
+- Handler: `const term = (args.query ?? args.q ?? "").toString().trim();` — se vazio devolver `{results:[]}`, sem erro.
+- Manter `additionalProperties:false` removido ou alargado (para passar `q`).
+- Repetir igual em `chatgptSearchDescriptor` (variant `/chatgpt`) para consistência.
 
-**Opção A (recomendada): Composio MCP Outlook + Luvimg MCP em paralelo**
-- Hermes lê inbox via `mcp_composio_*` (282 tools Outlook).
-- Cria/atualiza pendências e assistências via `mcp_luvimg_*`.
-- Sem necessidade de credenciais SMTP no servidor.
+### 5. Substituir `.single()` por `.maybeSingle()` nos handlers de write
 
-**Opção B: Email gateway nativo Hermes (IMAP/SMTP 365)**
-- Vars `EMAIL_*` em `~/.hermes/.env` com App Password 365.
-- Bom para "agente endereçável" (assistente@luvimg.com).
+`handleCreate/Update/UpsertBuildingAdministrator`, `handleCreateEmailPendency`, `handleUpdateEmailPendency`, `handleCreateCondominiumContact`, `handleUpdateCondominiumContact` (linhas 1674/1685/2454/2463/1894/1906). Em null → 404; em erro → 400/500 com mensagem clara.
 
-Para cada uma: fluxos passo-a-passo:
-1. Receber email → `lookup_building_by_email` → `create_email_pendency` ou `create_assistance`.
-2. Triagem com `add_email_pendency_note` + `create_pendency_reminder`.
-3. Resposta com `save_email_draft` + (Composio) `Send Email`.
+### 6. Verificação end-to-end
 
-### 7. Playbook Fase 2 — Voz / Atendimento telefónico (Grok Live)
-- Arquitetura: Grok Live como front voz → webhook → Hermes Agent → MCP Luvimg.
-- Alternativas: Vapi + Twilio (skill telephony nativa) caso Grok não exponha MCP cliente.
-- Tools mais usadas nesta fase: `lookup_building_by_email`, `list_assistances`, `create_assistance`, `list_email_pendencies`, `add_communication`.
-- Notas sobre limites Hermes (sem inbound real-time nativo) e qual gateway colocar à frente.
+Após deploy, executar via `curl` (REST) e via JSON-RPC (`tools/call`):
 
-### 8. Operação, segurança e troubleshooting
-- Como rotar `EXTERNAL_API_KEY` no Supabase + atualizar `LUVIMG_MCP_API_KEY` em `.env` Hermes (`/reload-mcp`).
-- Comandos úteis: `hermes mcp`, `hermes mcp configure luvimg`, `/reload-mcp`.
-- Erros frequentes:
-  - `406 Not Acceptable` → faltam headers Accept (Hermes trata).
-  - `401` → ordem de auth (já corrigida; ver `auth_regression_test.ts`).
-  - `404 list_assistances` antigo → resolvido (registos antigos limpos).
-- Onde ver logs: dashboard `/mcp-health`, edge function logs Supabase.
-- Limites: 1000 rows por query Supabase; tool timeout default 300s.
+1. `lookup_building_by_email` com um dos 3 emails de admins do edifício 175 → devolve `building_code:"175"` e `match_type:"administrator"`.
+2. `list_email_pendencies` com `status="open"` → 200 com ≥58 pendências; com `status="lixo"` → 400 limpo; sem `status` → 200 com todas.
+3. `search` com `{q:"175"}` → 200 com resultados; com `{query:"175"}` → idem; sem nada → `{results:[]}`.
+4. `list_assistances` com `status="lixo"` → 400 (não 500).
+5. Re-correr `auth_regression_test.ts` e o `mcp-health-cron` para confirmar 0 regressões.
 
-## Anexos no documento
-- Link para health dashboard interno.
-- Link para `auth_regression_test.ts`.
-- Tabela de equivalências "se o utilizador diz X, agente chama tool Y".
+### 7. Documentação
 
-## Fora de âmbito (não toca em código)
-Este turn cria **apenas o documento** em `/mnt/documents/`. Sem alterações ao MCP server, agent-api, base de dados, ou config do projeto. O multi-tenant SaaS continua em plano anterior.
+Bump `mcp-server` versão para `1.3.2`. Actualizar `supabase/functions/mcp-server/README.md` (notas sobre alias `q`/`query` no search, aliases de status em `list_email_pendencies` e `list_assistances`, e que `lookup_building_by_email` cobre admins + contactos). Actualizar `.lovable/memory/features/mcp-server.md` com a mesma informação.
 
-## Aprovação
-Ao aprovar, gero o ficheiro markdown e devolvo-o com `<presentation-artifact>` para descarregares e colares na máquina onde o Hermes vai correr.
+## Não-objectivos (preserva a config dos clientes MCP já ligados)
+
+- Não renomear nenhuma das 128 tools.
+- Não alterar URLs do endpoint `/mcp-server` nem do `/chatgpt`.
+- Não remover propriedades existentes — só adicionar (`q` ao lado de `query`).

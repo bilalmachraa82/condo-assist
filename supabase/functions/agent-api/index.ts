@@ -51,8 +51,8 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-function errorResponse(status: number, error: string, code: string): Response {
-  return json({ error, code }, status);
+function errorResponse(status: number, error: string, code: string, extra?: Record<string, unknown>): Response {
+  return json({ error, code, ...(extra ?? {}) }, status);
 }
 
 // ── Supabase client (service role — bypasses RLS) ──
@@ -279,34 +279,114 @@ async function handleHealth(): Promise<Response> {
 
 async function handleLookupBuilding(req: Request, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
   const body = await req.json();
-  const email = requireString(body.email, "email").toLowerCase();
+  const emailRaw = requireString(body.email, "email");
+  const email = emailRaw.trim().toLowerCase();
+  const domain = email.includes("@") ? email.split("@")[1] : "";
 
-  const { data: contact, error } = await supabase
-    .from("condominium_contacts")
-    .select("*, buildings(*)")
-    .ilike("email", email)
-    .maybeSingle();
+  const [adminRes, contactRes] = await Promise.all([
+    supabase
+      .from("building_administrators")
+      .select("building_id, name, email, role, buildings!inner(id, code, name, address)")
+      .ilike("email", email),
+    supabase
+      .from("condominium_contacts")
+      .select("building_id, first_name, last_name, fraction, role, email, buildings!inner(id, code, name, address)")
+      .ilike("email", email),
+  ]);
 
-  if (error) {
-    console.error("Lookup error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  if (adminRes.error) console.error("Lookup admin error:", maskPII(JSON.stringify(adminRes.error)));
+  if (contactRes.error) console.error("Lookup contact error:", maskPII(JSON.stringify(contactRes.error)));
+
+  type Match = {
+    building_id: string;
+    building_code: string;
+    name: string;
+    address: string | null;
+    match_type: "administrator" | "contact" | "domain";
+    role: string | null;
+    contact: Record<string, unknown>;
+  };
+  const matches: Match[] = [];
+
+  for (const a of (adminRes.data ?? []) as any[]) {
+    if (!a?.buildings) continue;
+    matches.push({
+      building_id: a.buildings.id,
+      building_code: a.buildings.code,
+      name: a.buildings.name,
+      address: a.buildings.address ?? null,
+      match_type: "administrator",
+      role: a.role ?? null,
+      contact: { name: a.name, email: a.email, role: a.role },
+    });
+  }
+  for (const c of (contactRes.data ?? []) as any[]) {
+    if (!c?.buildings) continue;
+    matches.push({
+      building_id: c.buildings.id,
+      building_code: c.buildings.code,
+      name: c.buildings.name,
+      address: c.buildings.address ?? null,
+      match_type: "contact",
+      role: c.role ?? null,
+      contact: { first_name: c.first_name, last_name: c.last_name, fraction: c.fraction, role: c.role, email: c.email },
+    });
   }
 
-  if (!contact) {
+  if (matches.length === 0 && domain) {
+    const pattern = `%@${domain}`;
+    const [adminDom, contactDom] = await Promise.all([
+      supabase.from("building_administrators")
+        .select("building_id, name, email, role, buildings!inner(id, code, name, address)")
+        .ilike("email", pattern).limit(20),
+      supabase.from("condominium_contacts")
+        .select("building_id, first_name, last_name, fraction, role, email, buildings!inner(id, code, name, address)")
+        .ilike("email", pattern).limit(20),
+    ]);
+    for (const a of (adminDom.data ?? []) as any[]) {
+      if (!a?.buildings) continue;
+      matches.push({
+        building_id: a.buildings.id, building_code: a.buildings.code, name: a.buildings.name,
+        address: a.buildings.address ?? null, match_type: "domain", role: a.role ?? null,
+        contact: { name: a.name, email: a.email, role: a.role, source: "administrator" },
+      });
+    }
+    for (const c of (contactDom.data ?? []) as any[]) {
+      if (!c?.buildings) continue;
+      matches.push({
+        building_id: c.buildings.id, building_code: c.buildings.code, name: c.buildings.name,
+        address: c.buildings.address ?? null, match_type: "domain", role: c.role ?? null,
+        contact: { first_name: c.first_name, last_name: c.last_name, email: c.email, source: "contact" },
+      });
+    }
+  }
+
+  if (matches.length === 0) {
     return errorResponse(404, "No building found for this email", "NOT_FOUND");
   }
 
+  const seen = new Set<string>();
+  const order = { administrator: 0, contact: 1, domain: 2 } as const;
+  const unique = matches
+    .sort((a, b) => order[a.match_type] - order[b.match_type])
+    .filter((m) => {
+      const k = `${m.building_id}:${m.match_type}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
+  const primary = unique[0];
   return json({
-    building_id: contact.buildings.id,
-    building_code: contact.buildings.code,
-    name: contact.buildings.name,
-    address: contact.buildings.address,
-    contact: {
-      first_name: contact.first_name,
-      last_name: contact.last_name,
-      fraction: contact.fraction,
-      role: contact.role,
-    },
+    found: true,
+    email,
+    building_id: primary.building_id,
+    building_code: primary.building_code,
+    name: primary.name,
+    address: primary.address,
+    match_type: primary.match_type,
+    contact: primary.contact,
+    matches: unique,
   });
 }
 
@@ -316,9 +396,13 @@ async function handleListAssistances(
   supabase: ReturnType<typeof getSupabase>
 ): Promise<Response> {
   const buildingId = params.buildingId;
-  const statusFilter = url.searchParams.get("status") || "open";
+  const statusFilterRaw = (url.searchParams.get("status") || "open").trim().toLowerCase();
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "20"), 100);
   const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
+
+  const ASSIST_STATUSES = ["pending","awaiting_quotation","quotation_received","accepted","scheduled","in_progress","completed","cancelled"];
+  const ASSIST_OPEN = ["pending","awaiting_quotation","quotation_received","accepted","scheduled","in_progress"];
+  const ASSIST_CLOSED = ["completed","cancelled"];
 
   let query = supabase
     .from("assistances")
@@ -327,13 +411,16 @@ async function handleListAssistances(
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (statusFilter === "open") {
-    query = query.in("status", ["pending", "awaiting_quotation", "in_progress", "scheduled", "accepted"]);
-  } else if (statusFilter === "closed") {
-    query = query.in("status", ["completed", "cancelled"]);
+  if (statusFilterRaw === "open") {
+    query = query.in("status", ASSIST_OPEN);
+  } else if (statusFilterRaw === "closed") {
+    query = query.in("status", ASSIST_CLOSED);
+  } else if (ASSIST_STATUSES.includes(statusFilterRaw)) {
+    query = query.eq("status", statusFilterRaw);
   } else {
-    query = query.eq("status", statusFilter);
+    return errorResponse(400, `Invalid status: ${statusFilterRaw}`, "INVALID_STATUS", { valid_values: [...ASSIST_STATUSES, "open", "closed"] });
   }
+
 
   const { data, error, count } = await query;
 
@@ -1835,7 +1922,7 @@ async function handleAddClaimNote(req: Request, params: Record<string, string>, 
 async function handleListEmailPendencies(url: URL, supabase: ReturnType<typeof getSupabase>) {
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 200);
   const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
-  const status = url.searchParams.get("status");
+  const statusRaw = url.searchParams.get("status")?.trim().toLowerCase() || null;
   const priority = url.searchParams.get("priority");
   const buildingId = url.searchParams.get("building_id");
   const assignedTo = url.searchParams.get("assigned_to");
@@ -1843,11 +1930,21 @@ async function handleListEmailPendencies(url: URL, supabase: ReturnType<typeof g
   const assistanceId = url.searchParams.get("assistance_id");
   const search = url.searchParams.get("q");
 
+  const PEND_STATUSES = ["aberto","aguarda_resposta","resposta_recebida","precisa_decisao","escalado","resolvido","cancelado"];
+  const PEND_OPEN = ["aberto","aguarda_resposta","resposta_recebida","precisa_decisao","escalado"];
+  const PEND_CLOSED = ["resolvido","cancelado"];
+
   let q = supabase.from("email_pendencies")
     .select("*, buildings:building_id(id,code,name), assistance:assistance_id(id,assistance_number,title), supplier:supplier_id(id,name)", { count: "exact" })
     .order("last_activity_at", { ascending: false })
     .range(offset, offset + limit - 1);
-  if (status) q = q.eq("status", status);
+
+  if (statusRaw) {
+    if (statusRaw === "open") q = q.in("status", PEND_OPEN);
+    else if (statusRaw === "closed") q = q.in("status", PEND_CLOSED);
+    else if (PEND_STATUSES.includes(statusRaw)) q = q.eq("status", statusRaw);
+    else return errorResponse(400, `Invalid status: ${statusRaw}`, "INVALID_STATUS", { valid_values: [...PEND_STATUSES, "open", "closed"] });
+  }
   if (priority) q = q.eq("priority", priority);
   if (buildingId) q = q.eq("building_id", buildingId);
   if (assignedTo) q = q.eq("assigned_to", assignedTo);
@@ -1856,7 +1953,10 @@ async function handleListEmailPendencies(url: URL, supabase: ReturnType<typeof g
   if (search) q = q.or(`title.ilike.%${search}%,description.ilike.%${search}%,subject.ilike.%${search}%`);
 
   const { data, error, count } = await q;
-  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  if (error) {
+    console.error("List pendencies error:", maskPII(JSON.stringify(error)));
+    return errorResponse(400, error.message || "Query failed", "QUERY_ERROR", { details: error.message });
+  }
   return json({ total: count ?? 0, limit, offset, pendencies: data || [] });
 }
 

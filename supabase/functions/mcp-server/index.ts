@@ -157,7 +157,7 @@ function defaultToolAnnotations(name: string) {
 // ── MCP Server ──
 const mcp = new McpServer({
   name: "condo-assist-mcp",
-  version: "1.3.1",
+  version: "1.3.2",
 });
 
 const registeredTools: Array<Record<string, unknown>> = [];
@@ -1755,11 +1755,13 @@ const fetchOutputSchema = {
 
 const searchDef = {
   title: "Search",
-  description: "Search across assistances, buildings, suppliers, knowledge base and assembly items. Returns a list of results with id, title and url, compatible with the ChatGPT/OpenAI Apps SDK search standard.",
+  description: "Search across assistances, buildings, suppliers, knowledge base and assembly items. Aceita 'query' ou 'q' como termo de pesquisa. Returns a list of results with id, title and url, compatible with the ChatGPT/OpenAI Apps SDK search standard.",
   inputSchema: {
     type: "object",
-    properties: { query: { type: "string", description: "Search query" } },
-    required: ["query"],
+    properties: {
+      query: { type: "string", description: "Search query (alias: q)" },
+      q: { type: "string", description: "Alias para 'query'" },
+    },
     additionalProperties: false,
   },
   outputSchema: searchOutputSchema,
@@ -1769,8 +1771,8 @@ const searchDef = {
     destructiveHint: false,
     idempotentHint: true,
   },
-  handler: async ({ query }: { query: string }) => {
-    const q = (query ?? "").trim();
+  handler: async (args: { query?: string; q?: string }) => {
+    const q = String(args?.query ?? args?.q ?? "").trim();
     const results: Array<{ id: string; title: string; url: string }> = [];
     if (!q) return asJsonText({ results });
 
@@ -2221,7 +2223,7 @@ app.use("*", async (c, next) => {
   if (c.req.method === "GET" && pathname.endsWith("/info")) {
     return c.json({
       name: "condo-assist-mcp",
-      version: "1.3.0",
+      version: "1.3.2",
       transport: "streamable-http",
       tools: 128,
       protocol: "MCP Streamable HTTP",
