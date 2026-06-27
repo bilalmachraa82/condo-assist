@@ -1,6 +1,6 @@
 ---
 name: MCP Server for Claude Desktop / ChatGPT
-description: Edge function mcp-server exposing Agent API as 128 MCP tools via mcp-lite + Hono, full read/write parity with the website. Includes email pendencies, full assemblies module, building structural data, observability tools, auth header priority fix, and continuous health monitoring.
+description: Edge function mcp-server exposing Agent API as 128 MCP tools via mcp-lite + Hono, full read/write parity with the website. v1.3.2 — search aceita 'q' OU 'query', list_email_pendencies/list_assistances normalizam status (open/closed/enum real, 400 em vez de 500 para inválidos), lookup_building_by_email procura em building_administrators E condominium_contacts com fallback por domínio.
 type: feature
 ---
 
