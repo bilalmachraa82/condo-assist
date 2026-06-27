@@ -396,9 +396,13 @@ async function handleListAssistances(
   supabase: ReturnType<typeof getSupabase>
 ): Promise<Response> {
   const buildingId = params.buildingId;
-  const statusFilter = url.searchParams.get("status") || "open";
+  const statusFilterRaw = (url.searchParams.get("status") || "open").trim().toLowerCase();
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "20"), 100);
   const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
+
+  const ASSIST_STATUSES = ["pending","awaiting_quotation","quotation_received","accepted","scheduled","in_progress","completed","cancelled"];
+  const ASSIST_OPEN = ["pending","awaiting_quotation","quotation_received","accepted","scheduled","in_progress"];
+  const ASSIST_CLOSED = ["completed","cancelled"];
 
   let query = supabase
     .from("assistances")
@@ -407,13 +411,16 @@ async function handleListAssistances(
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (statusFilter === "open") {
-    query = query.in("status", ["pending", "awaiting_quotation", "in_progress", "scheduled", "accepted"]);
-  } else if (statusFilter === "closed") {
-    query = query.in("status", ["completed", "cancelled"]);
+  if (statusFilterRaw === "open") {
+    query = query.in("status", ASSIST_OPEN);
+  } else if (statusFilterRaw === "closed") {
+    query = query.in("status", ASSIST_CLOSED);
+  } else if (ASSIST_STATUSES.includes(statusFilterRaw)) {
+    query = query.eq("status", statusFilterRaw);
   } else {
-    query = query.eq("status", statusFilter);
+    return errorResponse(400, `Invalid status: ${statusFilterRaw}`, "INVALID_STATUS", { valid_values: [...ASSIST_STATUSES, "open", "closed"] });
   }
+
 
   const { data, error, count } = await query;
 
