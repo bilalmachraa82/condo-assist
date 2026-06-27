@@ -31,7 +31,14 @@ Cobertura: `supabase/functions/agent-api/auth_regression_test.ts` corre live con
 ### Endpoints
 - `POST /mcp-server` — JSON-RPC MCP "full" (Claude Desktop, MCP Inspector) → 128 tools
 - `POST /mcp-server/chatgpt` — JSON-RPC MCP "chatgpt-safe" → só `search` + `fetch`
-- `GET /mcp-server/info` — metadata pública (sem auth) → `{ tools: 128, version: "1.3.0" }`
+- `GET /mcp-server/info` — metadata pública (sem auth) → `{ tools: 128, version: "1.3.2" }`
+
+### v1.3.2 — bugfixes operacionais (Jun 2026)
+- **`lookup_building_by_email`** agora procura em `building_administrators` E `condominium_contacts` (com `lower(trim(email))`). Sem match exacto faz fallback por domínio (`%@dominio`). Devolve `{found, building_id, building_code, name, match_type: administrator|contact|domain, contact, matches[]}`.
+- **`list_email_pendencies`** aceita `status` como alias `open` (→ aberto/aguarda_resposta/resposta_recebida/precisa_decisao/escalado) ou `closed` (→ resolvido/cancelado), ou enum directo. Status inválido devolve **400 INVALID_STATUS** com `valid_values[]`, NUNCA 500.
+- **`list_assistances`** mesmo tratamento: `open`/`closed`/enum exacto; inválido → 400.
+- **`search`** aceita `q` OU `query` como termo. Sem termo devolve `{results:[]}` (não erro). Variante `/chatgpt` mantém `query` estrito (spec ChatGPT).
+- `errorResponse(...)` aceita `extra` opcional para campos como `valid_values` e `details`.
 
 ### Inventário de tools (resumo)
 
