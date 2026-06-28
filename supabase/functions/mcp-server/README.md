@@ -23,14 +23,20 @@ Usa a mesma `EXTERNAL_API_KEY` da Agent API. Aceita:
 - Header: `Authorization: Bearer <KEY>`
 - Query param: `?api_key=<KEY>`
 
-## Ferramentas expostas — inventário completo (128, v1.3.2)
+## Ferramentas expostas — inventário completo (133, v1.4.0)
 
 Paridade completa com a app web. Lista extraída diretamente de `index.ts`.
 
-### Notas v1.3.2 (bugfixes)
+### Notas v1.4.0 (auditoria 2026-11)
+- **Validação UUID** em todos os `get_*` por id → não-UUID devolve **400 `INVALID_INPUT`** (nunca 500).
+- **Status filters** centralizados em `resolveStatusFilter` (enum real + aliases `open`/`closed`) para `list_assistances`, `list_email_pendencies`, `list_insurance_claims`, `list_assemblies`, `list_quotations`. Status inválido → **400 `INVALID_STATUS`** com `valid_values[]`.
+- **Erros Postgres mapeados** via `pgErrorToHttp` (22P02→400, 23502→400 `MISSING_FIELD`, 23503→400 `FK_NOT_FOUND`, 23505→409 `DUPLICATE`, enum→400 `INVALID_ENUM`). Sem mais 500 opacos em `create_*`.
+- **Creates corrigidos:** `create_email_pendency` (default `aberto`, não `open`), `create_building_insurance` (deixa `coverage_type` usar default DB), `create_follow_up` (erros específicos).
+- **Deletes em falta adicionados:** `delete_building` (soft), `delete_assistance`, `delete_insurance_claim`, `delete_supplier` (soft), `delete_follow_up`.
+
+### Notas v1.3.2 (bugfixes anteriores)
 - `search` aceita **`q` ou `query`** (alias). Sem termo devolve `{results:[]}`.
-- `list_email_pendencies` e `list_assistances` aceitam `status` em **alias inglês** (`open`/`closed`) ou enum real (`aberto`, `aguarda_resposta`, … / `pending`, `in_progress`, …). Status inválido → **400 `INVALID_STATUS`** com `valid_values[]`, nunca 500.
-- `lookup_building_by_email` procura em **`building_administrators` E `condominium_contacts`** (email normalizado `lower(trim)`); sem match faz fallback por **domínio** (`%@dominio`). Devolve `{found, building_id, building_code, match_type: administrator|contact|domain, contact, matches[]}`.
+- `lookup_building_by_email` procura em **`building_administrators` E `condominium_contacts`** com fallback por domínio.
 
 ### Sistema & Pesquisa (4)
 - `health_check` — verifica disponibilidade da Agent API
