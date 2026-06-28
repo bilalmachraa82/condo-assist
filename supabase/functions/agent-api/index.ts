@@ -2695,6 +2695,52 @@ async function handleListAppSettings(url: URL, supabase: ReturnType<typeof getSu
   return json({ settings: data || [] });
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// Deletes em falta (soft/hard) — Auditoria
+// ═══════════════════════════════════════════════════════════════════════
+async function handleDeleteBuilding(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const id = requireUUID(params.buildingId, "buildingId");
+  // soft-delete: marcamos is_active = false (preserva FKs)
+  const { data, error } = await supabase.from("buildings").update({ is_active: false }).eq("id", id).select("id, is_active").maybeSingle();
+  if (error) pgErrorToHttp(error, "Failed to delete building");
+  if (!data) return errorResponse(404, "Building not found", "NOT_FOUND");
+  return json({ deleted: true, soft: true, id: data.id, is_active: data.is_active });
+}
+
+async function handleDeleteAssistance(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const id = requireUUID(params.assistanceId, "assistanceId");
+  const { data, error } = await supabase.from("assistances").delete().eq("id", id).select("id").maybeSingle();
+  if (error) pgErrorToHttp(error, "Failed to delete assistance");
+  if (!data) return errorResponse(404, "Assistance not found", "NOT_FOUND");
+  return json({ deleted: true, id: data.id });
+}
+
+async function handleDeleteInsuranceClaim(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const id = requireUUID(params.claimId, "claimId");
+  const { data, error } = await supabase.from("insurance_claims").delete().eq("id", id).select("id").maybeSingle();
+  if (error) pgErrorToHttp(error, "Failed to delete insurance claim");
+  if (!data) return errorResponse(404, "Insurance claim not found", "NOT_FOUND");
+  return json({ deleted: true, id: data.id });
+}
+
+async function handleDeleteSupplier(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const id = requireUUID(params.supplierId, "supplierId");
+  // soft-delete via is_active para preservar histórico de assistências
+  const { data, error } = await supabase.from("suppliers").update({ is_active: false }).eq("id", id).select("id, is_active").maybeSingle();
+  if (error) pgErrorToHttp(error, "Failed to delete supplier");
+  if (!data) return errorResponse(404, "Supplier not found", "NOT_FOUND");
+  return json({ deleted: true, soft: true, id: data.id, is_active: data.is_active });
+}
+
+async function handleDeleteFollowUp(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const id = requireUUID(params.followUpId, "followUpId");
+  const { data, error } = await supabase.from("follow_up_schedules").delete().eq("id", id).select("id").maybeSingle();
+  if (error) pgErrorToHttp(error, "Failed to delete follow-up");
+  if (!data) return errorResponse(404, "Follow-up not found", "NOT_FOUND");
+  return json({ deleted: true, id: data.id });
+}
+
+
 // ── Main handler ──
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
