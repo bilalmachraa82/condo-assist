@@ -137,7 +137,10 @@ Paridade completa com a app web. Lista extraída diretamente de `index.ts`.
 ### Observabilidade (3)
 - `list_mcp_health_checks`, `list_email_unsubscribes`, `list_app_settings`
 
-**Total: 128 tools.**
+### Deletes top-level (5, v1.4.0)
+- `delete_building` (soft — `is_active=false`), `delete_assistance`, `delete_insurance_claim`, `delete_supplier` (soft), `delete_follow_up`
+
+**Total: 133 tools.**
 
 ## Conectar ao Claude Desktop
 
