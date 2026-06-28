@@ -77,8 +77,8 @@ export const isPendencyBuildingDescriptor = (
   return candidates.some((candidate) => normalized === candidate);
 };
 
-export const stripLeadingPendencyCode = (value: string, buildingCode?: string | number | null) => {
-  const text = value.trim();
+export const stripLeadingPendencyCode = (value: string | null | undefined, buildingCode?: string | number | null) => {
+  const text = (value ?? "").trim();
   if (!text) return "";
 
   if (buildingCode) {
@@ -91,9 +91,9 @@ export const stripLeadingPendencyCode = (value: string, buildingCode?: string | 
 };
 
 export const cleanPendencyTitle = (
-  value: string,
+  value: string | null | undefined,
   building?: BuildingDisplaySource | null,
-  fallbackValue = "",
+  fallbackValue: string | null | undefined = "",
 ) => {
   const cleaned = stripLeadingPendencyCode(value, building?.code);
   if (cleaned && !isPendencyBuildingDescriptor(cleaned, building)) return cleaned;
@@ -105,11 +105,11 @@ export const cleanPendencyTitle = (
 };
 
 export const ensureBuildingCodeInSubject = (
-  subject: string,
-  fallbackTitle: string,
+  subject: string | null | undefined,
+  fallbackTitle: string | null | undefined,
   building?: BuildingLike,
 ) => {
-  const source = (subject || fallbackTitle).trim();
+  const source = (subject || fallbackTitle || "").trim();
   const normalizedCode = normalizeBuildingCode(getBuildingCode(building));
   if (!source || !normalizedCode) return stripLeadingPendencyCode(source);
 
