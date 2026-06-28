@@ -1716,6 +1716,35 @@ mcp.tool("list_app_settings", {
   handler: async ({ category }: { category?: string }) => asText(await callAgentApi("GET", "/v1/app-settings", { query: { category } })),
 });
 
+// ═══════════════════════════════════════════════════════════════════════
+// Deletes em falta (auditoria 2026-11)
+// ═══════════════════════════════════════════════════════════════════════
+mcp.tool("delete_building", {
+  description: "[Edifícios] Soft-delete (is_active=false) preservando histórico. Devolve {deleted, soft:true, is_active:false}.",
+  inputSchema: { type: "object", properties: { building_id: { type: "string", description: "UUID" } }, required: ["building_id"] },
+  handler: async ({ building_id }: { building_id: string }) => asText(await callAgentApi("DELETE", `/v1/buildings/${building_id}`)),
+});
+mcp.tool("delete_assistance", {
+  description: "[Assistências] Hard-delete (use com cuidado — apaga progresso, comunicações e fotos por cascade).",
+  inputSchema: { type: "object", properties: { assistance_id: { type: "string", description: "UUID" } }, required: ["assistance_id"] },
+  handler: async ({ assistance_id }: { assistance_id: string }) => asText(await callAgentApi("DELETE", `/v1/assistances/${assistance_id}`)),
+});
+mcp.tool("delete_insurance_claim", {
+  description: "[Seguros] Apaga sinistro (e anexos/notas por cascade).",
+  inputSchema: { type: "object", properties: { claim_id: { type: "string", description: "UUID" } }, required: ["claim_id"] },
+  handler: async ({ claim_id }: { claim_id: string }) => asText(await callAgentApi("DELETE", `/v1/insurance-claims/${claim_id}`)),
+});
+mcp.tool("delete_supplier", {
+  description: "[Fornecedores] Soft-delete (is_active=false). Preserva ligações a assistências.",
+  inputSchema: { type: "object", properties: { supplier_id: { type: "string", description: "UUID" } }, required: ["supplier_id"] },
+  handler: async ({ supplier_id }: { supplier_id: string }) => asText(await callAgentApi("DELETE", `/v1/suppliers/${supplier_id}`)),
+});
+mcp.tool("delete_follow_up", {
+  description: "[Follow-ups] Apaga um follow-up agendado.",
+  inputSchema: { type: "object", properties: { follow_up_id: { type: "string", description: "UUID" } }, required: ["follow_up_id"] },
+  handler: async ({ follow_up_id }: { follow_up_id: string }) => asText(await callAgentApi("DELETE", `/v1/follow-ups/${follow_up_id}`)),
+});
+
 // ── ChatGPT Apps SDK compatibility: required `search` and `fetch` tools ──
 const APP_BASE_URL = "https://condo-assist.lovable.app";
 
