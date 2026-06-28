@@ -2937,6 +2937,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
       case "listMcpHealthChecks": return await handleListMcpHealthChecks(url, supabase);
       case "listEmailUnsubscribes": return await handleListEmailUnsubscribes(url, supabase);
       case "listAppSettings": return await handleListAppSettings(url, supabase);
+      // Deletes em falta
+      case "deleteBuilding": return await handleDeleteBuilding(route.params, supabase);
+      case "deleteAssistance": return await handleDeleteAssistance(route.params, supabase);
+      case "deleteInsuranceClaim": return await handleDeleteInsuranceClaim(route.params, supabase);
+      case "deleteSupplier": return await handleDeleteSupplier(route.params, supabase);
+      case "deleteFollowUp": return await handleDeleteFollowUp(route.params, supabase);
       default:
         return errorResponse(404, "Not found", "NOT_FOUND");
     }
