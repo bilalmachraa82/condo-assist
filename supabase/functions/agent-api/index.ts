@@ -7,7 +7,11 @@ function maskPII(s: string): string {
     .replace(/\+?\d[\d\s-]{7,}\d/g, "+***");
 }
 
-// ── Input Validation (Ajuste menor 4) ──
+// ── Input Validation ──
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(v: unknown): v is string {
+  return typeof v === "string" && UUID_RE.test(v);
+}
 function requireString(v: unknown, field: string): string {
   if (typeof v !== "string" || v.trim() === "") {
     throw new HttpError(400, `Field '${field}' is required and must be a non-empty string`, "INVALID_INPUT");
@@ -17,16 +21,102 @@ function requireString(v: unknown, field: string): string {
 
 function requireUUID(v: unknown, field: string): string {
   const s = requireString(v, field);
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) {
+  if (!UUID_RE.test(s)) {
     throw new HttpError(400, `Field '${field}' must be a valid UUID`, "INVALID_INPUT");
   }
   return s;
 }
 
+// ── REAL DB enums (mirror of pg_enum) ──
+// Auditados via `SELECT unnest(enum_range(NULL::<enum>))` em 2026.
+const ENUMS = {
+  assistance_status: ["pending","awaiting_quotation","quotation_rejected","in_progress","completed","cancelled","accepted","scheduled"],
+  assistance_priority: ["normal","urgent","critical"],
+  pendency_status: ["aberto","aguarda_resposta","resposta_recebida","precisa_decisao","escalado","resolvido","cancelado"],
+  quotation_status: ["pending","submitted","approved","rejected","expired"],
+  assembly_status: ["draft","processing_audio","awaiting_review","approved","archived","failed"],
+  insurance_claim_status: ["aberto","em_analise","aguarda_peritagem","peritagem_realizada","aguarda_pagamento","pago","recusado","arquivado"],
+} as const;
+
+// Virtual aliases (logical groupings → real enum values).
+const STATUS_ALIASES: Record<string, Record<string, string[]>> = {
+  assistance_status: {
+    open: ["pending","awaiting_quotation","accepted","scheduled","in_progress"],
+    closed: ["completed","cancelled","quotation_rejected"],
+  },
+  pendency_status: {
+    open: ["aberto","aguarda_resposta","resposta_recebida","precisa_decisao","escalado"],
+    closed: ["resolvido","cancelado"],
+  },
+  insurance_claim_status: {
+    open: ["aberto","em_analise","aguarda_peritagem","peritagem_realizada","aguarda_pagamento"],
+    closed: ["pago","recusado","arquivado"],
+  },
+  quotation_status: {
+    open: ["pending","submitted"],
+    closed: ["approved","rejected","expired"],
+  },
+  assembly_status: {
+    open: ["draft","processing_audio","awaiting_review"],
+    closed: ["approved","archived","failed"],
+  },
+};
+
+/** Resolve a status query param into a list of real enum values.
+ *  Returns null when no filter should be applied. Throws 400 on invalid input. */
+function resolveStatusFilter(enumName: keyof typeof ENUMS, raw: string | null | undefined): string[] | null {
+  if (!raw) return null;
+  const v = String(raw).trim().toLowerCase();
+  if (!v) return null;
+  const valid = ENUMS[enumName] as readonly string[];
+  const aliases = STATUS_ALIASES[enumName] ?? {};
+  if (aliases[v]) return aliases[v];
+  if (valid.includes(v)) return [v];
+  throw new HttpError(
+    400,
+    `Invalid status: ${raw}`,
+    "INVALID_STATUS",
+    { valid_values: [...valid, ...Object.keys(aliases)] },
+  );
+}
+
 class HttpError extends Error {
-  constructor(public status: number, message: string, public code: string) {
+  public extra?: Record<string, unknown>;
+  constructor(public status: number, message: string, public code: string, extra?: Record<string, unknown>) {
     super(message);
+    this.extra = extra;
   }
+}
+
+/** Map a Postgres / PostgREST error into a structured 400/409 instead of a raw 500. */
+function pgErrorToHttp(err: unknown, fallbackMsg: string): never {
+  const e = err as { code?: string; message?: string; details?: string; hint?: string; column?: string };
+  const code = e?.code || "";
+  const msg = e?.message || fallbackMsg;
+  if (code === "22P02") {
+    throw new HttpError(400, `Invalid value for column (${msg})`, "INVALID_INPUT", { pg_code: code, details: e.details });
+  }
+  if (code === "23502") {
+    // not_null_violation — try to extract column
+    const colMatch = /column "([^"]+)"/.exec(msg);
+    const col = e.column || (colMatch ? colMatch[1] : undefined);
+    throw new HttpError(400, `Missing required field${col ? `: ${col}` : ""}`, "MISSING_FIELD", { column: col, pg_code: code });
+  }
+  if (code === "23503") {
+    throw new HttpError(400, `Foreign key not found (${msg})`, "FK_NOT_FOUND", { pg_code: code, details: e.details });
+  }
+  if (code === "23505") {
+    throw new HttpError(409, `Duplicate value (${msg})`, "DUPLICATE", { pg_code: code, details: e.details });
+  }
+  if (code === "23514") {
+    throw new HttpError(400, `Check constraint failed (${msg})`, "CHECK_FAILED", { pg_code: code, details: e.details });
+  }
+  // Enum out-of-range from PostgREST often surfaces with message "invalid input value for enum"
+  if (/invalid input value for enum/i.test(msg)) {
+    throw new HttpError(400, msg, "INVALID_ENUM", { pg_code: code, details: e.details });
+  }
+  console.error("Unmapped PG error:", maskPII(JSON.stringify({ code, msg, details: e.details })));
+  throw new HttpError(500, fallbackMsg, "INTERNAL_ERROR", { pg_code: code, details: e.details });
 }
 
 // ── SHA-256 hashing (Blocker 2) ──
@@ -253,6 +343,12 @@ function matchRoute(method: string, pathname: string): { handler: string; params
     { method: "POST", pattern: /^\/v1\/buildings\/([^/]+)\/contacts$/, handler: "createBuildingContact", paramNames: ["buildingId"] },
     { method: "PATCH", pattern: /^\/v1\/contacts\/([^/]+)$/, handler: "updateBuildingContact", paramNames: ["contactId"] },
     { method: "DELETE", pattern: /^\/v1\/contacts\/([^/]+)$/, handler: "deleteBuildingContact", paramNames: ["contactId"] },
+    // ── Deletes em falta (soft/hard) ──
+    { method: "DELETE", pattern: /^\/v1\/buildings\/([^/]+)$/, handler: "deleteBuilding", paramNames: ["buildingId"] },
+    { method: "DELETE", pattern: /^\/v1\/assistances\/([^/]+)$/, handler: "deleteAssistance", paramNames: ["assistanceId"] },
+    { method: "DELETE", pattern: /^\/v1\/insurance-claims\/([^/]+)$/, handler: "deleteInsuranceClaim", paramNames: ["claimId"] },
+    { method: "DELETE", pattern: /^\/v1\/suppliers\/([^/]+)$/, handler: "deleteSupplier", paramNames: ["supplierId"] },
+    { method: "DELETE", pattern: /^\/v1\/follow-ups\/([^/]+)$/, handler: "deleteFollowUp", paramNames: ["followUpId"] },
     // ── Observabilidade (read-only) ──
     { method: "GET", pattern: /^\/v1\/mcp-health$/, handler: "listMcpHealthChecks", paramNames: [] },
     { method: "GET", pattern: /^\/v1\/email-unsubscribes$/, handler: "listEmailUnsubscribes", paramNames: [] },
@@ -395,14 +491,11 @@ async function handleListAssistances(
   params: Record<string, string>,
   supabase: ReturnType<typeof getSupabase>
 ): Promise<Response> {
-  const buildingId = params.buildingId;
-  const statusFilterRaw = (url.searchParams.get("status") || "open").trim().toLowerCase();
+  const buildingId = requireUUID(params.buildingId, "buildingId");
+  const statusParam = url.searchParams.get("status");
+  const statusValues = resolveStatusFilter("assistance_status", statusParam); // null = no filter
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "20"), 100);
   const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
-
-  const ASSIST_STATUSES = ["pending","awaiting_quotation","quotation_received","accepted","scheduled","in_progress","completed","cancelled"];
-  const ASSIST_OPEN = ["pending","awaiting_quotation","quotation_received","accepted","scheduled","in_progress"];
-  const ASSIST_CLOSED = ["completed","cancelled"];
 
   let query = supabase
     .from("assistances")
@@ -411,23 +504,13 @@ async function handleListAssistances(
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (statusFilterRaw === "open") {
-    query = query.in("status", ASSIST_OPEN);
-  } else if (statusFilterRaw === "closed") {
-    query = query.in("status", ASSIST_CLOSED);
-  } else if (ASSIST_STATUSES.includes(statusFilterRaw)) {
-    query = query.eq("status", statusFilterRaw);
-  } else {
-    return errorResponse(400, `Invalid status: ${statusFilterRaw}`, "INVALID_STATUS", { valid_values: [...ASSIST_STATUSES, "open", "closed"] });
+  if (statusValues) {
+    query = statusValues.length === 1 ? query.eq("status", statusValues[0]) : query.in("status", statusValues);
   }
-
 
   const { data, error, count } = await query;
 
-  if (error) {
-    console.error("List assistances error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
-  }
+  if (error) pgErrorToHttp(error, "Failed to list assistances");
 
   return json({
     building_id: buildingId,
@@ -452,7 +535,7 @@ async function handleGetAssistance(
   params: Record<string, string>,
   supabase: ReturnType<typeof getSupabase>
 ): Promise<Response> {
-  const id = params.assistanceId;
+  const id = requireUUID(params.assistanceId, "assistanceId");
 
   // Correcção 3 — Parallel queries
   const [assistanceRes, commsRes, progressRes, emailsRes] = await Promise.all([
@@ -855,7 +938,7 @@ async function handleGetKnowledgeArticle(
   params: Record<string, string>,
   supabase: ReturnType<typeof getSupabase>
 ): Promise<Response> {
-  const id = params.articleId;
+  const id = requireUUID(params.articleId, "articleId");
   const { data, error } = await supabase
     .from("knowledge_articles")
     .select("*")
@@ -982,7 +1065,8 @@ async function handleListBuildings(url: URL, supabase: ReturnType<typeof getSupa
 }
 
 async function handleGetBuilding(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
-  const { data, error } = await supabase.from("buildings").select("*").eq("id", params.buildingId).maybeSingle();
+  const id = requireUUID(params.buildingId, "buildingId");
+  const { data, error } = await supabase.from("buildings").select("*").eq("id", id).maybeSingle();
   if (error) {
     console.error("Get building error:", maskPII(JSON.stringify(error)));
     throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
@@ -1126,7 +1210,8 @@ async function handleListSuppliers(url: URL, supabase: ReturnType<typeof getSupa
 }
 
 async function handleGetSupplier(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
-  const { data, error } = await supabase.from("suppliers").select("*").eq("id", params.supplierId).maybeSingle();
+  const id = requireUUID(params.supplierId, "supplierId");
+  const { data, error } = await supabase.from("suppliers").select("*").eq("id", id).maybeSingle();
   if (error) {
     console.error("Get supplier error:", maskPII(JSON.stringify(error)));
     throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
@@ -1206,10 +1291,11 @@ async function handleListAssemblyItems(url: URL, supabase: ReturnType<typeof get
 }
 
 async function handleGetAssemblyItem(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const id = requireUUID(params.itemId, "itemId");
   const { data, error } = await supabase
     .from("assembly_items")
     .select("*, buildings(id, code, name)")
-    .eq("id", params.itemId)
+    .eq("id", id)
     .maybeSingle();
   if (error) {
     console.error("Get assembly item error:", maskPII(JSON.stringify(error)));
@@ -1294,26 +1380,24 @@ async function handleListQuotations(url: URL, supabase: ReturnType<typeof getSup
 
   if (assistanceId) query = query.eq("assistance_id", assistanceId);
   if (supplierId) query = query.eq("supplier_id", supplierId);
-  if (status) query = query.eq("status", status);
+  if (status) {
+    const vals = resolveStatusFilter("quotation_status", status)!;
+    query = vals.length === 1 ? query.eq("status", vals[0]) : query.in("status", vals);
+  }
 
   const { data, error, count } = await query;
-  if (error) {
-    console.error("List quotations error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
-  }
+  if (error) pgErrorToHttp(error, "Failed to list quotations");
   return json({ total: count ?? 0, limit, offset, quotations: data || [] });
 }
 
 async function handleGetQuotation(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
+  const id = requireUUID(params.quotationId, "quotationId");
   const { data, error } = await supabase
     .from("quotations")
     .select("*, suppliers(id, name, email), assistances(id, assistance_number, title)")
-    .eq("id", params.quotationId)
+    .eq("id", id)
     .maybeSingle();
-  if (error) {
-    console.error("Get quotation error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
-  }
+  if (error) pgErrorToHttp(error, "Failed to get quotation");
   if (!data) return errorResponse(404, "Quotation not found", "NOT_FOUND");
   return json(data);
 }
@@ -1334,13 +1418,10 @@ async function handleListFollowUps(url: URL, supabase: ReturnType<typeof getSupa
 
   if (assistanceId) query = query.eq("assistance_id", assistanceId);
   if (supplierId) query = query.eq("supplier_id", supplierId);
-  if (status) query = query.eq("status", status);
+  if (status) query = query.eq("status", String(status).toLowerCase());
 
   const { data, error, count } = await query;
-  if (error) {
-    console.error("List follow-ups error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
-  }
+  if (error) pgErrorToHttp(error, "Failed to list follow-ups");
   return json({ total: count ?? 0, limit, offset, follow_ups: data || [] });
 }
 
@@ -1704,10 +1785,7 @@ async function handleCreateFollowUp(req: Request, supabase: ReturnType<typeof ge
   };
 
   const { data, error } = await supabase.from("follow_up_schedules").insert(insertData).select("*").single();
-  if (error) {
-    console.error("Create follow-up error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to create follow-up", "INTERNAL_ERROR");
-  }
+  if (error) pgErrorToHttp(error, "Failed to create follow-up");
   return json(data, 201);
 }
 
@@ -1867,34 +1945,39 @@ async function handleListInsuranceClaims(url: URL, supabase: ReturnType<typeof g
   let q = supabase.from("insurance_claims").select("*, buildings:building_id(id,code,name)", { count: "exact" })
     .order("created_at", { ascending: false }).range(offset, offset + limit - 1);
   if (buildingId) q = q.eq("building_id", buildingId);
-  if (status) q = q.eq("status", status);
+  if (status) {
+    const vals = resolveStatusFilter("insurance_claim_status", status)!;
+    q = vals.length === 1 ? q.eq("status", vals[0]) : q.in("status", vals);
+  }
   const { data, error, count } = await q;
-  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to list insurance claims");
   return json({ total: count ?? 0, limit, offset, claims: data || [] });
 }
 async function handleGetInsuranceClaim(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
+  const id = requireUUID(params.claimId, "claimId");
   const { data, error } = await supabase.from("insurance_claims")
     .select("*, buildings:building_id(id,code,name), insurance:insurance_id(*), notes:insurance_claim_notes(*), attachments:insurance_claim_attachments(*)")
-    .eq("id", params.claimId).maybeSingle();
-  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
-  if (!data) throw new HttpError(404, "Not found", "NOT_FOUND");
+    .eq("id", id).maybeSingle();
+  if (error) pgErrorToHttp(error, "Failed to get insurance claim");
+  if (!data) return errorResponse(404, "Insurance claim not found", "NOT_FOUND");
   return json(data);
 }
 async function handleCreateInsuranceClaim(req: Request, supabase: ReturnType<typeof getSupabase>) {
   const body = await req.json();
   const building_id = requireUUID(body.building_id, "building_id");
   const description = requireString(body.description, "description");
+  const status = body.status ? resolveStatusFilter("insurance_claim_status", body.status)![0] : "aberto";
   const insertData = {
     building_id, description,
     assistance_id: body.assistance_id || null, insurance_id: body.insurance_id || null,
     occurrence_date: body.occurrence_date || null, reported_date: body.reported_date || null,
     damage_location: body.damage_location || null, insurer_claim_ref: body.insurer_claim_ref || null,
-    insurer_contact: body.insurer_contact || null, status: body.status || "aberto",
+    insurer_contact: body.insurer_contact || null, status,
     estimated_amount: body.estimated_amount ?? null, final_amount: body.final_amount ?? null,
     notes: body.notes || null,
   };
   const { data, error } = await supabase.from("insurance_claims").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create claim", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create insurance claim");
   return json(data, 201);
 }
 async function handleUpdateInsuranceClaim(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
@@ -1961,7 +2044,7 @@ async function handleListEmailPendencies(url: URL, supabase: ReturnType<typeof g
 }
 
 async function handleGetEmailPendency(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
-  const id = params.pendencyId;
+  const id = requireUUID(params.pendencyId, "pendencyId");
   const [pendRes, notesRes, attRes, remRes] = await Promise.all([
     supabase.from("email_pendencies")
       .select("*, buildings:building_id(id,code,name), assistance:assistance_id(id,assistance_number,title,status), supplier:supplier_id(id,name,email)")
@@ -1970,7 +2053,7 @@ async function handleGetEmailPendency(params: Record<string, string>, supabase: 
     supabase.from("email_pendency_attachments").select("*").eq("pendency_id", id).order("created_at", { ascending: true }),
     supabase.from("pendency_reminders").select("*").eq("pendency_id", id).order("scheduled_for", { ascending: true }),
   ]);
-  if (pendRes.error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  if (pendRes.error) pgErrorToHttp(pendRes.error, "Failed to get pendency");
   if (!pendRes.data) return errorResponse(404, "Pendency not found", "NOT_FOUND");
   return json({ ...pendRes.data, notes: notesRes.data || [], attachments: attRes.data || [], reminders: remRes.data || [] });
 }
@@ -1979,6 +2062,8 @@ async function handleCreateEmailPendency(req: Request, supabase: ReturnType<type
   const body = await req.json();
   const title = requireString(body.title, "title");
   const building_id = requireUUID(body.building_id, "building_id");
+  // status: aceitamos enum real + alias "open"/"closed"; default = "aberto" (valor real).
+  const status = body.status ? resolveStatusFilter("pendency_status", body.status)![0] : "aberto";
   const insertData: Record<string, unknown> = {
     title, building_id,
     description: body.description || null,
@@ -1986,13 +2071,13 @@ async function handleCreateEmailPendency(req: Request, supabase: ReturnType<type
     email_sent_at: body.email_sent_at || null,
     assistance_id: body.assistance_id || null,
     supplier_id: body.supplier_id || null,
-    status: body.status || "open",
+    status,
     priority: body.priority || "normal",
     assigned_to: body.assigned_to || null,
     due_date: body.due_date || null,
   };
   const { data, error } = await supabase.from("email_pendencies").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create pendency", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create pendency");
   return json(data, 201);
 }
 
@@ -2114,14 +2199,17 @@ async function handleListAssemblies(url: URL, supabase: ReturnType<typeof getSup
   let q = supabase.from("assemblies").select("*, buildings:building_id(id,code,name)", { count: "exact" })
     .order("meeting_date", { ascending: false }).range(offset, offset + limit - 1);
   if (buildingId) q = q.eq("building_id", buildingId);
-  if (status) q = q.eq("status", status);
+  if (status) {
+    const vals = resolveStatusFilter("assembly_status", status)!;
+    q = vals.length === 1 ? q.eq("status", vals[0]) : q.in("status", vals);
+  }
   const { data, error, count } = await q;
-  if (error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to list assemblies");
   return json({ total: count ?? 0, limit, offset, assemblies: data || [] });
 }
 
 async function handleGetAssembly(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
-  const id = params.assemblyId;
+  const id = requireUUID(params.assemblyId, "assemblyId");
   const [hdr, agenda, resolutions, actions, attendees] = await Promise.all([
     supabase.from("assemblies").select("*, buildings:building_id(id,code,name)").eq("id", id).maybeSingle(),
     supabase.from("assembly_agenda_items").select("*").eq("assembly_id", id).order("item_number", { ascending: true }),
@@ -2129,7 +2217,7 @@ async function handleGetAssembly(params: Record<string, string>, supabase: Retur
     supabase.from("assembly_action_items").select("*").eq("assembly_id", id).order("due_date", { ascending: true }),
     supabase.from("assembly_attendees").select("*").eq("assembly_id", id).order("owner_name", { ascending: true }),
   ]);
-  if (hdr.error) throw new HttpError(500, "Internal error", "INTERNAL_ERROR");
+  if (hdr.error) pgErrorToHttp(hdr.error, "Failed to get assembly");
   if (!hdr.data) return errorResponse(404, "Assembly not found", "NOT_FOUND");
   return json({ ...hdr.data, agenda_items: agenda.data || [], resolutions: resolutions.data || [], action_items: actions.data || [], attendees: attendees.data || [] });
 }
@@ -2427,9 +2515,11 @@ async function handleListBuildingInsurances(params: Record<string, string>, supa
 }
 async function handleCreateBuildingInsurance(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const body = await req.json();
-  const insertData = {
-    building_id: params.buildingId,
-    coverage_type: requireString(body.coverage_type, "coverage_type"),
+  const building_id = requireUUID(params.buildingId, "buildingId");
+  const insertData: Record<string, unknown> = {
+    building_id,
+    // coverage_type tem default 'multirisco' na BD → não é obrigatório.
+    coverage_type: typeof body.coverage_type === "string" && body.coverage_type.trim() ? body.coverage_type.trim() : undefined,
     policy_number: body.policy_number || null,
     insurer: body.insurer || null,
     broker: body.broker || null,
@@ -2440,8 +2530,10 @@ async function handleCreateBuildingInsurance(req: Request, params: Record<string
     notes: body.notes || null,
     policy_path: body.policy_path || null,
   };
+  // remove undefined para deixar o default da BD atuar
+  Object.keys(insertData).forEach((k) => insertData[k] === undefined && delete insertData[k]);
   const { data, error } = await supabase.from("building_insurances").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create building insurance");
   return json(data, 201);
 }
 async function handleUpdateBuildingInsurance(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
@@ -2850,7 +2942,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
   } catch (e) {
     if (e instanceof HttpError) {
-      return errorResponse(e.status, e.message, e.code);
+      return errorResponse(e.status, e.message, e.code, e.extra);
     }
     console.error("Unhandled error:", maskPII(e instanceof Error ? e.message : String(e)));
     return errorResponse(500, "Internal server error", "INTERNAL_ERROR");
