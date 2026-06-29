@@ -1,40 +1,64 @@
 ## Objetivo
-1. Garantir que as edge functions modificadas (mcp-server v1.4.0, agent-api) estão de facto deployadas.
-2. Mostrar o código do edifício na página **Chaves**.
-3. Trocar a ordem das linhas nos cards de **Pendências Email**: morada (com código do edifício) no topo, assunto por baixo.
+Garantir que TODAS as write tools (`create_*`, `update_*`, `delete_*`) do MCP devolvem 200 em input válido e **400 estruturado** em input inválido — nunca 500 opaco. Documentar enums/constraints no schema das tools e fechar gaps deixados pela auditoria 2026-11 (`create_building_insurance`, `create_follow_up`, `delete_building` no-op, status `'ac'` truncado em `update_assistance`).
 
-## 1. Deploy das Edge Functions
-- Executar deploy explícito de `mcp-server` e `agent-api` via `supabase--deploy_edge_functions`.
-- Validar com `supabase--curl_edge_functions`:
-  - `GET /mcp-server/` → confirmar `version: "1.4.0"` e `toolCount: 133`.
-  - `POST /agent-api/v1/...` com `x-api-key` em endpoint que tenha sofrido alteração (ex.: `list_assistances` com `status=open`) → confirmar 200 e não 500.
-- Reportar versão deployada ao utilizador.
+## Diagnóstico
+A auditoria anterior (v1.4.0) já implementou `pgErrorToHttp`, deletes em falta e `resolveStatusFilter`. Faltam estas correções pontuais e a verificação end-to-end:
 
-## 2. Página Chaves (`src/pages/Keys.tsx`)
-- Substituir `formatBuildingAddress` por `formatBuildingLabel` na coluna **Edifício** (tabela e PDF de impressão) para passar a mostrar `CÓDIGO - Nome` em vez de só a morada.
-- Atualizar também a função `buildingLabel(h)` para devolver o label completo (código + nome). Mantém-se a ordenação por código.
+- `create_building_insurance` e `create_follow_up` continuam a falhar com "Failed to create…" → o handler em `agent-api/index.ts` está a chamar `pgErrorToHttp`, mas o input schema da tool MCP não expõe os campos NOT NULL/CHECK reais, e os defaults não estão a ser aplicados antes do INSERT.
+- `delete_building` reporta sucesso mas mantém `is_active = true` → é preciso confirmar que está a fazer UPDATE (soft-delete) e devolver o registo actualizado.
+- `update_assistance` aceita um valor `'ac'` truncado que não existe no enum `assistance_status` → falta validação contra `enum_range`.
+- Vários handlers de write ainda devolvem mensagens genéricas; precisam do formato uniforme `{ tool, error, field, allowed_values, cause }`.
 
-## 3. Pendências Email (`src/pages/EmailPendencies.tsx`)
-Atualmente cada card mostra:
+## Plano de execução (build mode)
+
+### 1. Probe automático de cada write tool
+Criar `supabase/functions/agent-api/write_audit_test.ts` que percorre todas as `create_* / update_* / delete_*` (lista extraída de `mcp-server/index.ts`) com input mínimo válido contra um `TEST_BUILDING_ID`, capturando o JSON exacto devolvido. Produz tabela `PASS/FAIL + código pg`.
+
+### 2. Descobrir constraints reais
+Via `supabase--read_query` sobre `information_schema` / `pg_constraint` para `building_insurances`, `follow_up_schedules`, `assistances` (enum `assistance_status`), `insurance_claims`, etc. Documentar campos NOT NULL, CHECKs, e `enum_range` de cada enum usado em writes.
+
+### 3. Fix `create_building_insurance`
+- Identificar coluna(s) NOT NULL sem default (provavelmente `coverage_type` ou `policy_number`).
+- Ou aplicar default sensato server-side, ou marcar como required no input schema da tool MCP.
+- Garantir que o handler devolve 400 estruturado nomeando o campo.
+
+### 4. Fix `create_follow_up`
+- Identificar CHECK constraint (provavelmente `follow_up_type` enum + `priority` enum + `scheduled_for` NOT NULL).
+- Expor `follow_up_type` e `priority` com `enum: [...]` no input schema.
+- Default `scheduled_for = now() + 24h` quando omitido.
+
+### 5. Fix `delete_building` (no-op real)
+Reescrever para `UPDATE buildings SET is_active=false WHERE id=… RETURNING *`. Devolver o registo actualizado na resposta para confirmação. Mesmo padrão para `delete_supplier`.
+
+### 6. Validar enum em `update_assistance`
+Centralizar `ASSISTANCE_STATUS_ENUM` (já existe em `ENUMS` do read-path) e aplicá-lo também no PATCH. Input com `'ac'` → 400 `INVALID_ENUM` com `allowed_values`.
+
+### 7. Erro estruturado uniforme
+Estender `pgErrorToHttp` (ou criar wrapper `writeError`) para devolver sempre:
+```json
+{ "tool": "create_follow_up", "error": "MISSING_FIELD", "field": "follow_up_type",
+  "allowed_values": ["quotation_reminder","work_reminder","completion_reminder"], "cause": "23502" }
 ```
-[topo]   Assunto
-[abaixo] 🏢 CÓDIGO - Morada
-```
-Passa a mostrar:
-```
-[topo]   🏢 CÓDIGO - Morada
-[abaixo] Assunto
-```
-- Trocar a ordem dos dois `<div>` no card: o `buildingLabel` (com ícone Building2) passa para o topo com estilo `font-semibold truncate`; o `primaryLabel` (assunto) fica em baixo com `text-sm text-muted-foreground`.
-- Não alterar lógica de filtros, ordenação, badges nem `cleanPendencyTitle` / `ensureBuildingCodeInSubject`.
-- Avaliar se o Kanban (`PendencyKanban`) deve seguir o mesmo padrão — confirmar com o utilizador se quer aplicar lá também (por agora, apenas na vista Lista, que é o que foi pedido).
+Aplicar em todos os handlers `create_*`/`update_*`/`delete_*`.
 
-## Validação
-- Build automático passa.
-- Verificar `/chaves` mostra coluna Edifício como `CÓDIGO - Nome`.
-- Verificar `/pendencias-email` mostra morada+código no topo e assunto abaixo.
-- `mcp-server` responde com versão 1.4.0.
+### 8. Documentação inline (input schemas MCP)
+Em `mcp-server/index.ts`, para cada write tool afectada acrescentar à descrição e ao `inputSchema` os `enum:[…]` reais (assistance_status, follow_up_type, insurance coverage_type, etc.). Não muda nomes de tools — só metadados.
 
-## Notas técnicas
-- Nenhuma alteração de schema, RLS ou endpoints MCP.
-- Nenhum nome de tool MCP é alterado.
+### 9. Ciclo end-to-end create → update → delete
+Adicionar a `write_audit_test.ts` um teste por família que cria → faz update → apaga e limpa resíduos. Reporta PASS/FAIL por tool. Confirma `create_email_pendency` continua verde.
+
+### 10. Actualizar artefactos
+- `mcp-server/README.md` → secção "Write tools — campos obrigatórios e enums".
+- `.lovable/memory/features/mcp-server.md` → notas v1.4.1.
+- Bump `version` em `/info` para `1.4.1`.
+
+## Detalhes técnicos
+- Tudo isolado em `supabase/functions/agent-api/index.ts` + `mcp-server/index.ts`. Sem migrations (constraints existentes mantêm-se).
+- Sem alteração de nomes/URLs de tools — regra de ouro do MCP.
+- Deploy explícito de `agent-api` + `mcp-server` no fim.
+
+## Entregáveis
+1. `write_audit_test.ts` com matriz completa PASS/FAIL.
+2. Tabela "campo obrigatório / enum / allowed_values" por write tool (no README).
+3. Relatório do ciclo CRUD por família.
+4. v1.4.1 deployada.
