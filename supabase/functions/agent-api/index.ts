@@ -675,7 +675,7 @@ async function handleCreateAssistance(
         .single();
       if (existing) return json({ id: existing.id, assistance_number: existing.assistance_number }, 200);
     }
-    throw new HttpError(500, "Failed to create assistance", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to create assistance");
   }
 
   // Log triggered_by for audit
@@ -715,7 +715,7 @@ async function handleAddCommunication(
 
   if (error) {
     console.error("Add communication error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to add communication", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to add communication");
   }
 
   return json({ id: data.id, created_at: data.created_at }, 201);
@@ -783,7 +783,7 @@ async function handleSaveEmailDraft(
         .single();
       if (existing) return json({ id: existing.id, ai_draft_status: existing.ai_draft_status }, 200);
     }
-    throw new HttpError(500, "Failed to save email draft", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to save email draft");
   }
 
   return json({ id: data.id, ai_draft_status: data.ai_draft_status }, 201);
@@ -817,7 +817,7 @@ async function handleUpdateEmailLogStatus(
 
   if (error) {
     console.error("Update email log error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to update email log status", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to update email log status");
   }
 
   return json({ id: data.id, ai_draft_status: data.ai_draft_status });
@@ -983,7 +983,7 @@ async function handleCreateKnowledgeArticle(
 
   if (error) {
     console.error("Create knowledge article error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to create article", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to create article");
   }
 
   return json(data, 201);
@@ -1021,7 +1021,7 @@ async function handleUpdateKnowledgeArticle(
 
   if (error) {
     console.error("Update knowledge article error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to update article", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to update article");
   }
 
   return json(data);
@@ -1039,7 +1039,7 @@ async function handleDeleteKnowledgeArticle(
 
   if (error) {
     console.error("Delete knowledge article error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to delete article", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to delete article");
   }
 
   return json({ success: true });
@@ -1093,7 +1093,7 @@ async function handleCreateBuilding(req: Request, supabase: ReturnType<typeof ge
   const { data, error } = await supabase.from("buildings").insert(insertData).select("*").single();
   if (error) {
     console.error("Create building error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to create building", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to create building");
   }
   return json(data, 201);
 }
@@ -1109,7 +1109,7 @@ async function handleUpdateBuilding(req: Request, params: Record<string, string>
   const { data, error } = await supabase.from("buildings").update(updateData).eq("id", params.buildingId).select("*").single();
   if (error) {
     console.error("Update building error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to update building", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to update building");
   }
   return json(data);
 }
@@ -1144,7 +1144,7 @@ async function handleUpdateAssistance(req: Request, params: Record<string, strin
   const { data, error } = await supabase.from("assistances").update(updateData).eq("id", params.assistanceId).select("id, status, updated_at").single();
   if (error) {
     console.error("Update assistance error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to update assistance", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to update assistance");
   }
   return json(data);
 }
@@ -1236,7 +1236,7 @@ async function handleCreateSupplier(req: Request, supabase: ReturnType<typeof ge
   const { data, error } = await supabase.from("suppliers").insert(insertData).select("*").single();
   if (error) {
     console.error("Create supplier error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to create supplier", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to create supplier");
   }
   return json(data, 201);
 }
@@ -1252,7 +1252,7 @@ async function handleUpdateSupplier(req: Request, params: Record<string, string>
   const { data, error } = await supabase.from("suppliers").update(updateData).eq("id", params.supplierId).select("*").single();
   if (error) {
     console.error("Update supplier error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to update supplier", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to update supplier");
   }
   return json(data);
 }
@@ -1330,7 +1330,7 @@ async function handleCreateAssemblyItem(req: Request, supabase: ReturnType<typeo
   const { data, error } = await supabase.from("assembly_items").insert(insertData).select("*").single();
   if (error) {
     console.error("Create assembly item error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to create assembly item", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to create assembly item");
   }
   return json(data, 201);
 }
@@ -1350,7 +1350,7 @@ async function handleUpdateAssemblyItem(req: Request, params: Record<string, str
   const { data, error } = await supabase.from("assembly_items").update(updateData).eq("id", params.itemId).select("*").single();
   if (error) {
     console.error("Update assembly item error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to update assembly item", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to update assembly item");
   }
   return json(data);
 }
@@ -1359,7 +1359,7 @@ async function handleDeleteAssemblyItem(params: Record<string, string>, supabase
   const { error } = await supabase.from("assembly_items").delete().eq("id", params.itemId);
   if (error) {
     console.error("Delete assembly item error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to delete assembly item", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to delete assembly item");
   }
   return json({ success: true });
 }
@@ -1466,7 +1466,7 @@ async function handleCreateInterventionType(req: Request, supabase: ReturnType<t
   }).select("*").single();
   if (error) {
     console.error("Create intervention type error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to create intervention type", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to create intervention type");
   }
   return json(data, 201);
 }
@@ -1482,7 +1482,7 @@ async function handleUpdateInterventionType(req: Request, params: Record<string,
   const { data, error } = await supabase.from("intervention_types").update(updateData).eq("id", params.typeId).select("*").single();
   if (error) {
     console.error("Update intervention type error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to update intervention type", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to update intervention type");
   }
   return json(data);
 }
@@ -1539,7 +1539,7 @@ async function handleUploadAssistancePhoto(req: Request, params: Record<string, 
 
   if (uploadError) {
     console.error("Photo upload error:", maskPII(JSON.stringify(uploadError)));
-    throw new HttpError(500, "Failed to upload photo", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to upload photo");
   }
 
   const { data: photoRecord, error: dbError } = await supabase
@@ -1556,7 +1556,7 @@ async function handleUploadAssistancePhoto(req: Request, params: Record<string, 
   if (dbError) {
     await supabase.storage.from("assistance-photos").remove([fileName]);
     console.error("Photo DB error:", maskPII(JSON.stringify(dbError)));
-    throw new HttpError(500, "Failed to save photo", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to save photo");
   }
 
   await supabase.from("activity_log").insert({
@@ -1586,7 +1586,7 @@ async function handleDeleteAssistancePhoto(params: Record<string, string>, supab
   const { error } = await supabase.from("assistance_photos").delete().eq("id", photoId);
   if (error) {
     console.error("Photo delete error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to delete photo", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to delete photo");
   }
   return json({ success: true });
 }
@@ -1631,7 +1631,7 @@ async function handleCreateQuotation(req: Request, supabase: ReturnType<typeof g
   const { data, error } = await supabase.from("quotations").insert(insertData).select("*").single();
   if (error) {
     console.error("Create quotation error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to create quotation", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to create quotation");
   }
   return json(data, 201);
 }
@@ -1656,7 +1656,7 @@ async function handleUpdateQuotation(req: Request, params: Record<string, string
   const { data, error } = await supabase.from("quotations").update(updateData).eq("id", quotationId).select("*").single();
   if (error) {
     console.error("Update quotation error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to update quotation", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to update quotation");
   }
   return json(data);
 }
@@ -1666,7 +1666,7 @@ async function handleDeleteQuotation(params: Record<string, string>, supabase: R
   const { error } = await supabase.from("quotations").delete().eq("id", quotationId);
   if (error) {
     console.error("Delete quotation error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to delete quotation", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to delete quotation");
   }
   return json({ success: true });
 }
@@ -1698,7 +1698,7 @@ async function handleSubmitSupplierResponse(req: Request, params: Record<string,
   const { data, error } = await supabase.from("supplier_responses").insert(insertData).select("*").single();
   if (error) {
     console.error("Submit supplier response error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to submit response", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to submit response");
   }
 
   // Reflect in assistance status when applicable
@@ -1749,7 +1749,7 @@ async function handleUpdateNotification(req: Request, params: Record<string, str
   const { data, error } = await supabase.from("notifications").update(updateData).eq("id", notificationId).select("*").single();
   if (error) {
     console.error("Update notification error:", maskPII(JSON.stringify(error)));
-    throw new HttpError(500, "Failed to update notification", "INTERNAL_ERROR");
+    pgErrorToHttp(error, "Failed to update notification");
   }
   return json(data);
 }
