@@ -1,8 +1,9 @@
 ---
 name: MCP Server for Claude Desktop / ChatGPT
-description: Edge function mcp-server exposing Agent API as 128 MCP tools via mcp-lite + Hono, full read/write parity with the website. v1.3.2 — search aceita 'q' OU 'query', list_email_pendencies/list_assistances normalizam status (open/closed/enum real, 400 em vez de 500 para inválidos), lookup_building_by_email procura em building_administrators E condominium_contacts com fallback por domínio.
+description: Edge function mcp-server expondo Agent API como 133 tools MCP via mcp-lite + Hono. v1.4.1 — write-path hardening: todas as write tools devolvem 400 estruturado (com field + allowed_values) em input inválido, nunca 500. update_assistance pré-valida status/priority contra ENUMS. delete_building/delete_supplier são soft-delete reais (is_active=false). pgErrorToHttp aplicado a todos os create_*/update_*/delete_*.
 type: feature
 ---
+
 
 ## MCP Server (`supabase/functions/mcp-server`)
 
