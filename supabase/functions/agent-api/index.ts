@@ -80,6 +80,30 @@ function resolveStatusFilter(enumName: keyof typeof ENUMS, raw: string | null | 
   );
 }
 
+/** Validate that a value is one of the real DB enum values. Throws 400 INVALID_ENUM otherwise. */
+function requireEnum(value: unknown, enumName: keyof typeof ENUMS, field: string): string {
+  if (value === undefined || value === null) {
+    throw new HttpError(400, `Field '${field}' is required`, "MISSING_FIELD", { field, allowed_values: ENUMS[enumName] });
+  }
+  const v = String(value);
+  const valid = ENUMS[enumName] as readonly string[];
+  if (!valid.includes(v)) {
+    throw new HttpError(400, `Invalid value for '${field}': '${v}'`, "INVALID_ENUM", { field, allowed_values: valid, given: v });
+  }
+  return v;
+}
+
+/** Optional variant — validates only when value is provided. */
+function validateEnumIfPresent(value: unknown, enumName: keyof typeof ENUMS, field: string): void {
+  if (value === undefined || value === null || value === "") return;
+  const valid = ENUMS[enumName] as readonly string[];
+  if (!valid.includes(String(value))) {
+    throw new HttpError(400, `Invalid value for '${field}': '${value}'`, "INVALID_ENUM", { field, allowed_values: valid, given: value });
+  }
+}
+
+
+
 class HttpError extends Error {
   public extra?: Record<string, unknown>;
   constructor(public status: number, message: string, public code: string, extra?: Record<string, unknown>) {
