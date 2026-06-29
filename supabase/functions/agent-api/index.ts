@@ -1837,7 +1837,7 @@ async function handleCreateBuildingAdministrator(req: Request, params: Record<st
     is_primary: body.is_primary ?? false, display_order: body.display_order ?? 0,
   };
   const { data, error } = await supabase.from("building_administrators").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create administrator", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create administrator");
   return json(data, 201);
 }
 async function handleUpdateBuildingAdministrator(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
@@ -1848,12 +1848,12 @@ async function handleUpdateBuildingAdministrator(req: Request, params: Record<st
   }
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("building_administrators").update(updateData).eq("id", params.adminId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 async function handleDeleteBuildingAdministrator(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("building_administrators").delete().eq("id", params.adminId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -1884,7 +1884,7 @@ async function handleCreateKeyHandover(req: Request, supabase: ReturnType<typeof
     assistance_id: body.assistance_id || null, supplier_id: body.supplier_id || null,
   };
   const { data, error } = await supabase.from("key_handovers").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create");
   return json(data, 201);
 }
 async function handleUpdateKeyHandover(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
@@ -1895,7 +1895,7 @@ async function handleUpdateKeyHandover(req: Request, params: Record<string, stri
   }
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("key_handovers").update(updateData).eq("id", params.handoverId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 
@@ -1925,14 +1925,14 @@ async function handleUploadBuildingDocument(req: Request, params: Record<string,
     file_path: path, file_name: fileName, file_size: bytes.length,
     mime_type: body.mime_type || null, document_date: body.document_date || null,
   }).select("*").single();
-  if (error) throw new HttpError(500, "Failed to save metadata", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to save metadata");
   return json(data, 201);
 }
 async function handleDeleteBuildingDocument(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { data: doc } = await supabase.from("building_documents").select("file_path").eq("id", params.docId).maybeSingle();
   if (doc?.file_path) await supabase.storage.from("building-documents").remove([doc.file_path]);
   const { error } = await supabase.from("building_documents").delete().eq("id", params.docId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -1988,14 +1988,14 @@ async function handleUpdateInsuranceClaim(req: Request, params: Record<string, s
   }
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("insurance_claims").update(updateData).eq("id", params.claimId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 async function handleAddClaimNote(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const body = await req.json();
   const note = requireString(body.body, "body");
   const { data, error } = await supabase.from("insurance_claim_notes").insert({ claim_id: params.claimId, body: note }).select("*").single();
-  if (error) throw new HttpError(500, "Failed to add note", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to add note");
   return json(data, 201);
 }
 
@@ -2089,13 +2089,13 @@ async function handleUpdateEmailPendency(req: Request, params: Record<string, st
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   updateData.last_activity_at = new Date().toISOString();
   const { data, error } = await supabase.from("email_pendencies").update(updateData).eq("id", params.pendencyId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 
 async function handleDeleteEmailPendency(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("email_pendencies").delete().eq("id", params.pendencyId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2116,7 +2116,7 @@ async function handleAddEmailPendencyNote(req: Request, params: Record<string, s
     metadata: body.metadata || null,
   };
   const { data, error } = await supabase.from("email_pendency_notes").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to add note", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to add note");
   await supabase.from("email_pendencies").update({ last_activity_at: new Date().toISOString() }).eq("id", params.pendencyId);
   return json(data, 201);
 }
@@ -2131,7 +2131,7 @@ async function handleDeleteEmailPendencyAttachment(params: Record<string, string
   const { data: att } = await supabase.from("email_pendency_attachments").select("file_path").eq("id", params.attachmentId).maybeSingle();
   if (att?.file_path) await supabase.storage.from("pendency-attachments").remove([att.file_path]).catch(() => {});
   const { error } = await supabase.from("email_pendency_attachments").delete().eq("id", params.attachmentId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2151,7 +2151,7 @@ async function handleCreatePendencyReminder(req: Request, params: Record<string,
     max_attempts: body.max_attempts ?? 3,
   };
   const { data, error } = await supabase.from("pendency_reminders").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create reminder", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create reminder");
   return json(data, 201);
 }
 
@@ -2161,13 +2161,13 @@ async function handleUpdatePendencyReminder(req: Request, params: Record<string,
   for (const k of ["reminder_type","scheduled_for","status","attempt_count","max_attempts"]) if (body[k] !== undefined) updateData[k] = body[k];
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("pendency_reminders").update(updateData).eq("id", params.reminderId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 
 async function handleDeletePendencyReminder(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("pendency_reminders").delete().eq("id", params.reminderId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2184,7 +2184,7 @@ async function handleAddAssistanceInternalNote(req: Request, params: Record<stri
   const stamp = `--- ${new Date().toISOString()} (${author}) ---`;
   const merged = `${prefix}${stamp}\n${note}`;
   const { data, error } = await supabase.from("assistances").update({ admin_notes: merged }).eq("id", params.assistanceId).select("id, admin_notes, updated_at").single();
-  if (error) throw new HttpError(500, "Failed to add internal note", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to add internal note");
   return json(data, 201);
 }
 
@@ -2239,7 +2239,7 @@ async function handleCreateAssembly(req: Request, supabase: ReturnType<typeof ge
     created_by: body.created_by || "00000000-0000-0000-0000-000000000000",
   };
   const { data, error } = await supabase.from("assemblies").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create assembly", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create assembly");
   return json(data, 201);
 }
 
@@ -2251,13 +2251,13 @@ async function handleUpdateAssembly(req: Request, params: Record<string, string>
   }
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("assemblies").update(updateData).eq("id", params.assemblyId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 
 async function handleDeleteAssembly(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("assemblies").delete().eq("id", params.assemblyId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2277,7 +2277,7 @@ async function handleCreateAssemblyAgendaItem(req: Request, params: Record<strin
     source: body.source || "manual",
   };
   const { data, error } = await supabase.from("assembly_agenda_items").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create");
   return json(data, 201);
 }
 
@@ -2287,13 +2287,13 @@ async function handleUpdateAssemblyAgendaItem(req: Request, params: Record<strin
   for (const k of ["item_number","title","description","source"]) if (body[k] !== undefined) updateData[k] = body[k];
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("assembly_agenda_items").update(updateData).eq("id", params.itemId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 
 async function handleDeleteAssemblyAgendaItem(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("assembly_agenda_items").delete().eq("id", params.itemId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2320,7 +2320,7 @@ async function handleCreateAssemblyResolution(req: Request, params: Record<strin
     requires_followup: body.requires_followup ?? false,
   };
   const { data, error } = await supabase.from("assembly_resolutions").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create");
   return json(data, 201);
 }
 
@@ -2332,13 +2332,13 @@ async function handleUpdateAssemblyResolution(req: Request, params: Record<strin
   }
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("assembly_resolutions").update(updateData).eq("id", params.resolutionId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 
 async function handleDeleteAssemblyResolution(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("assembly_resolutions").delete().eq("id", params.resolutionId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2370,7 +2370,7 @@ async function handleCreateAssemblyActionItem(req: Request, params: Record<strin
     source: body.source || "manual",
   };
   const { data, error } = await supabase.from("assembly_action_items").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create");
   return json(data, 201);
 }
 
@@ -2380,13 +2380,13 @@ async function handleUpdateAssemblyActionItem(req: Request, params: Record<strin
   for (const k of ["title","description","assigned_to","due_date","priority","status","resolution_id"]) if (body[k] !== undefined) updateData[k] = body[k];
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("assembly_action_items").update(updateData).eq("id", params.actionItemId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 
 async function handleDeleteAssemblyActionItem(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("assembly_action_items").delete().eq("id", params.actionItemId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2409,13 +2409,13 @@ async function handleAddAssemblyAttendee(req: Request, params: Record<string, st
     notes: body.notes || null,
   };
   const { data, error } = await supabase.from("assembly_attendees").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to add attendee", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to add attendee");
   return json(data, 201);
 }
 
 async function handleDeleteAssemblyAttendee(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("assembly_attendees").delete().eq("id", params.attendeeId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2451,7 +2451,7 @@ async function handleCreateBuildingFraction(req: Request, params: Record<string,
     display_order: body.display_order ?? 0,
   };
   const { data, error } = await supabase.from("building_fractions").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create");
   return json(data, 201);
 }
 async function handleUpdateBuildingFraction(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
@@ -2460,12 +2460,12 @@ async function handleUpdateBuildingFraction(req: Request, params: Record<string,
   for (const k of ["label","permillage","notes","display_order"]) if (body[k] !== undefined) updateData[k] = body[k];
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("building_fractions").update(updateData).eq("id", params.fractionId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 async function handleDeleteBuildingFraction(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("building_fractions").delete().eq("id", params.fractionId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2490,7 +2490,7 @@ async function handleCreateBuildingInspection(req: Request, params: Record<strin
     notes: body.notes || null,
   };
   const { data, error } = await supabase.from("building_inspections").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create");
   return json(data, 201);
 }
 async function handleUpdateBuildingInspection(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
@@ -2499,12 +2499,12 @@ async function handleUpdateBuildingInspection(req: Request, params: Record<strin
   for (const k of ["category_id","inspection_date","result","next_due_date","company_name","company_contact","certificate_url","notes"]) if (body[k] !== undefined) updateData[k] = body[k];
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("building_inspections").update(updateData).eq("id", params.inspectionId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 async function handleDeleteBuildingInspection(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("building_inspections").delete().eq("id", params.inspectionId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2542,12 +2542,12 @@ async function handleUpdateBuildingInsurance(req: Request, params: Record<string
   for (const k of ["coverage_type","policy_number","insurer","broker","contact","fractions_included","observations","renewal_date","notes","policy_path"]) if (body[k] !== undefined) updateData[k] = body[k];
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("building_insurances").update(updateData).eq("id", params.insuranceId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 async function handleDeleteBuildingInsurance(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("building_insurances").delete().eq("id", params.insuranceId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2574,7 +2574,7 @@ async function handleCreateInspectionCategory(req: Request, supabase: ReturnType
     display_order: body.display_order ?? 0,
   };
   const { data, error } = await supabase.from("inspection_categories").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create");
   return json(data, 201);
 }
 async function handleUpdateInspectionCategory(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
@@ -2583,12 +2583,12 @@ async function handleUpdateInspectionCategory(req: Request, params: Record<strin
   for (const k of ["key","label","description","validity_years","alert_days","legal_reference","color","icon","is_active","display_order"]) if (body[k] !== undefined) updateData[k] = body[k];
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("inspection_categories").update(updateData).eq("id", params.categoryId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 async function handleDeleteInspectionCategory(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("inspection_categories").delete().eq("id", params.categoryId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2604,7 +2604,7 @@ async function handleDeleteInsuranceClaimAttachment(params: Record<string, strin
   const { data: att } = await supabase.from("insurance_claim_attachments").select("file_path").eq("id", params.attachmentId).maybeSingle();
   if (att?.file_path) await supabase.storage.from("insurance-claim-attachments").remove([att.file_path]).catch(() => {});
   const { error } = await supabase.from("insurance_claim_attachments").delete().eq("id", params.attachmentId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
@@ -2624,7 +2624,7 @@ async function handleUpdateInsuranceFractionStatus(req: Request, params: Record<
   for (const k of ["status","notes"]) if (body[k] !== undefined) updateData[k] = body[k];
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("insurance_fraction_status").update(updateData).eq("id", params.statusId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 
@@ -2644,7 +2644,7 @@ async function handleCreateBuildingContact(req: Request, params: Record<string, 
     is_primary_contact: body.is_primary_contact ?? false,
   };
   const { data, error } = await supabase.from("condominium_contacts").insert(insertData).select("*").single();
-  if (error) throw new HttpError(500, "Failed to create contact", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to create contact");
   return json(data, 201);
 }
 async function handleUpdateBuildingContact(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
@@ -2653,12 +2653,12 @@ async function handleUpdateBuildingContact(req: Request, params: Record<string, 
   for (const k of ["email","first_name","last_name","phone","fraction","role","is_primary_contact"]) if (body[k] !== undefined) updateData[k] = body[k];
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("condominium_contacts").update(updateData).eq("id", params.contactId).select("*").single();
-  if (error) throw new HttpError(500, "Failed to update", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to update");
   return json(data);
 }
 async function handleDeleteBuildingContact(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
   const { error } = await supabase.from("condominium_contacts").delete().eq("id", params.contactId);
-  if (error) throw new HttpError(500, "Failed to delete", "INTERNAL_ERROR");
+  if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
 
