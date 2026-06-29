@@ -27,12 +27,31 @@ Usa a mesma `EXTERNAL_API_KEY` da Agent API. Aceita:
 
 Paridade completa com a app web. Lista extraída diretamente de `index.ts`.
 
+### Notas v1.4.1 (write-path hardening — Jun 2026)
+- **Erros estruturados em TODAS as write tools.** Removidos os 22 `throw HttpError(500, "Failed to …")` opacos remanescentes; agora todos os `create_*`/`update_*`/`delete_*` passam pelo `pgErrorToHttp`, que devolve `{ error, code, field?, allowed_values?, pg_code, details }` (nunca 500).
+- **Validação de enum antes do INSERT/UPDATE** via novos helpers `requireEnum` / `validateEnumIfPresent`. Aplicado em `update_assistance` (`status`, `priority`) — input `'ac'` ou outro valor fora do enum responde **400 `INVALID_ENUM`** com `allowed_values: [...]`, em vez de 500 opaco.
+- **`delete_building` confirmado como soft-delete real** (`is_active=false`) e devolve `{ deleted, soft, id, is_active }`; equivalente para `delete_supplier`.
+- **Valores válidos por enum (write tools):**
+  - `assistance_status`: pending, awaiting_quotation, quotation_rejected, in_progress, completed, cancelled, accepted, scheduled
+  - `assistance_priority`: normal, urgent, critical
+  - `pendency_status`: aberto, aguarda_resposta, resposta_recebida, precisa_decisao, escalado, resolvido, cancelado
+  - `quotation_status`: pending, submitted, approved, rejected, expired
+  - `insurance_claim_status`: aberto, em_analise, aguarda_peritagem, peritagem_realizada, aguarda_pagamento, pago, recusado, arquivado
+  - `assembly_status`: draft, processing_audio, awaiting_review, approved, archived, failed
+- **Campos obrigatórios por create tool (mínimos verificados):**
+  - `create_building`: `code`, `name`, `address`, `postal_code`
+  - `create_building_insurance`: `building_id` (path) — `coverage_type` usa default `'multirisco'` na BD
+  - `create_follow_up`: `assistance_id`, `follow_up_type`, `scheduled_for` (priority default `'normal'`, status default `'pending'`)
+  - `create_email_pendency`: `title`, `building_id` (status default `'aberto'`)
+  - `create_assistance`: `building_id`, `title`, `description`, `intervention_type_id`
+- **Regression suite** `supabase/functions/agent-api/write_audit_test.ts` cobre ciclo create → update → delete em insurances, follow-ups, pendencies, building (soft-delete) e valida 400 estruturado em inputs inválidos.
+
 ### Notas v1.4.0 (auditoria 2026-11)
 - **Validação UUID** em todos os `get_*` por id → não-UUID devolve **400 `INVALID_INPUT`** (nunca 500).
 - **Status filters** centralizados em `resolveStatusFilter` (enum real + aliases `open`/`closed`) para `list_assistances`, `list_email_pendencies`, `list_insurance_claims`, `list_assemblies`, `list_quotations`. Status inválido → **400 `INVALID_STATUS`** com `valid_values[]`.
-- **Erros Postgres mapeados** via `pgErrorToHttp` (22P02→400, 23502→400 `MISSING_FIELD`, 23503→400 `FK_NOT_FOUND`, 23505→409 `DUPLICATE`, enum→400 `INVALID_ENUM`). Sem mais 500 opacos em `create_*`.
-- **Creates corrigidos:** `create_email_pendency` (default `aberto`, não `open`), `create_building_insurance` (deixa `coverage_type` usar default DB), `create_follow_up` (erros específicos).
+- **Erros Postgres mapeados** via `pgErrorToHttp` (22P02→400, 23502→400 `MISSING_FIELD`, 23503→400 `FK_NOT_FOUND`, 23505→409 `DUPLICATE`, enum→400 `INVALID_ENUM`).
 - **Deletes em falta adicionados:** `delete_building` (soft), `delete_assistance`, `delete_insurance_claim`, `delete_supplier` (soft), `delete_follow_up`.
+
 
 ### Notas v1.3.2 (bugfixes anteriores)
 - `search` aceita **`q` ou `query`** (alias). Sem termo devolve `{results:[]}`.
