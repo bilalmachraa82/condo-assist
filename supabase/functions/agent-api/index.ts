@@ -1154,6 +1154,10 @@ async function handleListBuildingContacts(params: Record<string, string>, supaba
 // ── Assistances extra handlers ──
 async function handleUpdateAssistance(req: Request, params: Record<string, string>, supabase: ReturnType<typeof getSupabase>): Promise<Response> {
   const body = await req.json();
+  requireUUID(params.assistanceId, "assistanceId");
+  // Pre-validate enums so we get a clean 400 (with allowed_values) instead of an opaque PG error.
+  validateEnumIfPresent(body.status, "assistance_status", "status");
+  validateEnumIfPresent(body.priority, "assistance_priority", "priority");
   const allowed = [
     "title", "description", "status", "priority", "assigned_supplier_id", "intervention_type_id",
     "scheduled_date", "scheduled_start_date", "scheduled_end_date", "actual_start_date", "actual_end_date",
@@ -1164,6 +1168,7 @@ async function handleUpdateAssistance(req: Request, params: Record<string, strin
   const updateData: Record<string, unknown> = {};
   for (const k of allowed) if (body[k] !== undefined) updateData[k] = body[k];
   if (Object.keys(updateData).length === 0) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
+
 
   const { data, error } = await supabase.from("assistances").update(updateData).eq("id", params.assistanceId).select("id, status, updated_at").single();
   if (error) {
