@@ -64,7 +64,7 @@ export const useForceDeleteSupplier = () => {
         p_supplier_id: supplierId,
       });
 
-      if (purgeError) throw purgeError;
+      if (purgeError) throw new Error(extractErrorMessage(purgeError));
 
       // Then deactivate the supplier (preserving critical audit data)
       const { error } = await supabase
@@ -72,7 +72,7 @@ export const useForceDeleteSupplier = () => {
         .update({ is_active: false })
         .eq("id", supplierId);
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     onSuccess: () => {
