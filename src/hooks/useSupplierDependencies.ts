@@ -93,7 +93,7 @@ export const useCompleteDeleteSupplier = () => {
         p_supplier_id: supplierId,
       });
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       
       // Handle function response - data is a JSON response
       const result = data as { success?: boolean; error?: string; message?: string };
