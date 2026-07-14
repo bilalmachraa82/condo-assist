@@ -99,16 +99,8 @@ export function SafeDeleteSupplierDialog({
       
       onOpenChange(false);
     } catch (error: any) {
-      const extractMessage = (e: any): string => {
-        if (!e) return "Erro ao processar a operação";
-        if (typeof e === "string") return e;
-        if (typeof e?.message === "string" && e.message.trim()) return e.message;
-        if (typeof e?.details === "string" && e.details.trim()) return e.details;
-        if (typeof e?.hint === "string" && e.hint.trim()) return e.hint;
-        if (typeof e?.error === "string" && e.error.trim()) return e.error;
-        try { return JSON.stringify(e); } catch { return "Erro ao processar a operação"; }
-      };
-      const msg = extractMessage(error);
+      const msg = extractErrorMessage(error);
+
       if (error?.code === "23503" || msg.includes("activity_log")) {
         toast({
           title: "Eliminação bloqueada",
