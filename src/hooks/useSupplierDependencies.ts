@@ -24,7 +24,7 @@ export const useSupplierDependencies = (supplierId: string) => {
         p_supplier_id: supplierId,
       });
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data as SupplierDependencies;
     },
     enabled: !!supplierId,
