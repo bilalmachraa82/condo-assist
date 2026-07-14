@@ -16,6 +16,7 @@ import { Loader2, AlertTriangle, Info, Trash2, UserX, AlertTriangle as WarningTr
 import { useSupplierDependencies, useDeactivateSupplier, useForceDeleteSupplier, useCompleteDeleteSupplier } from "@/hooks/useSupplierDependencies";
 import { useDeleteSupplier, type Supplier } from "@/hooks/useSuppliers";
 import { useToast } from "@/hooks/use-toast";
+import { extractErrorMessage } from "@/utils/errorHandler";
 
 interface SafeDeleteSupplierDialogProps {
   supplier: Supplier | null;
