@@ -43,7 +43,7 @@ export const useDeactivateSupplier = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     onSuccess: () => {
