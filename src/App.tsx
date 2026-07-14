@@ -55,8 +55,8 @@ const queryClient = new QueryClient({
     },
     mutations: {
       onError: (error) => {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        showErrorToast(errorMessage);
+        if (error && typeof error === 'object' && (error as any).__silent === true) return;
+        showErrorToast(error);
       },
     },
   },
