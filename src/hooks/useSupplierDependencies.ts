@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { extractErrorMessage } from "@/utils/errorHandler";
 
 export type SupplierDependencies = {
   can_delete: boolean;
@@ -23,7 +24,7 @@ export const useSupplierDependencies = (supplierId: string) => {
         p_supplier_id: supplierId,
       });
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data as SupplierDependencies;
     },
     enabled: !!supplierId,
@@ -42,7 +43,7 @@ export const useDeactivateSupplier = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     onSuccess: () => {
@@ -63,7 +64,7 @@ export const useForceDeleteSupplier = () => {
         p_supplier_id: supplierId,
       });
 
-      if (purgeError) throw purgeError;
+      if (purgeError) throw new Error(extractErrorMessage(purgeError));
 
       // Then deactivate the supplier (preserving critical audit data)
       const { error } = await supabase
@@ -71,7 +72,7 @@ export const useForceDeleteSupplier = () => {
         .update({ is_active: false })
         .eq("id", supplierId);
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     onSuccess: () => {
@@ -92,7 +93,7 @@ export const useCompleteDeleteSupplier = () => {
         p_supplier_id: supplierId,
       });
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       
       // Handle function response - data is a JSON response
       const result = data as { success?: boolean; error?: string; message?: string };

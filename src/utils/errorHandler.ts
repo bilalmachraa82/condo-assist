@@ -1,8 +1,31 @@
 import { toast } from "@/components/ui/sonner"
 
-export const showErrorToast = (message: string) => {
-  console.error('Erro:', message);
-  toast.error(message);
+export const extractErrorMessage = (e: unknown): string => {
+  if (e == null) return "Ocorreu um erro inesperado.";
+  if (typeof e === "string") return e;
+  if (e instanceof Error && e.message) return e.message;
+  if (typeof e === "object") {
+    const anyE = e as any;
+    const candidate =
+      (typeof anyE.message === "string" && anyE.message.trim()) ||
+      (typeof anyE.error_description === "string" && anyE.error_description.trim()) ||
+      (typeof anyE.error === "string" && anyE.error.trim()) ||
+      (typeof anyE.details === "string" && anyE.details.trim()) ||
+      (typeof anyE.hint === "string" && anyE.hint.trim()) ||
+      (typeof anyE.code === "string" && anyE.code.trim());
+    if (candidate) return candidate as string;
+    try {
+      const json = JSON.stringify(e);
+      if (json && json !== "{}") return json;
+    } catch {}
+  }
+  return "Ocorreu um erro inesperado.";
+};
+
+export const showErrorToast = (message: unknown) => {
+  const msg = typeof message === "string" ? message : extractErrorMessage(message);
+  console.error('Erro:', msg);
+  toast.error(msg);
 };
 
 export const showSuccessToast = (message: string) => {

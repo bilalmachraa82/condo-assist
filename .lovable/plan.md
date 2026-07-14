@@ -1,64 +1,42 @@
-## Objetivo
-Garantir que TODAS as write tools (`create_*`, `update_*`, `delete_*`) do MCP devolvem 200 em input válido e **400 estruturado** em input inválido — nunca 500 opaco. Documentar enums/constraints no schema das tools e fechar gaps deixados pela auditoria 2026-11 (`create_building_insurance`, `create_follow_up`, `delete_building` no-op, status `'ac'` truncado em `update_assistance`).
+## Bug: toast "[object Object]" ao eliminar fornecedor
 
-## Diagnóstico
-A auditoria anterior (v1.4.0) já implementou `pgErrorToHttp`, deletes em falta e `resolveStatusFilter`. Faltam estas correções pontuais e a verificação end-to-end:
+### Causa raiz
+O `QueryClient` global em `src/App.tsx` (linhas 56-61) tem:
 
-- `create_building_insurance` e `create_follow_up` continuam a falhar com "Failed to create…" → o handler em `agent-api/index.ts` está a chamar `pgErrorToHttp`, mas o input schema da tool MCP não expõe os campos NOT NULL/CHECK reais, e os defaults não estão a ser aplicados antes do INSERT.
-- `delete_building` reporta sucesso mas mantém `is_active = true` → é preciso confirmar que está a fazer UPDATE (soft-delete) e devolver o registo actualizado.
-- `update_assistance` aceita um valor `'ac'` truncado que não existe no enum `assistance_status` → falta validação contra `enum_range`.
-- Vários handlers de write ainda devolvem mensagens genéricas; precisam do formato uniforme `{ tool, error, field, allowed_values, cause }`.
-
-## Plano de execução (build mode)
-
-### 1. Probe automático de cada write tool
-Criar `supabase/functions/agent-api/write_audit_test.ts` que percorre todas as `create_* / update_* / delete_*` (lista extraída de `mcp-server/index.ts`) com input mínimo válido contra um `TEST_BUILDING_ID`, capturando o JSON exacto devolvido. Produz tabela `PASS/FAIL + código pg`.
-
-### 2. Descobrir constraints reais
-Via `supabase--read_query` sobre `information_schema` / `pg_constraint` para `building_insurances`, `follow_up_schedules`, `assistances` (enum `assistance_status`), `insurance_claims`, etc. Documentar campos NOT NULL, CHECKs, e `enum_range` de cada enum usado em writes.
-
-### 3. Fix `create_building_insurance`
-- Identificar coluna(s) NOT NULL sem default (provavelmente `coverage_type` ou `policy_number`).
-- Ou aplicar default sensato server-side, ou marcar como required no input schema da tool MCP.
-- Garantir que o handler devolve 400 estruturado nomeando o campo.
-
-### 4. Fix `create_follow_up`
-- Identificar CHECK constraint (provavelmente `follow_up_type` enum + `priority` enum + `scheduled_for` NOT NULL).
-- Expor `follow_up_type` e `priority` com `enum: [...]` no input schema.
-- Default `scheduled_for = now() + 24h` quando omitido.
-
-### 5. Fix `delete_building` (no-op real)
-Reescrever para `UPDATE buildings SET is_active=false WHERE id=… RETURNING *`. Devolver o registo actualizado na resposta para confirmação. Mesmo padrão para `delete_supplier`.
-
-### 6. Validar enum em `update_assistance`
-Centralizar `ASSISTANCE_STATUS_ENUM` (já existe em `ENUMS` do read-path) e aplicá-lo também no PATCH. Input com `'ac'` → 400 `INVALID_ENUM` com `allowed_values`.
-
-### 7. Erro estruturado uniforme
-Estender `pgErrorToHttp` (ou criar wrapper `writeError`) para devolver sempre:
-```json
-{ "tool": "create_follow_up", "error": "MISSING_FIELD", "field": "follow_up_type",
-  "allowed_values": ["quotation_reminder","work_reminder","completion_reminder"], "cause": "23502" }
+```ts
+mutations: {
+  onError: (error) => {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    showErrorToast(errorMessage);
+  },
+}
 ```
-Aplicar em todos os handlers `create_*`/`update_*`/`delete_*`.
 
-### 8. Documentação inline (input schemas MCP)
-Em `mcp-server/index.ts`, para cada write tool afectada acrescentar à descrição e ao `inputSchema` os `enum:[…]` reais (assistance_status, follow_up_type, insurance coverage_type, etc.). Não muda nomes de tools — só metadados.
+Alguns hooks de fornecedor (`useDeactivateSupplier`, `useForceDeleteSupplier` em `src/hooks/useSupplierDependencies.ts`, e `useUpdateSupplier` em `src/hooks/useSuppliers.ts`) fazem `throw error` do objecto PostgrestError do Supabase — **não** é uma instância de `Error`. `String({...})` produz `"[object Object]"`, que aparece como toast sem título nem descrição útil (exactamente o que se vê no screenshot).
 
-### 9. Ciclo end-to-end create → update → delete
-Adicionar a `write_audit_test.ts` um teste por família que cria → faz update → apaga e limpa resíduos. Reporta PASS/FAIL por tool. Confirma `create_email_pendency` continua verde.
+O `SafeDeleteSupplierDialog` já tem um `extractMessage` local a fazer o trabalho certo, mas o toast global do React Query dispara **primeiro** (a mutation rejeita antes do `catch` do componente atingir o toast bonito), por isso o utilizador vê `[object Object]`.
 
-### 10. Actualizar artefactos
-- `mcp-server/README.md` → secção "Write tools — campos obrigatórios e enums".
-- `.lovable/memory/features/mcp-server.md` → notas v1.4.1.
-- Bump `version` em `/info` para `1.4.1`.
+### Correcção (só frontend, mínima)
 
-## Detalhes técnicos
-- Tudo isolado em `supabase/functions/agent-api/index.ts` + `mcp-server/index.ts`. Sem migrations (constraints existentes mantêm-se).
-- Sem alteração de nomes/URLs de tools — regra de ouro do MCP.
-- Deploy explícito de `agent-api` + `mcp-server` no fim.
+1. **`src/utils/errorHandler.ts`** — adicionar `extractErrorMessage(e)` que cobre:
+   - `Error` → `e.message`
+   - Supabase `PostgrestError` → `e.message || e.details || e.hint || e.code`
+   - string → tal e qual
+   - objecto qualquer → `JSON.stringify` (nunca `"[object Object]"`)
+   
+   Exportar e usar em `showErrorToast` também (aceitar `unknown`).
 
-## Entregáveis
-1. `write_audit_test.ts` com matriz completa PASS/FAIL.
-2. Tabela "campo obrigatório / enum / allowed_values" por write tool (no README).
-3. Relatório do ciclo CRUD por família.
-4. v1.4.1 deployada.
+2. **`src/App.tsx`** (linhas 56-61) — trocar o `onError` global para usar `extractErrorMessage(error)` em vez do `String(error)` actual. Ignorar se `error?.__silent === true` (para o dialog poder silenciar quando quiser mostrar toast próprio).
+
+3. **`src/hooks/useSupplierDependencies.ts`** — nos três hooks (`useDeactivateSupplier`, `useForceDeleteSupplier`, `useCompleteDeleteSupplier`), embrulhar os throws em `throw new Error(extractErrorMessage(err))` para que a stack traga já a mensagem limpa. Mesmo tratamento em `useDeleteSupplier` / `useUpdateSupplier` de `src/hooks/useSuppliers.ts` para o mesmo problema noutros ecrãs.
+
+4. **`src/components/suppliers/SafeDeleteSupplierDialog.tsx`** — substituir o `extractMessage` local por `extractErrorMessage` importado (dedup) e manter a lógica de detectar `23503`.
+
+### Sem mudanças
+- Nenhuma alteração de schema, RPC, edge function, RLS.
+- Nenhuma alteração das tools MCP.
+- Nenhuma alteração de UI/copy fora dos toasts de erro.
+
+### Validação
+- Abrir Fornecedores → tentar eliminar um fornecedor com dependências críticas → toast mostra mensagem legível (ex.: `has_critical_dependencies` ou o erro Postgres com HINT), nunca `[object Object]`.
+- Confirmar via console: `error` recebido no `onError` global passa pelo extractor.

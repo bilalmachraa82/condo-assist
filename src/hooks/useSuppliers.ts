@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
+import { extractErrorMessage } from "@/utils/errorHandler";
 
 export type Supplier = Tables<"suppliers">;
 
@@ -21,7 +22,7 @@ export const useSuppliers = () => {
       // Use the secure function for basic supplier data
       const { data, error } = await supabase.rpc("get_basic_suppliers");
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data as BasicSupplier[];
     },
   });
@@ -43,7 +44,7 @@ export const useAllSuppliers = (includeInactive: boolean = false) => {
 
       const { data, error } = await query.order("name", { ascending: true });
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data as Supplier[];
     },
   });
@@ -56,7 +57,7 @@ export const useSupplierStats = () => {
       // Get basic supplier data using secure function
       const { data: suppliers, error } = await supabase.rpc("get_basic_suppliers");
       
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
 
       const total = suppliers?.length || 0;
       const active = suppliers?.filter(s => s.is_active)?.length || 0;
@@ -84,7 +85,7 @@ export const useCreateSupplier = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     onSuccess: () => {
@@ -107,7 +108,7 @@ export const useUpdateSupplier = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data;
     },
     onSuccess: () => {
@@ -127,7 +128,7 @@ export const useDeleteSupplier = () => {
         p_supplier_id: id,
       });
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       
       // Handle function response - data is a JSON response
       const result = data as { success?: boolean; error?: string };
@@ -155,7 +156,7 @@ export const useSupplier = (id: string) => {
         .eq("id", id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) throw new Error(extractErrorMessage(error));
       return data as Supplier | null;
     },
     enabled: !!id,
