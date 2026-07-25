@@ -1,92 +1,92 @@
-# Graph Report - condo-assit  (2026-07-25)
+# Graph Report - condo-assit  (2026-07-26)
 
 ## Corpus Check
-- 500 files · ~290,918 words
+- 512 files · ~301,915 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2590 nodes · 6514 edges · 360 communities (235 shown, 125 thin omitted)
+- 2654 nodes · 6567 edges · 377 communities (247 shown, 130 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 42 edges (avg confidence: 0.71)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9f604fb8`
+- Built from commit: `803c9892`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- PendencyDetail.tsx
-- agent-api/index.ts
-- input.tsx
+- EmailPendencies.tsx
+- json
+- SupplierPortal.tsx
 - devDependencies
 - KnowledgeImport.tsx
-- Fornecedores.tsx
-- Badge
-- client.ts
+- select.tsx
+- AssemblyImport.tsx
+- PendencyDetail.tsx
 - Keys.tsx
-- AssemblyAttachMinutesDialog.tsx
+- Assembly.tsx
 - mcp-server/index.ts
 - sidebar.tsx
-- App.tsx
-- Assistance
-- Sinistros.tsx
-- useToast
-- QuotationManagement.tsx
+- scripts
 - status-badges.tsx
-- formManager.ts
+- Sinistros.tsx
+- AdministratorsImportDialog.tsx
+- PendencyRemindersTab.tsx
+- useQuotations.ts
+- SafeDeleteSupplierDialog.tsx
 - Logger
-- pagination.tsx
+- InsuranceForm.tsx
 - compilerOptions
 - DashboardLayout.tsx
-- utils.ts
-- maskPII
+- badge.tsx
+- agent-api/index.ts
 - requireString
 - send-assistance-pdf-to-admin/index.ts
 - 20250726115742-30e2a3b4-365f-4b1e-b6fa-fb62c5664072.sql
-- InsuranceForm.tsx
-- formatBuildingLabel
+- App.tsx
+- Fornecedores.tsx
 - Assistencias.tsx
-- useAppSettings.ts
+- button.tsx
 - AssistanceDetail.tsx
-- EditAssistanceForm.tsx
+- input.tsx
 - action-buttons.tsx
 - FollowUpDashboard.tsx
-- Inspecoes.tsx
-- useRealtimeNotifications.ts
-- useAnalytics.ts
+- pendencyText.ts
+- FollowUpSettings.tsx
+- Analytics.tsx
 - compilerOptions
-- useAuth.tsx
+- ProfileForm.tsx
 - components.json
 - Edificios.tsx
 - AST Structural Extraction (Part A)
 - manifest.json
 - SwipeableCard.tsx
 - validation.ts
-- SettingsForm.tsx
+- resolveStatusFilter
 - dropdown-menu.tsx
-- SystemMonitor.tsx
-- SupplierForm.tsx
+- client.ts
+- buildingDisplay.ts
 - hooks/use-toast.ts
 - requireUUID
 - Agent API (43 REST Endpoints)
-- dependencies
-- BuildingDocumentsTab.tsx
-- BuildingAdministratorsManager.tsx
+- @capacitor/camera
+- useToast
+- AttachmentPreviewDialog.tsx
 - 20260502182241_ed81cc8c-8666-412c-b45c-b6822901173a.sql
-- AssemblyImport.tsx
-- badge.tsx
+- useSystemMonitoring.ts
+- SupplierAssistancesList.tsx
 - carousel.tsx
 - McpTest.tsx
-- button.tsx
+- card.tsx
 - menubar.tsx
-- toast.tsx
+- formatBuildingLabel
 - types.ts
 - Build, Cluster and Analyze (Step 4)
-- textarea.tsx
-- CreateAssistanceForm.tsx
+- audit_regression_test.ts
+- Q: Smoke test email pendency Graphify map
 - command.tsx
 - production.ts
-- errorResponse
+- package.json
 - send-email/index.ts
 - compilerOptions
 - Luvimg App Shell (index.html)
@@ -97,14 +97,14 @@
 - process-notifications/index.ts
 - 20260430161539_f632181b-c6ad-434a-8c41-7bf3b6c739c9.sql
 - AGENTS.md Graphify Rules
-- InterventionTypeForm.tsx
-- accordion.tsx
+- useInterventionTypes.ts
+- @eslint/js
 - parse-pendency-pdf/index.ts
 - 20250728222302-4118ff7d-4809-4761-b0ce-081255733956.sql
 - 20260507135619_dc00ca06-b621-4f28-ad92-b83916d494c1.sql
 - AssistanceEmailPDFTemplate.tsx
 - useNotifications.ts
-- breadcrumb.tsx
+- write_audit_test.ts
 - cn
 - navigation-menu.tsx
 - McpHealthDashboard.tsx
@@ -112,9 +112,9 @@
 - process-followups/index.ts
 - 20250729184546-19864d59-a011-4c3a-a8f0-de5debde2bd7.sql
 - 20250916171741_c9f7ff65-92ed-408d-aca5-481a6f185ec7.sql
-- react
+- eslint-plugin-react-hooks
 - ErrorBoundary
-- useKnowledgeArticles.ts
+- lovable-tagger
 - inspection-alerts-cron/index.ts
 - manual-reminders-cron/index.ts
 - pendency-reminders-cron/index.ts
@@ -131,8 +131,8 @@
 - 20260415235348_2332ebfa-b423-4309-a455-b51935507c1e.sql
 - 20260430144954_5eb296a9-002d-4ba9-882c-4cd22040275e.sql
 - 20260619160000_email_pendencies_dedupe.sql
-- lucide-react
-- SafeDeleteSupplierDialog.tsx
+- dependencies
+- bug_fixes_test.ts
 - auth_regression_test.ts
 - automated-notifications/index.ts
 - email-unsubscribe/index.ts
@@ -184,41 +184,43 @@
 - 20260420101213_b03b70ee-c45f-47bd-881c-deb166369ef1.sql
 - 20260425111343_064fc014-6d7b-450d-9a63-b029612ac17f.sql
 - 20260428160323_3cac3b9c-0f53-42a0-8a26-c78f62c3b96d.sql
-- @capacitor/android
+- @radix-ui/react-menubar
 - @capacitor/app
-- toggle-group.tsx
+- clsx
 - @capacitor/cli
 - capacitor.config.ts
 - @capacitor/core
-- TestPortalButton.tsx
+- @radix-ui/react-navigation-menu
 - @capacitor/haptics
 - @capacitor/ios
-- @capacitor/network
+- date-fns
 - @capacitor/preferences
 - @capacitor/push-notifications
-- clsx
+- ProgressTracker.tsx
 - cmdk
-- date-fns
-- embla-carousel-react
-- @hookform/resolvers
 - html2canvas
+- embla-carousel-react
+- @radix-ui/react-tabs
+- @radix-ui/react-accordion
 - input-otp
 - @capacitor/geolocation
-- @radix-ui/react-alert-dialog
+- @radix-ui/react-radio-group
 - @radix-ui/react-avatar
-- @radix-ui/react-checkbox
-- @radix-ui/react-collapsible
-- @radix-ui/react-context-menu
+- @radix-ui/react-slot
+- @radix-ui/react-toast
+- react-markdown
 - @radix-ui/react-dialog
 - @radix-ui/react-dropdown-menu
-- @radix-ui/react-hover-card
+- react-router-dom
 - @radix-ui/react-label
-- @radix-ui/react-aspect-ratio
+- @radix-ui/react-alert-dialog
 - @radix-ui/react-popover
 - @radix-ui/react-progress
 - @radix-ui/react-scroll-area
 - @radix-ui/react-select
 - @radix-ui/react-separator
+- @radix-ui/react-checkbox
+- postcss
 - @radix-ui/react-switch
 - @radix-ui/react-toggle
 - @radix-ui/react-toggle-group
@@ -226,6 +228,7 @@
 - react-day-picker
 - react-dom
 - react-hook-form
+- useAssistances.ts
 - react-resizable-panels
 - tailwindcss
 - recharts
@@ -239,7 +242,8 @@
 - zod
 - sw.js
 - check-email-dns.sh
-- checkRateLimit
+- @tailwindcss/typography
+- ProgressTracker.tsx
 - validate-supplier-session/index.ts
 - 20250731230112_92299a14-3122-47b2-a401-726c1acb44a3.sql
 - 20250805153505_14832a52-bf08-4c04-909c-ced4cfdadffd.sql
@@ -265,11 +269,24 @@
 - typescript-eslint
 - vite
 - @vitejs/plugin-react-swc
+- breadcrumb.tsx
+- toggle-group.tsx
+- graphify reference: query, path, explain
+- useKnowledgeArticles.ts
 - Q: Smoke test final email pendency Graphify map after install
+- input-otp.tsx
+- graphify reference: add a URL and watch a folder
+- graphify reference: commit hook and native CLAUDE.md integration
+- graphify reference: incremental update and cluster-only
+- graphify reference: GitHub clone and cross-repo merge
+- graphify reference: transcribe video and audio
 - @radix-ui/react-collapsible
-- @radix-ui/react-hover-card
+- .claude/CLAUDE.md
 - @radix-ui/react-slider
-- typescript
+- @radix-ui/react-aspect-ratio
+- @radix-ui/react-context-menu
+- @radix-ui/react-hover-card
+- HttpError
 
 ## God Nodes (most connected - your core abstractions)
 1. `useToast()` - 162 edges
@@ -303,19 +320,19 @@
 - **Query → Expand → Traverse → Save-Result → Lessons Feedback Loop** — _codex_skills_graphify_references_query_vocab_expansion, _codex_skills_graphify_references_query_query_flow, _codex_skills_graphify_references_query_save_result, _codex_skills_graphify_references_query_work_memory, _codex_skills_graphify_references_update_incremental_update [EXTRACTED 0.90]
 - **Condo Assist AI Agent Integration Stack (MCP → Agent API → Supabase)** — _lovable_memory_features_mcp_server_mcp_server, supabase_functions_mcp_server_readme_mcp_server_docs, _lovable_memory_features_external_api_access_agent_api, supabase_functions_agent_api_openapi_agent_api_spec, _lovable_memory_features_knowledge_base_knowledge_articles [INFERRED 0.85]
 
-## Communities (360 total, 125 thin omitted)
+## Communities (377 total, 130 thin omitted)
 
-### Community 0 - "PendencyDetail.tsx"
-Cohesion: 0.10
-Nodes (32): COLUMN_ACCENT, PendencyKanban(), Props, slaDot(), ToggleGroup, ToggleGroupContext, ToggleGroupItem, Toggle (+24 more)
+### Community 0 - "EmailPendencies.tsx"
+Cohesion: 0.05
+Nodes (86): AttachmentPreviewDialog(), PreviewAttachment, Props, CreatePendencyDialog(), Props, PendencyDetail(), Props, slaColor() (+78 more)
 
-### Community 1 - "agent-api/index.ts"
+### Community 1 - "json"
 Cohesion: 0.07
-Nodes (49): handleDeleteAssembly(), handleDeleteAssemblyActionItem(), handleDeleteAssemblyAgendaItem(), handleDeleteAssemblyAttendee(), handleDeleteAssemblyResolution(), handleDeleteBuildingAdministrator(), handleDeleteBuildingContact(), handleDeleteBuildingDocument() (+41 more)
+Nodes (49): handleDeleteAssembly(), handleDeleteAssemblyActionItem(), handleDeleteAssemblyAgendaItem(), handleDeleteAssemblyAttendee(), handleDeleteAssemblyResolution(), handleDeleteBuildingContact(), handleDeleteBuildingDocument(), handleDeleteBuildingInspection() (+41 more)
 
-### Community 2 - "input.tsx"
-Cohesion: 0.11
-Nodes (15): getPriorityColor(), getPriorityLabel(), PDFPreviewDialog(), AssistanceWithQuotationRequest, SupplierAnalyticsProps, EmailSystemTester(), TestResult, Separator (+7 more)
+### Community 2 - "SupplierPortal.tsx"
+Cohesion: 0.09
+Nodes (24): AssistancePhoto, PhotoGalleryProps, photoTypeBadgeVariants, photoTypeLabels, ActivityFeed(), SecurityAlert, EnhancedQuotationFormProps, QuotationItem (+16 more)
 
 ### Community 3 - "devDependencies"
 Cohesion: 0.15
@@ -323,69 +340,69 @@ Nodes (13): autoprefixer, eslint, eslint-plugin-react-refresh, globals, devDepen
 
 ### Community 4 - "KnowledgeImport.tsx"
 Cohesion: 0.08
-Nodes (49): BuildingAdministratorsManager(), DraftAdmin, empty, Props, toDraft(), formatTitle(), KnowledgeCard(), Props (+41 more)
+Nodes (50): xlsx, AssemblyCard(), __ambiguousDates, AssemblyImport(), cellStr(), ItemDraft, parseSheet(), Phase (+42 more)
 
-### Community 5 - "Fornecedores.tsx"
-Cohesion: 0.13
-Nodes (34): PDFExportButtonProps, PDFExportOptions, ScheduledReport, AssemblyAttachMinutesDialog(), ExtractedTopic, fileToBase64(), Props, AssistanceFiltersProps (+26 more)
+### Community 5 - "select.tsx"
+Cohesion: 0.10
+Nodes (25): ScheduledReport, PhotoType, PhotoUpload(), PhotoUploadProps, DataErrorFallbackProps, InstallPrompt(), PDFExportButtonProps, QuotationFilters (+17 more)
 
-### Community 6 - "Badge"
-Cohesion: 0.24
-Nodes (12): __ambiguousDates, AssemblyImport(), cellStr(), ItemDraft, parseSheet(), Phase, Props, Progress (+4 more)
+### Community 6 - "AssemblyImport.tsx"
+Cohesion: 0.08
+Nodes (24): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+16 more)
 
-### Community 7 - "client.ts"
-Cohesion: 0.14
-Nodes (26): AttachmentPreviewDialog(), PreviewAttachment, Props, CreatePendencyDialog(), PendencyDetail(), Props, slaColor(), slaLabel() (+18 more)
+### Community 7 - "PendencyDetail.tsx"
+Cohesion: 0.21
+Nodes (12): Props, PendencyRemindersTab(), SortKey, statusColors, statusIcons, statusLabels, PendencyReminder, PendencyReminderWithDetails (+4 more)
 
 ### Community 8 - "Keys.tsx"
-Cohesion: 0.11
-Nodes (30): xlsx, AdminDraft, AdministratorsImportDialog(), cellStr(), isValidEmail(), normalizeCode(), parseAdmins(), Phase (+22 more)
+Cohesion: 0.13
+Nodes (18): InspectionForm(), InspectionResult, Props, BuildingInspection, InspectionCategory, InspectionCategoryJoin, InspectionResult, InspectionStatus (+10 more)
 
-### Community 9 - "AssemblyAttachMinutesDialog.tsx"
+### Community 9 - "Assembly.tsx"
 Cohesion: 0.10
-Nodes (33): AssemblyBuildingGroup(), InlineNotes(), Props, SaveState, STATUS_CONFIG, AssemblyCard(), Props, STATUS_CONFIG (+25 more)
+Nodes (38): AssemblyBuildingGroup(), InlineNotes(), Props, SaveState, STATUS_CONFIG, Props, STATUS_CONFIG, AssemblyDetail() (+30 more)
 
 ### Community 10 - "mcp-server/index.ts"
 Cohesion: 0.07
 Nodes (29): AgentApiError, app, callAgentApi(), chatgptFetchDescriptor, chatgptRpcHandler(), chatgptSearchDescriptor, chatgptToolsList, corsHeaders (+21 more)
 
 ### Community 11 - "sidebar.tsx"
-Cohesion: 0.07
-Nodes (35): AppSidebar(), catalogoItems, configItems, devItems, NavItem, operacoesItems, principalItems, Sidebar (+27 more)
+Cohesion: 0.08
+Nodes (30): catalogoItems, configItems, devItems, NavItem, operacoesItems, principalItems, Sidebar, SidebarContent (+22 more)
 
-### Community 12 - "App.tsx"
+### Community 12 - "scripts"
 Cohesion: 0.15
 Nodes (13): scripts, build, build:dev, dev, graphify:benchmark, graphify:callflow, graphify:diagnose, graphify:extract (+5 more)
 
-### Community 13 - "Assistance"
-Cohesion: 0.09
-Nodes (31): AssistanceDetailProps, AssistanceListPDFTemplate(), AssistanceListPDFTemplateProps, AssistancePDFTemplate(), AssistancePDFTemplateProps, EditAssistanceFormProps, InternalNotesProps, PDFPreviewDialogProps (+23 more)
+### Community 13 - "status-badges.tsx"
+Cohesion: 0.11
+Nodes (24): AssistanceDetailProps, AssistanceListPDFTemplate(), AssistanceListPDFTemplateProps, AssistancePDFTemplate(), AssistancePDFTemplateProps, EditAssistanceFormProps, InternalNotesProps, PDFPreviewDialogProps (+16 more)
 
 ### Community 14 - "Sinistros.tsx"
-Cohesion: 0.14
-Nodes (25): SheetContent, SheetContentProps, SheetDescription, SheetFooter(), SheetHeader(), SheetOverlay, SheetTitle, sheetVariants (+17 more)
+Cohesion: 0.23
+Nodes (17): SafeDeleteSupplierDialog(), SafeDeleteSupplierDialogProps, SupplierForm(), SupplierFormProps, SupplierDependencies, useCompleteDeleteSupplier(), useDeactivateSupplier(), useForceDeleteSupplier() (+9 more)
 
-### Community 15 - "useToast"
-Cohesion: 0.13
-Nodes (22): InspectionForm(), InspectionResult, Props, TableRow, BuildingInspection, InspectionCategory, InspectionCategoryJoin, InspectionResult (+14 more)
+### Community 15 - "AdministratorsImportDialog.tsx"
+Cohesion: 0.12
+Nodes (30): AdminDraft, AdministratorsImportDialog(), cellStr(), isValidEmail(), normalizeCode(), parseAdmins(), Phase, Props (+22 more)
 
-### Community 16 - "QuotationManagement.tsx"
-Cohesion: 0.10
-Nodes (30): COLORS, QuotationAnalytics, AssistanceWithQuotationDetails, Quotation, SettingsForm(), AutomatedNotifications(), EscalationRule, EnhancedQuotationFormProps (+22 more)
+### Community 16 - "PendencyRemindersTab.tsx"
+Cohesion: 0.17
+Nodes (16): COLORS, QuotationAnalytics, AssistanceWithQuotationDetails, Quotation, TabsContent, TabsList, TabsTrigger, useQuotationNotifications() (+8 more)
 
-### Community 17 - "status-badges.tsx"
-Cohesion: 0.19
-Nodes (9): QuotationQuickAction(), QuotationSection(), Calendar(), Quotation, useQuotationsByAssistance(), useRequestQuotation(), useUpdateQuotationStatus(), QuickQuotationAction() (+1 more)
+### Community 17 - "useQuotations.ts"
+Cohesion: 0.24
+Nodes (7): QuotationQuickAction(), QuotationSection(), Quotation, useQuotationsByAssistance(), useRequestQuotation(), useUpdateQuotationStatus(), QuickQuotationAction()
 
-### Community 18 - "formManager.ts"
-Cohesion: 0.08
-Nodes (31): SafeDeleteSupplierDialog(), SafeDeleteSupplierDialogProps, SupplierForm(), SupplierFormProps, SupplierDependencies, useCompleteDeleteSupplier(), useDeactivateSupplier(), useForceDeleteSupplier() (+23 more)
+### Community 18 - "SafeDeleteSupplierDialog.tsx"
+Cohesion: 0.11
+Nodes (13): handleAuthError(), handleNetworkError(), handleValidationError(), retryOperation(), showErrorToast(), createNetworkAwareForm(), enhancedEmailSchema, enhancedNIFSchema (+5 more)
 
 ### Community 19 - "Logger"
 Cohesion: 0.15
 Nodes (6): LOG_LEVELS, LogEntry, Logger, LogLevel, performanceMonitor, useActionLogger()
 
-### Community 20 - "pagination.tsx"
+### Community 20 - "InsuranceForm.tsx"
 Cohesion: 0.16
 Nodes (19): InsuranceForm(), Props, BuildingFraction, BuildingInsurance, COVERAGE_LABEL, CoverageType, FractionStatusValue, INSURANCE_STATUS_META (+11 more)
 
@@ -394,20 +411,20 @@ Cohesion: 0.08
 Nodes (23): DOM, DOM.Iterable, ES2020, src, compilerOptions, allowImportingTsExtensions, isolatedModules, jsx (+15 more)
 
 ### Community 22 - "DashboardLayout.tsx"
-Cohesion: 0.14
-Nodes (21): DashboardLayout(), BottomNavigation(), bottomNavItems, moreItems, FloatingActionButton(), FloatingActionButtonProps, BreadcrumbItem, MobileBreadcrumbs() (+13 more)
+Cohesion: 0.20
+Nodes (14): DashboardLayout(), BottomNavigation(), bottomNavItems, moreItems, BreadcrumbItem, MobileBreadcrumbs(), pageTitles, QuickShortcutsFab() (+6 more)
 
-### Community 23 - "utils.ts"
-Cohesion: 0.40
-Nodes (4): InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot
+### Community 23 - "badge.tsx"
+Cohesion: 0.23
+Nodes (11): StatsCard(), useAssistanceStats(), useBuildingStats(), usePerformanceMetrics(), useSupplierStats(), UpcomingSchedule, useUpcomingSchedules(), UrgentAlert (+3 more)
 
-### Community 24 - "maskPII"
+### Community 24 - "agent-api/index.ts"
 Cohesion: 0.07
-Nodes (38): checkRateLimit(), corsHeaders, ENUMS, handleCreateBuilding(), handleCreateKnowledgeArticle(), handleCreateSupplier(), handleDeleteAssemblyItem(), handleDeleteBuildingInspection() (+30 more)
+Nodes (42): checkRateLimit(), corsHeaders, ENUMS, handleAddCommunication(), handleCreateBuilding(), handleCreateQuotation(), handleDeleteAssemblyItem(), handleDeleteBuildingAdministrator() (+34 more)
 
 ### Community 25 - "requireString"
-Cohesion: 0.10
-Nodes (21): handleAddAssemblyAttendee(), handleAddAssistanceInternalNote(), handleAddClaimNote(), handleAddCommunication(), handleAddEmailPendencyNote(), handleCreateAssemblyActionItem(), handleCreateAssemblyAgendaItem(), handleCreateAssemblyItem() (+13 more)
+Cohesion: 0.08
+Nodes (25): handleAddAssemblyAttendee(), handleAddAssistanceInternalNote(), handleAddClaimNote(), handleAddEmailPendencyNote(), handleCreateAssembly(), handleCreateAssemblyActionItem(), handleCreateAssemblyAgendaItem(), handleCreateAssemblyItem() (+17 more)
 
 ### Community 26 - "send-assistance-pdf-to-admin/index.ts"
 Cohesion: 0.15
@@ -417,29 +434,29 @@ Nodes (20): addNewPage(), AssistanceData, corsHeaders, drawFooter(), drawPhotosS
 Cohesion: 0.16
 Nodes (20): on_auth_user_created, public.activity_log, public.assistance_photos, public.assistances, public.buildings, public.communications_log, public.email_logs, public.handle_new_user() (+12 more)
 
-### Community 28 - "InsuranceForm.tsx"
+### Community 28 - "App.tsx"
 Cohesion: 0.14
-Nodes (11): queryClient, SecurityOverview(), Toaster(), ToasterProps, AuthProvider(), useQuotationNotifications(), Auth(), EmailTesting() (+3 more)
+Nodes (14): QuickActions(), ButtonProps, buttonVariants, Calendar(), CalendarProps, Pagination(), PaginationContent, PaginationEllipsis() (+6 more)
 
-### Community 29 - "formatBuildingLabel"
-Cohesion: 0.23
-Nodes (10): AssistanceFiltersComponent(), BulkEmailDialog(), BulkEmailDialogProps, SupplierWithAssistances, PDFExportButton(), PDFExportButtonProps, SupplierFilters, useSupplierAssistances() (+2 more)
+### Community 29 - "Fornecedores.tsx"
+Cohesion: 0.13
+Nodes (24): PDFExportButton(), PDFExportButtonProps, getPriorityColor(), getPriorityLabel(), PDFPreviewDialog(), SupplierAssistancesList(), SupplierAssistancesListProps, Assistance (+16 more)
 
 ### Community 30 - "Assistencias.tsx"
-Cohesion: 0.17
-Nodes (17): AssistanceDetail(), getStatusIcon(), AssistanceFilters, SkeletonList(), HighlightText(), HighlightTextProps, TooltipContent, useAssistanceReminders() (+9 more)
+Cohesion: 0.16
+Nodes (12): AssistanceFilters, SkeletonList(), SkeletonListProps, HighlightText(), HighlightTextProps, Skeleton(), TooltipContent, AssistanceReminder (+4 more)
 
-### Community 31 - "useAppSettings.ts"
-Cohesion: 0.09
-Nodes (18): DataErrorFallbackProps, Props, TODO: In production, send to error tracking service, State, Props, ReminderCard(), SortKey, statusColors (+10 more)
+### Community 31 - "button.tsx"
+Cohesion: 0.11
+Nodes (10): LoadingSpinner(), LoadingSpinnerProps, AccordionContent, AccordionItem, AccordionTrigger, HoverCardContent, PopoverContent, RadioGroup (+2 more)
 
 ### Community 32 - "AssistanceDetail.tsx"
-Cohesion: 0.17
-Nodes (19): Quotation, QuotationListProps, statusIcons, statusLabels, statusVariants, AlertDialogAction, AlertDialogCancel, AlertDialogContent (+11 more)
+Cohesion: 0.26
+Nodes (15): Quotation, QuotationListProps, statusIcons, statusLabels, statusVariants, AlertDialogAction, AlertDialogCancel, AlertDialogContent (+7 more)
 
-### Community 33 - "EditAssistanceForm.tsx"
-Cohesion: 0.09
-Nodes (38): AssistanceFormValues, assistanceSchema, computeReminderDate(), CreateAssistanceFormProps, REMINDER_PRESETS, AssistanceFormValues, assistanceSchema, BuildingFormData (+30 more)
+### Community 33 - "input.tsx"
+Cohesion: 0.18
+Nodes (15): Profile, ProfileFormData, profileSchema, SupplierFormData, supplierSchema, FormControl, FormDescription, FormField() (+7 more)
 
 ### Community 34 - "action-buttons.tsx"
 Cohesion: 0.12
@@ -449,37 +466,37 @@ Nodes (8): ACTION_ICONS, ActionButtonProps, LoadingButton(), LoadingButtonProps,
 Cohesion: 0.16
 Nodes (19): FollowUpCard(), FollowUpCardProps, FollowUpDashboard(), followUpTypeLabels, priorityColors, SortKey, statusColors, statusIcons (+11 more)
 
-### Community 36 - "Inspecoes.tsx"
-Cohesion: 0.48
-Nodes (5): CommunicationLog(), CommunicationLogProps, CommunicationData, useCommunicationLog(), useCreateCommunication()
+### Community 36 - "pendencyText.ts"
+Cohesion: 0.27
+Nodes (11): BuildingAdministratorsManager(), DraftAdmin, empty, Props, toDraft(), AdminsList(), BuildingAdministrator, useBuildingAdministrators() (+3 more)
 
-### Community 37 - "useRealtimeNotifications.ts"
-Cohesion: 0.43
-Nodes (6): PendencyRemindersTab(), PendencyReminder, PendencyReminderWithDetails, useAllPendencyReminders(), useCancelPendencyReminder(), useTriggerPendencyReminders()
-
-### Community 38 - "useAnalytics.ts"
+### Community 37 - "FollowUpSettings.tsx"
 Cohesion: 0.08
-Nodes (27): jspdf, jspdf, PDFExportButton(), ScheduledReports(), SecurityAlert, Alert, AlertDescription, AlertTitle (+19 more)
+Nodes (30): SecuritySetting, emailSchema, nifSchema, phoneSchema, SelectOption, SettingField, SettingsForm(), SettingsFormProps (+22 more)
+
+### Community 38 - "Analytics.tsx"
+Cohesion: 0.16
+Nodes (21): jspdf, jspdf, PDFExportButton(), PDFExportButtonProps, PDFExportOptions, ScheduledReports(), AlertData, BuildingAnalytics (+13 more)
 
 ### Community 39 - "compilerOptions"
 Cohesion: 0.11
 Nodes (17): ES2023, vite.config.ts, compilerOptions, allowImportingTsExtensions, isolatedModules, lib, module, moduleDetection (+9 more)
 
-### Community 40 - "useAuth.tsx"
-Cohesion: 0.12
-Nodes (20): ProtectedRoute(), ProtectedRouteProps, RealtimeNotificationCenter(), Profile, ProfileForm(), ProfileFormData, profileSchema, AuthContext (+12 more)
+### Community 40 - "ProfileForm.tsx"
+Cohesion: 0.05
+Nodes (32): queryClient, ProtectedRoute(), ProtectedRouteProps, UserMenu(), RealtimeNotificationCenter(), SecurityOverview(), EnhancedQuotationForm(), Toaster() (+24 more)
 
 ### Community 41 - "components.json"
 Cohesion: 0.12
 Nodes (16): aliases, components, hooks, lib, ui, utils, rsc, $schema (+8 more)
 
 ### Community 42 - "Edificios.tsx"
-Cohesion: 0.23
-Nodes (14): BuildingForm(), BuildingFormProps, BuildingListPDFTemplate(), BuildingListPDFTemplateProps, useAssistances(), BuildingDependencies, useBuildingDependencies(), Building (+6 more)
+Cohesion: 0.18
+Nodes (15): PriorityBadgeProps, StatusBadge(), StatusBadgeProps, useAssistances(), BuildingDependencies, useBuildingDependencies(), useDeleteBuilding(), BuildingAssistancesView() (+7 more)
 
 ### Community 43 - "AST Structural Extraction (Part A)"
-Cohesion: 0.21
-Nodes (13): URL Ingest into Corpus, Confidence Score Rubric, Deterministic Node ID Format, Extraction Subagent Prompt, Whisper Video/Audio Transcription, build_merge Graph Reconciliation, Incremental Update Flow, Corpus Detection (Step 2) (+5 more)
+Cohesion: 0.17
+Nodes (16): Folder Watch Auto-Rebuild, Confidence Score Rubric, Deterministic Node ID Format, Extraction Subagent Prompt, Post-Commit Auto-Rebuild Hook, Work Memory / LESSONS.md, Whisper Video/Audio Transcription, AST Structural Extraction (Part A) (+8 more)
 
 ### Community 44 - "manifest.json"
 Cohesion: 0.12
@@ -493,53 +510,53 @@ Nodes (12): OfflineIndicator(), priorityColors, statusColors, SwipeableCard(), S
 Cohesion: 0.14
 Nodes (9): emailSchema, nameSchema, nifSchema, passwordSchema, phoneSchema, urlSchema, validateFile(), validateImageFile() (+1 more)
 
-### Community 47 - "SettingsForm.tsx"
+### Community 47 - "resolveStatusFilter"
 Cohesion: 0.29
 Nodes (7): handleCreateEmailPendency(), handleCreateInsuranceClaim(), handleListAssemblies(), handleListAssistances(), handleListInsuranceClaims(), handleListQuotations(), resolveStatusFilter()
 
 ### Community 48 - "dropdown-menu.tsx"
-Cohesion: 0.17
-Nodes (13): UserMenu(), Avatar, AvatarFallback, AvatarImage, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel (+5 more)
+Cohesion: 0.16
+Nodes (15): formatTitle(), KnowledgeCard(), Avatar, AvatarFallback, AvatarImage, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem (+7 more)
 
-### Community 49 - "SystemMonitor.tsx"
-Cohesion: 0.22
-Nodes (6): TestPortalButton(), TestPortalButtonProps, AssistanceReminder, SupplierAssistance, supabase, generateAndSendMagicCode()
+### Community 49 - "client.ts"
+Cohesion: 0.15
+Nodes (14): QuotationList(), SubmitQuotationForm(), SecuritySettings(), AdminCommunication(), FileUpload(), TestPortalButton(), TestPortalButtonProps, FollowUpTester() (+6 more)
 
-### Community 50 - "SupplierForm.tsx"
-Cohesion: 0.33
-Nodes (6): Folder Watch Auto-Rebuild, Post-Commit Auto-Rebuild Hook, Work Memory / LESSONS.md, AST Structural Extraction (Part A), Graph Health Check (Step 4.5), AST + Semantic Merge (Part C)
+### Community 50 - "buildingDisplay.ts"
+Cohesion: 0.24
+Nodes (10): Toast, ToastAction, ToastActionElement, ToastClose, ToastDescription, ToastProps, ToastTitle, toastVariants (+2 more)
 
 ### Community 51 - "hooks/use-toast.ts"
-Cohesion: 0.11
-Nodes (23): Toast, ToastAction, ToastActionElement, ToastClose, ToastDescription, ToastProps, ToastTitle, toastVariants (+15 more)
+Cohesion: 0.19
+Nodes (13): Action, ActionType, actionTypes, addToRemoveQueue(), dispatch(), genId(), listeners, memoryState (+5 more)
 
 ### Community 52 - "requireUUID"
-Cohesion: 0.10
-Nodes (30): errorResponse(), handleCreateAssembly(), handleCreateAssistance(), handleCreateBuildingInspection(), handleCreateBuildingInsurance(), handleCreateKeyHandover(), handleCreateQuotation(), handleDeleteAssistance() (+22 more)
+Cohesion: 0.16
+Nodes (21): errorResponse(), handleCreateBuildingInsurance(), handleCreateFollowUp(), handleCreateKeyHandover(), handleDeleteAssistance(), handleDeleteAssistancePhoto(), handleDeleteBuilding(), handleDeleteFollowUp() (+13 more)
 
 ### Community 53 - "Agent API (43 REST Endpoints)"
-Cohesion: 0.24
-Nodes (13): Agent API (43 REST Endpoints), Knowledge Base Module, Auth Header Priority Rule (x-api-key first), MCP Health Monitoring Pipeline, Condo Assist MCP Server (128 tools), Building Display Standard (Code - Name), Official Contact Email (geral@luvimg.com), Project Memory Index (+5 more)
+Cohesion: 0.22
+Nodes (14): Graphify MCP Stdio Server, Agent API (43 REST Endpoints), Knowledge Base Module, Auth Header Priority Rule (x-api-key first), MCP Health Monitoring Pipeline, Condo Assist MCP Server (128 tools), Building Display Standard (Code - Name), Official Contact Email (geral@luvimg.com) (+6 more)
 
-### Community 55 - "BuildingDocumentsTab.tsx"
-Cohesion: 0.17
-Nodes (19): jszip, jszip, BuildingDocumentsTab(), Props, KnowledgeDetail(), QuotationList(), SubmitQuotationForm(), SecuritySettings() (+11 more)
+### Community 55 - "useToast"
+Cohesion: 0.31
+Nodes (11): jszip, jszip, BuildingDocumentsTab(), Props, BuildingDocument, DOCUMENT_CATEGORIES, downloadAllBuildingDocumentsAsZip(), getBuildingDocumentSignedUrl() (+3 more)
 
-### Community 56 - "BuildingAdministratorsManager.tsx"
-Cohesion: 0.47
-Nodes (4): PhotoType, PhotoUpload(), PhotoUploadProps, useNativeCamera()
+### Community 56 - "AttachmentPreviewDialog.tsx"
+Cohesion: 0.18
+Nodes (10): react, react, AppSidebar(), ProfileForm(), NotificationCenter(), useCarousel(), useChart(), useFormField() (+2 more)
 
 ### Community 57 - "20260502182241_ed81cc8c-8666-412c-b45c-b6822901173a.sql"
 Cohesion: 0.27
 Nodes (13): public.assemblies, public.assembly_action_items, public.assembly_agenda_items, public.assembly_attendees, public.assembly_audio_jobs, public.assembly_dispatches, public.assembly_minutes_versions, public.assembly_processing_queue (+5 more)
 
-### Community 58 - "AssemblyImport.tsx"
-Cohesion: 0.50
+### Community 58 - "useSystemMonitoring.ts"
+Cohesion: 0.60
 Nodes (4): SystemMonitor(), SystemHealth, useDebugInfo(), useSystemHealth()
 
-### Community 59 - "badge.tsx"
-Cohesion: 0.25
-Nodes (6): PDFExportButton(), PDFExportButtonProps, SupplierAssistancesList(), SupplierAssistancesListProps, Skeleton(), useAssistancesBySupplier()
+### Community 59 - "SupplierAssistancesList.tsx"
+Cohesion: 0.29
+Nodes (9): AssistanceFormValues, assistanceSchema, computeReminderDate(), CreateAssistanceForm(), CreateAssistanceFormProps, REMINDER_PRESETS, useAppSetting(), useAllSuppliers() (+1 more)
 
 ### Community 60 - "carousel.tsx"
 Cohesion: 0.15
@@ -549,27 +566,27 @@ Nodes (12): Carousel, CarouselApi, CarouselContent, CarouselContext, CarouselCon
 Cohesion: 0.19
 Nodes (8): checkApiKey(), FULL_URL, rpc(), RpcResult, EXECUTION_TEST_IDS, INITIAL_TESTS, TestCase, TestStatus
 
-### Community 62 - "button.tsx"
-Cohesion: 0.10
-Nodes (36): InternalNotes(), AssistancePhoto, PhotoGalleryProps, photoTypeBadgeVariants, photoTypeLabels, ProgressTimelineProps, TimelineItem, Activity (+28 more)
+### Community 62 - "card.tsx"
+Cohesion: 0.11
+Nodes (31): ProgressTimelineProps, TimelineItem, Activity, StatsCardProps, Props, TODO: In production, send to error tracking service, State, Props (+23 more)
 
 ### Community 63 - "menubar.tsx"
 Cohesion: 0.17
 Nodes (11): Menubar, MenubarCheckboxItem, MenubarContent, MenubarItem, MenubarLabel, MenubarRadioItem, MenubarSeparator, MenubarShortcut() (+3 more)
 
-### Community 64 - "toast.tsx"
-Cohesion: 0.14
-Nodes (24): AssemblyFilters(), Props, STATUS_CHIPS, CreateAssistanceForm(), EditAssistanceForm(), QuickElevatorForm(), ForwardToSupplierDialog(), KnowledgeFilters() (+16 more)
+### Community 64 - "formatBuildingLabel"
+Cohesion: 0.11
+Nodes (27): AssistanceFiltersComponent(), AssistanceFiltersProps, AssistanceFormValues, assistanceSchema, EditAssistanceForm(), InternalNotes(), QuickElevatorForm(), QuickElevatorFormProps (+19 more)
 
 ### Community 65 - "types.ts"
-Cohesion: 0.09
-Nodes (17): ActivityLog, AppSetting, useAppSetting(), CreateSupplierResponseData, SupplierResponse, useCreateSupplierResponse(), useFollowUpAssistances(), UpcomingSchedule (+9 more)
+Cohesion: 0.25
+Nodes (7): CompositeTypes, Constants, Database, DatabaseWithoutInternals, DefaultSchema, Enums, Json
 
 ### Community 66 - "Build, Cluster and Analyze (Step 4)"
 Cohesion: 0.20
-Nodes (11): FalkorDB Export, Graphify MCP Stdio Server, Neo4j Cypher Export, Agent-Crawlable Wiki Export, GitHub Repo Clone, Cross-Repo Graph Merge, Cluster-Only Rerun, Build, Cluster and Analyze (Step 4) (+3 more)
+Nodes (11): FalkorDB Export, Neo4j Cypher Export, Agent-Crawlable Wiki Export, GitHub Repo Clone, Cross-Repo Graph Merge, build_merge Graph Reconciliation, Cluster-Only Rerun, Build, Cluster and Analyze (Step 4) (+3 more)
 
-### Community 68 - "CreateAssistanceForm.tsx"
+### Community 68 - "Q: Smoke test email pendency Graphify map"
 Cohesion: 0.40
 Nodes (4): Answer, Outcome, Q: Smoke test email pendency Graphify map, Source Nodes
 
@@ -581,7 +598,7 @@ Nodes (9): Command, CommandDialogProps, CommandEmpty, CommandGroup, CommandInput
 Cohesion: 0.18
 Nodes (10): cacheConfig, config, deployment, featureFlags, fileConstraints, monitoring, productionChecklist, rateLimits (+2 more)
 
-### Community 71 - "errorResponse"
+### Community 71 - "package.json"
 Cohesion: 0.40
 Nodes (4): name, private, type, version
 
@@ -598,16 +615,20 @@ Cohesion: 0.20
 Nodes (10): Luvimg App Shell (index.html), Luvimg Hexagon Logo — dark blue/violet wordmark, Luvimg Building Logo — teal app icon / favicon, Luvimg Hexagon Logo — uploads copy, Placeholder Image Graphic (SVG), Crawler Allow Policy (robots.txt), Lovable Project README, Production Deployment Checklist (+2 more)
 
 ### Community 75 - "inputSanitization.ts"
-Cohesion: 0.20
-Nodes (5): EnhancedQuotationForm(), RateLimiter, sanitizeInput, securitySchemas, validateMagicCodeFormat()
+Cohesion: 0.25
+Nodes (9): BuildingForm(), BuildingFormData, BuildingFormProps, buildingSchema, BuildingListPDFTemplate(), BuildingListPDFTemplateProps, Building, useCreateBuilding() (+1 more)
 
 ### Community 76 - "chart.tsx"
-Cohesion: 0.12
-Nodes (13): react, react, NotificationCenter(), useCarousel(), ChartConfig, ChartContainer, ChartContext, ChartContextProps (+5 more)
+Cohesion: 0.20
+Nodes (7): ChartConfig, ChartContainer, ChartContext, ChartContextProps, ChartLegendContent, ChartTooltipContent, THEMES
 
 ### Community 77 - "context-menu.tsx"
 Cohesion: 0.20
 Nodes (9): ContextMenuCheckboxItem, ContextMenuContent, ContextMenuItem, ContextMenuLabel, ContextMenuRadioItem, ContextMenuSeparator, ContextMenuShortcut(), ContextMenuSubContent (+1 more)
+
+### Community 78 - "SecureLogger"
+Cohesion: 0.29
+Nodes (7): AssemblyAttachMinutesDialog(), ExtractedTopic, fileToBase64(), Props, ForwardToSupplierDialog(), Checkbox, DialogDescription
 
 ### Community 79 - "process-notifications/index.ts"
 Cohesion: 0.40
@@ -618,12 +639,12 @@ Cohesion: 0.31
 Nodes (9): bump_activity_on_attachment, bump_activity_on_note, log_status_change, public.bump_pendency_activity(), public.email_pendencies, public.email_pendency_attachments, public.email_pendency_notes, public.log_pendency_status_change() (+1 more)
 
 ### Community 81 - "AGENTS.md Graphify Rules"
-Cohesion: 0.38
-Nodes (7): Native CLAUDE.md Integration, Explain Node Flow, Shortest Path Between Concepts, BFS/DFS Query Traversal, Save-Result Feedback Loop, Constrained Query Expansion, AGENTS.md Graphify Rules
+Cohesion: 0.31
+Nodes (9): URL Ingest into Corpus, Native CLAUDE.md Integration, Explain Node Flow, Shortest Path Between Concepts, BFS/DFS Query Traversal, Save-Result Feedback Loop, Constrained Query Expansion, Incremental Update Flow (+1 more)
 
-### Community 82 - "InterventionTypeForm.tsx"
-Cohesion: 0.40
-Nodes (5): InterventionTypeForm(), InterventionTypeFormProps, InterventionType, useCreateInterventionType(), useUpdateInterventionType()
+### Community 82 - "useInterventionTypes.ts"
+Cohesion: 0.39
+Nodes (7): InterventionTypeForm(), InterventionTypeFormData, InterventionTypeFormProps, interventionTypeSchema, InterventionType, useCreateInterventionType(), useUpdateInterventionType()
 
 ### Community 84 - "parse-pendency-pdf/index.ts"
 Cohesion: 0.25
@@ -646,16 +667,16 @@ Cohesion: 0.36
 Nodes (6): NotificationsDashboard(), Notification, useEscalatedAssistances(), useNotifications(), useNotificationStats(), useProcessNotifications()
 
 ### Community 90 - "cn"
-Cohesion: 0.06
-Nodes (38): FollowUpStatsCards(), LoadingSpinner(), LoadingSpinnerProps, PullToRefreshIndicator(), PullToRefreshIndicatorProps, Breadcrumb, BreadcrumbEllipsis(), BreadcrumbItem (+30 more)
+Cohesion: 0.11
+Nodes (18): FollowUpStatsCards(), ReminderCard(), TypeChip(), FloatingActionButton(), FloatingActionButtonProps, PullToRefreshIndicator(), PullToRefreshIndicatorProps, DrawerContent (+10 more)
 
 ### Community 91 - "navigation-menu.tsx"
 Cohesion: 0.25
 Nodes (7): NavigationMenu, NavigationMenuContent, NavigationMenuIndicator, NavigationMenuList, NavigationMenuTrigger, navigationMenuTriggerStyle, NavigationMenuViewport
 
 ### Community 92 - "McpHealthDashboard.tsx"
-Cohesion: 0.24
-Nodes (8): Switch, BASE_PROBES, HistoryRow, McpHealthDashboard(), Probe, Result, runProbe(), SUPABASE_URL
+Cohesion: 0.20
+Nodes (3): ErrorAlertProps, ErrorStateProps, ERROR_MESSAGES
 
 ### Community 93 - "insurance-alerts-cron/index.ts"
 Cohesion: 0.36
@@ -729,7 +750,7 @@ Nodes (4): public.building_inspections, public.inspection_categories, trg_buildi
 Cohesion: 0.40
 Nodes (3): public.email_pendencies, public.set_email_pendency_fingerprint(), trg_email_pendencies_source_fingerprint
 
-### Community 116 - "lucide-react"
+### Community 116 - "dependencies"
 Cohesion: 0.13
 Nodes (15): @capacitor/android, @capacitor/network, @hookform/resolvers, lucide-react, dependencies, @capacitor/android, @capacitor/network, @hookform/resolvers (+7 more)
 
@@ -817,13 +838,57 @@ Nodes (3): public.assistances, public.follow_up_schedules, public.intervention_t
 Cohesion: 0.67
 Nodes (3): public.assembly_items, public.validate_assembly_item(), validate_assembly_item_trigger
 
-### Community 203 - "clsx"
-Cohesion: 0.26
-Nodes (8): ProgressTimeline(), ProgressTracker(), ProgressTrackerProps, QuickActions(), QuickActionsProps, AssistanceProgressData, useAssistanceProgress(), useCreateAssistanceProgress()
+### Community 203 - "ProgressTracker.tsx"
+Cohesion: 0.39
+Nodes (6): CommunicationLog(), CommunicationLogProps, ProgressTimeline(), CommunicationData, useCommunicationLog(), useCreateCommunication()
+
+### Community 212 - "@radix-ui/react-avatar"
+Cohesion: 0.22
+Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
+
+### Community 236 - "useAssistances.ts"
+Cohesion: 0.31
+Nodes (7): AssistanceDetail(), getStatusIcon(), getStatusLabel(), useAssistance(), useDeleteAssistance(), useUpdateAssistanceStatus(), DeleteAssistanceAction()
+
+### Community 254 - "ProgressTracker.tsx"
+Cohesion: 0.39
+Nodes (5): ProgressTracker(), ProgressTrackerProps, AssistanceProgressData, useAssistanceProgress(), useCreateAssistanceProgress()
+
+### Community 359 - "breadcrumb.tsx"
+Cohesion: 0.25
+Nodes (7): Breadcrumb, BreadcrumbEllipsis(), BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator()
+
+### Community 360 - "toggle-group.tsx"
+Cohesion: 0.33
+Nodes (5): ToggleGroup, ToggleGroupContext, ToggleGroupItem, Toggle, toggleVariants
+
+### Community 361 - "graphify reference: query, path, explain"
+Cohesion: 0.33
+Nodes (5): For /graphify explain, For /graphify path, graphify reference: query, path, explain, Step 0 — Constrained query expansion (REQUIRED before traversal), Step 1 — Traversal
+
+### Community 362 - "useKnowledgeArticles.ts"
+Cohesion: 0.47
+Nodes (4): useDeleteKnowledgeArticle(), useKnowledgeArticles(), useKnowledgeCategoryCounts(), Knowledge()
 
 ### Community 363 - "Q: Smoke test final email pendency Graphify map after install"
 Cohesion: 0.40
 Nodes (4): Answer, Outcome, Q: Smoke test final email pendency Graphify map after install, Source Nodes
+
+### Community 364 - "input-otp.tsx"
+Cohesion: 0.40
+Nodes (4): InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot
+
+### Community 365 - "graphify reference: add a URL and watch a folder"
+Cohesion: 0.50
+Nodes (3): For /graphify add, For --watch, graphify reference: add a URL and watch a folder
+
+### Community 366 - "graphify reference: commit hook and native CLAUDE.md integration"
+Cohesion: 0.50
+Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify reference: commit hook and native CLAUDE.md integration
+
+### Community 367 - "graphify reference: incremental update and cluster-only"
+Cohesion: 0.50
+Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
 ## Ambiguous Edges - Review These
 - `Luvimg App Shell (index.html)` → `Placeholder Image Graphic (SVG)`  [AMBIGUOUS]
@@ -832,9 +897,9 @@ Nodes (4): Answer, Outcome, Q: Smoke test final email pendency Graphify map afte
   public/logo-luvimg.png · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **783 isolated node(s):** `config`, `$schema`, `style`, `rsc`, `tsx` (+778 more)
+- **826 isolated node(s):** `config`, `$schema`, `style`, `rsc`, `tsx` (+821 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **125 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **130 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Work-memory lessons
 
@@ -848,13 +913,13 @@ _Questions this graph is uniquely positioned to answer:_
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **What is the exact relationship between `Luvimg Hexagon Logo — dark blue/violet wordmark` and `Luvimg Building Logo — teal app icon / favicon`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `dependencies` connect `lucide-react` to `next-themes`, `Keys.tsx`, `useAnalytics.ts`, `dependencies`, `BuildingDocumentsTab.tsx`, `@capacitor/android`, `@capacitor/app`, `toggle-group.tsx`, `@capacitor/cli`, `@capacitor/core`, `TestPortalButton.tsx`, `@capacitor/haptics`, `errorResponse`, `@capacitor/ios`, `@capacitor/preferences`, `@capacitor/push-notifications`, `@capacitor/network`, `cmdk`, `date-fns`, `embla-carousel-react`, `@hookform/resolvers`, `html2canvas`, `input-otp`, `@capacitor/geolocation`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-avatar`, `@radix-ui/react-checkbox`, `@radix-ui/react-collapsible`, `@radix-ui/react-context-menu`, `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-hover-card`, `@radix-ui/react-label`, `zod`, `@radix-ui/react-aspect-ratio`, `@radix-ui/react-popover`, `@radix-ui/react-progress`, `@radix-ui/react-scroll-area`, `@radix-ui/react-select`, `@radix-ui/react-separator`, `@radix-ui/react-switch`, `@radix-ui/react-toggle`, `@radix-ui/react-toggle-group`, `@radix-ui/react-tooltip`, `react-day-picker`, `react-dom`, `class-variance-authority`, `react-hook-form`, `react-resizable-panels`, `recharts`, `remark-gfm`, `sonner`, `@radix-ui/react-collapsible`, `@radix-ui/react-hover-card`, `@radix-ui/react-slider`, `@supabase/supabase-js`, `tailwind-merge`, `tailwindcss-animate`, `@tanstack/react-query`, `vaul`, `chart.tsx`?**
-  _High betweenness centrality (0.087) - this node is a cross-community bridge._
-- **Why does `useToast()` connect `BuildingDocumentsTab.tsx` to `PendencyDetail.tsx`, `input.tsx`, `KnowledgeImport.tsx`, `Fornecedores.tsx`, `Badge`, `client.ts`, `Keys.tsx`, `AssemblyAttachMinutesDialog.tsx`, `Assistance`, `Sinistros.tsx`, `useToast`, `QuotationManagement.tsx`, `status-badges.tsx`, `formManager.ts`, `pagination.tsx`, `InsuranceForm.tsx`, `formatBuildingLabel`, `Assistencias.tsx`, `useAppSettings.ts`, `AssistanceDetail.tsx`, `EditAssistanceForm.tsx`, `FollowUpDashboard.tsx`, `Inspecoes.tsx`, `useRealtimeNotifications.ts`, `useAnalytics.ts`, `useAuth.tsx`, `Edificios.tsx`, `dropdown-menu.tsx`, `SystemMonitor.tsx`, `hooks/use-toast.ts`, `BuildingAdministratorsManager.tsx`, `button.tsx`, `toast.tsx`, `types.ts`, `inputSanitization.ts`, `clsx`, `chart.tsx`, `InterventionTypeForm.tsx`, `useNotifications.ts`, `useSecurityEvents.ts`?**
-  _High betweenness centrality (0.079) - this node is a cross-community bridge._
-- **Why does `react` connect `chart.tsx` to `useAuth.tsx`, `sidebar.tsx`, `lucide-react`, `DashboardLayout.tsx`, `BuildingDocumentsTab.tsx`?**
-  _High betweenness centrality (0.076) - this node is a cross-community bridge._
+- **Why does `dependencies` connect `dependencies` to `KnowledgeImport.tsx`, `next-themes`, `Analytics.tsx`, `@capacitor/camera`, `useToast`, `AttachmentPreviewDialog.tsx`, `@radix-ui/react-menubar`, `@capacitor/app`, `clsx`, `@capacitor/cli`, `@capacitor/core`, `@radix-ui/react-navigation-menu`, `@capacitor/haptics`, `package.json`, `@capacitor/ios`, `@capacitor/preferences`, `@capacitor/push-notifications`, `date-fns`, `cmdk`, `html2canvas`, `embla-carousel-react`, `@radix-ui/react-tabs`, `@radix-ui/react-accordion`, `input-otp`, `@capacitor/geolocation`, `@radix-ui/react-radio-group`, `@radix-ui/react-slot`, `@radix-ui/react-toast`, `react-markdown`, `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `react-router-dom`, `@radix-ui/react-label`, `zod`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-popover`, `@radix-ui/react-progress`, `@radix-ui/react-scroll-area`, `@radix-ui/react-select`, `@radix-ui/react-separator`, `@radix-ui/react-checkbox`, `@radix-ui/react-switch`, `@radix-ui/react-toggle`, `@radix-ui/react-toggle-group`, `@radix-ui/react-tooltip`, `react-day-picker`, `react-dom`, `class-variance-authority`, `react-hook-form`, `react-resizable-panels`, `recharts`, `remark-gfm`, `sonner`, `@supabase/supabase-js`, `tailwind-merge`, `tailwindcss-animate`, `@radix-ui/react-aspect-ratio`, `@radix-ui/react-context-menu`, `@radix-ui/react-hover-card`, `@tanstack/react-query`, `vaul`?**
+  _High betweenness centrality (0.083) - this node is a cross-community bridge._
+- **Why does `useToast()` connect `client.ts` to `EmailPendencies.tsx`, `SupplierPortal.tsx`, `KnowledgeImport.tsx`, `select.tsx`, `PendencyDetail.tsx`, `Keys.tsx`, `Assembly.tsx`, `Sinistros.tsx`, `AdministratorsImportDialog.tsx`, `PendencyRemindersTab.tsx`, `InsuranceForm.tsx`, `App.tsx`, `Fornecedores.tsx`, `AssistanceDetail.tsx`, `input.tsx`, `FollowUpDashboard.tsx`, `pendencyText.ts`, `FollowUpSettings.tsx`, `Analytics.tsx`, `ProfileForm.tsx`, `Edificios.tsx`, `dropdown-menu.tsx`, `buildingDisplay.ts`, `hooks/use-toast.ts`, `useToast`, `AttachmentPreviewDialog.tsx`, `SupplierAssistancesList.tsx`, `card.tsx`, `formatBuildingLabel`, `ProgressTracker.tsx`, `inputSanitization.ts`, `SecureLogger`, `useInterventionTypes.ts`, `useNotifications.ts`, `useKnowledgeArticles.ts`, `useAssistances.ts`, `useSecurityEvents.ts`, `ProgressTracker.tsx`?**
+  _High betweenness centrality (0.074) - this node is a cross-community bridge._
+- **Why does `react` connect `AttachmentPreviewDialog.tsx` to `client.ts`, `dependencies`, `DashboardLayout.tsx`?**
+  _High betweenness centrality (0.072) - this node is a cross-community bridge._
 - **What connects `config`, `$schema`, `style` to the rest of the system?**
-  _783 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `PendencyDetail.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.10099573257467995 - nodes in this community are weakly interconnected._
+  _826 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `EmailPendencies.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.052121212121212124 - nodes in this community are weakly interconnected._
