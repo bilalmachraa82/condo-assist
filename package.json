@@ -7,6 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "graphify:extract": "GRAPHIFY_MAX_OUTPUT_TOKENS=32768 graphify extract . --mode deep --backend claude-cli --max-workers 8 --max-concurrency 2 --api-timeout 900 --global --as condo-assist-luvimg",
+    "graphify:update": "graphify update .",
+    "graphify:report": "graphify cluster-only .",
+    "graphify:tree": "graphify tree --graph graphify-out/graph.json --output graphify-out/GRAPH_TREE.html --root . --label condo-assist-luvimg",
+    "graphify:callflow": "graphify export callflow-html",
+    "graphify:benchmark": "graphify benchmark graphify-out/graph.json",
+    "graphify:diagnose": "graphify diagnose multigraph --graph graphify-out/graph.json --json",
     "lint": "eslint .",
     "preview": "vite preview"
   },

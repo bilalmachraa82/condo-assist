@@ -1,0 +1,3753 @@
+{
+  "communities": {
+    "0": [
+      "src_components_followups_followupemptystate",
+      "src_components_followups_followupemptystate_followupemptystate",
+      "src_components_followups_followupemptystate_props",
+      "src_components_followups_pendencyreminderstab",
+      "src_components_followups_pendencyreminderstab_pendencyreminderstab",
+      "src_components_followups_pendencyreminderstab_remindercard",
+      "src_components_followups_pendencyreminderstab_sortkey",
+      "src_components_followups_pendencyreminderstab_statuscolors",
+      "src_components_followups_pendencyreminderstab_statusicons",
+      "src_components_followups_pendencyreminderstab_statuslabels",
+      "src_components_followups_pendencyreminderstab_typechip",
+      "src_components_pendencies_attachmentpreviewdialog_attachmentpreviewdialog",
+      "src_components_pendencies_creatependencydialog",
+      "src_components_pendencies_creatependencydialog_creatependencydialog",
+      "src_components_pendencies_creatependencydialog_props",
+      "src_components_pendencies_pendencydetail",
+      "src_components_pendencies_pendencydetail_pendencydetail",
+      "src_components_pendencies_pendencydetail_props",
+      "src_components_pendencies_pendencydetail_slacolor",
+      "src_components_pendencies_pendencydetail_slalabel",
+      "src_components_pendencies_pendencykanban",
+      "src_components_pendencies_pendencykanban_column_accent",
+      "src_components_pendencies_pendencykanban_pendencykanban",
+      "src_components_pendencies_pendencykanban_props",
+      "src_components_pendencies_pendencykanban_sladot",
+      "src_components_ui_status_badges_prioritybadge",
+      "src_hooks_usependencies",
+      "src_hooks_usependencies_getfunctionerrormessage",
+      "src_hooks_usependencies_getpendencyerrormessage",
+      "src_hooks_usependencies_getpendencyfilesignedurl",
+      "src_hooks_usependencies_pendency",
+      "src_hooks_usependencies_pendency_status_labels",
+      "src_hooks_usependencies_pendency_status_order",
+      "src_hooks_usependencies_pendencypriority",
+      "src_hooks_usependencies_pendencysla",
+      "src_hooks_usependencies_pendencystatus",
+      "src_hooks_usependencies_useaddpendencynote",
+      "src_hooks_usependencies_usecreatependency",
+      "src_hooks_usependencies_usedeletependency",
+      "src_hooks_usependencies_usedeletependencyattachment",
+      "src_hooks_usependencies_usependencies",
+      "src_hooks_usependencies_usependency",
+      "src_hooks_usependencies_usependencyattachments",
+      "src_hooks_usependencies_usependencynotes",
+      "src_hooks_usependencies_useupdatependency",
+      "src_hooks_usependencies_useuploadpendencyfile",
+      "src_hooks_usependencyreminders",
+      "src_hooks_usependencyreminders_pendencyreminder",
+      "src_hooks_usependencyreminders_pendencyreminderwithdetails",
+      "src_hooks_usependencyreminders_useallpendencyreminders",
+      "src_hooks_usependencyreminders_usecancelpendencyreminder",
+      "src_hooks_usependencyreminders_usecreatependencyreminder",
+      "src_hooks_usependencyreminders_usependencyreminders",
+      "src_hooks_usependencyreminders_usependencyremindersstats",
+      "src_hooks_usependencyreminders_usetriggerpendencyreminders",
+      "src_pages_emailpendencies",
+      "src_pages_emailpendencies_emailpendencies",
+      "src_pages_emailpendencies_kpi",
+      "src_pages_emailpendencies_slacolor",
+      "src_pages_emailpendencies_statuscolor",
+      "src_utils_buildingdisplay",
+      "src_utils_buildingdisplay_buildingdisplaysource",
+      "src_utils_buildingdisplay_escaperegexp",
+      "src_utils_buildingdisplay_formatbuildingaddress",
+      "src_utils_buildingdisplay_formatplainbuildinglabel",
+      "src_utils_buildingdisplay_getbuildingcodevariants",
+      "src_utils_buildingdisplay_normalizebuildingcode",
+      "src_utils_buildingdisplay_normalizerawbuildingcode",
+      "src_utils_buildingdisplay_stripleadingbuildingcode",
+      "src_utils_pendencyfiles",
+      "src_utils_pendencyfiles_inferpendencyfiletype",
+      "src_utils_pendencyfiles_mime_by_extension",
+      "src_utils_pendencytext",
+      "src_utils_pendencytext_buildinglike",
+      "src_utils_pendencytext_cleanpendencytitle",
+      "src_utils_pendencytext_ensurebuildingcodeinsubject",
+      "src_utils_pendencytext_getbuildingcode",
+      "src_utils_pendencytext_ispendencybuildingdescriptor",
+      "src_utils_pendencytext_leadingbarecode",
+      "src_utils_pendencytext_leadingcondbarecode",
+      "src_utils_pendencytext_leadingcondwrappedcode",
+      "src_utils_pendencytext_leadingwrappedcode",
+      "src_utils_pendencytext_normalizeforcompare",
+      "src_utils_pendencytext_stripgenericleadingcode",
+      "src_utils_pendencytext_stripleadingpendencycode",
+      "src_utils_pendencytext_trimleadingseparators"
+    ],
+    "1": [
+      "supabase_functions_agent_api_index",
+      "supabase_functions_agent_api_index_corsheaders",
+      "supabase_functions_agent_api_index_extracttoken",
+      "supabase_functions_agent_api_index_getsupabase",
+      "supabase_functions_agent_api_index_handledeleteassembly",
+      "supabase_functions_agent_api_index_handledeleteassemblyactionitem",
+      "supabase_functions_agent_api_index_handledeleteassemblyagendaitem",
+      "supabase_functions_agent_api_index_handledeleteassemblyattendee",
+      "supabase_functions_agent_api_index_handledeleteassemblyresolution",
+      "supabase_functions_agent_api_index_handledeletebuildingadministrator",
+      "supabase_functions_agent_api_index_handledeletebuildingcontact",
+      "supabase_functions_agent_api_index_handledeletebuildingdocument",
+      "supabase_functions_agent_api_index_handledeletebuildingfraction",
+      "supabase_functions_agent_api_index_handledeletebuildinginspection",
+      "supabase_functions_agent_api_index_handledeletebuildinginsurance",
+      "supabase_functions_agent_api_index_handledeleteemailpendency",
+      "supabase_functions_agent_api_index_handledeleteemailpendencyattachment",
+      "supabase_functions_agent_api_index_handledeleteinspectioncategory",
+      "supabase_functions_agent_api_index_handledeleteinsuranceclaimattachment",
+      "supabase_functions_agent_api_index_handledeletependencyreminder",
+      "supabase_functions_agent_api_index_handlegetinsuranceclaim",
+      "supabase_functions_agent_api_index_handlehealth",
+      "supabase_functions_agent_api_index_handlelistappsettings",
+      "supabase_functions_agent_api_index_handlelistassemblies",
+      "supabase_functions_agent_api_index_handlelistassemblyactionitems",
+      "supabase_functions_agent_api_index_handlelistassemblyagendaitems",
+      "supabase_functions_agent_api_index_handlelistassemblyattendees",
+      "supabase_functions_agent_api_index_handlelistassemblydispatches",
+      "supabase_functions_agent_api_index_handlelistassemblyminutesversions",
+      "supabase_functions_agent_api_index_handlelistassemblyresolutions",
+      "supabase_functions_agent_api_index_handlelistbuildingadministrators",
+      "supabase_functions_agent_api_index_handlelistbuildingdocuments",
+      "supabase_functions_agent_api_index_handlelistbuildingfractions",
+      "supabase_functions_agent_api_index_handlelistbuildinginspections",
+      "supabase_functions_agent_api_index_handlelistbuildinginsurances",
+      "supabase_functions_agent_api_index_handlelistemailpendencies",
+      "supabase_functions_agent_api_index_handlelistemailpendencyattachments",
+      "supabase_functions_agent_api_index_handlelistemailpendencynotes",
+      "supabase_functions_agent_api_index_handlelistemailunsubscribes",
+      "supabase_functions_agent_api_index_handlelistinspectioncategories",
+      "supabase_functions_agent_api_index_handlelistinsuranceclaimattachments",
+      "supabase_functions_agent_api_index_handlelistinsuranceclaims",
+      "supabase_functions_agent_api_index_handlelistinsurancefractionstatus",
+      "supabase_functions_agent_api_index_handlelistkeyhandovers",
+      "supabase_functions_agent_api_index_handlelistmcphealthchecks",
+      "supabase_functions_agent_api_index_handlelistpendencyreminders",
+      "supabase_functions_agent_api_index_handleupdateassembly",
+      "supabase_functions_agent_api_index_handleupdateassemblyactionitem",
+      "supabase_functions_agent_api_index_handleupdateassemblyagendaitem",
+      "supabase_functions_agent_api_index_handleupdateassemblyresolution",
+      "supabase_functions_agent_api_index_handleupdatebuildingadministrator",
+      "supabase_functions_agent_api_index_handleupdatebuildingcontact",
+      "supabase_functions_agent_api_index_handleupdatebuildingfraction",
+      "supabase_functions_agent_api_index_handleupdatebuildinginspection",
+      "supabase_functions_agent_api_index_handleupdatebuildinginsurance",
+      "supabase_functions_agent_api_index_handleupdateemailpendency",
+      "supabase_functions_agent_api_index_handleupdateinspectioncategory",
+      "supabase_functions_agent_api_index_handleupdateinsuranceclaim",
+      "supabase_functions_agent_api_index_handleupdateinsurancefractionstatus",
+      "supabase_functions_agent_api_index_handleupdatekeyhandover",
+      "supabase_functions_agent_api_index_handleupdatependencyreminder",
+      "supabase_functions_agent_api_index_json",
+      "supabase_functions_agent_api_index_matchroute",
+      "supabase_functions_agent_api_index_validatetoken"
+    ],
+    "2": [
+      "src_components_assistance_quotationquickaction",
+      "src_components_assistance_quotationquickaction_quotationquickaction",
+      "src_components_assistance_quotationsection",
+      "src_components_assistance_quotationsection_quotationsection",
+      "src_components_security_securitysettings",
+      "src_components_security_securitysettings_securitysetting",
+      "src_components_supplier_enhancedquotationform",
+      "src_components_supplier_enhancedquotationform_enhancedquotationformprops",
+      "src_components_supplier_enhancedquotationform_quotationitem",
+      "src_components_supplier_fileupload",
+      "src_components_supplier_fileupload_fileuploadprops",
+      "src_components_supplier_scheduleform",
+      "src_components_supplier_scheduleform_scheduleform",
+      "src_components_supplier_scheduleform_scheduleformprops",
+      "src_components_testing_emailsystemtester",
+      "src_components_testing_emailsystemtester_emailsystemtester",
+      "src_components_testing_emailsystemtester_testresult",
+      "src_components_ui_input",
+      "src_components_ui_input_input",
+      "src_components_ui_label",
+      "src_components_ui_label_label",
+      "src_components_ui_label_labelvariants",
+      "src_hooks_usequotations",
+      "src_hooks_usequotations_quotation",
+      "src_hooks_usequotations_usecreatequotation",
+      "src_hooks_usequotations_usedeletequotation",
+      "src_hooks_usequotations_usequotations",
+      "src_hooks_usequotations_usequotationsbyassistance",
+      "src_hooks_usequotations_usequotationstats",
+      "src_hooks_usequotations_userequestquotation",
+      "src_hooks_usequotations_useupdatequotationstatus",
+      "src_pages_administradores",
+      "src_pages_assistencias_quickquotationaction",
+      "src_pages_supplierportal",
+      "src_pages_supplierportal_assistance",
+      "src_pages_supplierportal_assistancecard",
+      "src_pages_supplierportal_quotation",
+      "src_pages_supplierportal_supplier",
+      "src_pages_supplierportal_supplierportal",
+      "src_pages_supplierportal_supplierresponse",
+      "src_utils_magiccodegenerator",
+      "src_utils_magiccodegenerator_cleanupexpiredcodes",
+      "src_utils_magiccodegenerator_sessionvalidationresponse",
+      "src_utils_magiccodegenerator_validatemagiccode"
+    ],
+    "3": [
+      "autoprefixer",
+      "eslint",
+      "eslint_js",
+      "eslint_plugin_react_hooks",
+      "eslint_plugin_react_refresh",
+      "globals",
+      "lovable_tagger",
+      "package",
+      "package_devdependencies",
+      "package_devdependencies_autoprefixer",
+      "package_devdependencies_eslint",
+      "package_devdependencies_eslint_js",
+      "package_devdependencies_eslint_plugin_react_hooks",
+      "package_devdependencies_eslint_plugin_react_refresh",
+      "package_devdependencies_globals",
+      "package_devdependencies_lovable_tagger",
+      "package_devdependencies_postcss",
+      "package_devdependencies_tailwindcss",
+      "package_devdependencies_tailwindcss_typography",
+      "package_devdependencies_types_node",
+      "package_devdependencies_types_react",
+      "package_devdependencies_types_react_dom",
+      "package_devdependencies_typescript",
+      "package_devdependencies_typescript_eslint",
+      "package_devdependencies_vite",
+      "package_devdependencies_vitejs_plugin_react_swc",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_build_dev",
+      "package_scripts_dev",
+      "package_scripts_lint",
+      "package_scripts_preview",
+      "package_type",
+      "package_version",
+      "postcss",
+      "tailwindcss",
+      "tailwindcss_typography",
+      "types_node",
+      "types_react",
+      "types_react_dom",
+      "typescript",
+      "typescript_eslint",
+      "vite",
+      "vitejs_plugin_react_swc"
+    ],
+    "4": [
+      "src_components_knowledge_knowledgecard",
+      "src_components_knowledge_knowledgecard_formattitle",
+      "src_components_knowledge_knowledgecard_knowledgecard",
+      "src_components_knowledge_knowledgecard_props",
+      "src_components_knowledge_knowledgedetail_knowledgedetail",
+      "src_components_knowledge_knowledgedetail_props",
+      "src_components_knowledge_knowledgeform_props",
+      "src_components_knowledge_knowledgeimport",
+      "src_components_knowledge_knowledgeimport_ambiguousdates",
+      "src_components_knowledge_knowledgeimport_articledraft",
+      "src_components_knowledge_knowledgeimport_cellstr",
+      "src_components_knowledge_knowledgeimport_findelevatorquantitycolumn",
+      "src_components_knowledge_knowledgeimport_importphase",
+      "src_components_knowledge_knowledgeimport_iscondocode",
+      "src_components_knowledge_knowledgeimport_knowledgeimport",
+      "src_components_knowledge_knowledgeimport_normalizecode",
+      "src_components_knowledge_knowledgeimport_normalizeheader",
+      "src_components_knowledge_knowledgeimport_parseacidentestrabalho",
+      "src_components_knowledge_knowledgeimport_parseadministradores",
+      "src_components_knowledge_knowledgeimport_parsecaleirasorchamines",
+      "src_components_knowledge_knowledgeimport_parsecolunaseletricas",
+      "src_components_knowledge_knowledgeimport_parsedesbaratizacao",
+      "src_components_knowledge_knowledgeimport_parseelevadores",
+      "src_components_knowledge_knowledgeimport_parseempresalimpeza",
+      "src_components_knowledge_knowledgeimport_parseextintores",
+      "src_components_knowledge_knowledgeimport_parsegas",
+      "src_components_knowledge_knowledgeimport_parselistageral",
+      "src_components_knowledge_knowledgeimport_parseseguros",
+      "src_components_knowledge_knowledgeimport_parseworkbook",
+      "src_components_knowledge_knowledgeimport_props",
+      "src_components_knowledge_knowledgeimport_sheet_map",
+      "src_hooks_useknowledgearticles_knowledgearticle",
+      "src_utils_excelcellformat",
+      "src_utils_excelcellformat_cellstr",
+      "src_utils_excelcellformat_excelserialtodate",
+      "src_utils_excelcellformat_fmtdate",
+      "src_utils_excelcellformat_formatexcellocale",
+      "src_utils_excelcellformat_normalizedatestring",
+      "src_utils_excelcellformat_pad2",
+      "src_utils_knowledgecategories",
+      "src_utils_knowledgecategories_getcategoryconfig",
+      "src_utils_knowledgecategories_knowledge_categories",
+      "src_utils_knowledgecategories_knowledgecategory",
+      "src_utils_stripmarkdown",
+      "src_utils_stripmarkdown_stripmarkdown"
+    ],
+    "5": [
+      "src_components_analytics_pdfexportbutton",
+      "src_components_analytics_pdfexportbutton_pdfexportbuttonprops",
+      "src_components_analytics_pdfexportbutton_pdfexportoptions",
+      "src_components_assembly_assemblydetail",
+      "src_components_assembly_assemblydetail_status_labels",
+      "src_components_assistance_assistancefilters",
+      "src_components_assistance_assistancefilters_assistancefilterscomponent",
+      "src_components_assistance_assistancefilters_assistancefiltersprops",
+      "src_components_assistance_pdfexportbutton",
+      "src_components_assistance_pdfexportbutton_pdfexportbuttonprops",
+      "src_components_assistance_quickelevatorform",
+      "src_components_assistance_quickelevatorform_quickelevatorformprops",
+      "src_components_followups_forwardtosupplierdialog",
+      "src_components_pendencies_attachmentpreviewdialog",
+      "src_components_pendencies_attachmentpreviewdialog_props",
+      "src_components_quotations_quotationfilters",
+      "src_components_quotations_quotationfilters_quotationfilterscomponent",
+      "src_components_quotations_quotationfilters_quotationfiltersprops",
+      "src_components_supplier_supplierassistanceslist",
+      "src_components_supplier_supplierassistanceslist_supplierassistanceslist",
+      "src_components_supplier_supplierassistanceslist_supplierassistanceslistprops",
+      "src_components_suppliers_pdfexportbutton",
+      "src_components_suppliers_pdfexportbutton_pdfexportbutton",
+      "src_components_suppliers_pdfexportbutton_pdfexportbuttonprops",
+      "src_components_suppliers_supplierfilters",
+      "src_components_suppliers_supplierfilters_supplierfilters",
+      "src_components_suppliers_supplierfilters_supplierfilterscomponent",
+      "src_components_suppliers_supplierfilters_supplierfiltersprops",
+      "src_components_ui_checkbox",
+      "src_components_ui_checkbox_checkbox",
+      "src_components_ui_dialog",
+      "src_components_ui_dialog_dialogcontent",
+      "src_components_ui_dialog_dialogheader",
+      "src_components_ui_dialog_dialogoverlay",
+      "src_components_ui_dialog_dialogtitle",
+      "src_components_ui_select",
+      "src_components_ui_select_selectcontent",
+      "src_components_ui_select_selectitem",
+      "src_components_ui_select_selectlabel",
+      "src_components_ui_select_selectscrolldownbutton",
+      "src_components_ui_select_selectscrollupbutton",
+      "src_components_ui_select_selectseparator",
+      "src_components_ui_select_selecttrigger",
+      "src_hooks_useassistancesbysupplier",
+      "src_hooks_useassistancesbysupplier_useassistancesbysupplier",
+      "src_hooks_usesupplierassistances",
+      "src_hooks_usesupplierassistances_supplierassistance",
+      "src_hooks_usesupplierassistances_usesupplierassistances",
+      "src_hooks_usesuppliers_useallsuppliers",
+      "src_hooks_usesuppliers_usesupplierstats",
+      "src_pages_fornecedores",
+      "src_pages_fornecedores_fornecedores"
+    ],
+    "6": [
+      "src_components_assistance_photogallery",
+      "src_components_assistance_photogallery_assistancephoto",
+      "src_components_assistance_photogallery_photogallery",
+      "src_components_assistance_photogallery_photogalleryprops",
+      "src_components_assistance_photogallery_phototypebadgevariants",
+      "src_components_assistance_photogallery_phototypelabels",
+      "src_components_assistance_progresstimeline",
+      "src_components_assistance_progresstimeline_progresstimelineprops",
+      "src_components_assistance_progresstimeline_timelineitem",
+      "src_components_dashboard_activityfeed",
+      "src_components_dashboard_activityfeed_activity",
+      "src_components_dashboard_activityfeed_activityfeed",
+      "src_components_dashboard_statscard",
+      "src_components_dashboard_statscard_statscard",
+      "src_components_dashboard_statscard_statscardprops",
+      "src_components_followups_followupstatscards",
+      "src_components_followups_followupstatscards_props",
+      "src_components_followups_followupstatscards_stats",
+      "src_components_supplier_bulkemaildialog",
+      "src_components_supplier_bulkemaildialog_bulkemaildialogprops",
+      "src_components_supplier_bulkemaildialog_supplierwithassistances",
+      "src_components_supplier_notificationcenter",
+      "src_components_supplier_notificationcenter_notification",
+      "src_components_supplier_notificationcenter_notificationcenterprops",
+      "src_components_supplier_quickactions",
+      "src_components_supplier_quickactions_quickactionsprops",
+      "src_components_supplier_supplieranalytics",
+      "src_components_supplier_supplieranalytics_supplieranalytics",
+      "src_components_supplier_supplieranalytics_supplieranalyticsprops",
+      "src_components_ui_badge_badge",
+      "src_components_ui_card_cardcontent",
+      "src_components_ui_card_cardheader",
+      "src_components_ui_card_cardtitle",
+      "src_components_ui_progress",
+      "src_components_ui_progress_progress",
+      "src_hooks_useactivityfeed_useactivityfeed",
+      "src_pages_dashboard"
+    ],
+    "7": [
+      "src_components_quotations_submitquotationform",
+      "src_components_quotations_submitquotationform_quotationformvalues",
+      "src_components_quotations_submitquotationform_quotationschema",
+      "src_components_quotations_submitquotationform_submitquotationformprops",
+      "src_components_security_securityaudit",
+      "src_components_security_securitydashboard",
+      "src_components_security_securitydashboard_securitydashboard",
+      "src_components_security_securitydashboard_securityevent",
+      "src_components_security_securitydashboard_securitystats",
+      "src_components_security_securitymonitor",
+      "src_components_security_securitymonitor_securityevent",
+      "src_components_security_securitymonitor_securitymonitor",
+      "src_hooks_useactivityfeed",
+      "src_hooks_useactivityfeed_activitylog",
+      "src_hooks_useperformancemetrics",
+      "src_hooks_useperformancemetrics_useperformancemetrics",
+      "src_hooks_usequotationnotifications",
+      "src_integrations_supabase_client",
+      "src_integrations_supabase_client_supabase"
+    ],
+    "8": [
+      "src_components_buildings_administratorsimportdialog",
+      "src_components_buildings_administratorsimportdialog_admindraft",
+      "src_components_buildings_administratorsimportdialog_cellstr",
+      "src_components_buildings_administratorsimportdialog_isvalidemail",
+      "src_components_buildings_administratorsimportdialog_normalizecode",
+      "src_components_buildings_administratorsimportdialog_parseadmins",
+      "src_components_buildings_administratorsimportdialog_phase",
+      "src_components_buildings_administratorsimportdialog_props",
+      "src_components_buildings_administratorsimportdialog_rowerror",
+      "src_components_ui_dialog_dialogfooter",
+      "src_components_ui_table",
+      "src_components_ui_table_table",
+      "src_components_ui_table_tablebody",
+      "src_components_ui_table_tablecaption",
+      "src_components_ui_table_tablecell",
+      "src_components_ui_table_tablefooter",
+      "src_components_ui_table_tablehead",
+      "src_components_ui_table_tableheader",
+      "src_components_ui_table_tablerow",
+      "src_hooks_useinsurances_useinsurancestatus",
+      "src_hooks_usekeyhandovers",
+      "src_hooks_usekeyhandovers_keyhandover",
+      "src_hooks_usekeyhandovers_usecreatekeyhandover",
+      "src_hooks_usekeyhandovers_usedeletekeyhandover",
+      "src_hooks_usekeyhandovers_usekeyhandovers",
+      "src_hooks_usekeyhandovers_useupdatekeyhandover",
+      "src_pages_keys",
+      "src_pages_keys_emptyform",
+      "src_pages_keys_escapehtml",
+      "src_pages_keys_keys",
+      "src_pages_seguros",
+      "src_pages_seguros_seguros",
+      "src_pages_seguros_status_order"
+    ],
+    "9": [
+      "src_components_assembly_assemblyattachminutesdialog",
+      "src_components_assembly_assemblyattachminutesdialog_assemblyattachminutesdialog",
+      "src_components_assembly_assemblyattachminutesdialog_extractedtopic",
+      "src_components_assembly_assemblyattachminutesdialog_filetobase64",
+      "src_components_assembly_assemblyattachminutesdialog_props",
+      "src_components_assembly_assemblybuildinggroup",
+      "src_components_assembly_assemblybuildinggroup_assemblybuildinggroup",
+      "src_components_assembly_assemblybuildinggroup_inlinenotes",
+      "src_components_assembly_assemblybuildinggroup_props",
+      "src_components_assembly_assemblybuildinggroup_savestate",
+      "src_components_assembly_assemblybuildinggroup_status_config",
+      "src_components_assembly_assemblycard",
+      "src_components_assembly_assemblycard_assemblycard",
+      "src_components_assembly_assemblycard_props",
+      "src_components_assembly_assemblycard_status_config",
+      "src_components_assembly_assemblydetail_props",
+      "src_components_assembly_assemblyform",
+      "src_components_assembly_assemblyform_assemblyform",
+      "src_components_assembly_assemblyform_priority_options",
+      "src_components_assembly_assemblyform_props",
+      "src_components_assembly_assemblyform_status_options",
+      "src_components_assembly_assemblypdfexportbutton",
+      "src_components_assembly_assemblypdfexportbutton_assemblypdfexportbutton",
+      "src_components_assembly_assemblypdfexportbutton_assemblypdfexportbuttonprops",
+      "src_components_assembly_assemblypdfexportbutton_buildinggroup",
+      "src_components_assembly_assemblypdfexportbutton_escapehtml",
+      "src_components_assembly_assemblypdfexportbutton_status_chip_label",
+      "src_components_assembly_assemblypdfexportbutton_status_color",
+      "src_components_assembly_assemblypdfexportbutton_status_label",
+      "src_components_ui_collapsible",
+      "src_hooks_useassemblyitems",
+      "src_hooks_useassemblyitems_assemblyitem",
+      "src_hooks_useassemblyitems_useassemblyitems",
+      "src_hooks_useassemblyitems_useassemblystatuscounts",
+      "src_hooks_useassemblyitems_usecreateassemblyitem",
+      "src_hooks_useassemblyitems_usedeleteassemblyitem",
+      "src_hooks_useassemblyitems_useupdateassemblyitem",
+      "src_pages_assembly",
+      "src_pages_assembly_assembly",
+      "src_utils_assemblycategories",
+      "src_utils_assemblycategories_assembly_categories",
+      "src_utils_assemblycategories_assemblycategory",
+      "src_utils_assemblycategories_getassemblycategoryconfig"
+    ],
+    "10": [
+      "supabase_functions_mcp_server_index",
+      "supabase_functions_mcp_server_index_app",
+      "supabase_functions_mcp_server_index_asjsontext",
+      "supabase_functions_mcp_server_index_astext",
+      "supabase_functions_mcp_server_index_callagentapi",
+      "supabase_functions_mcp_server_index_chatgptfetchdescriptor",
+      "supabase_functions_mcp_server_index_chatgptrpchandler",
+      "supabase_functions_mcp_server_index_chatgptsearchdescriptor",
+      "supabase_functions_mcp_server_index_chatgpttoolslist",
+      "supabase_functions_mcp_server_index_corsheaders",
+      "supabase_functions_mcp_server_index_defaulttoolannotations",
+      "supabase_functions_mcp_server_index_fetchdef",
+      "supabase_functions_mcp_server_index_fetchoutputschema",
+      "supabase_functions_mcp_server_index_findbycorrelation",
+      "supabase_functions_mcp_server_index_forcejsonaccept",
+      "supabase_functions_mcp_server_index_getrecentmcprequests",
+      "supabase_functions_mcp_server_index_handlemcp",
+      "supabase_functions_mcp_server_index_jsonrpcerror",
+      "supabase_functions_mcp_server_index_jsonrpcresult",
+      "supabase_functions_mcp_server_index_logauthrejected",
+      "supabase_functions_mcp_server_index_masked_headers",
+      "supabase_functions_mcp_server_index_mcp",
+      "supabase_functions_mcp_server_index_mcpdebugentry",
+      "supabase_functions_mcp_server_index_mcphandler",
+      "supabase_functions_mcp_server_index_originaltool",
+      "supabase_functions_mcp_server_index_pushrecent",
+      "supabase_functions_mcp_server_index_recentrequests",
+      "supabase_functions_mcp_server_index_registeredtools",
+      "supabase_functions_mcp_server_index_runchatgptfetch",
+      "supabase_functions_mcp_server_index_runchatgptsearch",
+      "supabase_functions_mcp_server_index_searchdef",
+      "supabase_functions_mcp_server_index_searchoutputschema",
+      "supabase_functions_mcp_server_index_snapshotheaders",
+      "supabase_functions_mcp_server_index_titlefromname",
+      "supabase_functions_mcp_server_index_transport"
+    ],
+    "11": [
+      "src_components_layout_appsidebar",
+      "src_components_layout_appsidebar_appsidebar",
+      "src_components_layout_appsidebar_catalogoitems",
+      "src_components_layout_appsidebar_configitems",
+      "src_components_layout_appsidebar_devitems",
+      "src_components_layout_appsidebar_navitem",
+      "src_components_layout_appsidebar_operacoesitems",
+      "src_components_layout_appsidebar_principalitems",
+      "src_components_ui_sidebar",
+      "src_components_ui_sidebar_sidebar",
+      "src_components_ui_sidebar_sidebarcontent",
+      "src_components_ui_sidebar_sidebarcontext",
+      "src_components_ui_sidebar_sidebarfooter",
+      "src_components_ui_sidebar_sidebargroup",
+      "src_components_ui_sidebar_sidebargroupaction",
+      "src_components_ui_sidebar_sidebargroupcontent",
+      "src_components_ui_sidebar_sidebargrouplabel",
+      "src_components_ui_sidebar_sidebarheader",
+      "src_components_ui_sidebar_sidebarinput",
+      "src_components_ui_sidebar_sidebarinset",
+      "src_components_ui_sidebar_sidebarmenu",
+      "src_components_ui_sidebar_sidebarmenuaction",
+      "src_components_ui_sidebar_sidebarmenubadge",
+      "src_components_ui_sidebar_sidebarmenubutton",
+      "src_components_ui_sidebar_sidebarmenubuttonvariants",
+      "src_components_ui_sidebar_sidebarmenuitem",
+      "src_components_ui_sidebar_sidebarmenuskeleton",
+      "src_components_ui_sidebar_sidebarmenusub",
+      "src_components_ui_sidebar_sidebarmenusubbutton",
+      "src_components_ui_sidebar_sidebarmenusubitem",
+      "src_components_ui_sidebar_sidebarrail",
+      "src_components_ui_sidebar_sidebarseparator",
+      "src_components_ui_sidebar_usesidebar"
+    ],
+    "12": [
+      "src_app",
+      "src_app_app",
+      "src_app_queryclient",
+      "src_components_security_securityoverview_securityoverview",
+      "src_components_ui_sonner",
+      "src_components_ui_sonner_toaster",
+      "src_components_ui_sonner_toasterprops",
+      "src_main",
+      "src_pages_auth_auth",
+      "src_pages_emailtesting",
+      "src_pages_emailtesting_emailtesting",
+      "src_pages_notfound",
+      "src_pages_notfound_notfound",
+      "src_pages_security",
+      "src_pages_security_security"
+    ],
+    "13": [
+      "src_components_assistance_assistancedetail_assistancedetailprops",
+      "src_components_assistance_assistancelistpdftemplate",
+      "src_components_assistance_assistancelistpdftemplate_assistancelistpdftemplate",
+      "src_components_assistance_assistancelistpdftemplate_assistancelistpdftemplateprops",
+      "src_components_assistance_assistancepdftemplate",
+      "src_components_assistance_assistancepdftemplate_assistancepdftemplate",
+      "src_components_assistance_assistancepdftemplate_assistancepdftemplateprops",
+      "src_components_assistance_editassistanceform_editassistanceformprops",
+      "src_components_assistance_internalnotes_internalnotesprops",
+      "src_components_assistance_pdfpreviewdialog_pdfpreviewdialogprops",
+      "src_components_assistance_quotationquickaction_quotationquickactionprops",
+      "src_components_assistance_quotationsection_quotationsectionprops",
+      "src_components_assistance_supplierreportpdftemplate",
+      "src_components_assistance_supplierreportpdftemplate_supplierreportpdftemplate",
+      "src_components_assistance_supplierreportpdftemplate_supplierreportpdftemplateprops",
+      "src_components_quotations_pdfexportbutton",
+      "src_components_quotations_pdfexportbutton_pdfexportbutton",
+      "src_components_quotations_pdfexportbutton_pdfexportbuttonprops",
+      "src_components_quotations_quotationfilters_quotationfilters",
+      "src_components_quotations_quotationlistpdftemplate",
+      "src_components_quotations_quotationlistpdftemplate_quotationlistpdftemplate",
+      "src_components_quotations_quotationlistpdftemplate_quotationlistpdftemplateprops",
+      "src_components_supplier_supplieremailsummary_supplieremailsummary",
+      "src_hooks_useassistances_assistance",
+      "src_integrations_supabase_types_database",
+      "src_utils_assistancestates",
+      "src_utils_assistancestates_assistance_status_translations",
+      "src_utils_assistancestates_assistancestatus",
+      "src_utils_assistancestates_getassistancestatuslabel",
+      "src_utils_assistancestates_getdisplaystatus",
+      "src_utils_assistancestates_isassistancescheduled",
+      "src_utils_assistancestates_status_groups",
+      "src_utils_assistancestates_valid_assistance_states",
+      "src_utils_constants_getprioritylabel"
+    ],
+    "14": [
+      "src_components_ui_sheet",
+      "src_components_ui_sheet_sheetcontent",
+      "src_components_ui_sheet_sheetcontentprops",
+      "src_components_ui_sheet_sheetdescription",
+      "src_components_ui_sheet_sheetfooter",
+      "src_components_ui_sheet_sheetheader",
+      "src_components_ui_sheet_sheetoverlay",
+      "src_components_ui_sheet_sheettitle",
+      "src_components_ui_sheet_sheetvariants",
+      "src_hooks_useinsuranceclaims",
+      "src_hooks_useinsuranceclaims_claim_open_statuses",
+      "src_hooks_useinsuranceclaims_claim_status_labels",
+      "src_hooks_useinsuranceclaims_claimstatus",
+      "src_hooks_useinsuranceclaims_getclaimattachmentsignedurl",
+      "src_hooks_useinsuranceclaims_insuranceclaim",
+      "src_hooks_useinsuranceclaims_useaddclaimnote",
+      "src_hooks_useinsuranceclaims_useclaimattachments",
+      "src_hooks_useinsuranceclaims_useclaimnotes",
+      "src_hooks_useinsuranceclaims_usecreateinsuranceclaim",
+      "src_hooks_useinsuranceclaims_usedeleteclaimattachment",
+      "src_hooks_useinsuranceclaims_usedeleteinsuranceclaim",
+      "src_hooks_useinsuranceclaims_useinsuranceclaim",
+      "src_hooks_useinsuranceclaims_useinsuranceclaims",
+      "src_hooks_useinsuranceclaims_useupdateinsuranceclaim",
+      "src_hooks_useinsuranceclaims_useuploadclaimattachment",
+      "src_pages_sinistros",
+      "src_pages_sinistros_claimdetail",
+      "src_pages_sinistros_sinistros",
+      "src_pages_sinistros_statuscolor"
+    ],
+    "15": [
+      "src_components_assistance_communicationlog_communicationlog",
+      "src_components_assistance_progresstimeline_progresstimeline",
+      "src_components_quotations_quotationlist_quotationlist",
+      "src_components_quotations_submitquotationform_submitquotationform",
+      "src_components_security_securitysettings_securitysettings",
+      "src_components_supplier_admincommunication_admincommunication",
+      "src_components_supplier_bulkemaildialog_bulkemaildialog",
+      "src_components_supplier_fileupload_fileupload",
+      "src_components_supplier_progresstracker_progresstracker",
+      "src_components_supplier_quickactions_quickactions",
+      "src_components_testing_followuptester_followuptester",
+      "src_hooks_use_toast_usetoast",
+      "src_hooks_useassistanceprogress",
+      "src_hooks_useassistanceprogress_assistanceprogressdata",
+      "src_hooks_useassistanceprogress_useassistanceprogress",
+      "src_hooks_useassistanceprogress_usecancompleteassistance",
+      "src_hooks_useassistanceprogress_usecreateassistanceprogress",
+      "src_hooks_usecommunicationlog",
+      "src_hooks_usecommunicationlog_communicationdata",
+      "src_hooks_usecommunicationlog_usecommunicationlog",
+      "src_hooks_usecommunicationlog_usecreatecommunication",
+      "src_hooks_usesupplierresponses",
+      "src_hooks_usesupplierresponses_createsupplierresponsedata",
+      "src_hooks_usesupplierresponses_supplierresponse",
+      "src_hooks_usesupplierresponses_usecreatesupplierresponse",
+      "src_hooks_usesupplierresponses_usefollowupassistances",
+      "src_hooks_usesupplierresponses_usesupplierresponses"
+    ],
+    "16": [
+      "src_components_knowledge_knowledgeform",
+      "src_components_quotations_quotationanalytics",
+      "src_components_quotations_quotationanalytics_colors",
+      "src_components_quotations_quotationanalytics_quotationanalytics",
+      "src_components_quotations_quotationdashboard",
+      "src_components_quotations_quotationdashboard_assistancewithquotationdetails",
+      "src_components_quotations_quotationdashboard_quotation",
+      "src_components_quotations_quotationdashboard_quotationdashboard",
+      "src_components_quotations_quotationmanagement",
+      "src_components_quotations_quotationmanagement_quotationdetails",
+      "src_components_quotations_quotationmanagement_quotationmanagement",
+      "src_components_security_securityoverview",
+      "src_components_ui_tabs",
+      "src_components_ui_tabs_tabscontent",
+      "src_components_ui_tabs_tabslist",
+      "src_components_ui_tabs_tabstrigger",
+      "src_hooks_usequotationnotifications_usequotationnotifications",
+      "src_pages_auth",
+      "src_pages_mcpdiagnostics",
+      "src_pages_mcpdiagnostics_check",
+      "src_pages_mcpdiagnostics_expected",
+      "src_pages_mcpdiagnostics_keycheck",
+      "src_pages_mcpdiagnostics_mcpdiagnostics",
+      "src_pages_mcpdiagnostics_rpc",
+      "src_pages_mcpdiagnostics_rpcresult",
+      "src_pages_mcpdiagnostics_validatetool",
+      "src_pages_quotations",
+      "src_pages_quotations_quotations"
+    ],
+    "17": [
+      "src_components_ui_error_states",
+      "src_components_ui_error_states_erroralert",
+      "src_components_ui_error_states_erroralertprops",
+      "src_components_ui_error_states_errorstate",
+      "src_components_ui_error_states_errorstateprops",
+      "src_components_ui_error_states_networkerror",
+      "src_components_ui_error_states_notfounderror",
+      "src_components_ui_error_states_offlineindicator",
+      "src_components_ui_error_states_unauthorizederror",
+      "src_components_ui_status_badges",
+      "src_components_ui_status_badges_prioritybadgeprops",
+      "src_components_ui_status_badges_statusbadge",
+      "src_components_ui_status_badges_statusbadgeprops",
+      "src_utils_constants",
+      "src_utils_constants_error_messages",
+      "src_utils_constants_getactionlabel",
+      "src_utils_constants_getstatuslabel",
+      "src_utils_constants_open_assistance_statuses",
+      "src_utils_constants_priority_translations",
+      "src_utils_constants_status_translations",
+      "src_utils_constants_success_messages"
+    ],
+    "18": [
+      "src_utils_errorhandler",
+      "src_utils_errorhandler_handleautherror",
+      "src_utils_errorhandler_handlenetworkerror",
+      "src_utils_errorhandler_handlevalidationerror",
+      "src_utils_errorhandler_retryoperation",
+      "src_utils_errorhandler_showerrortoast",
+      "src_utils_errorhandler_showsuccesstoast",
+      "src_utils_formmanager",
+      "src_utils_formmanager_createfilevalidator",
+      "src_utils_formmanager_createnetworkawareform",
+      "src_utils_formmanager_enhancedemailschema",
+      "src_utils_formmanager_enhancednifschema",
+      "src_utils_formmanager_enhancedpasswordschema",
+      "src_utils_formmanager_enhancedphoneschema",
+      "src_utils_formmanager_formmanager",
+      "src_utils_formmanager_formmanager_clearerrors",
+      "src_utils_formmanager_formmanager_constructor",
+      "src_utils_formmanager_formmanager_geterrors",
+      "src_utils_formmanager_formmanager_handleofflinesubmission",
+      "src_utils_formmanager_formmanager_haserrors",
+      "src_utils_formmanager_formmanager_submitwithretry",
+      "src_utils_formmanager_formmanager_syncpendingoperations",
+      "src_utils_formmanager_formmanager_validate",
+      "src_utils_formmanager_formmanager_validatefield",
+      "src_utils_formmanager_formvalidationoptions",
+      "src_utils_formmanager_offlineoptions"
+    ],
+    "19": [
+      "src_utils_logger",
+      "src_utils_logger_log_levels",
+      "src_utils_logger_logentry",
+      "src_utils_logger_logger",
+      "src_utils_logger_logger_addlog",
+      "src_utils_logger_logger_clearlogs",
+      "src_utils_logger_logger_constructor",
+      "src_utils_logger_logger_createlogentry",
+      "src_utils_logger_logger_debug",
+      "src_utils_logger_logger_error",
+      "src_utils_logger_logger_exportlogs",
+      "src_utils_logger_logger_generatesessionid",
+      "src_utils_logger_logger_getcurrentuserid",
+      "src_utils_logger_logger_getlogs",
+      "src_utils_logger_logger_info",
+      "src_utils_logger_logger_logapicall",
+      "src_utils_logger_logger_logreacterror",
+      "src_utils_logger_logger_loguseraction",
+      "src_utils_logger_logger_setloglevel",
+      "src_utils_logger_logger_shouldlog",
+      "src_utils_logger_logger_time",
+      "src_utils_logger_logger_timeend",
+      "src_utils_logger_logger_warn",
+      "src_utils_logger_loglevel",
+      "src_utils_logger_performancemonitor",
+      "src_utils_logger_useactionlogger"
+    ],
+    "20": [
+      "src_components_ui_button_buttonprops",
+      "src_components_ui_button_buttonvariants",
+      "src_components_ui_calendar",
+      "src_components_ui_calendar_calendar",
+      "src_components_ui_calendar_calendarprops",
+      "src_components_ui_pagination",
+      "src_components_ui_pagination_pagination",
+      "src_components_ui_pagination_paginationcontent",
+      "src_components_ui_pagination_paginationellipsis",
+      "src_components_ui_pagination_paginationitem",
+      "src_components_ui_pagination_paginationlink",
+      "src_components_ui_pagination_paginationlinkprops",
+      "src_components_ui_pagination_paginationnext",
+      "src_components_ui_pagination_paginationprevious"
+    ],
+    "21": [
+      "ref_dom",
+      "ref_dom_iterable",
+      "ref_es2020",
+      "ref_src",
+      "tsconfig_app",
+      "tsconfig_app_compileroptions",
+      "tsconfig_app_compileroptions_allowimportingtsextensions",
+      "tsconfig_app_compileroptions_isolatedmodules",
+      "tsconfig_app_compileroptions_jsx",
+      "tsconfig_app_compileroptions_lib",
+      "tsconfig_app_compileroptions_module",
+      "tsconfig_app_compileroptions_moduledetection",
+      "tsconfig_app_compileroptions_moduleresolution",
+      "tsconfig_app_compileroptions_noemit",
+      "tsconfig_app_compileroptions_nofallthroughcasesinswitch",
+      "tsconfig_app_compileroptions_noimplicitany",
+      "tsconfig_app_compileroptions_nounusedlocals",
+      "tsconfig_app_compileroptions_nounusedparameters",
+      "tsconfig_app_compileroptions_paths",
+      "tsconfig_app_compileroptions_skiplibcheck",
+      "tsconfig_app_compileroptions_strict",
+      "tsconfig_app_compileroptions_target",
+      "tsconfig_app_compileroptions_usedefineforclassfields",
+      "tsconfig_app_include"
+    ],
+    "22": [
+      "src_components_layout_dashboardlayout",
+      "src_components_layout_dashboardlayout_dashboardlayout",
+      "src_components_mobile_bottomnavigation",
+      "src_components_mobile_bottomnavigation_bottomnavigation",
+      "src_components_mobile_bottomnavigation_bottomnavitems",
+      "src_components_mobile_bottomnavigation_moreitems",
+      "src_components_mobile_floatingactionbutton",
+      "src_components_mobile_floatingactionbutton_floatingactionbutton",
+      "src_components_mobile_floatingactionbutton_floatingactionbuttonprops",
+      "src_components_mobile_mobilebreadcrumbs_mobilebreadcrumbs",
+      "src_components_mobile_quickshortcutsfab",
+      "src_components_mobile_quickshortcutsfab_quickshortcutsfab",
+      "src_components_mobile_quickshortcutsfab_shortcuts",
+      "src_components_ui_sidebar_sidebarprovider",
+      "src_components_ui_sidebar_sidebartrigger",
+      "src_hooks_use_mobile",
+      "src_hooks_use_mobile_useismobile",
+      "src_hooks_usenavigationgestures",
+      "src_hooks_usenavigationgestures_usenavigationgestures",
+      "src_hooks_usepulltorefresh",
+      "src_hooks_usepulltorefresh_pulltorefreshoptions",
+      "src_hooks_usepulltorefresh_usepulltorefresh",
+      "src_hooks_useswipegestures",
+      "src_hooks_useswipegestures_swipehandlers",
+      "src_hooks_useswipegestures_swipeoptions",
+      "src_hooks_useswipegestures_useswipegestures"
+    ],
+    "23": [
+      "src_components_mobile_mobilebreadcrumbs",
+      "src_components_mobile_mobilebreadcrumbs_breadcrumbitem",
+      "src_components_mobile_mobilebreadcrumbs_pagetitles",
+      "src_components_ui_hover_card",
+      "src_components_ui_hover_card_hovercardcontent",
+      "src_components_ui_input_otp",
+      "src_components_ui_input_otp_inputotp",
+      "src_components_ui_input_otp_inputotpgroup",
+      "src_components_ui_input_otp_inputotpseparator",
+      "src_components_ui_input_otp_inputotpslot",
+      "src_components_ui_popover",
+      "src_components_ui_popover_popovercontent",
+      "src_components_ui_radio_group",
+      "src_components_ui_radio_group_radiogroup",
+      "src_components_ui_radio_group_radiogroupitem",
+      "src_components_ui_slider",
+      "src_components_ui_slider_slider",
+      "src_lib_utils"
+    ],
+    "24": [
+      "supabase_functions_agent_api_index_handledeleteassemblyitem",
+      "supabase_functions_agent_api_index_handledeleteknowledgearticle",
+      "supabase_functions_agent_api_index_handlelistactivitylog",
+      "supabase_functions_agent_api_index_handlelistassemblyitems",
+      "supabase_functions_agent_api_index_handlelistassistancecommunications",
+      "supabase_functions_agent_api_index_handlelistassistancephotos",
+      "supabase_functions_agent_api_index_handlelistassistanceprogress",
+      "supabase_functions_agent_api_index_handlelistassistances",
+      "supabase_functions_agent_api_index_handlelistbuildingcontacts",
+      "supabase_functions_agent_api_index_handlelistbuildings",
+      "supabase_functions_agent_api_index_handlelistfollowups",
+      "supabase_functions_agent_api_index_handlelistinterventiontypes",
+      "supabase_functions_agent_api_index_handlelistnotifications",
+      "supabase_functions_agent_api_index_handlelistquotations",
+      "supabase_functions_agent_api_index_handlelistsuppliers",
+      "supabase_functions_agent_api_index_handlesearchknowledge",
+      "supabase_functions_agent_api_index_handleupdateassemblyitem",
+      "supabase_functions_agent_api_index_handleupdateassistance",
+      "supabase_functions_agent_api_index_handleupdatebuilding",
+      "supabase_functions_agent_api_index_handleupdateemaillogstatus",
+      "supabase_functions_agent_api_index_handleupdateinterventiontype",
+      "supabase_functions_agent_api_index_handleupdateknowledgearticle",
+      "supabase_functions_agent_api_index_handleupdatesupplier",
+      "supabase_functions_agent_api_index_maskpii"
+    ],
+    "25": [
+      "supabase_functions_agent_api_index_handleaddassemblyattendee",
+      "supabase_functions_agent_api_index_handleaddassistanceinternalnote",
+      "supabase_functions_agent_api_index_handleaddclaimnote",
+      "supabase_functions_agent_api_index_handleaddcommunication",
+      "supabase_functions_agent_api_index_handleaddemailpendencynote",
+      "supabase_functions_agent_api_index_handlecreateassemblyactionitem",
+      "supabase_functions_agent_api_index_handlecreateassemblyagendaitem",
+      "supabase_functions_agent_api_index_handlecreateassemblyitem",
+      "supabase_functions_agent_api_index_handlecreateassemblyresolution",
+      "supabase_functions_agent_api_index_handlecreatebuilding",
+      "supabase_functions_agent_api_index_handlecreatebuildingadministrator",
+      "supabase_functions_agent_api_index_handlecreatebuildingcontact",
+      "supabase_functions_agent_api_index_handlecreatebuildingfraction",
+      "supabase_functions_agent_api_index_handlecreatebuildinginsurance",
+      "supabase_functions_agent_api_index_handlecreateinspectioncategory",
+      "supabase_functions_agent_api_index_handlecreateinterventiontype",
+      "supabase_functions_agent_api_index_handlecreateknowledgearticle",
+      "supabase_functions_agent_api_index_handlecreatependencyreminder",
+      "supabase_functions_agent_api_index_handlecreatesupplier",
+      "supabase_functions_agent_api_index_handleimportcontacts",
+      "supabase_functions_agent_api_index_handlesaveemaildraft",
+      "supabase_functions_agent_api_index_handleuploadbuildingdocument",
+      "supabase_functions_agent_api_index_requirestring"
+    ],
+    "26": [
+      "supabase_functions_send_assistance_pdf_to_admin_index",
+      "supabase_functions_send_assistance_pdf_to_admin_index_addnewpage",
+      "supabase_functions_send_assistance_pdf_to_admin_index_assistancedata",
+      "supabase_functions_send_assistance_pdf_to_admin_index_corsheaders",
+      "supabase_functions_send_assistance_pdf_to_admin_index_drawfooter",
+      "supabase_functions_send_assistance_pdf_to_admin_index_drawphotossection",
+      "supabase_functions_send_assistance_pdf_to_admin_index_ensurespace",
+      "supabase_functions_send_assistance_pdf_to_admin_index_extractpostalcode",
+      "supabase_functions_send_assistance_pdf_to_admin_index_fetchimagebytes",
+      "supabase_functions_send_assistance_pdf_to_admin_index_fetchlogobytes",
+      "supabase_functions_send_assistance_pdf_to_admin_index_formatdate",
+      "supabase_functions_send_assistance_pdf_to_admin_index_formatdateonly",
+      "supabase_functions_send_assistance_pdf_to_admin_index_generaterealpdf",
+      "supabase_functions_send_assistance_pdf_to_admin_index_getphototypelabel",
+      "supabase_functions_send_assistance_pdf_to_admin_index_getprioritycolor",
+      "supabase_functions_send_assistance_pdf_to_admin_index_getprioritylabel",
+      "supabase_functions_send_assistance_pdf_to_admin_index_getstatuslabel",
+      "supabase_functions_send_assistance_pdf_to_admin_index_handler",
+      "supabase_functions_send_assistance_pdf_to_admin_index_pdfcontext",
+      "supabase_functions_send_assistance_pdf_to_admin_index_photodata",
+      "supabase_functions_send_assistance_pdf_to_admin_index_requestbody",
+      "supabase_functions_send_assistance_pdf_to_admin_index_resend",
+      "supabase_functions_send_assistance_pdf_to_admin_index_splittextintolines"
+    ],
+    "27": [
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_on_auth_user_created",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_activity_log",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_assistance_photos",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_assistances",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_buildings",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_communications_log",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_email_logs",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_generate_magic_code",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_handle_new_user",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_has_role",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_intervention_types",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_is_admin",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_profiles",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_quotations",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_supplier_magic_codes",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_suppliers",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_update_updated_at_column",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_public_user_roles",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_update_assistances_updated_at",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_update_buildings_updated_at",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_update_profiles_updated_at",
+      "supabase_migrations_20250726115742_30e2a3b4_365f_4b1e_b6fa_fb62c5664072_update_suppliers_updated_at"
+    ],
+    "28": [
+      "src_components_insurances_insuranceform",
+      "src_components_insurances_insuranceform_insuranceform",
+      "src_components_insurances_insuranceform_props",
+      "src_hooks_useinsurances",
+      "src_hooks_useinsurances_buildingfraction",
+      "src_hooks_useinsurances_buildinginsurance",
+      "src_hooks_useinsurances_coverage_label",
+      "src_hooks_useinsurances_coveragetype",
+      "src_hooks_useinsurances_fractionstatusvalue",
+      "src_hooks_useinsurances_insurance_status_meta",
+      "src_hooks_useinsurances_insurancefractionstatus",
+      "src_hooks_useinsurances_insuranceinput",
+      "src_hooks_useinsurances_insurancestatus",
+      "src_hooks_useinsurances_insurancestatusrow",
+      "src_hooks_useinsurances_usebuildingfractions",
+      "src_hooks_useinsurances_usebuildinginsurances",
+      "src_hooks_useinsurances_usedeletebuildingfraction",
+      "src_hooks_useinsurances_usedeleteinsurance",
+      "src_hooks_useinsurances_useinsurancefractionstatus",
+      "src_hooks_useinsurances_usesaveinsurancefractionstatus",
+      "src_hooks_useinsurances_useupsertbuildingfraction",
+      "src_hooks_useinsurances_useupsertinsurance"
+    ],
+    "29": [
+      "src_components_assembly_assemblydetail_assemblydetail",
+      "src_components_assembly_assemblyfilters",
+      "src_components_assembly_assemblyfilters_assemblyfilters",
+      "src_components_assembly_assemblyfilters_props",
+      "src_components_assembly_assemblyfilters_status_chips",
+      "src_components_assistance_editassistanceform_editassistanceform",
+      "src_components_assistance_quickelevatorform_quickelevatorform",
+      "src_components_followups_forwardtosupplierdialog_forwardtosupplierdialog",
+      "src_components_knowledge_knowledgefilters",
+      "src_components_knowledge_knowledgefilters_knowledgefilters",
+      "src_components_knowledge_knowledgefilters_props",
+      "src_components_knowledge_knowledgeform_knowledgeform",
+      "src_hooks_useassemblyitems_assemblyfilters",
+      "src_hooks_usebuildings",
+      "src_hooks_usebuildings_usebuilding",
+      "src_hooks_usebuildings_usebuildings",
+      "src_hooks_useinterventiontypes_useinterventiontypes",
+      "src_hooks_useknowledgearticles_knowledgefilters",
+      "src_hooks_useknowledgearticles_usecreateknowledgearticle",
+      "src_pages_administradores_administradores",
+      "src_utils_buildingdisplay_formatbuildinglabel"
+    ],
+    "30": [
+      "src_components_assistance_assistancedetail_assistancedetail",
+      "src_components_assistance_assistancedetail_getstatusicon",
+      "src_components_assistance_assistancefilters_assistancefilters",
+      "src_components_assistance_internalnotes_internalnotes",
+      "src_components_assistance_pdfexportbutton_pdfexportbutton",
+      "src_components_mobile_skeletonlist",
+      "src_components_mobile_skeletonlist_skeletonlist",
+      "src_components_mobile_skeletonlist_skeletonlistprops",
+      "src_components_ui_highlight_text",
+      "src_components_ui_highlight_text_highlighttext",
+      "src_components_ui_highlight_text_highlighttextprops",
+      "src_hooks_useassistancereminders",
+      "src_hooks_useassistancereminders_assistancereminder",
+      "src_hooks_useassistancereminders_useassistancereminders",
+      "src_hooks_useassistances",
+      "src_hooks_useassistances_getstatuslabel",
+      "src_hooks_useassistances_useassistance",
+      "src_hooks_useassistances_useassistancestats",
+      "src_hooks_useassistances_usecreateassistance",
+      "src_hooks_useassistances_usedeleteassistance",
+      "src_hooks_useassistances_useupdateassistance",
+      "src_hooks_useassistances_useupdateassistancestatus",
+      "src_pages_assistencias",
+      "src_pages_assistencias_assistencias",
+      "src_pages_assistencias_deleteassistanceaction",
+      "src_pages_assistencias_getstatusicon"
+    ],
+    "31": [
+      "src_components_settings_settingsform_settingsform",
+      "src_components_supplier_automatednotifications_automatednotifications",
+      "src_hooks_useappsettings",
+      "src_hooks_useappsettings_appsetting",
+      "src_hooks_useappsettings_useallappsettings",
+      "src_hooks_useappsettings_useappsettings",
+      "src_hooks_useappsettings_usecreateappsetting",
+      "src_hooks_useappsettings_useupdateappsetting",
+      "src_pages_configuracoes",
+      "src_pages_configuracoes_configuracoes",
+      "src_pages_followupsettings_followupsettings",
+      "src_pages_followupsettings_parsesettingvalue",
+      "src_pages_followupsettings_sections"
+    ],
+    "32": [
+      "src_components_assistance_assistancedetail",
+      "src_components_followups_followupcardskeleton",
+      "src_components_followups_followupcardskeleton_followupcardskeleton",
+      "src_components_quotations_quotationlist",
+      "src_components_quotations_quotationlist_quotation",
+      "src_components_quotations_quotationlist_quotationlistprops",
+      "src_components_quotations_quotationlist_statusicons",
+      "src_components_quotations_quotationlist_statuslabels",
+      "src_components_quotations_quotationlist_statusvariants",
+      "src_components_ui_alert_dialog",
+      "src_components_ui_alert_dialog_alertdialogaction",
+      "src_components_ui_alert_dialog_alertdialogcancel",
+      "src_components_ui_alert_dialog_alertdialogcontent",
+      "src_components_ui_alert_dialog_alertdialogdescription",
+      "src_components_ui_alert_dialog_alertdialogfooter",
+      "src_components_ui_alert_dialog_alertdialogheader",
+      "src_components_ui_alert_dialog_alertdialogoverlay",
+      "src_components_ui_alert_dialog_alertdialogtitle",
+      "src_components_ui_skeleton",
+      "src_components_ui_skeleton_skeleton",
+      "src_hooks_useinterventiontypes_usedeleteinterventiontype",
+      "src_pages_knowledge",
+      "src_pages_tiposassistencia",
+      "src_pages_tiposassistencia_tiposassistencia"
+    ],
+    "33": [
+      "src_components_assistance_editassistanceform",
+      "src_components_assistance_editassistanceform_assistanceformvalues",
+      "src_components_assistance_editassistanceform_assistanceschema",
+      "src_components_buildings_buildingform",
+      "src_components_buildings_buildingform_buildingformdata",
+      "src_components_buildings_buildingform_buildingschema",
+      "src_components_profiles_profileform",
+      "src_components_profiles_profileform_profile",
+      "src_components_profiles_profileform_profileformdata",
+      "src_components_profiles_profileform_profileschema",
+      "src_components_ui_form",
+      "src_components_ui_form_formcontrol",
+      "src_components_ui_form_formdescription",
+      "src_components_ui_form_formfield",
+      "src_components_ui_form_formfieldcontext",
+      "src_components_ui_form_formfieldcontextvalue",
+      "src_components_ui_form_formitem",
+      "src_components_ui_form_formitemcontext",
+      "src_components_ui_form_formitemcontextvalue",
+      "src_components_ui_form_formmessage"
+    ],
+    "34": [
+      "src_components_ui_action_buttons",
+      "src_components_ui_action_buttons_action_icons",
+      "src_components_ui_action_buttons_actionbutton",
+      "src_components_ui_action_buttons_actionbuttonprops",
+      "src_components_ui_action_buttons_approvebutton",
+      "src_components_ui_action_buttons_cancelbutton",
+      "src_components_ui_action_buttons_createbutton",
+      "src_components_ui_action_buttons_deletebutton",
+      "src_components_ui_action_buttons_editbutton",
+      "src_components_ui_action_buttons_rejectbutton",
+      "src_components_ui_action_buttons_savebutton",
+      "src_components_ui_loading_states",
+      "src_components_ui_loading_states_loadingbutton",
+      "src_components_ui_loading_states_loadingbuttonprops",
+      "src_components_ui_loading_states_loadingcard",
+      "src_components_ui_loading_states_loadingpage",
+      "src_components_ui_loading_states_loadingspinner",
+      "src_components_ui_loading_states_loadingspinnerprops",
+      "src_utils_constants_action_translations",
+      "src_utils_constants_loading_messages"
+    ],
+    "35": [
+      "src_components_followups_followupdashboard",
+      "src_components_followups_followupdashboard_followupcardprops",
+      "src_components_followups_followupdashboard_followupdashboard",
+      "src_components_followups_followupdashboard_followuptypelabels",
+      "src_components_followups_followupdashboard_prioritycolors",
+      "src_components_followups_followupdashboard_sortkey",
+      "src_components_followups_followupdashboard_statuscolors",
+      "src_components_followups_followupdashboard_statusicons",
+      "src_components_followups_followupdashboard_statuslabels",
+      "src_components_followups_forwardtosupplierdialog_props",
+      "src_components_ui_tooltip",
+      "src_components_ui_tooltip_tooltipcontent",
+      "src_hooks_usefollowupschedules",
+      "src_hooks_usefollowupschedules_followupschedule",
+      "src_hooks_usefollowupschedules_followupwithdetails",
+      "src_hooks_usefollowupschedules_usecancelfollowup",
+      "src_hooks_usefollowupschedules_usefollowupschedules",
+      "src_hooks_usefollowupschedules_usefollowupstats",
+      "src_hooks_usefollowupschedules_useprocessfollowups",
+      "src_hooks_usefollowupschedules_usereschedulefollowup",
+      "src_hooks_usefollowupschedules_usetriggermanualreminders"
+    ],
+    "36": [
+      "src_components_inspections_inspectionform",
+      "src_components_inspections_inspectionform_inspectionform",
+      "src_components_inspections_inspectionform_inspectionresult",
+      "src_components_inspections_inspectionform_props",
+      "src_components_ui_dialog_dialogdescription",
+      "src_hooks_useinspections",
+      "src_hooks_useinspections_buildinginspection",
+      "src_hooks_useinspections_inspectioncategory",
+      "src_hooks_useinspections_inspectioncategoryjoin",
+      "src_hooks_useinspections_inspectionresult",
+      "src_hooks_useinspections_inspectionstatus",
+      "src_hooks_useinspections_inspectionstatusrow",
+      "src_hooks_useinspections_status_meta",
+      "src_hooks_useinspections_usebuildinginspections",
+      "src_hooks_useinspections_usecreateinspection",
+      "src_hooks_useinspections_usedeleteinspection",
+      "src_hooks_useinspections_useinspectioncategories",
+      "src_hooks_useinspections_useinspectionstatus",
+      "src_hooks_useinspections_useupdateinspection",
+      "src_pages_inspecoes",
+      "src_pages_inspecoes_inspecoes",
+      "src_pages_inspecoes_inspectionedit",
+      "src_pages_inspecoes_kpicard",
+      "src_pages_inspecoes_status_order"
+    ],
+    "37": [
+      "src_hooks_usebuildings_usebuildingstats",
+      "src_hooks_usenotificationbadge",
+      "src_hooks_usenotificationbadge_usenotificationbadge",
+      "src_hooks_userealtimenotifications",
+      "src_hooks_userealtimenotifications_notificationdata",
+      "src_hooks_userealtimenotifications_userealtimenotifications",
+      "src_hooks_userealtimenotifications_userealtimenotificationsreturn",
+      "src_hooks_useupcomingschedules",
+      "src_hooks_useupcomingschedules_upcomingschedule",
+      "src_hooks_useupcomingschedules_useupcomingschedules",
+      "src_hooks_useurgentalerts_useurgentalerts",
+      "src_pages_dashboard_dashboard"
+    ],
+    "38": [
+      "jspdf",
+      "package_dependencies_jspdf",
+      "src_components_analytics_pdfexportbutton_pdfexportbutton",
+      "src_hooks_useanalytics",
+      "src_hooks_useanalytics_alertdata",
+      "src_hooks_useanalytics_buildinganalytics",
+      "src_hooks_useanalytics_executivekpis",
+      "src_hooks_useanalytics_interventionanalytics",
+      "src_hooks_useanalytics_supplierperformance",
+      "src_hooks_useanalytics_trenddata",
+      "src_hooks_useanalytics_usebuildinganalytics",
+      "src_hooks_useanalytics_useexecutivekpis",
+      "src_hooks_useanalytics_useintelligentalerts",
+      "src_hooks_useanalytics_useinterventionanalytics",
+      "src_hooks_useanalytics_usesupplierperformanceanalytics",
+      "src_hooks_useanalytics_usetrendanalytics",
+      "src_lib_utils_formatcurrency",
+      "src_pages_analytics_analytics"
+    ],
+    "39": [
+      "ref_es2023",
+      "ref_vite_config_ts",
+      "tsconfig_node",
+      "tsconfig_node_compileroptions",
+      "tsconfig_node_compileroptions_allowimportingtsextensions",
+      "tsconfig_node_compileroptions_isolatedmodules",
+      "tsconfig_node_compileroptions_lib",
+      "tsconfig_node_compileroptions_module",
+      "tsconfig_node_compileroptions_moduledetection",
+      "tsconfig_node_compileroptions_moduleresolution",
+      "tsconfig_node_compileroptions_noemit",
+      "tsconfig_node_compileroptions_nofallthroughcasesinswitch",
+      "tsconfig_node_compileroptions_nounusedlocals",
+      "tsconfig_node_compileroptions_nounusedparameters",
+      "tsconfig_node_compileroptions_skiplibcheck",
+      "tsconfig_node_compileroptions_strict",
+      "tsconfig_node_compileroptions_target",
+      "tsconfig_node_include"
+    ],
+    "40": [
+      "src_components_auth_protectedroute",
+      "src_components_auth_protectedroute_protectedroute",
+      "src_components_auth_protectedroute_protectedrouteprops",
+      "src_components_auth_usermenu_usermenu",
+      "src_components_layout_realtimenotificationcenter_realtimenotificationcenter",
+      "src_hooks_useauth",
+      "src_hooks_useauth_authcontext",
+      "src_hooks_useauth_authcontexttype",
+      "src_hooks_useauth_authprovider",
+      "src_hooks_useauth_useauth",
+      "src_hooks_useisadmin",
+      "src_hooks_useisadmin_useisadmin",
+      "src_hooks_useuserpresence",
+      "src_hooks_useuserpresence_userpresence",
+      "src_hooks_useuserpresence_useuserpresence",
+      "src_hooks_useuserpresence_useuserpresencereturn",
+      "src_pages_followups",
+      "src_pages_followups_followups",
+      "src_pages_followuptesting",
+      "src_pages_followuptesting_followuptesting",
+      "src_utils_securelogger",
+      "src_utils_securelogger_log_levels",
+      "src_utils_securelogger_loglevel"
+    ],
+    "41": [
+      "components",
+      "components_aliases",
+      "components_aliases_components",
+      "components_aliases_hooks",
+      "components_aliases_lib",
+      "components_aliases_ui",
+      "components_aliases_utils",
+      "components_rsc",
+      "components_schema",
+      "components_style",
+      "components_tailwind",
+      "components_tailwind_basecolor",
+      "components_tailwind_config",
+      "components_tailwind_css",
+      "components_tailwind_cssvariables",
+      "components_tailwind_prefix",
+      "components_tsx"
+    ],
+    "42": [
+      "src_components_buildings_buildingform_buildingform",
+      "src_components_buildings_buildingform_buildingformprops",
+      "src_components_buildings_buildinglistpdftemplate",
+      "src_components_buildings_buildinglistpdftemplate_buildinglistpdftemplate",
+      "src_components_buildings_buildinglistpdftemplate_buildinglistpdftemplateprops",
+      "src_hooks_useassistances_useassistances",
+      "src_hooks_usebuildingdependencies",
+      "src_hooks_usebuildingdependencies_buildingdependencies",
+      "src_hooks_usebuildingdependencies_usebuildingdependencies",
+      "src_hooks_usebuildings_building",
+      "src_hooks_usebuildings_usecreatebuilding",
+      "src_hooks_usebuildings_usedeletebuilding",
+      "src_hooks_usebuildings_useupdatebuilding",
+      "src_pages_edificios",
+      "src_pages_edificios_buildingassistancesview",
+      "src_pages_edificios_edificios",
+      "src_utils_constants_closed_assistance_statuses"
+    ],
+    "43": [
+      "_codex_skills_graphify_references_add_watch_watch_mode",
+      "_codex_skills_graphify_references_extraction_spec_confidence_rubric",
+      "_codex_skills_graphify_references_extraction_spec_node_id_format",
+      "_codex_skills_graphify_references_extraction_spec_subagent_prompt",
+      "_codex_skills_graphify_references_hooks_post_commit_hook",
+      "_codex_skills_graphify_references_query_work_memory",
+      "_codex_skills_graphify_references_transcribe_whisper_transcription",
+      "_codex_skills_graphify_skill_ast_extraction",
+      "_codex_skills_graphify_skill_detect_files",
+      "_codex_skills_graphify_skill_graph_health_check",
+      "_codex_skills_graphify_skill_graphify",
+      "_codex_skills_graphify_skill_honesty_rules",
+      "_codex_skills_graphify_skill_merge_extraction",
+      "_codex_skills_graphify_skill_no_api_key_policy",
+      "_codex_skills_graphify_skill_semantic_cache",
+      "_codex_skills_graphify_skill_semantic_extraction"
+    ],
+    "44": [
+      "public_manifest",
+      "public_manifest_background_color",
+      "public_manifest_categories",
+      "public_manifest_description",
+      "public_manifest_display",
+      "public_manifest_icons",
+      "public_manifest_lang",
+      "public_manifest_name",
+      "public_manifest_orientation",
+      "public_manifest_scope",
+      "public_manifest_short_name",
+      "public_manifest_start_url",
+      "public_manifest_theme_color",
+      "public_manifest_version",
+      "ref_business",
+      "ref_utilities"
+    ],
+    "45": [
+      "src_components_mobile_offlineindicator_offlineindicator",
+      "src_components_mobile_swipeablecard",
+      "src_components_mobile_swipeablecard_prioritycolors",
+      "src_components_mobile_swipeablecard_statuscolors",
+      "src_components_mobile_swipeablecard_swipeablecard",
+      "src_components_mobile_swipeablecard_swipeablecardprops",
+      "src_hooks_usehapticfeedback",
+      "src_hooks_usehapticfeedback_usehapticfeedback",
+      "src_hooks_useofflinestorage",
+      "src_hooks_useofflinestorage_cacheddata",
+      "src_hooks_useofflinestorage_offlinestorage",
+      "src_hooks_useofflinestorage_useofflinestorage"
+    ],
+    "46": [
+      "src_utils_validation",
+      "src_utils_validation_createformvalidator",
+      "src_utils_validation_createratelimiter",
+      "src_utils_validation_emailschema",
+      "src_utils_validation_nameschema",
+      "src_utils_validation_nifschema",
+      "src_utils_validation_passwordschema",
+      "src_utils_validation_phoneschema",
+      "src_utils_validation_sanitizehtml",
+      "src_utils_validation_sanitizenif",
+      "src_utils_validation_sanitizephonenumber",
+      "src_utils_validation_sanitizestring",
+      "src_utils_validation_urlschema",
+      "src_utils_validation_validatefile",
+      "src_utils_validation_validateimagefile",
+      "src_utils_validation_validatepdffile"
+    ],
+    "47": [
+      "src_components_settings_settingsform",
+      "src_components_settings_settingsform_emailschema",
+      "src_components_settings_settingsform_nifschema",
+      "src_components_settings_settingsform_phoneschema",
+      "src_components_settings_settingsform_selectoption",
+      "src_components_settings_settingsform_settingfield",
+      "src_components_settings_settingsform_settingsformprops",
+      "src_components_settings_settingsform_urlschema",
+      "src_components_ui_switch",
+      "src_components_ui_switch_switch"
+    ],
+    "48": [
+      "src_components_auth_usermenu",
+      "src_components_ui_avatar",
+      "src_components_ui_avatar_avatar",
+      "src_components_ui_avatar_avatarfallback",
+      "src_components_ui_avatar_avatarimage",
+      "src_components_ui_dropdown_menu",
+      "src_components_ui_dropdown_menu_dropdownmenucheckboxitem",
+      "src_components_ui_dropdown_menu_dropdownmenucontent",
+      "src_components_ui_dropdown_menu_dropdownmenuitem",
+      "src_components_ui_dropdown_menu_dropdownmenulabel",
+      "src_components_ui_dropdown_menu_dropdownmenuradioitem",
+      "src_components_ui_dropdown_menu_dropdownmenuseparator",
+      "src_components_ui_dropdown_menu_dropdownmenushortcut",
+      "src_components_ui_dropdown_menu_dropdownmenusubcontent",
+      "src_components_ui_dropdown_menu_dropdownmenusubtrigger"
+    ],
+    "49": [
+      "src_components_dashboard_systemmonitor",
+      "src_components_dashboard_systemmonitor_systemmonitor",
+      "src_hooks_usesystemmonitoring",
+      "src_hooks_usesystemmonitoring_systemhealth",
+      "src_hooks_usesystemmonitoring_usedebuginfo",
+      "src_hooks_usesystemmonitoring_usesystemhealth"
+    ],
+    "50": [
+      "src_components_suppliers_safedeletesupplierdialog_safedeletesupplierdialogprops",
+      "src_components_suppliers_supplierform",
+      "src_components_suppliers_supplierform_supplierform",
+      "src_components_suppliers_supplierform_supplierformdata",
+      "src_components_suppliers_supplierform_supplierformprops",
+      "src_components_suppliers_supplierform_supplierschema",
+      "src_hooks_usesuppliers",
+      "src_hooks_usesuppliers_basicsupplier",
+      "src_hooks_usesuppliers_supplier",
+      "src_hooks_usesuppliers_usecreatesupplier",
+      "src_hooks_usesuppliers_usesupplier",
+      "src_hooks_usesuppliers_usesuppliers",
+      "src_hooks_usesuppliers_useupdatesupplier"
+    ],
+    "51": [
+      "src_components_ui_use_toast",
+      "src_hooks_use_toast",
+      "src_hooks_use_toast_action",
+      "src_hooks_use_toast_actiontype",
+      "src_hooks_use_toast_actiontypes",
+      "src_hooks_use_toast_addtoremovequeue",
+      "src_hooks_use_toast_dispatch",
+      "src_hooks_use_toast_genid",
+      "src_hooks_use_toast_listeners",
+      "src_hooks_use_toast_memorystate",
+      "src_hooks_use_toast_reducer",
+      "src_hooks_use_toast_state",
+      "src_hooks_use_toast_toast",
+      "src_hooks_use_toast_toastertoast",
+      "src_hooks_use_toast_toasttimeouts"
+    ],
+    "52": [
+      "supabase_functions_agent_api_index_handlecreateassembly",
+      "supabase_functions_agent_api_index_handlecreateassistance",
+      "supabase_functions_agent_api_index_handlecreatebuildinginspection",
+      "supabase_functions_agent_api_index_handlecreateemailpendency",
+      "supabase_functions_agent_api_index_handlecreatefollowup",
+      "supabase_functions_agent_api_index_handlecreateinsuranceclaim",
+      "supabase_functions_agent_api_index_handlecreatekeyhandover",
+      "supabase_functions_agent_api_index_handlecreatequotation",
+      "supabase_functions_agent_api_index_handledeletequotation",
+      "supabase_functions_agent_api_index_handlelistsupplierresponses",
+      "supabase_functions_agent_api_index_handlesubmitsupplierresponse",
+      "supabase_functions_agent_api_index_handleupdatenotification",
+      "supabase_functions_agent_api_index_handleupdatequotation",
+      "supabase_functions_agent_api_index_handleuploadassistancephoto",
+      "supabase_functions_agent_api_index_requireuuid"
+    ],
+    "53": [
+      "_codex_skills_graphify_references_exports_mcp_server",
+      "_lovable_memory_features_external_api_access_agent_api",
+      "_lovable_memory_features_knowledge_base_knowledge_articles",
+      "_lovable_memory_features_mcp_server_auth_header_priority",
+      "_lovable_memory_features_mcp_server_health_monitoring",
+      "_lovable_memory_features_mcp_server_mcp_server",
+      "_lovable_memory_index_building_display_standard",
+      "_lovable_memory_index_official_contact_email",
+      "_lovable_memory_index_project_memory",
+      "_lovable_plan_audit_50_pontos",
+      "supabase_functions_agent_api_openapi_agent_api_spec",
+      "supabase_functions_agent_api_openapi_apikeyauth",
+      "supabase_functions_agent_api_openapi_knowledge_endpoints",
+      "supabase_functions_mcp_server_readme_mcp_server_docs"
+    ],
+    "54": [
+      "capacitor_camera",
+      "package_dependencies",
+      "package_dependencies_capacitor_camera",
+      "package_dependencies_radix_ui_react_menubar",
+      "package_dependencies_radix_ui_react_navigation_menu",
+      "package_dependencies_radix_ui_react_radio_group",
+      "package_dependencies_radix_ui_react_tabs",
+      "package_dependencies_radix_ui_react_toast",
+      "package_dependencies_react_router_dom",
+      "radix_ui_react_menubar",
+      "radix_ui_react_navigation_menu",
+      "radix_ui_react_radio_group",
+      "radix_ui_react_tabs",
+      "react_router_dom"
+    ],
+    "55": [
+      "jszip",
+      "package_dependencies_jszip",
+      "src_components_buildings_buildingdocumentstab",
+      "src_components_buildings_buildingdocumentstab_buildingdocumentstab",
+      "src_components_buildings_buildingdocumentstab_props",
+      "src_components_pendencies_attachmentpreviewdialog_previewattachment",
+      "src_hooks_usebuildingdocuments",
+      "src_hooks_usebuildingdocuments_buildingdocument",
+      "src_hooks_usebuildingdocuments_document_categories",
+      "src_hooks_usebuildingdocuments_downloadallbuildingdocumentsaszip",
+      "src_hooks_usebuildingdocuments_getbuildingdocumentsignedurl",
+      "src_hooks_usebuildingdocuments_usebuildingdocuments",
+      "src_hooks_usebuildingdocuments_usedeletebuildingdocument",
+      "src_hooks_usebuildingdocuments_useuploadbuildingdocument"
+    ],
+    "56": [
+      "src_components_buildings_buildingadministratorsmanager",
+      "src_components_buildings_buildingadministratorsmanager_buildingadministratorsmanager",
+      "src_components_buildings_buildingadministratorsmanager_draftadmin",
+      "src_components_buildings_buildingadministratorsmanager_empty",
+      "src_components_buildings_buildingadministratorsmanager_props",
+      "src_components_buildings_buildingadministratorsmanager_todraft",
+      "src_components_knowledge_knowledgedetail",
+      "src_components_knowledge_knowledgedetail_adminslist",
+      "src_hooks_usebuildingadministrators",
+      "src_hooks_usebuildingadministrators_buildingadministrator",
+      "src_hooks_usebuildingadministrators_usebuildingadministrators",
+      "src_hooks_usebuildingadministrators_usedeletebuildingadministrator",
+      "src_hooks_usebuildingadministrators_useupsertbuildingadministrator",
+      "src_pages_administradores_buildingadmincount"
+    ],
+    "57": [
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_public_assemblies",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_public_assembly_action_items",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_public_assembly_agenda_items",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_public_assembly_attendees",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_public_assembly_audio_jobs",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_public_assembly_dispatches",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_public_assembly_minutes_versions",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_public_assembly_processing_queue",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_public_assembly_resolutions",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_public_assembly_transcript_segments",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_trg_assemblies_updated_at",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_trg_audio_jobs_updated_at",
+      "supabase_migrations_20260502182241_ed81cc8c_8666_412c_b45c_b6822901173a_trg_processing_queue_updated_at"
+    ],
+    "58": [
+      "package_dependencies_xlsx",
+      "src_components_assembly_assemblyimport",
+      "src_components_assembly_assemblyimport_ambiguousdates",
+      "src_components_assembly_assemblyimport_assemblyimport",
+      "src_components_assembly_assemblyimport_cellstr",
+      "src_components_assembly_assemblyimport_itemdraft",
+      "src_components_assembly_assemblyimport_parsesheet",
+      "src_components_assembly_assemblyimport_phase",
+      "src_components_assembly_assemblyimport_props",
+      "src_components_buildings_administratorsimportdialog_administratorsimportdialog",
+      "src_utils_assemblyparser",
+      "src_utils_assemblyparser_detectcategory",
+      "src_utils_assemblyparser_extractamount",
+      "src_utils_assemblyparser_isurgent",
+      "src_utils_assemblyparser_parsestatus",
+      "xlsx"
+    ],
+    "59": [
+      "src_components_analytics_scheduledreports",
+      "src_components_analytics_scheduledreports_scheduledreport",
+      "src_components_analytics_scheduledreports_scheduledreports",
+      "src_components_security_securityalerts",
+      "src_components_security_securityalerts_securityalert",
+      "src_components_security_securityalerts_securityalerts",
+      "src_components_testing_followuptester",
+      "src_components_ui_alert",
+      "src_components_ui_alert_alert",
+      "src_components_ui_alert_alertdescription",
+      "src_components_ui_alert_alerttitle",
+      "src_components_ui_alert_alertvariants",
+      "src_components_ui_badge",
+      "src_components_ui_badge_badgeprops",
+      "src_components_ui_badge_badgevariants",
+      "src_pages_analytics",
+      "src_pages_analytics_chart_colors",
+      "src_pages_followupsettings",
+      "src_pages_followupsettings_fielddef",
+      "src_pages_followupsettings_flow",
+      "src_pages_followupsettings_sectiondef"
+    ],
+    "60": [
+      "src_components_ui_carousel",
+      "src_components_ui_carousel_carousel",
+      "src_components_ui_carousel_carouselapi",
+      "src_components_ui_carousel_carouselcontent",
+      "src_components_ui_carousel_carouselcontext",
+      "src_components_ui_carousel_carouselcontextprops",
+      "src_components_ui_carousel_carouselitem",
+      "src_components_ui_carousel_carouselnext",
+      "src_components_ui_carousel_carouseloptions",
+      "src_components_ui_carousel_carouselplugin",
+      "src_components_ui_carousel_carouselprevious",
+      "src_components_ui_carousel_carouselprops",
+      "src_components_ui_carousel_usecarouselparameters"
+    ],
+    "61": [
+      "src_lib_mcpclient",
+      "src_lib_mcpclient_checkapikey",
+      "src_lib_mcpclient_full_url",
+      "src_lib_mcpclient_rpc",
+      "src_lib_mcpclient_rpcresult",
+      "src_pages_mcptest",
+      "src_pages_mcptest_execution_test_ids",
+      "src_pages_mcptest_initial_tests",
+      "src_pages_mcptest_lookslikeautherror",
+      "src_pages_mcptest_mcptest",
+      "src_pages_mcptest_statusbadge",
+      "src_pages_mcptest_testcase",
+      "src_pages_mcptest_teststatus"
+    ],
+    "62": [
+      "src_components_communications_notificationsdashboard",
+      "src_components_error_dataerrorfallback",
+      "src_components_error_dataerrorfallback_dataerrorfallback",
+      "src_components_error_dataerrorfallback_dataerrorfallbackprops",
+      "src_components_error_dataerrorfallback_emptystatefallback",
+      "src_components_error_errorboundary",
+      "src_components_error_errorboundary_props",
+      "src_components_error_errorboundary_rationale_35",
+      "src_components_error_errorboundary_state",
+      "src_components_layout_realtimenotificationcenter",
+      "src_components_mobile_installprompt",
+      "src_components_mobile_installprompt_installprompt",
+      "src_components_mobile_offlineindicator",
+      "src_components_quotations_quotationrequestslist",
+      "src_components_quotations_quotationrequestslist_assistancewithquotationrequest",
+      "src_components_quotations_quotationrequestslist_quotationrequestslist",
+      "src_components_supplier_automatednotifications",
+      "src_components_supplier_automatednotifications_escalationrule",
+      "src_components_supplier_progresstracker",
+      "src_components_supplier_progresstracker_progresstrackerprops",
+      "src_components_supplier_supplieremailsummary",
+      "src_components_supplier_supplieremailsummary_assistance",
+      "src_components_supplier_supplieremailsummary_supplieremailsummaryprops",
+      "src_components_ui_button",
+      "src_components_ui_button_button",
+      "src_components_ui_card",
+      "src_components_ui_card_card",
+      "src_components_ui_card_carddescription",
+      "src_components_ui_card_cardfooter",
+      "src_components_ui_separator",
+      "src_components_ui_separator_separator",
+      "src_hooks_usepwa",
+      "src_hooks_usepwa_usepwa",
+      "src_pages_comunicacoes",
+      "src_pages_comunicacoes_comunicacoes",
+      "src_pages_comunicacoes_emaillog",
+      "src_pages_unsubscribe",
+      "src_pages_unsubscribe_state",
+      "src_pages_unsubscribe_unsubscribe"
+    ],
+    "63": [
+      "src_components_ui_menubar",
+      "src_components_ui_menubar_menubar",
+      "src_components_ui_menubar_menubarcheckboxitem",
+      "src_components_ui_menubar_menubarcontent",
+      "src_components_ui_menubar_menubaritem",
+      "src_components_ui_menubar_menubarlabel",
+      "src_components_ui_menubar_menubarradioitem",
+      "src_components_ui_menubar_menubarseparator",
+      "src_components_ui_menubar_menubarshortcut",
+      "src_components_ui_menubar_menubarsubcontent",
+      "src_components_ui_menubar_menubarsubtrigger",
+      "src_components_ui_menubar_menubartrigger"
+    ],
+    "64": [
+      "src_components_ui_toast",
+      "src_components_ui_toast_toast",
+      "src_components_ui_toast_toastaction",
+      "src_components_ui_toast_toastactionelement",
+      "src_components_ui_toast_toastclose",
+      "src_components_ui_toast_toastdescription",
+      "src_components_ui_toast_toastprops",
+      "src_components_ui_toast_toasttitle",
+      "src_components_ui_toast_toastvariants",
+      "src_components_ui_toast_toastviewport",
+      "src_components_ui_toaster",
+      "src_components_ui_toaster_toaster"
+    ],
+    "65": [
+      "src_hooks_useurgentalerts",
+      "src_hooks_useurgentalerts_urgentalert",
+      "src_integrations_supabase_types",
+      "src_integrations_supabase_types_compositetypes",
+      "src_integrations_supabase_types_constants",
+      "src_integrations_supabase_types_databasewithoutinternals",
+      "src_integrations_supabase_types_defaultschema",
+      "src_integrations_supabase_types_enums",
+      "src_integrations_supabase_types_json",
+      "src_integrations_supabase_types_tables",
+      "src_integrations_supabase_types_tablesinsert",
+      "src_integrations_supabase_types_tablesupdate"
+    ],
+    "66": [
+      "_codex_skills_graphify_references_exports_falkordb_export",
+      "_codex_skills_graphify_references_exports_neo4j_export",
+      "_codex_skills_graphify_references_exports_wiki_export",
+      "_codex_skills_graphify_references_github_and_merge_clone_repo",
+      "_codex_skills_graphify_references_github_and_merge_merge_graphs",
+      "_codex_skills_graphify_references_update_build_merge",
+      "_codex_skills_graphify_references_update_cluster_only",
+      "_codex_skills_graphify_skill_build_cluster",
+      "_codex_skills_graphify_skill_community_labels",
+      "_codex_skills_graphify_skill_manifest_and_cost",
+      "_codex_skills_graphify_skill_shrink_guard"
+    ],
+    "67": [
+      "src_components_assistance_communicationlog",
+      "src_components_assistance_communicationlog_communicationlogprops",
+      "src_components_assistance_internalnotes",
+      "src_components_assistance_pdfpreviewdialog",
+      "src_components_assistance_pdfpreviewdialog_getprioritycolor",
+      "src_components_assistance_pdfpreviewdialog_getprioritylabel",
+      "src_components_assistance_pdfpreviewdialog_pdfpreviewdialog",
+      "src_components_assistance_photoupload",
+      "src_components_assistance_photoupload_phototype",
+      "src_components_assistance_photoupload_photoupload",
+      "src_components_assistance_photoupload_photouploadprops",
+      "src_components_supplier_admincommunication",
+      "src_components_supplier_admincommunication_admincommunicationprops",
+      "src_components_supplier_admincommunication_communicationmessage",
+      "src_components_ui_scroll_area",
+      "src_components_ui_scroll_area_scrollarea",
+      "src_components_ui_scroll_area_scrollbar",
+      "src_components_ui_textarea",
+      "src_components_ui_textarea_textarea",
+      "src_components_ui_textarea_textareaprops",
+      "src_hooks_usenativecamera",
+      "src_hooks_usenativecamera_usenativecamera"
+    ],
+    "68": [
+      "src_components_assistance_createassistanceform",
+      "src_components_assistance_createassistanceform_assistanceformvalues",
+      "src_components_assistance_createassistanceform_assistanceschema",
+      "src_components_assistance_createassistanceform_computereminderdate",
+      "src_components_assistance_createassistanceform_createassistanceform",
+      "src_components_assistance_createassistanceform_createassistanceformprops",
+      "src_components_assistance_createassistanceform_reminder_presets",
+      "src_components_ui_form_formlabel",
+      "src_hooks_useappsettings_useappsetting",
+      "src_utils_sendmagiccode",
+      "src_utils_sendmagiccode_sendmagiccodetosupplier"
+    ],
+    "69": [
+      "src_components_ui_command",
+      "src_components_ui_command_command",
+      "src_components_ui_command_commanddialog",
+      "src_components_ui_command_commanddialogprops",
+      "src_components_ui_command_commandempty",
+      "src_components_ui_command_commandgroup",
+      "src_components_ui_command_commandinput",
+      "src_components_ui_command_commanditem",
+      "src_components_ui_command_commandlist",
+      "src_components_ui_command_commandseparator",
+      "src_components_ui_command_commandshortcut"
+    ],
+    "70": [
+      "src_config_production",
+      "src_config_production_cacheconfig",
+      "src_config_production_config",
+      "src_config_production_deployment",
+      "src_config_production_featureflags",
+      "src_config_production_fileconstraints",
+      "src_config_production_monitoring",
+      "src_config_production_productionchecklist",
+      "src_config_production_ratelimits",
+      "src_config_production_security",
+      "src_config_production_securityheaders"
+    ],
+    "71": [
+      "supabase_functions_agent_api_index_errorresponse",
+      "supabase_functions_agent_api_index_handledeleteassistancephoto",
+      "supabase_functions_agent_api_index_handlegetassembly",
+      "supabase_functions_agent_api_index_handlegetassemblyitem",
+      "supabase_functions_agent_api_index_handlegetassistance",
+      "supabase_functions_agent_api_index_handlegetbuilding",
+      "supabase_functions_agent_api_index_handlegetemailpendency",
+      "supabase_functions_agent_api_index_handlegetknowledgearticle",
+      "supabase_functions_agent_api_index_handlegetquotation",
+      "supabase_functions_agent_api_index_handlegetsupplier",
+      "supabase_functions_agent_api_index_handlelookupbuilding"
+    ],
+    "72": [
+      "supabase_functions_send_email_index",
+      "supabase_functions_send_email_index_assistanceemaildetails",
+      "supabase_functions_send_email_index_corsheaders",
+      "supabase_functions_send_email_index_createoutlookcompatibletemplate",
+      "supabase_functions_send_email_index_createplaintextversion",
+      "supabase_functions_send_email_index_emailpayload",
+      "supabase_functions_send_email_index_emailrequest",
+      "supabase_functions_send_email_index_emailtemplatedata",
+      "supabase_functions_send_email_index_handler",
+      "supabase_functions_send_email_index_resend",
+      "supabase_functions_send_email_index_ts_docref_rfc_8058"
+    ],
+    "73": [
+      "tsconfig",
+      "tsconfig_compileroptions",
+      "tsconfig_compileroptions_allowjs",
+      "tsconfig_compileroptions_noimplicitany",
+      "tsconfig_compileroptions_nounusedlocals",
+      "tsconfig_compileroptions_nounusedparameters",
+      "tsconfig_compileroptions_paths",
+      "tsconfig_compileroptions_skiplibcheck",
+      "tsconfig_compileroptions_strictnullchecks",
+      "tsconfig_files",
+      "tsconfig_references"
+    ],
+    "74": [
+      "index_app_shell",
+      "public_logo_luvimg_logo",
+      "public_lovable_uploads_9e67bd21_c565_405a_918d_e9aac10336e8_logo",
+      "public_lovable_uploads_logo_luvimg_logo",
+      "public_placeholder_placeholder_graphic",
+      "public_robots_crawler_policy",
+      "readme_lovable_project",
+      "src_utils_deploymentchecklist_deployment_checklist",
+      "src_utils_deploymentchecklist_supplier_portal",
+      "supabase_functions_send_email_logo_luvimg_logo"
+    ],
+    "75": [
+      "src_components_supplier_enhancedquotationform_enhancedquotationform",
+      "src_utils_inputsanitization",
+      "src_utils_inputsanitization_getsecurityheaders",
+      "src_utils_inputsanitization_ratelimiter",
+      "src_utils_inputsanitization_ratelimiter_getremainingattempts",
+      "src_utils_inputsanitization_ratelimiter_isallowed",
+      "src_utils_inputsanitization_ratelimiter_isblocked",
+      "src_utils_inputsanitization_sanitizeinput",
+      "src_utils_inputsanitization_securityschemas",
+      "src_utils_inputsanitization_validatemagiccodeformat"
+    ],
+    "76": [
+      "src_components_ui_chart",
+      "src_components_ui_chart_chartconfig",
+      "src_components_ui_chart_chartcontainer",
+      "src_components_ui_chart_chartcontext",
+      "src_components_ui_chart_chartcontextprops",
+      "src_components_ui_chart_chartlegendcontent",
+      "src_components_ui_chart_chartstyle",
+      "src_components_ui_chart_charttooltipcontent",
+      "src_components_ui_chart_getpayloadconfigfrompayload",
+      "src_components_ui_chart_themes"
+    ],
+    "77": [
+      "src_components_ui_context_menu",
+      "src_components_ui_context_menu_contextmenucheckboxitem",
+      "src_components_ui_context_menu_contextmenucontent",
+      "src_components_ui_context_menu_contextmenuitem",
+      "src_components_ui_context_menu_contextmenulabel",
+      "src_components_ui_context_menu_contextmenuradioitem",
+      "src_components_ui_context_menu_contextmenuseparator",
+      "src_components_ui_context_menu_contextmenushortcut",
+      "src_components_ui_context_menu_contextmenusubcontent",
+      "src_components_ui_context_menu_contextmenusubtrigger"
+    ],
+    "78": [
+      "src_utils_securelogger_securelogger",
+      "src_utils_securelogger_securelogger_constructor",
+      "src_utils_securelogger_securelogger_debug",
+      "src_utils_securelogger_securelogger_devonly",
+      "src_utils_securelogger_securelogger_error",
+      "src_utils_securelogger_securelogger_getinstance",
+      "src_utils_securelogger_securelogger_info",
+      "src_utils_securelogger_securelogger_sanitizedata",
+      "src_utils_securelogger_securelogger_shouldlog",
+      "src_utils_securelogger_securelogger_warn"
+    ],
+    "79": [
+      "supabase_functions_process_notifications_index",
+      "supabase_functions_process_notifications_index_corsheaders",
+      "supabase_functions_process_notifications_index_generateescalationemail",
+      "supabase_functions_process_notifications_index_generatereminderemail",
+      "supabase_functions_process_notifications_index_getprioritycolor",
+      "supabase_functions_process_notifications_index_getprioritytext",
+      "supabase_functions_process_notifications_index_getsupplierportalurl",
+      "supabase_functions_process_notifications_index_handler",
+      "supabase_functions_process_notifications_index_notificationdata",
+      "supabase_functions_process_notifications_index_processnotification"
+    ],
+    "80": [
+      "supabase_migrations_20260430161539_f632181b_c6ad_434a_8c41_7bf3b6c739c9",
+      "supabase_migrations_20260430161539_f632181b_c6ad_434a_8c41_7bf3b6c739c9_bump_activity_on_attachment",
+      "supabase_migrations_20260430161539_f632181b_c6ad_434a_8c41_7bf3b6c739c9_bump_activity_on_note",
+      "supabase_migrations_20260430161539_f632181b_c6ad_434a_8c41_7bf3b6c739c9_log_status_change",
+      "supabase_migrations_20260430161539_f632181b_c6ad_434a_8c41_7bf3b6c739c9_public_bump_pendency_activity",
+      "supabase_migrations_20260430161539_f632181b_c6ad_434a_8c41_7bf3b6c739c9_public_email_pendencies",
+      "supabase_migrations_20260430161539_f632181b_c6ad_434a_8c41_7bf3b6c739c9_public_email_pendency_attachments",
+      "supabase_migrations_20260430161539_f632181b_c6ad_434a_8c41_7bf3b6c739c9_public_email_pendency_notes",
+      "supabase_migrations_20260430161539_f632181b_c6ad_434a_8c41_7bf3b6c739c9_public_log_pendency_status_change",
+      "supabase_migrations_20260430161539_f632181b_c6ad_434a_8c41_7bf3b6c739c9_update_email_pendencies_updated_at"
+    ],
+    "81": [
+      "_codex_skills_graphify_references_add_watch_ingest_url",
+      "_codex_skills_graphify_references_hooks_claude_md_integration",
+      "_codex_skills_graphify_references_query_explain_flow",
+      "_codex_skills_graphify_references_query_path_flow",
+      "_codex_skills_graphify_references_query_query_flow",
+      "_codex_skills_graphify_references_query_save_result",
+      "_codex_skills_graphify_references_query_vocab_expansion",
+      "_codex_skills_graphify_references_update_incremental_update",
+      "agents_graphify_rules"
+    ],
+    "82": [
+      "src_components_settings_interventiontypeform",
+      "src_components_settings_interventiontypeform_interventiontypeform",
+      "src_components_settings_interventiontypeform_interventiontypeformdata",
+      "src_components_settings_interventiontypeform_interventiontypeformprops",
+      "src_components_settings_interventiontypeform_interventiontypeschema",
+      "src_hooks_useinterventiontypes",
+      "src_hooks_useinterventiontypes_interventiontype",
+      "src_hooks_useinterventiontypes_usecreateinterventiontype",
+      "src_hooks_useinterventiontypes_useupdateinterventiontype"
+    ],
+    "83": [
+      "src_components_ui_accordion",
+      "src_components_ui_accordion_accordioncontent",
+      "src_components_ui_accordion_accordionitem",
+      "src_components_ui_accordion_accordiontrigger"
+    ],
+    "84": [
+      "supabase_functions_parse_pendency_pdf_index",
+      "supabase_functions_parse_pendency_pdf_index_base64tobytes",
+      "supabase_functions_parse_pendency_pdf_index_compactemailtext",
+      "supabase_functions_parse_pendency_pdf_index_corsheaders",
+      "supabase_functions_parse_pendency_pdf_index_decodebase64text",
+      "supabase_functions_parse_pendency_pdf_index_infermimetype",
+      "supabase_functions_parse_pendency_pdf_index_json",
+      "supabase_functions_parse_pendency_pdf_index_mime_by_extension",
+      "supabase_functions_parse_pendency_pdf_index_parserequest"
+    ],
+    "85": [
+      "supabase_migrations_20250728222302_4118ff7d_4809_4761_b0ce_081255733956",
+      "supabase_migrations_20250728222302_4118ff7d_4809_4761_b0ce_081255733956_activity_log",
+      "supabase_migrations_20250728222302_4118ff7d_4809_4761_b0ce_081255733956_assistance_photos",
+      "supabase_migrations_20250728222302_4118ff7d_4809_4761_b0ce_081255733956_assistance_progress",
+      "supabase_migrations_20250728222302_4118ff7d_4809_4761_b0ce_081255733956_communications_log",
+      "supabase_migrations_20250728222302_4118ff7d_4809_4761_b0ce_081255733956_email_logs",
+      "supabase_migrations_20250728222302_4118ff7d_4809_4761_b0ce_081255733956_quotations",
+      "supabase_migrations_20250728222302_4118ff7d_4809_4761_b0ce_081255733956_supplier_magic_codes",
+      "supabase_migrations_20250728222302_4118ff7d_4809_4761_b0ce_081255733956_supplier_responses"
+    ],
+    "86": [
+      "supabase_migrations_20260507135619_dc00ca06_b621_4f28_ad92_b83916d494c1",
+      "supabase_migrations_20260507135619_dc00ca06_b621_4f28_ad92_b83916d494c1_public_building_administrators",
+      "supabase_migrations_20260507135619_dc00ca06_b621_4f28_ad92_b83916d494c1_public_building_documents",
+      "supabase_migrations_20260507135619_dc00ca06_b621_4f28_ad92_b83916d494c1_public_buildings",
+      "supabase_migrations_20260507135619_dc00ca06_b621_4f28_ad92_b83916d494c1_public_key_handovers",
+      "supabase_migrations_20260507135619_dc00ca06_b621_4f28_ad92_b83916d494c1_public_set_insurance_claim_number",
+      "supabase_migrations_20260507135619_dc00ca06_b621_4f28_ad92_b83916d494c1_trg_bld_admins_updated",
+      "supabase_migrations_20260507135619_dc00ca06_b621_4f28_ad92_b83916d494c1_trg_bld_docs_updated",
+      "supabase_migrations_20260507135619_dc00ca06_b621_4f28_ad92_b83916d494c1_trg_keys_updated"
+    ],
+    "87": [
+      "src_components_assistance_assistanceemailpdftemplate",
+      "src_components_assistance_assistanceemailpdftemplate_assistance",
+      "src_components_assistance_assistanceemailpdftemplate_assistanceemailpdftemplate",
+      "src_components_assistance_assistanceemailpdftemplate_assistanceemailpdftemplateprops",
+      "src_components_assistance_assistanceemailpdftemplate_extractpostalcode",
+      "src_components_assistance_assistanceemailpdftemplate_formatdate",
+      "src_components_assistance_assistanceemailpdftemplate_getprioritylabel",
+      "src_components_assistance_assistanceemailpdftemplate_getstatuslabel"
+    ],
+    "88": [
+      "src_components_communications_notificationsdashboard_notificationsdashboard",
+      "src_hooks_usenotifications",
+      "src_hooks_usenotifications_notification",
+      "src_hooks_usenotifications_useescalatedassistances",
+      "src_hooks_usenotifications_usenotifications",
+      "src_hooks_usenotifications_usenotificationschedule",
+      "src_hooks_usenotifications_usenotificationstats",
+      "src_hooks_usenotifications_useprocessnotifications"
+    ],
+    "89": [
+      "src_components_ui_breadcrumb",
+      "src_components_ui_breadcrumb_breadcrumb",
+      "src_components_ui_breadcrumb_breadcrumbellipsis",
+      "src_components_ui_breadcrumb_breadcrumbitem",
+      "src_components_ui_breadcrumb_breadcrumblink",
+      "src_components_ui_breadcrumb_breadcrumblist",
+      "src_components_ui_breadcrumb_breadcrumbpage",
+      "src_components_ui_breadcrumb_breadcrumbseparator"
+    ],
+    "90": [
+      "src_components_followups_followupdashboard_followupcard",
+      "src_components_followups_followupdashboard_typechip",
+      "src_components_followups_followupstatscards_followupstatscards",
+      "src_components_loading_loadingspinner",
+      "src_components_loading_loadingspinner_inlineloadingspinner",
+      "src_components_loading_loadingspinner_loadingspinner",
+      "src_components_loading_loadingspinner_loadingspinnerprops",
+      "src_components_loading_loadingspinner_pageloadingspinner",
+      "src_components_mobile_pulltorefreshindicator",
+      "src_components_mobile_pulltorefreshindicator_pulltorefreshindicator",
+      "src_components_mobile_pulltorefreshindicator_pulltorefreshindicatorprops",
+      "src_components_ui_drawer",
+      "src_components_ui_drawer_drawer",
+      "src_components_ui_drawer_drawercontent",
+      "src_components_ui_drawer_drawerdescription",
+      "src_components_ui_drawer_drawerfooter",
+      "src_components_ui_drawer_drawerheader",
+      "src_components_ui_drawer_draweroverlay",
+      "src_components_ui_drawer_drawertitle",
+      "src_components_ui_resizable",
+      "src_components_ui_resizable_resizablehandle",
+      "src_components_ui_resizable_resizablepanelgroup",
+      "src_lib_utils_cn",
+      "src_pages_seguros_kpicard"
+    ],
+    "91": [
+      "src_components_ui_navigation_menu",
+      "src_components_ui_navigation_menu_navigationmenu",
+      "src_components_ui_navigation_menu_navigationmenucontent",
+      "src_components_ui_navigation_menu_navigationmenuindicator",
+      "src_components_ui_navigation_menu_navigationmenulist",
+      "src_components_ui_navigation_menu_navigationmenutrigger",
+      "src_components_ui_navigation_menu_navigationmenutriggerstyle",
+      "src_components_ui_navigation_menu_navigationmenuviewport"
+    ],
+    "92": [
+      "src_pages_mcphealthdashboard",
+      "src_pages_mcphealthdashboard_base_probes",
+      "src_pages_mcphealthdashboard_historyrow",
+      "src_pages_mcphealthdashboard_mcphealthdashboard",
+      "src_pages_mcphealthdashboard_probe",
+      "src_pages_mcphealthdashboard_result",
+      "src_pages_mcphealthdashboard_runprobe",
+      "src_pages_mcphealthdashboard_supabase_url"
+    ],
+    "93": [
+      "supabase_functions_insurance_alerts_cron_index",
+      "supabase_functions_insurance_alerts_cron_index_builddigesthtml",
+      "supabase_functions_insurance_alerts_cron_index_corsheaders",
+      "supabase_functions_insurance_alerts_cron_index_coveragelabel",
+      "supabase_functions_insurance_alerts_cron_index_escape",
+      "supabase_functions_insurance_alerts_cron_index_formatdate",
+      "supabase_functions_insurance_alerts_cron_index_insurancestatusrow",
+      "supabase_functions_insurance_alerts_cron_index_json"
+    ],
+    "94": [
+      "supabase_functions_process_followups_index",
+      "supabase_functions_process_followups_index_corsheaders",
+      "supabase_functions_process_followups_index_followuprecord",
+      "supabase_functions_process_followups_index_handler",
+      "supabase_functions_process_followups_index_sendcompletionreminder",
+      "supabase_functions_process_followups_index_senddateconfirmation",
+      "supabase_functions_process_followups_index_sendquotationreminder",
+      "supabase_functions_process_followups_index_sendworkreminder"
+    ],
+    "95": [
+      "supabase_migrations_20250729184546_19864d59_a011_4c3a_a8f0_de5debde2bd7",
+      "supabase_migrations_20250729184546_19864d59_a011_4c3a_a8f0_de5debde2bd7_public_create_supplier_session",
+      "supabase_migrations_20250729184546_19864d59_a011_4c3a_a8f0_de5debde2bd7_public_generate_magic_code",
+      "supabase_migrations_20250729184546_19864d59_a011_4c3a_a8f0_de5debde2bd7_public_log_supplier_access",
+      "supabase_migrations_20250729184546_19864d59_a011_4c3a_a8f0_de5debde2bd7_public_supplier_access_log",
+      "supabase_migrations_20250729184546_19864d59_a011_4c3a_a8f0_de5debde2bd7_public_supplier_magic_codes",
+      "supabase_migrations_20250729184546_19864d59_a011_4c3a_a8f0_de5debde2bd7_public_validate_supplier_session",
+      "supabase_migrations_20250729184546_19864d59_a011_4c3a_a8f0_de5debde2bd7_to"
+    ],
+    "96": [
+      "supabase_migrations_20250916171741_c9f7ff65_92ed_408d_aca5_481a6f185ec7",
+      "supabase_migrations_20250916171741_c9f7ff65_92ed_408d_aca5_481a6f185ec7_public_email_logs",
+      "supabase_migrations_20250916171741_c9f7ff65_92ed_408d_aca5_481a6f185ec7_public_log_security_event",
+      "supabase_migrations_20250916171741_c9f7ff65_92ed_408d_aca5_481a6f185ec7_public_rate_limits",
+      "supabase_migrations_20250916171741_c9f7ff65_92ed_408d_aca5_481a6f185ec7_public_security_events",
+      "supabase_migrations_20250916171741_c9f7ff65_92ed_408d_aca5_481a6f185ec7_public_supplier_magic_codes",
+      "supabase_migrations_20250916171741_c9f7ff65_92ed_408d_aca5_481a6f185ec7_public_suppliers",
+      "supabase_migrations_20250916171741_c9f7ff65_92ed_408d_aca5_481a6f185ec7_public_validate_supplier_session_secure"
+    ],
+    "97": [
+      "package_dependencies_react",
+      "react",
+      "src_components_profiles_profileform_profileform",
+      "src_components_supplier_notificationcenter_notificationcenter",
+      "src_components_ui_carousel_usecarousel",
+      "src_components_ui_chart_usechart",
+      "src_components_ui_form_useformfield"
+    ],
+    "98": [
+      "src_components_error_errorboundary_errorboundary",
+      "src_components_error_errorboundary_errorboundary_componentdidcatch",
+      "src_components_error_errorboundary_errorboundary_constructor",
+      "src_components_error_errorboundary_errorboundary_getderivedstatefromerror",
+      "src_components_error_errorboundary_errorboundary_handlereload",
+      "src_components_error_errorboundary_errorboundary_handleretry",
+      "src_components_error_errorboundary_errorboundary_render"
+    ],
+    "99": [
+      "src_hooks_useknowledgearticles",
+      "src_hooks_useknowledgearticles_usedeleteknowledgearticle",
+      "src_hooks_useknowledgearticles_useknowledgearticle",
+      "src_hooks_useknowledgearticles_useknowledgearticles",
+      "src_hooks_useknowledgearticles_useknowledgecategorycounts",
+      "src_hooks_useknowledgearticles_useupdateknowledgearticle",
+      "src_pages_knowledge_knowledge"
+    ],
+    "100": [
+      "supabase_functions_inspection_alerts_cron_index",
+      "supabase_functions_inspection_alerts_cron_index_builddigesthtml",
+      "supabase_functions_inspection_alerts_cron_index_corsheaders",
+      "supabase_functions_inspection_alerts_cron_index_escape",
+      "supabase_functions_inspection_alerts_cron_index_formatdate",
+      "supabase_functions_inspection_alerts_cron_index_json",
+      "supabase_functions_inspection_alerts_cron_index_statusrow"
+    ],
+    "101": [
+      "supabase_functions_manual_reminders_cron_index",
+      "supabase_functions_manual_reminders_cron_index_buildhtml",
+      "supabase_functions_manual_reminders_cron_index_corsheaders",
+      "supabase_functions_manual_reminders_cron_index_escape",
+      "supabase_functions_manual_reminders_cron_index_json",
+      "supabase_functions_manual_reminders_cron_index_prioritychip",
+      "supabase_functions_manual_reminders_cron_index_reminderrow"
+    ],
+    "102": [
+      "supabase_functions_pendency_reminders_cron_index",
+      "supabase_functions_pendency_reminders_cron_index_buildhtml",
+      "supabase_functions_pendency_reminders_cron_index_corsheaders",
+      "supabase_functions_pendency_reminders_cron_index_escape",
+      "supabase_functions_pendency_reminders_cron_index_json",
+      "supabase_functions_pendency_reminders_cron_index_prioritychip",
+      "supabase_functions_pendency_reminders_cron_index_reminderrow"
+    ],
+    "103": [
+      "supabase_migrations_20250727114320_7a9015dc_dc95_45da_9464_5546dbb52c34",
+      "supabase_migrations_20250727114320_7a9015dc_dc95_45da_9464_5546dbb52c34_log_assistance_creation",
+      "supabase_migrations_20250727114320_7a9015dc_dc95_45da_9464_5546dbb52c34_log_assistance_status_change",
+      "supabase_migrations_20250727114320_7a9015dc_dc95_45da_9464_5546dbb52c34_log_supplier_response",
+      "supabase_migrations_20250727114320_7a9015dc_dc95_45da_9464_5546dbb52c34_trigger_log_assistance_changes",
+      "supabase_migrations_20250727114320_7a9015dc_dc95_45da_9464_5546dbb52c34_trigger_log_assistance_creation",
+      "supabase_migrations_20250727114320_7a9015dc_dc95_45da_9464_5546dbb52c34_trigger_log_supplier_response"
+    ],
+    "104": [
+      "supabase_migrations_20250728205439_ed0397df_cf89_44c1_bf04_ec78037f3224",
+      "supabase_migrations_20250728205439_ed0397df_cf89_44c1_bf04_ec78037f3224_assistance_progress",
+      "supabase_migrations_20250728205439_ed0397df_cf89_44c1_bf04_ec78037f3224_public_can_complete_assistance",
+      "supabase_migrations_20250728205439_ed0397df_cf89_44c1_bf04_ec78037f3224_public_generate_magic_code",
+      "supabase_migrations_20250728205439_ed0397df_cf89_44c1_bf04_ec78037f3224_public_update_updated_at_assistance_progress",
+      "supabase_migrations_20250728205439_ed0397df_cf89_44c1_bf04_ec78037f3224_supplier_responses",
+      "supabase_migrations_20250728205439_ed0397df_cf89_44c1_bf04_ec78037f3224_update_assistance_progress_updated_at"
+    ],
+    "105": [
+      "supabase_migrations_20250824211626_0e8479fb_32c8_4f14_9f09_a682a1984999",
+      "supabase_migrations_20250824211626_0e8479fb_32c8_4f14_9f09_a682a1984999_public_assistances",
+      "supabase_migrations_20250824211626_0e8479fb_32c8_4f14_9f09_a682a1984999_public_calculate_next_followup",
+      "supabase_migrations_20250824211626_0e8479fb_32c8_4f14_9f09_a682a1984999_public_follow_up_schedules",
+      "supabase_migrations_20250824211626_0e8479fb_32c8_4f14_9f09_a682a1984999_public_process_pending_followups",
+      "supabase_migrations_20250824211626_0e8479fb_32c8_4f14_9f09_a682a1984999_public_schedule_automatic_followups",
+      "supabase_migrations_20250824211626_0e8479fb_32c8_4f14_9f09_a682a1984999_trigger_schedule_followups"
+    ],
+    "106": [
+      "supabase_migrations_20260430162607_b7cff616_6346_4612_916c_87392b4b4d0c",
+      "supabase_migrations_20260430162607_b7cff616_6346_4612_916c_87392b4b4d0c_public_cancel_pendency_reminders_on_close",
+      "supabase_migrations_20260430162607_b7cff616_6346_4612_916c_87392b4b4d0c_public_pendency_reminders",
+      "supabase_migrations_20260430162607_b7cff616_6346_4612_916c_87392b4b4d0c_public_schedule_pendency_sla_reminders",
+      "supabase_migrations_20260430162607_b7cff616_6346_4612_916c_87392b4b4d0c_trg_cancel_pendency_reminders",
+      "supabase_migrations_20260430162607_b7cff616_6346_4612_916c_87392b4b4d0c_trg_pendency_reminders_updated",
+      "supabase_migrations_20260430162607_b7cff616_6346_4612_916c_87392b4b4d0c_trg_schedule_pendency_sla"
+    ],
+    "107": [
+      "class_variance_authority",
+      "package_dependencies_class_variance_authority"
+    ],
+    "108": [
+      "src_components_security_securityaudit_securityaudit",
+      "src_hooks_usesecurityevents",
+      "src_hooks_usesecurityevents_securityevent",
+      "src_hooks_usesecurityevents_uselogsecurityevent",
+      "src_hooks_usesecurityevents_usesecurityevents",
+      "src_hooks_usesecurityevents_usesecuritymetrics"
+    ],
+    "109": [
+      "src_components_ui_form_validation",
+      "src_components_ui_form_validation_requiredindicator",
+      "src_components_ui_form_validation_requiredindicatorprops",
+      "src_components_ui_form_validation_validation_messages",
+      "src_components_ui_form_validation_validationerror",
+      "src_components_ui_form_validation_validationerrorprops"
+    ],
+    "110": [
+      "supabase_functions_mcp_health_cron_index",
+      "supabase_functions_mcp_health_cron_index_corsheaders",
+      "supabase_functions_mcp_health_cron_index_probe",
+      "supabase_functions_mcp_health_cron_index_probes",
+      "supabase_functions_mcp_health_cron_index_resolveassistancespath",
+      "supabase_functions_mcp_health_cron_index_result"
+    ],
+    "111": [
+      "supabase_functions_upload_pendency_file_index",
+      "supabase_functions_upload_pendency_file_index_allowed_mime",
+      "supabase_functions_upload_pendency_file_index_base64tobytes",
+      "supabase_functions_upload_pendency_file_index_body",
+      "supabase_functions_upload_pendency_file_index_corsheaders",
+      "supabase_functions_upload_pendency_file_index_jsonresponse"
+    ],
+    "112": [
+      "supabase_migrations_20250915131510_fea5f472_3e3c_4d8c_a8c3_500d42c073c2",
+      "supabase_migrations_20250915131510_fea5f472_3e3c_4d8c_a8c3_500d42c073c2_log_security_violation",
+      "supabase_migrations_20250915131510_fea5f472_3e3c_4d8c_a8c3_500d42c073c2_public_check_rate_limit",
+      "supabase_migrations_20250915131510_fea5f472_3e3c_4d8c_a8c3_500d42c073c2_public_generate_magic_code",
+      "supabase_migrations_20250915131510_fea5f472_3e3c_4d8c_a8c3_500d42c073c2_public_magic_code_attempts",
+      "supabase_migrations_20250915131510_fea5f472_3e3c_4d8c_a8c3_500d42c073c2_public_validate_supplier_session"
+    ],
+    "113": [
+      "supabase_migrations_20260415235348_2332ebfa_b423_4309_a455_b51935507c1e",
+      "supabase_migrations_20260415235348_2332ebfa_b423_4309_a455_b51935507c1e_agent_api_rate_limit",
+      "supabase_migrations_20260415235348_2332ebfa_b423_4309_a455_b51935507c1e_assistances",
+      "supabase_migrations_20260415235348_2332ebfa_b423_4309_a455_b51935507c1e_condominium_contacts",
+      "supabase_migrations_20260415235348_2332ebfa_b423_4309_a455_b51935507c1e_email_logs",
+      "supabase_migrations_20260415235348_2332ebfa_b423_4309_a455_b51935507c1e_set_condominium_contacts_updated_at"
+    ],
+    "114": [
+      "supabase_migrations_20260430144954_5eb296a9_002d_4ba9_882c_4cd22040275e",
+      "supabase_migrations_20260430144954_5eb296a9_002d_4ba9_882c_4cd22040275e_public_building_inspections",
+      "supabase_migrations_20260430144954_5eb296a9_002d_4ba9_882c_4cd22040275e_public_inspection_categories",
+      "supabase_migrations_20260430144954_5eb296a9_002d_4ba9_882c_4cd22040275e_public_set_inspection_next_due",
+      "supabase_migrations_20260430144954_5eb296a9_002d_4ba9_882c_4cd22040275e_trg_building_inspections_updated_at",
+      "supabase_migrations_20260430144954_5eb296a9_002d_4ba9_882c_4cd22040275e_trg_inspection_categories_updated_at"
+    ],
+    "115": [
+      "supabase_migrations_20260619160000_email_pendencies_dedupe",
+      "supabase_migrations_20260619160000_email_pendencies_dedupe_public_email_pendencies",
+      "supabase_migrations_20260619160000_email_pendencies_dedupe_public_email_pendency_fingerprint",
+      "supabase_migrations_20260619160000_email_pendencies_dedupe_public_normalize_email_pendency_key_text",
+      "supabase_migrations_20260619160000_email_pendencies_dedupe_public_set_email_pendency_fingerprint",
+      "supabase_migrations_20260619160000_email_pendencies_dedupe_trg_email_pendencies_source_fingerprint"
+    ],
+    "116": [
+      "lucide_react",
+      "package_dependencies_lucide_react"
+    ],
+    "117": [
+      "src_components_suppliers_safedeletesupplierdialog",
+      "src_components_suppliers_safedeletesupplierdialog_safedeletesupplierdialog",
+      "src_hooks_usesupplierdependencies",
+      "src_hooks_usesupplierdependencies_supplierdependencies",
+      "src_hooks_usesupplierdependencies_usecompletedeletesupplier",
+      "src_hooks_usesupplierdependencies_usedeactivatesupplier",
+      "src_hooks_usesupplierdependencies_useforcedeletesupplier",
+      "src_hooks_usesupplierdependencies_usesupplierdependencies",
+      "src_hooks_usesuppliers_usedeletesupplier"
+    ],
+    "118": [
+      "supabase_functions_agent_api_auth_regression_test",
+      "supabase_functions_agent_api_auth_regression_test_endpoints",
+      "supabase_functions_agent_api_auth_regression_test_get",
+      "supabase_functions_agent_api_auth_regression_test_key",
+      "supabase_functions_agent_api_auth_regression_test_skipifnokey"
+    ],
+    "119": [
+      "supabase_functions_automated_notifications_index",
+      "supabase_functions_automated_notifications_index_corsheaders",
+      "supabase_functions_automated_notifications_index_handler",
+      "supabase_functions_automated_notifications_index_notificationrequest",
+      "supabase_functions_automated_notifications_index_supabase"
+    ],
+    "120": [
+      "supabase_functions_email_unsubscribe_index",
+      "supabase_functions_email_unsubscribe_index_corsheaders",
+      "supabase_functions_email_unsubscribe_index_htmlpage",
+      "supabase_functions_email_unsubscribe_index_processunsubscribe",
+      "supabase_functions_email_unsubscribe_index_ts_docref_rfc_8058"
+    ],
+    "121": [
+      "supabase_functions_mcp_server_deno",
+      "supabase_functions_mcp_server_deno_imports",
+      "supabase_functions_mcp_server_deno_imports_hono",
+      "supabase_functions_mcp_server_deno_imports_mcp_lite",
+      "supabase_functions_mcp_server_deno_imports_zod"
+    ],
+    "122": [
+      "supabase_functions_send_follow_up_email_index",
+      "supabase_functions_send_follow_up_email_index_corsheaders",
+      "supabase_functions_send_follow_up_email_index_followuprequest",
+      "supabase_functions_send_follow_up_email_index_handler",
+      "supabase_functions_send_follow_up_email_index_resend"
+    ],
+    "123": [
+      "supabase_functions_send_status_notification_index",
+      "supabase_functions_send_status_notification_index_corsheaders",
+      "supabase_functions_send_status_notification_index_handler",
+      "supabase_functions_send_status_notification_index_resend",
+      "supabase_functions_send_status_notification_index_statusnotificationrequest"
+    ],
+    "124": [
+      "supabase_functions_send_supplier_response_notification_index",
+      "supabase_functions_send_supplier_response_notification_index_corsheaders",
+      "supabase_functions_send_supplier_response_notification_index_handler",
+      "supabase_functions_send_supplier_response_notification_index_resend",
+      "supabase_functions_send_supplier_response_notification_index_responsenotificationrequest"
+    ],
+    "125": [
+      "supabase_migrations_20250726120014_285e22da_0ca8_4a70_9e9c_48522d0907ca",
+      "supabase_migrations_20250726120014_285e22da_0ca8_4a70_9e9c_48522d0907ca_public_generate_magic_code",
+      "supabase_migrations_20250726120014_285e22da_0ca8_4a70_9e9c_48522d0907ca_public_has_role",
+      "supabase_migrations_20250726120014_285e22da_0ca8_4a70_9e9c_48522d0907ca_public_is_admin",
+      "supabase_migrations_20250726120014_285e22da_0ca8_4a70_9e9c_48522d0907ca_public_update_updated_at_column"
+    ],
+    "126": [
+      "supabase_migrations_20250726174104_6954aab3_9824_475b_b2e0_7af010435b22",
+      "supabase_migrations_20250726174104_6954aab3_9824_475b_b2e0_7af010435b22_public_assistance_needs_followup",
+      "supabase_migrations_20250726174104_6954aab3_9824_475b_b2e0_7af010435b22_public_assistances",
+      "supabase_migrations_20250726174104_6954aab3_9824_475b_b2e0_7af010435b22_public_supplier_responses",
+      "supabase_migrations_20250726174104_6954aab3_9824_475b_b2e0_7af010435b22_update_supplier_responses_updated_at"
+    ],
+    "127": [
+      "supabase_migrations_20250728193940_0c88c9bf_033b_4a15_8566_92e99da1ddf6",
+      "supabase_migrations_20250728193940_0c88c9bf_033b_4a15_8566_92e99da1ddf6_assistances",
+      "supabase_migrations_20250728193940_0c88c9bf_033b_4a15_8566_92e99da1ddf6_public_update_assistance_quotation_status",
+      "supabase_migrations_20250728193940_0c88c9bf_033b_4a15_8566_92e99da1ddf6_quotation_status_trigger",
+      "supabase_migrations_20250728193940_0c88c9bf_033b_4a15_8566_92e99da1ddf6_quotations"
+    ],
+    "128": [
+      "supabase_migrations_20250805151932_6aee4b61_dfa0_47d1_ba25_3d3dc1c979a2",
+      "supabase_migrations_20250805151932_6aee4b61_dfa0_47d1_ba25_3d3dc1c979a2_public_calculate_reminder_schedule",
+      "supabase_migrations_20250805151932_6aee4b61_dfa0_47d1_ba25_3d3dc1c979a2_public_notifications",
+      "supabase_migrations_20250805151932_6aee4b61_dfa0_47d1_ba25_3d3dc1c979a2_public_schedule_assistance_reminders",
+      "supabase_migrations_20250805151932_6aee4b61_dfa0_47d1_ba25_3d3dc1c979a2_update_notifications_updated_at"
+    ],
+    "129": [
+      "supabase_migrations_20250805154023_281345ba_542e_4806_bd1e_c7f7e559af3f",
+      "supabase_migrations_20250805154023_281345ba_542e_4806_bd1e_c7f7e559af3f_generate_assistance_number",
+      "supabase_migrations_20250805154023_281345ba_542e_4806_bd1e_c7f7e559af3f_public_assistances",
+      "supabase_migrations_20250805154023_281345ba_542e_4806_bd1e_c7f7e559af3f_set_assistance_number",
+      "supabase_migrations_20250805154023_281345ba_542e_4806_bd1e_c7f7e559af3f_trigger_set_assistance_number"
+    ],
+    "130": [
+      "supabase_migrations_20250808222247_9ae3271b_ceee_4f54_8a9a_663501f089e2",
+      "supabase_migrations_20250808222247_9ae3271b_ceee_4f54_8a9a_663501f089e2_public_atualizar_estado_assistencia_por_codigo",
+      "supabase_migrations_20250808222247_9ae3271b_ceee_4f54_8a9a_663501f089e2_public_create_assistance_progress_via_code",
+      "supabase_migrations_20250808222247_9ae3271b_ceee_4f54_8a9a_663501f089e2_public_create_quotation_via_code",
+      "supabase_migrations_20250808222247_9ae3271b_ceee_4f54_8a9a_663501f089e2_public_update_assistance_on_supplier_response"
+    ],
+    "131": [
+      "supabase_migrations_20250830135707_cbfb86a6_1275_43ba_a6a7_be685ea66dc4",
+      "supabase_migrations_20250830135707_cbfb86a6_1275_43ba_a6a7_be685ea66dc4_public_create_quotation_on_approval",
+      "supabase_migrations_20250830135707_cbfb86a6_1275_43ba_a6a7_be685ea66dc4_public_schedule_quotation_followups",
+      "supabase_migrations_20250830135707_cbfb86a6_1275_43ba_a6a7_be685ea66dc4_quotation_approval_trigger",
+      "supabase_migrations_20250830135707_cbfb86a6_1275_43ba_a6a7_be685ea66dc4_schedule_automatic_followups"
+    ],
+    "132": [
+      "supabase_migrations_20250926211231_83c727b1_98f9_473f_a367_056cbd8ae46e",
+      "supabase_migrations_20250926211231_83c727b1_98f9_473f_a367_056cbd8ae46e_public_schedule_automatic_followups",
+      "supabase_migrations_20250926211231_83c727b1_98f9_473f_a367_056cbd8ae46e_public_schedule_date_confirmation_on_response",
+      "supabase_migrations_20250926211231_83c727b1_98f9_473f_a367_056cbd8ae46e_schedule_automatic_followups_trigger",
+      "supabase_migrations_20250926211231_83c727b1_98f9_473f_a367_056cbd8ae46e_schedule_date_confirmation_trigger"
+    ],
+    "133": [
+      "supabase_migrations_20260430151053_2efdab63_1e1a_43bd_9c48_4b578ae882b1",
+      "supabase_migrations_20260430151053_2efdab63_1e1a_43bd_9c48_4b578ae882b1_public_building_insurance_status",
+      "supabase_migrations_20260430151053_2efdab63_1e1a_43bd_9c48_4b578ae882b1_public_building_insurances",
+      "supabase_migrations_20260430151053_2efdab63_1e1a_43bd_9c48_4b578ae882b1_public_insurance_alerts_log",
+      "supabase_migrations_20260430151053_2efdab63_1e1a_43bd_9c48_4b578ae882b1_trg_building_insurances_updated"
+    ],
+    "134": [
+      "supabase_migrations_20260506171848_6a86936d_f816_4199_8635_28a12c3bffe8",
+      "supabase_migrations_20260506171848_6a86936d_f816_4199_8635_28a12c3bffe8_public_building_fractions",
+      "supabase_migrations_20260506171848_6a86936d_f816_4199_8635_28a12c3bffe8_public_email_pendencies",
+      "supabase_migrations_20260506171848_6a86936d_f816_4199_8635_28a12c3bffe8_public_insurance_fraction_status",
+      "supabase_migrations_20260506171848_6a86936d_f816_4199_8635_28a12c3bffe8_update_building_fractions_updated_at"
+    ],
+    "135": [
+      "supabase_migrations_20260511121302_4b23283a_95ff_4ed2_9194_29281cf341f7",
+      "supabase_migrations_20260511121302_4b23283a_95ff_4ed2_9194_29281cf341f7_public_building_inspection_status",
+      "supabase_migrations_20260511121302_4b23283a_95ff_4ed2_9194_29281cf341f7_public_building_inspections",
+      "supabase_migrations_20260511121302_4b23283a_95ff_4ed2_9194_29281cf341f7_public_building_insurances",
+      "supabase_migrations_20260511121302_4b23283a_95ff_4ed2_9194_29281cf341f7_public_key_handovers"
+    ],
+    "136": [
+      "next_themes",
+      "package_dependencies_next_themes"
+    ],
+    "137": [
+      "supabase_functions_api_assistances_index",
+      "supabase_functions_api_assistances_index_corsheaders",
+      "supabase_functions_api_assistances_index_jsonresponse",
+      "supabase_functions_api_assistances_index_validateapikey"
+    ],
+    "138": [
+      "supabase_functions_api_references_index",
+      "supabase_functions_api_references_index_corsheaders",
+      "supabase_functions_api_references_index_jsonresponse",
+      "supabase_functions_api_references_index_validateapikey"
+    ],
+    "139": [
+      "supabase_functions_parse_assembly_minutes_index",
+      "supabase_functions_parse_assembly_minutes_index_corsheaders",
+      "supabase_functions_parse_assembly_minutes_index_parserequest",
+      "supabase_functions_parse_assembly_minutes_index_valid_categories"
+    ],
+    "140": [
+      "supabase_functions_request_quotation_email_index",
+      "supabase_functions_request_quotation_email_index_corsheaders",
+      "supabase_functions_request_quotation_email_index_handler",
+      "supabase_functions_request_quotation_email_index_quotationrequest"
+    ],
+    "141": [
+      "supabase_functions_send_completion_reminder_index",
+      "supabase_functions_send_completion_reminder_index_corsheaders",
+      "supabase_functions_send_completion_reminder_index_extractpostalcode",
+      "supabase_functions_send_completion_reminder_index_handler"
+    ],
+    "142": [
+      "supabase_functions_send_date_confirmation_index",
+      "supabase_functions_send_date_confirmation_index_corsheaders",
+      "supabase_functions_send_date_confirmation_index_extractpostalcode",
+      "supabase_functions_send_date_confirmation_index_handler"
+    ],
+    "143": [
+      "supabase_functions_send_quotation_reminder_index",
+      "supabase_functions_send_quotation_reminder_index_corsheaders",
+      "supabase_functions_send_quotation_reminder_index_handler",
+      "supabase_functions_send_quotation_reminder_index_quotationreminderrequest"
+    ],
+    "144": [
+      "supabase_functions_send_work_reminder_index",
+      "supabase_functions_send_work_reminder_index_corsheaders",
+      "supabase_functions_send_work_reminder_index_extractpostalcode",
+      "supabase_functions_send_work_reminder_index_handler"
+    ],
+    "145": [
+      "supabase_functions_upload_assistance_photo_index",
+      "supabase_functions_upload_assistance_photo_index_corsheaders",
+      "supabase_functions_upload_assistance_photo_index_handler",
+      "supabase_functions_upload_assistance_photo_index_uploadrequest"
+    ],
+    "146": [
+      "supabase_migrations_20250727114748_92b90c03_52e7_49e1_8926_b288342a1c9c",
+      "supabase_migrations_20250727114748_92b90c03_52e7_49e1_8926_b288342a1c9c_log_assistance_creation",
+      "supabase_migrations_20250727114748_92b90c03_52e7_49e1_8926_b288342a1c9c_log_assistance_status_change",
+      "supabase_migrations_20250727114748_92b90c03_52e7_49e1_8926_b288342a1c9c_log_supplier_response"
+    ],
+    "147": [
+      "supabase_migrations_20250830142935_58d3456b_8acd_4d2f_ad59_0773e162c881",
+      "supabase_migrations_20250830142935_58d3456b_8acd_4d2f_ad59_0773e162c881_public_has_role",
+      "supabase_migrations_20250830142935_58d3456b_8acd_4d2f_ad59_0773e162c881_public_is_admin",
+      "supabase_migrations_20250830142935_58d3456b_8acd_4d2f_ad59_0773e162c881_public_log_security_event"
+    ],
+    "148": [
+      "supabase_migrations_20250915131754_d389fbac_59a5_487b_86e4_ca98589f3034",
+      "supabase_migrations_20250915131754_d389fbac_59a5_487b_86e4_ca98589f3034_public_check_rate_limit",
+      "supabase_migrations_20250915131754_d389fbac_59a5_487b_86e4_ca98589f3034_public_generate_magic_code",
+      "supabase_migrations_20250915131754_d389fbac_59a5_487b_86e4_ca98589f3034_public_magic_code_attempts"
+    ],
+    "149": [
+      "supabase_migrations_20250916171142_e737638a_e13a_4602_bced_2d3094969ecf",
+      "supabase_migrations_20250916171142_e737638a_e13a_4602_bced_2d3094969ecf_public_update_assistance_timestamps",
+      "supabase_migrations_20250916171142_e737638a_e13a_4602_bced_2d3094969ecf_schedule_automatic_followups_trigger",
+      "supabase_migrations_20250916171142_e737638a_e13a_4602_bced_2d3094969ecf_update_assistance_timestamps_trigger"
+    ],
+    "150": [
+      "supabase_migrations_20250926120342_42059a4a_36d7_4878_be34_2f22d7edddb3",
+      "supabase_migrations_20250926120342_42059a4a_36d7_4878_be34_2f22d7edddb3_public_assistances",
+      "supabase_migrations_20250926120342_42059a4a_36d7_4878_be34_2f22d7edddb3_public_follow_up_schedules",
+      "supabase_migrations_20250926120342_42059a4a_36d7_4878_be34_2f22d7edddb3_public_intervention_types"
+    ],
+    "151": [
+      "supabase_migrations_20250926120416_dd302921_592e_4dae_a9e2_b7a1c6bffccd",
+      "supabase_migrations_20250926120416_dd302921_592e_4dae_a9e2_b7a1c6bffccd_public_assistances",
+      "supabase_migrations_20250926120416_dd302921_592e_4dae_a9e2_b7a1c6bffccd_public_follow_up_schedules",
+      "supabase_migrations_20250926120416_dd302921_592e_4dae_a9e2_b7a1c6bffccd_public_intervention_types"
+    ],
+    "152": [
+      "supabase_migrations_20260416120139_37686534_fb08_411e_853d_a9183c0d0d98",
+      "supabase_migrations_20260416120139_37686534_fb08_411e_853d_a9183c0d0d98_public_assembly_items",
+      "supabase_migrations_20260416120139_37686534_fb08_411e_853d_a9183c0d0d98_public_validate_assembly_item",
+      "supabase_migrations_20260416120139_37686534_fb08_411e_853d_a9183c0d0d98_validate_assembly_item_trigger"
+    ],
+    "153": [
+      "supabase_migrations_20260430165934_88cc0552_7b1d_437b_a6a7_5296945a9e1e",
+      "supabase_migrations_20260430165934_88cc0552_7b1d_437b_a6a7_5296945a9e1e_public_auto_schedule_followups",
+      "supabase_migrations_20260430165934_88cc0552_7b1d_437b_a6a7_5296945a9e1e_public_calculate_next_followup",
+      "supabase_migrations_20260430165934_88cc0552_7b1d_437b_a6a7_5296945a9e1e_public_get_setting_int"
+    ],
+    "154": [
+      "supabase_migrations_20260609144703_beaa7aff_a318_4c1d_84d4_3ceb135f782e",
+      "supabase_migrations_20260609144703_beaa7aff_a318_4c1d_84d4_3ceb135f782e_public_log_supplier_access",
+      "supabase_migrations_20260609144703_beaa7aff_a318_4c1d_84d4_3ceb135f782e_public_mask_magic_code",
+      "supabase_migrations_20260609144703_beaa7aff_a318_4c1d_84d4_3ceb135f782e_public_validate_magic_code_secure"
+    ],
+    "155": [
+      "scripts_test_api",
+      "scripts_test_api_check",
+      "scripts_test_api_sh__entry"
+    ],
+    "156": [
+      "src_components_suppliers_supplierlistpdftemplate",
+      "src_components_suppliers_supplierlistpdftemplate_supplierlistpdftemplate",
+      "src_components_suppliers_supplierlistpdftemplate_supplierlistpdftemplateprops"
+    ],
+    "157": [
+      "src_hooks_usenativegeolocation",
+      "src_hooks_usenativegeolocation_position",
+      "src_hooks_usenativegeolocation_usenativegeolocation"
+    ],
+    "158": [
+      "src_utils_emailfooter",
+      "src_utils_emailfooter_emailfooterdisclaimerhtml",
+      "src_utils_emailfooter_emailfooterdisclaimertext"
+    ],
+    "159": [
+      "supabase_functions_sign_assistance_photos_index",
+      "supabase_functions_sign_assistance_photos_index_corsheaders",
+      "supabase_functions_sign_assistance_photos_index_signrequest"
+    ],
+    "160": [
+      "supabase_functions_upload_supplier_file_index",
+      "supabase_functions_upload_supplier_file_index_corsheaders",
+      "supabase_functions_upload_supplier_file_index_uploadrequest"
+    ],
+    "161": [
+      "supabase_migrations_20250726170150_e00b381d_c3a9_4c2b_9ca3_4cf996a09b78",
+      "supabase_migrations_20250726170150_e00b381d_c3a9_4c2b_9ca3_4cf996a09b78_public_app_settings",
+      "supabase_migrations_20250726170150_e00b381d_c3a9_4c2b_9ca3_4cf996a09b78_update_app_settings_updated_at"
+    ],
+    "162": [
+      "supabase_migrations_20250726170248_bf1bf7a3_0c47_4676_ac2c_600f09196e16",
+      "supabase_migrations_20250726170248_bf1bf7a3_0c47_4676_ac2c_600f09196e16_public_app_settings",
+      "supabase_migrations_20250726170248_bf1bf7a3_0c47_4676_ac2c_600f09196e16_update_app_settings_updated_at"
+    ],
+    "163": [
+      "supabase_migrations_20250728213235_5146f13f_93a1_4f9f_af3d_de319544c064",
+      "supabase_migrations_20250728213235_5146f13f_93a1_4f9f_af3d_de319544c064_suppliers_to_delete",
+      "supabase_migrations_20250728213235_5146f13f_93a1_4f9f_af3d_de319544c064_suppliers_to_keep"
+    ],
+    "164": [
+      "supabase_migrations_20250731224901_d283fb57_4b80_4994_b5e0_02fed41465fd",
+      "supabase_migrations_20250731224901_d283fb57_4b80_4994_b5e0_02fed41465fd_public_assistances",
+      "supabase_migrations_20250731224901_d283fb57_4b80_4994_b5e0_02fed41465fd_public_quotations"
+    ],
+    "165": [
+      "supabase_migrations_20250731225000_f86dc2f8_3c40_40ec_89a6_67b43fef9726",
+      "supabase_migrations_20250731225000_f86dc2f8_3c40_40ec_89a6_67b43fef9726_public_assistances",
+      "supabase_migrations_20250731225000_f86dc2f8_3c40_40ec_89a6_67b43fef9726_public_quotations"
+    ],
+    "166": [
+      "supabase_migrations_20250731225127_48e717b3_ae05_4820_89f0_9eed5a992a40",
+      "supabase_migrations_20250731225127_48e717b3_ae05_4820_89f0_9eed5a992a40_public_assistances",
+      "supabase_migrations_20250731225127_48e717b3_ae05_4820_89f0_9eed5a992a40_public_quotations"
+    ],
+    "167": [
+      "supabase_migrations_20250805152507_8bbda601_3f26_4a42_aede_dcc1e2ae5ffb",
+      "supabase_migrations_20250805152507_8bbda601_3f26_4a42_aede_dcc1e2ae5ffb_public_calculate_reminder_schedule",
+      "supabase_migrations_20250805152507_8bbda601_3f26_4a42_aede_dcc1e2ae5ffb_public_schedule_assistance_reminders"
+    ],
+    "168": [
+      "supabase_migrations_20250805154113_ebbaa719_1f85_41f6_bbe4_8e6745bc459b",
+      "supabase_migrations_20250805154113_ebbaa719_1f85_41f6_bbe4_8e6745bc459b_generate_assistance_number",
+      "supabase_migrations_20250805154113_ebbaa719_1f85_41f6_bbe4_8e6745bc459b_set_assistance_number"
+    ],
+    "169": [
+      "supabase_migrations_20250805160339_ba794722_e24a_45b3_bad1_1283501ec612",
+      "supabase_migrations_20250805160339_ba794722_e24a_45b3_bad1_1283501ec612_public_calculate_reminder_schedule",
+      "supabase_migrations_20250805160339_ba794722_e24a_45b3_bad1_1283501ec612_public_schedule_assistance_reminders"
+    ],
+    "170": [
+      "supabase_migrations_20250807210435_d9704c34_97dd_4717_83bc_bd735b0b8fec",
+      "supabase_migrations_20250807210435_d9704c34_97dd_4717_83bc_bd735b0b8fec_public_atualizar_estado_assistencia_por_codigo",
+      "supabase_migrations_20250807210435_d9704c34_97dd_4717_83bc_bd735b0b8fec_public_criar_resposta_fornecedor_por_codigo"
+    ],
+    "171": [
+      "supabase_migrations_20250808084724_01b1fde5_ec03_4671_93db_75200cc6c089",
+      "supabase_migrations_20250808084724_01b1fde5_ec03_4671_93db_75200cc6c089_public_get_assistances_for_code",
+      "supabase_migrations_20250808084724_01b1fde5_ec03_4671_93db_75200cc6c089_public_link_code_to_latest_assistance"
+    ],
+    "172": [
+      "supabase_migrations_20250808094932_90d46c80_23e2_4708_9f01_698c28248534",
+      "supabase_migrations_20250808094932_90d46c80_23e2_4708_9f01_698c28248534_public_create_communication_via_code",
+      "supabase_migrations_20250808094932_90d46c80_23e2_4708_9f01_698c28248534_public_get_communications_for_code"
+    ],
+    "173": [
+      "supabase_migrations_20250810094213_bf05d8d5_ddc0_448c_b1f8_ac72c8c84f07",
+      "supabase_migrations_20250810094213_bf05d8d5_ddc0_448c_b1f8_ac72c8c84f07_public_update_assistance_quotation_status",
+      "supabase_migrations_20250810094213_bf05d8d5_ddc0_448c_b1f8_ac72c8c84f07_trg_update_assistance_quotation_status"
+    ],
+    "174": [
+      "supabase_migrations_20250819000839_dcc61256_e0bf_42eb_9b85_c0221dec29e2",
+      "supabase_migrations_20250819000839_dcc61256_e0bf_42eb_9b85_c0221dec29e2_public_log_security_event",
+      "supabase_migrations_20250819000839_dcc61256_e0bf_42eb_9b85_c0221dec29e2_public_validate_supplier_session_secure"
+    ],
+    "175": [
+      "supabase_migrations_20250829103350_02a7d7c1_a5b4_4ab5_ae12_91e3a7c112aa",
+      "supabase_migrations_20250829103350_02a7d7c1_a5b4_4ab5_ae12_91e3a7c112aa_public_get_suppliers_for_assignment",
+      "supabase_migrations_20250829103350_02a7d7c1_a5b4_4ab5_ae12_91e3a7c112aa_public_suppliers_basic"
+    ],
+    "176": [
+      "supabase_migrations_20250830141021_7d8dd6df_5f46_48fd_96fe_c5a9b8c940ba",
+      "supabase_migrations_20250830141021_7d8dd6df_5f46_48fd_96fe_c5a9b8c940ba_handle_quotation_deadlines_trigger",
+      "supabase_migrations_20250830141021_7d8dd6df_5f46_48fd_96fe_c5a9b8c940ba_public_handle_quotation_deadlines"
+    ],
+    "177": [
+      "supabase_migrations_20250912154856_b0d0f969_8938_4dc0_b333_6eeb11720e71",
+      "supabase_migrations_20250912154856_b0d0f969_8938_4dc0_b333_6eeb11720e71_public_assistances",
+      "supabase_migrations_20250912154856_b0d0f969_8938_4dc0_b333_6eeb11720e71_public_quotations"
+    ],
+    "178": [
+      "supabase_migrations_20250916115349_0a0bc28e_d223_4151_b343_19aae3b45149",
+      "supabase_migrations_20250916115349_0a0bc28e_d223_4151_b343_19aae3b45149_public_schedule_automatic_followups",
+      "supabase_migrations_20250916115349_0a0bc28e_d223_4151_b343_19aae3b45149_trigger_schedule_automatic_followups"
+    ],
+    "179": [
+      "supabase_migrations_20250916132859_bd3952d1_a9aa_45fd_8ae5_5579cfb95ee8",
+      "supabase_migrations_20250916132859_bd3952d1_a9aa_45fd_8ae5_5579cfb95ee8_public_validate_quotation_consistency",
+      "supabase_migrations_20250916132859_bd3952d1_a9aa_45fd_8ae5_5579cfb95ee8_validate_quotation_consistency_trigger"
+    ],
+    "180": [
+      "supabase_migrations_20250920124112_d0b0acc9_c7d6_40bd_9bea_01a581e91cac",
+      "supabase_migrations_20250920124112_d0b0acc9_c7d6_40bd_9bea_01a581e91cac_public_auto_process_followups",
+      "supabase_migrations_20250920124112_d0b0acc9_c7d6_40bd_9bea_01a581e91cac_public_get_followup_processing_stats"
+    ],
+    "181": [
+      "supabase_migrations_20250925201004_a871cbb9_668c_413d_8fe1_cedc66184d8f",
+      "supabase_migrations_20250925201004_a871cbb9_668c_413d_8fe1_cedc66184d8f_public_check_supplier_dependencies",
+      "supabase_migrations_20250925201004_a871cbb9_668c_413d_8fe1_cedc66184d8f_public_purge_supplier_non_critical"
+    ],
+    "182": [
+      "supabase_migrations_20250925204709_b9f0f6fc_7840_422a_92c6_a7b1d361ebdd",
+      "supabase_migrations_20250925204709_b9f0f6fc_7840_422a_92c6_a7b1d361ebdd_public_purge_supplier_non_critical",
+      "supabase_migrations_20250925204709_b9f0f6fc_7840_422a_92c6_a7b1d361ebdd_public_safe_delete_supplier"
+    ],
+    "183": [
+      "supabase_migrations_20250926120637_46e22607_81db_4980_8f26_4ab3e78f9166",
+      "supabase_migrations_20250926120637_46e22607_81db_4980_8f26_4ab3e78f9166_public_atualizar_estado_assistencia_por_codigo",
+      "supabase_migrations_20250926120637_46e22607_81db_4980_8f26_4ab3e78f9166_public_calculate_reminder_schedule"
+    ],
+    "184": [
+      "supabase_migrations_20250926150802_3d6e53d1_b7aa_4725_8ed1_2e60910cc0e0",
+      "supabase_migrations_20250926150802_3d6e53d1_b7aa_4725_8ed1_2e60910cc0e0_public_update_assistance_quotation_status",
+      "supabase_migrations_20250926150802_3d6e53d1_b7aa_4725_8ed1_2e60910cc0e0_public_validate_quotation_consistency"
+    ],
+    "185": [
+      "supabase_migrations_20250926153045_01d2628e_e1ef_4e75_9b6d_55cf4b3d7a8e",
+      "supabase_migrations_20250926153045_01d2628e_e1ef_4e75_9b6d_55cf4b3d7a8e_public_create_quotation_on_approval",
+      "supabase_migrations_20250926153045_01d2628e_e1ef_4e75_9b6d_55cf4b3d7a8e_public_handle_quotation_deadlines"
+    ],
+    "186": [
+      "supabase_migrations_20260117170810_b7ba2eb6_7f98_4d34_959e_b69587b67441",
+      "supabase_migrations_20260117170810_b7ba2eb6_7f98_4d34_959e_b69587b67441_public_check_magic_code_rate_limit",
+      "supabase_migrations_20260117170810_b7ba2eb6_7f98_4d34_959e_b69587b67441_public_validate_magic_code_secure"
+    ],
+    "187": [
+      "supabase_migrations_20260420101213_b03b70ee_c45f_47bd_881c_deb166369ef1",
+      "supabase_migrations_20260420101213_b03b70ee_c45f_47bd_881c_deb166369ef1_public_backup_dates_20260420",
+      "supabase_migrations_20260420101213_b03b70ee_c45f_47bd_881c_deb166369ef1_public_pt_normalize_dates"
+    ],
+    "188": [
+      "supabase_migrations_20260425111343_064fc014_6d7b_450d_9a63_b029612ac17f",
+      "supabase_migrations_20260425111343_064fc014_6d7b_450d_9a63_b029612ac17f_public_email_unsubscribes",
+      "supabase_migrations_20260425111343_064fc014_6d7b_450d_9a63_b029612ac17f_update_email_unsubscribes_updated_at"
+    ],
+    "189": [
+      "supabase_migrations_20260428160323_3cac3b9c_0f53_42a0_8a26_c78f62c3b96d",
+      "supabase_migrations_20260428160323_3cac3b9c_0f53_42a0_8a26_c78f62c3b96d_public_assembly_items",
+      "supabase_migrations_20260428160323_3cac3b9c_0f53_42a0_8a26_c78f62c3b96d_public_assistances"
+    ],
+    "190": [
+      "supabase_migrations_20260430163621_2e372119_6ec9_4831_93c1_bb7ba90503b8",
+      "supabase_migrations_20260430163621_2e372119_6ec9_4831_93c1_bb7ba90503b8_public_bump_pendency_activity",
+      "supabase_migrations_20260430163621_2e372119_6ec9_4831_93c1_bb7ba90503b8_public_log_pendency_status_change"
+    ],
+    "191": [
+      "capacitor_android",
+      "package_dependencies_capacitor_android"
+    ],
+    "192": [
+      "capacitor_app",
+      "package_dependencies_capacitor_app"
+    ],
+    "193": [
+      "src_components_ui_toggle",
+      "src_components_ui_toggle_group",
+      "src_components_ui_toggle_group_togglegroup",
+      "src_components_ui_toggle_group_togglegroupcontext",
+      "src_components_ui_toggle_group_togglegroupitem",
+      "src_components_ui_toggle_toggle",
+      "src_components_ui_toggle_togglevariants"
+    ],
+    "194": [
+      "capacitor_cli",
+      "package_dependencies_capacitor_cli"
+    ],
+    "195": [
+      "capacitor_config",
+      "capacitor_config_config"
+    ],
+    "196": [
+      "capacitor_core",
+      "package_dependencies_capacitor_core"
+    ],
+    "197": [
+      "src_components_supplier_testportalbutton",
+      "src_components_supplier_testportalbutton_testportalbutton",
+      "src_components_supplier_testportalbutton_testportalbuttonprops",
+      "src_utils_magiccodegenerator_generateandsendmagiccode"
+    ],
+    "198": [
+      "capacitor_haptics",
+      "package_dependencies_capacitor_haptics"
+    ],
+    "199": [
+      "capacitor_ios",
+      "package_dependencies_capacitor_ios"
+    ],
+    "200": [
+      "capacitor_network",
+      "package_dependencies_capacitor_network"
+    ],
+    "201": [
+      "capacitor_preferences",
+      "package_dependencies_capacitor_preferences"
+    ],
+    "202": [
+      "capacitor_push_notifications",
+      "package_dependencies_capacitor_push_notifications"
+    ],
+    "203": [
+      "clsx",
+      "package_dependencies_clsx"
+    ],
+    "204": [
+      "cmdk",
+      "package_dependencies_cmdk"
+    ],
+    "205": [
+      "date_fns",
+      "package_dependencies_date_fns"
+    ],
+    "206": [
+      "embla_carousel_react",
+      "package_dependencies_embla_carousel_react"
+    ],
+    "207": [
+      "hookform_resolvers",
+      "package_dependencies_hookform_resolvers"
+    ],
+    "208": [
+      "html2canvas",
+      "package_dependencies_html2canvas"
+    ],
+    "209": [
+      "input_otp",
+      "package_dependencies_input_otp"
+    ],
+    "210": [
+      "capacitor_geolocation",
+      "package_dependencies_capacitor_geolocation"
+    ],
+    "211": [
+      "package_dependencies_radix_ui_react_alert_dialog",
+      "radix_ui_react_alert_dialog"
+    ],
+    "212": [
+      "package_dependencies_radix_ui_react_avatar",
+      "radix_ui_react_avatar"
+    ],
+    "213": [
+      "package_dependencies_radix_ui_react_checkbox",
+      "radix_ui_react_checkbox"
+    ],
+    "214": [
+      "package_dependencies_radix_ui_react_collapsible",
+      "radix_ui_react_collapsible"
+    ],
+    "215": [
+      "package_dependencies_radix_ui_react_context_menu",
+      "radix_ui_react_context_menu"
+    ],
+    "216": [
+      "package_dependencies_radix_ui_react_dialog",
+      "radix_ui_react_dialog"
+    ],
+    "217": [
+      "package_dependencies_radix_ui_react_dropdown_menu",
+      "radix_ui_react_dropdown_menu"
+    ],
+    "218": [
+      "package_dependencies_radix_ui_react_hover_card",
+      "radix_ui_react_hover_card"
+    ],
+    "219": [
+      "package_dependencies_radix_ui_react_label",
+      "radix_ui_react_label"
+    ],
+    "220": [
+      "package_dependencies_radix_ui_react_accordion",
+      "radix_ui_react_accordion"
+    ],
+    "221": [
+      "package_dependencies_radix_ui_react_aspect_ratio",
+      "radix_ui_react_aspect_ratio"
+    ],
+    "222": [
+      "package_dependencies_radix_ui_react_popover",
+      "radix_ui_react_popover"
+    ],
+    "223": [
+      "package_dependencies_radix_ui_react_progress",
+      "radix_ui_react_progress"
+    ],
+    "224": [
+      "package_dependencies_radix_ui_react_scroll_area",
+      "radix_ui_react_scroll_area"
+    ],
+    "225": [
+      "package_dependencies_radix_ui_react_select",
+      "radix_ui_react_select"
+    ],
+    "226": [
+      "package_dependencies_radix_ui_react_separator",
+      "radix_ui_react_separator"
+    ],
+    "227": [
+      "package_dependencies_radix_ui_react_slider",
+      "radix_ui_react_slider"
+    ],
+    "228": [
+      "package_dependencies_radix_ui_react_slot",
+      "radix_ui_react_slot"
+    ],
+    "229": [
+      "package_dependencies_radix_ui_react_switch",
+      "radix_ui_react_switch"
+    ],
+    "230": [
+      "package_dependencies_radix_ui_react_toggle",
+      "radix_ui_react_toggle"
+    ],
+    "231": [
+      "package_dependencies_radix_ui_react_toggle_group",
+      "radix_ui_react_toggle_group"
+    ],
+    "232": [
+      "package_dependencies_radix_ui_react_tooltip",
+      "radix_ui_react_tooltip"
+    ],
+    "233": [
+      "package_dependencies_react_day_picker",
+      "react_day_picker"
+    ],
+    "234": [
+      "package_dependencies_react_dom",
+      "react_dom"
+    ],
+    "235": [
+      "package_dependencies_react_hook_form",
+      "react_hook_form"
+    ],
+    "236": [
+      "package_dependencies_react_markdown",
+      "react_markdown"
+    ],
+    "237": [
+      "package_dependencies_react_resizable_panels",
+      "react_resizable_panels"
+    ],
+    "239": [
+      "package_dependencies_recharts",
+      "recharts"
+    ],
+    "240": [
+      "package_dependencies_remark_gfm",
+      "remark_gfm"
+    ],
+    "241": [
+      "package_dependencies_sonner",
+      "sonner"
+    ],
+    "242": [
+      "package_dependencies_supabase_supabase_js",
+      "supabase_supabase_js"
+    ],
+    "243": [
+      "package_dependencies_tailwind_merge",
+      "tailwind_merge"
+    ],
+    "244": [
+      "package_dependencies_tailwindcss_animate",
+      "tailwindcss_animate"
+    ],
+    "245": [
+      "package_dependencies_tanstack_react_query",
+      "tanstack_react_query"
+    ],
+    "246": [
+      "package_dependencies_vaul",
+      "vaul"
+    ],
+    "247": [
+      "package_dependencies_zod",
+      "zod"
+    ],
+    "248": [
+      "public_sw",
+      "public_sw_urlstocache"
+    ],
+    "249": [
+      "scripts_check_email_dns",
+      "scripts_check_email_dns_sh__entry"
+    ],
+    "250": [
+      "src_hooks_usenativepushnotifications",
+      "src_hooks_usenativepushnotifications_usenativepushnotifications"
+    ],
+    "251": [
+      "src_hooks_usenativestorage",
+      "src_hooks_usenativestorage_usenativestorage"
+    ],
+    "252": [
+      "src_pages_index",
+      "src_pages_index_index"
+    ],
+    "253": [
+      "supabase_functions_agent_api_index_checkratelimit",
+      "supabase_functions_agent_api_index_hashapikey"
+    ],
+    "254": [
+      "supabase_functions_agent_api_index_httperror",
+      "supabase_functions_agent_api_index_httperror_constructor"
+    ],
+    "255": [
+      "supabase_functions_validate_supplier_session_index",
+      "supabase_functions_validate_supplier_session_index_corsheaders"
+    ],
+    "256": [
+      "supabase_migrations_20250726174227_610e37f8_7f8d_4f43_9444_3db8195fae20",
+      "supabase_migrations_20250726174227_610e37f8_7f8d_4f43_9444_3db8195fae20_public_assistance_needs_followup"
+    ],
+    "257": [
+      "supabase_migrations_20250731230112_92299a14_3122_47b2_a401_726c1acb44a3",
+      "supabase_migrations_20250731230112_92299a14_3122_47b2_a401_726c1acb44a3_public_assistances"
+    ],
+    "258": [
+      "supabase_migrations_20250805144541_343ffd39_b5fd_400a_a1fa_60d01bd15d10",
+      "supabase_migrations_20250805144541_343ffd39_b5fd_400a_a1fa_60d01bd15d10_public_validate_supplier_session"
+    ],
+    "259": [
+      "supabase_migrations_20250805153505_14832a52_bf08_4c04_909c_ced4cfdadffd",
+      "supabase_migrations_20250805153505_14832a52_bf08_4c04_909c_ced4cfdadffd_public_assistances"
+    ],
+    "260": [
+      "supabase_migrations_20250805160403_42348224_9a7f_4a5b_964b_81f49247b5ef",
+      "supabase_migrations_20250805160403_42348224_9a7f_4a5b_964b_81f49247b5ef_public_calculate_reminder_schedule"
+    ],
+    "261": [
+      "supabase_migrations_20250805160446_5eb017fb_a604_44ba_89e2_6b2a8dd29991",
+      "supabase_migrations_20250805160446_5eb017fb_a604_44ba_89e2_6b2a8dd29991_public_schedule_assistance_reminders"
+    ],
+    "262": [
+      "supabase_migrations_20250805214846_18c9cbdb_d2be_465e_bbf3_962817a328d0",
+      "supabase_migrations_20250805214846_18c9cbdb_d2be_465e_bbf3_962817a328d0_public_calculate_reminder_schedule"
+    ],
+    "263": [
+      "supabase_migrations_20250807212820_41138bed_2791_4714_91f2_722a3baff9cd",
+      "supabase_migrations_20250807212820_41138bed_2791_4714_91f2_722a3baff9cd_storage_objects"
+    ],
+    "264": [
+      "supabase_migrations_20250807213353_5357d844_29cd_469c_8231_443cef7081dc",
+      "supabase_migrations_20250807213353_5357d844_29cd_469c_8231_443cef7081dc_storage_objects"
+    ],
+    "265": [
+      "supabase_migrations_20250808222330_4ffffec4_f674_43a1_89e3_8a9db7636ef5",
+      "supabase_migrations_20250808222330_4ffffec4_f674_43a1_89e3_8a9db7636ef5_public_create_quotation_via_code"
+    ],
+    "266": [
+      "supabase_migrations_20250810174628_ed77a733_db96_465a_aa9d_b8df9e059178",
+      "supabase_migrations_20250810174628_ed77a733_db96_465a_aa9d_b8df9e059178_public_activity_log"
+    ],
+    "267": [
+      "supabase_migrations_20250828102252_1e01f2bc_666b_4782_bcac_ad240c159002",
+      "supabase_migrations_20250828102252_1e01f2bc_666b_4782_bcac_ad240c159002_public_suppliers_basic"
+    ],
+    "268": [
+      "supabase_migrations_20250828102351_21cd2a84_ad21_451b_890f_9ba1498b351f",
+      "supabase_migrations_20250828102351_21cd2a84_ad21_451b_890f_9ba1498b351f_public_suppliers_basic"
+    ],
+    "269": [
+      "supabase_migrations_20250829103432_8dd0097e_494a_4871_949b_a27648939649",
+      "supabase_migrations_20250829103432_8dd0097e_494a_4871_949b_a27648939649_public_suppliers_basic"
+    ],
+    "270": [
+      "supabase_migrations_20250829111650_bc73580b_c212_42c6_9540_912962694378",
+      "supabase_migrations_20250829111650_bc73580b_c212_42c6_9540_912962694378_public_get_basic_suppliers"
+    ],
+    "271": [
+      "supabase_migrations_20250830142906_7c2e667a_5d6a_440e_be19_f9c4642467b0",
+      "supabase_migrations_20250830142906_7c2e667a_5d6a_440e_be19_f9c4642467b0_public_log_security_event"
+    ],
+    "272": [
+      "supabase_migrations_20250920130236_1e6a7533_6d25_4a78_8dad_f43ed8032cb4",
+      "supabase_migrations_20250920130236_1e6a7533_6d25_4a78_8dad_f43ed8032cb4_public_get_followup_processing_stats"
+    ],
+    "273": [
+      "supabase_migrations_20250925164147_0133049e_5b40_4270_9acb_c9386f2b0ddf",
+      "supabase_migrations_20250925164147_0133049e_5b40_4270_9acb_c9386f2b0ddf_public_check_supplier_dependencies"
+    ],
+    "274": [
+      "supabase_migrations_20250926120607_0b179b03_2308_4df7_a85d_52ac32a9f9f6",
+      "supabase_migrations_20250926120607_0b179b03_2308_4df7_a85d_52ac32a9f9f6_public_get_assistances_for_code"
+    ],
+    "275": [
+      "supabase_migrations_20250926130519_d68761f7_95f3_446a_9c49_5755d46831db",
+      "supabase_migrations_20250926130519_d68761f7_95f3_446a_9c49_5755d46831db_public_force_delete_supplier_complete"
+    ],
+    "276": [
+      "supabase_migrations_20250926192320_810b5fb0_d14c_4cf1_8390_de03905609ab",
+      "supabase_migrations_20250926192320_810b5fb0_d14c_4cf1_8390_de03905609ab_public_validate_supplier_session_simple"
+    ],
+    "277": [
+      "supabase_migrations_20250926192808_2d61e282_c5e6_420a_851a_533e0363cf0e",
+      "supabase_migrations_20250926192808_2d61e282_c5e6_420a_851a_533e0363cf0e_public_validate_supplier_session_readonly"
+    ],
+    "278": [
+      "supabase_migrations_20250926212448_f180f52a_67dd_4ccb_942c_1da70d623f61",
+      "supabase_migrations_20250926212448_f180f52a_67dd_4ccb_942c_1da70d623f61_public_log_cron_execution"
+    ],
+    "279": [
+      "supabase_migrations_20260416110308_460de2b4_107f_4c1d_b27e_8ca969b4527e",
+      "supabase_migrations_20260416110308_460de2b4_107f_4c1d_b27e_8ca969b4527e_public_knowledge_articles"
+    ],
+    "280": [
+      "supabase_migrations_20260416112634_502318b1_6e05_45aa_a748_21feee5cbbd0",
+      "supabase_migrations_20260416112634_502318b1_6e05_45aa_a748_21feee5cbbd0_public_search_knowledge_articles"
+    ],
+    "281": [
+      "supabase_migrations_20260420101229_d8d6b720_3773_4e28_8d40_c973af291619",
+      "supabase_migrations_20260420101229_d8d6b720_3773_4e28_8d40_c973af291619_public_backup_dates_20260420"
+    ],
+    "282": [
+      "supabase_migrations_20260420105241_4b27413e_ec9c_45cf_9c45_bae8d43f3ce6",
+      "supabase_migrations_20260420105241_4b27413e_ec9c_45cf_9c45_bae8d43f3ce6_public_backup_dates_20260420_v2"
+    ],
+    "283": [
+      "supabase_migrations_20260420113140_ce2501ce_dffa_4957_adbb_4f2125da2642",
+      "supabase_migrations_20260420113140_ce2501ce_dffa_4957_adbb_4f2125da2642_public_audit_excel_truth"
+    ],
+    "284": [
+      "supabase_migrations_20260420113227_f2654672_86e1_495d_948c_521239a496d3",
+      "supabase_migrations_20260420113227_f2654672_86e1_495d_948c_521239a496d3_public_backup_dates_20260420_v3"
+    ],
+    "285": [
+      "supabase_migrations_20260430153447_17db2e3f_57ea_439a_9261_1da7fd99928b",
+      "supabase_migrations_20260430153447_17db2e3f_57ea_439a_9261_1da7fd99928b_public_building_inspection_status"
+    ],
+    "286": [
+      "supabase_migrations_20260430163029_9eee1417_db32_4b8e_b9aa_cdebffda06a9",
+      "supabase_migrations_20260430163029_9eee1417_db32_4b8e_b9aa_cdebffda06a9_public_email_pendencies"
+    ],
+    "287": [
+      "supabase_migrations_20260430164530_47cd88a0_3db8_487f_8331_a940fff49168",
+      "supabase_migrations_20260430164530_47cd88a0_3db8_487f_8331_a940fff49168_public_buildings"
+    ],
+    "288": [
+      "supabase_migrations_20260504122013_35c8cd63_9fbb_48c5_84a2_0e69952f8ecd",
+      "supabase_migrations_20260504122013_35c8cd63_9fbb_48c5_84a2_0e69952f8ecd_public_bump_pendency_activity"
+    ],
+    "289": [
+      "supabase_migrations_20260511120617_14d21e1c_d09e_4374_b891_6efeb4b27a9a",
+      "supabase_migrations_20260511120617_14d21e1c_d09e_4374_b891_6efeb4b27a9a_public_buildings"
+    ],
+    "290": [
+      "supabase_migrations_20260610193058_29575b90_13d3_4466_a619_778e8dad139c",
+      "supabase_migrations_20260610193058_29575b90_13d3_4466_a619_778e8dad139c_public_mcp_health_checks"
+    ],
+    "291": [
+      "supabase_migrations_20260620110000_fix_andre_r1_residuals",
+      "supabase_migrations_20260620110000_fix_andre_r1_residuals_public_building_insurances"
+    ],
+    "292": [
+      "eslint_config"
+    ],
+    "293": [
+      "postcss_config"
+    ],
+    "294": [
+      "src_components_ui_aspect_ratio"
+    ],
+    "295": [
+      "src_vite_env_d"
+    ],
+    "296": [
+      "supabase_migrations_20250727092244_995433ac_0756_4552_b6a2_99478ea5d470"
+    ],
+    "297": [
+      "supabase_migrations_20250727092403_41257918_3a22_42be_a00e_c6fefe4671e0"
+    ],
+    "298": [
+      "supabase_migrations_20250728155708_98f2156d_d25b_4000_a974_06c61380e607"
+    ],
+    "299": [
+      "supabase_migrations_20250728165452_4cb26df3_b8ea_4964_81d2_10930d870bdf"
+    ],
+    "300": [
+      "supabase_migrations_20250728170240_10bd480e_2bf0_4907_8192_6de562b664b6"
+    ],
+    "301": [
+      "supabase_migrations_20250728172159_a0ab1561_4cb4_45f1_9a3e_b18ece4863f8"
+    ],
+    "302": [
+      "supabase_migrations_20250728172217_a591e10b_e115_45af_b5e4_b848446a2675"
+    ],
+    "303": [
+      "supabase_migrations_20250728172423_1fdb248c_26d9_4253_ae85_0b66b3d8e88f"
+    ],
+    "304": [
+      "supabase_migrations_20250728172641_28965b48_7cd6_4e4c_98c5_20c693f36ba1"
+    ],
+    "305": [
+      "supabase_migrations_20250728173508_07876b66_1a82_4cb4_ab23_c1257de72691"
+    ],
+    "306": [
+      "supabase_migrations_20250728173540_514df814_af18_4bfb_80cd_48478ad0b160"
+    ],
+    "307": [
+      "supabase_migrations_20250728174850_3abeac7a_de8c_4064_ae10_f9cce569366b"
+    ],
+    "308": [
+      "supabase_migrations_20250728175432_71239357_c4b7_4aa3_a091_a30cb5de8227"
+    ],
+    "309": [
+      "supabase_migrations_20250728194359_b1fe163c_5f3f_45a3_9b0c_45371bcec4f2"
+    ],
+    "310": [
+      "supabase_migrations_20250728194852_67847f24_ec70_467a_ac79_b4dbebcae85c"
+    ],
+    "311": [
+      "supabase_migrations_20250728202302_d65dd615_56b3_4987_b57f_7797cf162db2"
+    ],
+    "312": [
+      "supabase_migrations_20250728211438_885f93b3_81f0_42f4_8042_56be891c232f"
+    ],
+    "313": [
+      "supabase_migrations_20250728212653_be722d13_3bb5_4247_bd85_97580ea013e3"
+    ],
+    "314": [
+      "supabase_migrations_20250730073647_8e8696f3_f8fc_410f_bd94_197eee074a04"
+    ],
+    "315": [
+      "supabase_migrations_20250801000504_b58ec378_03a1_43a5_aaaf_fdb064e6790d"
+    ],
+    "316": [
+      "supabase_migrations_20250801001057_09d8d6e6_37e5_4544_b81c_2bdf92729476"
+    ],
+    "317": [
+      "supabase_migrations_20250805145709_84b805dd_bc55_4d77_9d7e_1a68eac98dfe"
+    ],
+    "318": [
+      "supabase_migrations_20250805155631_72aca291_8011_4dd1_b0b9_36192bedf64f"
+    ],
+    "319": [
+      "supabase_migrations_20250805155712_e233ff09_6b18_40a2_ba18_c9ed44bbe0f5"
+    ],
+    "320": [
+      "supabase_migrations_20250805205736_0def11a5_1bbe_45b7_8c7f_526a629c9b58"
+    ],
+    "321": [
+      "supabase_migrations_20250807215435_0dee0e9d_820b_470d_9571_da54c220891b"
+    ],
+    "322": [
+      "supabase_migrations_20250810172558_839adf4e_7686_42ca_8c4a_aaee5d8ffd40"
+    ],
+    "323": [
+      "supabase_migrations_20250828101306_67214d20_3fdb_440c_82d0_764e2b3a0e59"
+    ],
+    "324": [
+      "supabase_migrations_20250828101748_82e2f663_f14a_4013_a57f_e37f0cec731e"
+    ],
+    "325": [
+      "supabase_migrations_20250829103414_82df9e7f_5c92_4794_b136_abdd1d4f4e42"
+    ],
+    "326": [
+      "supabase_migrations_20250829103509_4da833f5_ce1e_48e5_95dd_21cceed74c29"
+    ],
+    "327": [
+      "supabase_migrations_20250829111617_e10dd651_80a1_4c1c_86d4_dab80cac50b9"
+    ],
+    "328": [
+      "supabase_migrations_20250910190550_923f0bce_7294_4e12_9d5d_436324c87462"
+    ],
+    "329": [
+      "supabase_migrations_20250911161253_8d78d872_f016_4c8d_8ff5_f15b5f65e295"
+    ],
+    "330": [
+      "supabase_migrations_20250911162841_57cf79cb_68c3_4179_8042_5c37966d47e6"
+    ],
+    "331": [
+      "supabase_migrations_20250920125638_b65f84d8_625a_4248_81dc_39291dae25f3"
+    ],
+    "332": [
+      "supabase_migrations_20250926115639_fc5a31f3_7fc5_496a_b430_654038ab7b45"
+    ],
+    "333": [
+      "supabase_migrations_20250926150353_2fa03781_3f82_42f6_b316_caeb92d3e75e"
+    ],
+    "334": [
+      "supabase_migrations_20260114211318_39703ff2_52f4_4f47_8e58_4596e3c246db"
+    ],
+    "335": [
+      "supabase_migrations_20260117171104_238b320d_5f5c_41eb_b869_1e552e1c54a4"
+    ],
+    "336": [
+      "supabase_migrations_20260117212054_a24b8c65_be29_49ba_8f1a_0fd9eab796e6"
+    ],
+    "337": [
+      "supabase_migrations_20260416005731_c78a329a_f2d7_4279_92f1_9742bc1b1cfb"
+    ],
+    "338": [
+      "supabase_migrations_20260416115635_f5c016a0_303d_4d55_a144_9463040ea039"
+    ],
+    "339": [
+      "supabase_migrations_20260417202741_9b447f25_4cd0_4415_b174_630918646391"
+    ],
+    "340": [
+      "supabase_migrations_20260420111135_53ac272b_bb6a_4424_b418_0b1f193c7076"
+    ],
+    "341": [
+      "supabase_migrations_20260430145009_16f9bb30_bd91_4940_880e_7f44f2e5f773"
+    ],
+    "342": [
+      "supabase_migrations_20260430145245_f88fc19b_a7ff_48e9_9d3e_1a82b98390b0"
+    ],
+    "343": [
+      "supabase_migrations_20260430150258_ac8bfce1_6a3e_4fe7_b365_b81f05505278"
+    ],
+    "344": [
+      "supabase_migrations_20260430151218_c8537495_0228_40cb_9ca0_856a0a2064a7"
+    ],
+    "345": [
+      "supabase_migrations_20260430152342_0045f27f_dfe4_4955_b826_e9ed1b3687a9"
+    ],
+    "346": [
+      "supabase_migrations_20260430154902_3478a5d4_f044_466d_ac1c_e51afa683d19"
+    ],
+    "347": [
+      "supabase_migrations_20260430162713_de01dd9c_92fe_449f_9c0e_ef30b9babd99"
+    ],
+    "348": [
+      "supabase_migrations_20260430164702_3b3536cd_b600_40c0_9240_36002f02e982"
+    ],
+    "349": [
+      "supabase_migrations_20260502093550_fc0faea6_8651_4018_bda6_9f1da02e6346"
+    ],
+    "350": [
+      "supabase_migrations_20260504122133_69935672_2a05_4cda_a25a_975518b84624"
+    ],
+    "351": [
+      "supabase_migrations_20260511180001_ecf84443_2536_44d9_891e_34182aa0d1ac"
+    ],
+    "352": [
+      "tailwind_config"
+    ],
+    "353": [
+      "vite_config"
+    ]
+  },
+  "cohesion": {
+    "0": 0.059917920656634746,
+    "1": 0.05952380952380952,
+    "2": 0.09830866807610994,
+    "3": 0.043478260869565216,
+    "4": 0.1101010101010101,
+    "5": 0.10105580693815988,
+    "6": 0.10810810810810811,
+    "7": 0.15204678362573099,
+    "8": 0.12310606060606061,
+    "9": 0.09634551495016612,
+    "10": 0.07563025210084033,
+    "11": 0.07954545454545454,
+    "12": 0.17142857142857143,
+    "13": 0.09803921568627451,
+    "14": 0.14285714285714285,
+    "15": 0.10256410256410256,
+    "16": 0.15343915343915343,
+    "17": 0.11428571428571428,
+    "18": 0.11384615384615385,
+    "19": 0.15076923076923077,
+    "20": 0.16483516483516483,
+    "21": 0.08333333333333333,
+    "22": 0.1476923076923077,
+    "23": 0.1111111111111111,
+    "24": 0.08333333333333333,
+    "25": 0.08695652173913043,
+    "26": 0.1541501976284585,
+    "27": 0.16205533596837945,
+    "28": 0.1645021645021645,
+    "29": 0.15714285714285714,
+    "30": 0.12,
+    "31": 0.21794871794871795,
+    "32": 0.20652173913043478,
+    "33": 0.1631578947368421,
+    "34": 0.11578947368421053,
+    "35": 0.16666666666666666,
+    "36": 0.14130434782608695,
+    "37": 0.25757575757575757,
+    "38": 0.1568627450980392,
+    "39": 0.1111111111111111,
+    "40": 0.1383399209486166,
+    "41": 0.11764705882352941,
+    "42": 0.22794117647058823,
+    "43": 0.16666666666666666,
+    "44": 0.125,
+    "45": 0.22727272727272727,
+    "46": 0.14166666666666666,
+    "47": 0.2222222222222222,
+    "48": 0.19047619047619047,
+    "49": 0.6,
+    "50": 0.23076923076923078,
+    "51": 0.19047619047619047,
+    "52": 0.13333333333333333,
+    "53": 0.21978021978021978,
+    "54": 0.15384615384615385,
+    "55": 0.27472527472527475,
+    "56": 0.26373626373626374,
+    "57": 0.27472527472527475,
+    "58": 0.20833333333333334,
+    "59": 0.16666666666666666,
+    "60": 0.15384615384615385,
+    "61": 0.19230769230769232,
+    "62": 0.13090418353576247,
+    "63": 0.16666666666666666,
+    "64": 0.24242424242424243,
+    "65": 0.18181818181818182,
+    "66": 0.2,
+    "67": 0.16017316017316016,
+    "68": 0.2727272727272727,
+    "69": 0.18181818181818182,
+    "70": 0.18181818181818182,
+    "71": 0.18181818181818182,
+    "72": 0.21818181818181817,
+    "73": 0.18181818181818182,
+    "74": 0.2,
+    "75": 0.2,
+    "76": 0.2,
+    "77": 0.2,
+    "78": 0.37777777777777777,
+    "79": 0.4,
+    "80": 0.3111111111111111,
+    "81": 0.3055555555555556,
+    "82": 0.3888888888888889,
+    "83": 0.5,
+    "84": 0.25,
+    "85": 0.2222222222222222,
+    "86": 0.3055555555555556,
+    "87": 0.39285714285714285,
+    "88": 0.35714285714285715,
+    "89": 0.25,
+    "90": 0.10507246376811594,
+    "91": 0.25,
+    "92": 0.2857142857142857,
+    "93": 0.35714285714285715,
+    "94": 0.39285714285714285,
+    "95": 0.32142857142857145,
+    "96": 0.25,
+    "97": 0.2857142857142857,
+    "98": 0.2857142857142857,
+    "99": 0.38095238095238093,
+    "100": 0.38095238095238093,
+    "101": 0.38095238095238093,
+    "102": 0.38095238095238093,
+    "103": 0.42857142857142855,
+    "104": 0.3333333333333333,
+    "105": 0.47619047619047616,
+    "106": 0.42857142857142855,
+    "107": 1.0,
+    "108": 0.4,
+    "109": 0.3333333333333333,
+    "110": 0.3333333333333333,
+    "111": 0.3333333333333333,
+    "112": 0.4,
+    "113": 0.3333333333333333,
+    "114": 0.4,
+    "115": 0.4,
+    "116": 1.0,
+    "117": 0.4722222222222222,
+    "118": 0.4,
+    "119": 0.4,
+    "120": 0.4,
+    "121": 0.4,
+    "122": 0.4,
+    "123": 0.4,
+    "124": 0.4,
+    "125": 0.4,
+    "126": 0.6,
+    "127": 0.4,
+    "128": 0.4,
+    "129": 0.6,
+    "130": 0.4,
+    "131": 0.6,
+    "132": 0.6,
+    "133": 0.5,
+    "134": 0.5,
+    "135": 0.5,
+    "136": 1.0,
+    "137": 0.5,
+    "138": 0.5,
+    "139": 0.5,
+    "140": 0.5,
+    "141": 0.6666666666666666,
+    "142": 0.6666666666666666,
+    "143": 0.5,
+    "144": 0.6666666666666666,
+    "145": 0.5,
+    "146": 0.5,
+    "147": 0.5,
+    "148": 0.6666666666666666,
+    "149": 0.6666666666666666,
+    "150": 0.5,
+    "151": 0.5,
+    "152": 0.6666666666666666,
+    "153": 0.5,
+    "154": 0.5,
+    "155": 1.0,
+    "156": 0.6666666666666666,
+    "157": 0.6666666666666666,
+    "158": 0.6666666666666666,
+    "159": 0.6666666666666666,
+    "160": 0.6666666666666666,
+    "161": 0.6666666666666666,
+    "162": 0.6666666666666666,
+    "163": 0.6666666666666666,
+    "164": 0.6666666666666666,
+    "165": 0.6666666666666666,
+    "166": 0.6666666666666666,
+    "167": 0.6666666666666666,
+    "168": 0.6666666666666666,
+    "169": 0.6666666666666666,
+    "170": 0.6666666666666666,
+    "171": 0.6666666666666666,
+    "172": 0.6666666666666666,
+    "173": 1.0,
+    "174": 0.6666666666666666,
+    "175": 0.6666666666666666,
+    "176": 1.0,
+    "177": 0.6666666666666666,
+    "178": 1.0,
+    "179": 1.0,
+    "180": 0.6666666666666666,
+    "181": 0.6666666666666666,
+    "182": 0.6666666666666666,
+    "183": 0.6666666666666666,
+    "184": 0.6666666666666666,
+    "185": 0.6666666666666666,
+    "186": 0.6666666666666666,
+    "187": 0.6666666666666666,
+    "188": 0.6666666666666666,
+    "189": 0.6666666666666666,
+    "190": 0.6666666666666666,
+    "191": 1.0,
+    "192": 1.0,
+    "193": 0.3333333333333333,
+    "194": 1.0,
+    "195": 1.0,
+    "196": 1.0,
+    "197": 0.6666666666666666,
+    "198": 1.0,
+    "199": 1.0,
+    "200": 1.0,
+    "201": 1.0,
+    "202": 1.0,
+    "203": 1.0,
+    "204": 1.0,
+    "205": 1.0,
+    "206": 1.0,
+    "207": 1.0,
+    "208": 1.0,
+    "209": 1.0,
+    "210": 1.0,
+    "211": 1.0,
+    "212": 1.0,
+    "213": 1.0,
+    "214": 1.0,
+    "215": 1.0,
+    "216": 1.0,
+    "217": 1.0,
+    "218": 1.0,
+    "219": 1.0,
+    "220": 1.0,
+    "221": 1.0,
+    "222": 1.0,
+    "223": 1.0,
+    "224": 1.0,
+    "225": 1.0,
+    "226": 1.0,
+    "227": 1.0,
+    "228": 1.0,
+    "229": 1.0,
+    "230": 1.0,
+    "231": 1.0,
+    "232": 1.0,
+    "233": 1.0,
+    "234": 1.0,
+    "235": 1.0,
+    "236": 1.0,
+    "237": 1.0,
+    "239": 1.0,
+    "240": 1.0,
+    "241": 1.0,
+    "242": 1.0,
+    "243": 1.0,
+    "244": 1.0,
+    "245": 1.0,
+    "246": 1.0,
+    "247": 1.0,
+    "248": 1.0,
+    "249": 1.0,
+    "250": 1.0,
+    "251": 1.0,
+    "252": 1.0,
+    "253": 1.0,
+    "254": 1.0,
+    "255": 1.0,
+    "256": 1.0,
+    "257": 1.0,
+    "258": 1.0,
+    "259": 1.0,
+    "260": 1.0,
+    "261": 1.0,
+    "262": 1.0,
+    "263": 1.0,
+    "264": 1.0,
+    "265": 1.0,
+    "266": 1.0,
+    "267": 1.0,
+    "268": 1.0,
+    "269": 1.0,
+    "270": 1.0,
+    "271": 1.0,
+    "272": 1.0,
+    "273": 1.0,
+    "274": 1.0,
+    "275": 1.0,
+    "276": 1.0,
+    "277": 1.0,
+    "278": 1.0,
+    "279": 1.0,
+    "280": 1.0,
+    "281": 1.0,
+    "282": 1.0,
+    "283": 1.0,
+    "284": 1.0,
+    "285": 1.0,
+    "286": 1.0,
+    "287": 1.0,
+    "288": 1.0,
+    "289": 1.0,
+    "290": 1.0,
+    "291": 1.0,
+    "292": 1.0,
+    "293": 1.0,
+    "294": 1.0,
+    "295": 1.0,
+    "296": 1.0,
+    "297": 1.0,
+    "298": 1.0,
+    "299": 1.0,
+    "300": 1.0,
+    "301": 1.0,
+    "302": 1.0,
+    "303": 1.0,
+    "304": 1.0,
+    "305": 1.0,
+    "306": 1.0,
+    "307": 1.0,
+    "308": 1.0,
+    "309": 1.0,
+    "310": 1.0,
+    "311": 1.0,
+    "312": 1.0,
+    "313": 1.0,
+    "314": 1.0,
+    "315": 1.0,
+    "316": 1.0,
+    "317": 1.0,
+    "318": 1.0,
+    "319": 1.0,
+    "320": 1.0,
+    "321": 1.0,
+    "322": 1.0,
+    "323": 1.0,
+    "324": 1.0,
+    "325": 1.0,
+    "326": 1.0,
+    "327": 1.0,
+    "328": 1.0,
+    "329": 1.0,
+    "330": 1.0,
+    "331": 1.0,
+    "332": 1.0,
+    "333": 1.0,
+    "334": 1.0,
+    "335": 1.0,
+    "336": 1.0,
+    "337": 1.0,
+    "338": 1.0,
+    "339": 1.0,
+    "340": 1.0,
+    "341": 1.0,
+    "342": 1.0,
+    "343": 1.0,
+    "344": 1.0,
+    "345": 1.0,
+    "346": 1.0,
+    "347": 1.0,
+    "348": 1.0,
+    "349": 1.0,
+    "350": 1.0,
+    "351": 1.0,
+    "352": 1.0,
+    "353": 1.0
+  },
+  "gods": [
+    {
+      "id": "src_hooks_use_toast_usetoast",
+      "label": "useToast()",
+      "degree": 162
+    },
+    {
+      "id": "supabase_functions_agent_api_index_json",
+      "label": "json()",
+      "degree": 128
+    },
+    {
+      "id": "src_components_ui_button_button",
+      "label": "Button",
+      "degree": 111
+    },
+    {
+      "id": "src_lib_utils_cn",
+      "label": "cn()",
+      "degree": 101
+    },
+    {
+      "id": "src_components_ui_badge_badge",
+      "label": "Badge()",
+      "degree": 85
+    },
+    {
+      "id": "src_integrations_supabase_client_supabase",
+      "label": "supabase",
+      "degree": 84
+    },
+    {
+      "id": "src_components_ui_card_card",
+      "label": "Card",
+      "degree": 77
+    },
+    {
+      "id": "src_components_ui_card_cardcontent",
+      "label": "CardContent",
+      "degree": 76
+    },
+    {
+      "id": "src_components_ui_card_cardheader",
+      "label": "CardHeader",
+      "degree": 65
+    },
+    {
+      "id": "src_components_ui_card_cardtitle",
+      "label": "CardTitle",
+      "degree": 64
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Graphify MCP Stdio Server",
+      "target": "Condo Assist MCP Server (128 tools)",
+      "source_files": [
+        ".codex/skills/graphify/references/exports.md",
+        ".lovable/memory/features/mcp-server.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; semantically similar concepts with no structural link; peripheral node `Graphify MCP Stdio Server` unexpectedly reaches hub `Condo Assist MCP Server (128 tools)`"
+    },
+    {
+      "source": "Native CLAUDE.md Integration",
+      "target": "AGENTS.md Graphify Rules",
+      "source_files": [
+        ".codex/skills/graphify/references/hooks.md",
+        "AGENTS.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; semantically similar concepts with no structural link; peripheral node `Native CLAUDE.md Integration` unexpectedly reaches hub `AGENTS.md Graphify Rules`"
+    },
+    {
+      "source": "Placeholder Image Graphic (SVG)",
+      "target": "Luvimg App Shell (index.html)",
+      "source_files": [
+        "public/placeholder.svg",
+        "index.html"
+      ],
+      "confidence": "AMBIGUOUS",
+      "relation": "conceptually_related_to",
+      "why": "ambiguous connection - not explicitly stated in source; crosses file types (doc ↔ image); connects across different repos/directories"
+    },
+    {
+      "source": "Luvimg Email Header Logo — teal building mark",
+      "target": "Official Contact Email (geral@luvimg.com)",
+      "source_files": [
+        "supabase/functions/send-email/logo-luvimg.png",
+        ".lovable/memory/index.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (doc ↔ image); connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "Supplier Portal Magic Code Flow",
+      "target": "Agent API (43 REST Endpoints)",
+      "source_files": [
+        "src/utils/deploymentChecklist.md",
+        ".lovable/memory/features/external-api-access.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities; peripheral node `Supplier Portal Magic Code Flow` unexpectedly reaches hub `Agent API (43 REST Endpoints)`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "ambiguous_edge",
+      "question": "What is the exact relationship between `Luvimg App Shell (index.html)` and `Placeholder Image Graphic (SVG)`?",
+      "why": "Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low."
+    },
+    {
+      "type": "ambiguous_edge",
+      "question": "What is the exact relationship between `Luvimg Hexagon Logo — dark blue/violet wordmark` and `Luvimg Building Logo — teal app icon / favicon`?",
+      "why": "Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `useToast()` connect `useToast` to `PendencyDetail.tsx`, `input.tsx`, `KnowledgeImport.tsx`, `Fornecedores.tsx`, `Badge`, `client.ts`, `Keys.tsx`, `AssemblyAttachMinutesDialog.tsx`, `App.tsx`, `Assistance`, `Sinistros.tsx`, `QuotationManagement.tsx`, `InsuranceForm.tsx`, `formatBuildingLabel`, `Assistencias.tsx`, `useAppSettings.ts`, `AssistanceDetail.tsx`, `EditAssistanceForm.tsx`, `FollowUpDashboard.tsx`, `Inspecoes.tsx`, `useAnalytics.ts`, `useAuth.tsx`, `Edificios.tsx`, `dropdown-menu.tsx`, `SupplierForm.tsx`, `hooks/use-toast.ts`, `BuildingDocumentsTab.tsx`, `BuildingAdministratorsManager.tsx`, `AssemblyImport.tsx`, `badge.tsx`, `button.tsx`, `toast.tsx`, `textarea.tsx`, `CreateAssistanceForm.tsx`, `TestPortalButton.tsx`, `inputSanitization.ts`, `InterventionTypeForm.tsx`, `useNotifications.ts`, `react`, `useKnowledgeArticles.ts`, `useSecurityEvents.ts`, `SafeDeleteSupplierDialog.tsx`?",
+      "why": "High betweenness centrality (0.089) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `dependencies` connect `dependencies` to `devDependencies`, `next-themes`, `zod`, `useAnalytics.ts`, `BuildingDocumentsTab.tsx`, `AssemblyImport.tsx`, `@capacitor/android`, `@capacitor/app`, `@capacitor/cli`, `@capacitor/core`, `@capacitor/haptics`, `@capacitor/ios`, `@capacitor/network`, `@capacitor/preferences`, `@capacitor/push-notifications`, `clsx`, `cmdk`, `date-fns`, `embla-carousel-react`, `@hookform/resolvers`, `html2canvas`, `input-otp`, `@capacitor/geolocation`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-avatar`, `@radix-ui/react-checkbox`, `@radix-ui/react-collapsible`, `@radix-ui/react-context-menu`, `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-hover-card`, `@radix-ui/react-label`, `@radix-ui/react-accordion`, `@radix-ui/react-aspect-ratio`, `@radix-ui/react-popover`, `@radix-ui/react-progress`, `@radix-ui/react-scroll-area`, `@radix-ui/react-select`, `@radix-ui/react-separator`, `@radix-ui/react-slider`, `@radix-ui/react-slot`, `@radix-ui/react-switch`, `@radix-ui/react-toggle`, `@radix-ui/react-toggle-group`, `@radix-ui/react-tooltip`, `react`, `react-day-picker`, `class-variance-authority`, `react-dom`, `react-hook-form`, `react-markdown`, `react-resizable-panels`, `recharts`, `remark-gfm`, `sonner`, `@supabase/supabase-js`, `lucide-react`, `tailwind-merge`, `tailwindcss-animate`, `@tanstack/react-query`, `vaul`?",
+      "why": "High betweenness centrality (0.081) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `react` connect `react` to `sidebar.tsx`, `useToast`, `dependencies`, `DashboardLayout.tsx`?",
+      "why": "High betweenness centrality (0.072) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `config`, `$schema`, `style` to the rest of the system?",
+      "why": "765 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `PendencyDetail.tsx` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.059917920656634746 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

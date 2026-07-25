@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-07-25T22:33:30.236450+00:00",
+  "nodes": {
+    "src_components_pendencies_creatependencydialog": {
+      "code_fingerprint": "a638a0fa79f672e4cd2657575215b797807167d7be71c3557ebc8f5c04262155",
+      "label": "CreatePendencyDialog.tsx",
+      "last": "2026-07-25T22:31:31.669559+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-25T22:31:31.669559+00:00",
+          "outcome": "useful",
+          "q": "Smoke test final email pendency Graphify map after install"
+        }
+      ],
+      "score": 0.999968294,
+      "source_file": "src/components/pendencies/CreatePendencyDialog.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_utils_pendencytext": {
+      "code_fingerprint": "ec4bbf69365f9a80bf70a00df50a06be6cc6d69bff47a245876b252dae9f4dc6",
+      "label": "pendencyText.ts",
+      "last": "2026-07-25T22:31:31.669559+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-25T22:31:31.669559+00:00",
+          "outcome": "useful",
+          "q": "Smoke test final email pendency Graphify map after install"
+        },
+        {
+          "date": "2026-07-25T22:26:32.231397+00:00",
+          "outcome": "useful",
+          "q": "Smoke test email pendency Graphify map"
+        }
+      ],
+      "score": 1.999856518,
+      "source_file": "src/utils/pendencyText.ts",
+      "status": "preferred",
+      "uses": 2
+    },
+    "supabase_functions_parse_pendency_pdf_index": {
+      "code_fingerprint": "c28bfcca1a21b46793e72ec7fc60981e8625b072188a68e5a945f1309f273999",
+      "label": "parse-pendency-pdf/index.ts",
+      "last": "2026-07-25T22:26:32.231397+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-25T22:26:32.231397+00:00",
+          "outcome": "useful",
+          "q": "Smoke test email pendency Graphify map"
+        }
+      ],
+      "score": 0.999888224,
+      "source_file": "supabase/functions/parse-pendency-pdf/index.ts",
+      "status": "tentative",
+      "uses": 1
+    }
+  },
+  "version": 1
+}
