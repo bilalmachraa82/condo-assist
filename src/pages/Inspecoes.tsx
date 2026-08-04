@@ -12,8 +12,24 @@ import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
-const STATUS_ORDER: InspectionStatus[] = ["overdue", "due_soon_15", "due_soon_30", "pending", "missing", "ok"];
+const PRIORITY_STATUS_RANK: Partial<Record<InspectionStatus, number>> = {
+  overdue: 0,
+  due_soon_15: 1,
+  due_soon_30: 1,
+};
 const DUE_SOON_FILTER = "due_soon_window";
+const buildingCodeCollator = new Intl.Collator("pt-PT", { numeric: true, sensitivity: "base" });
+
+const compareInspectionRows = (a: InspectionStatusRow, b: InspectionStatusRow) => {
+  const status = (PRIORITY_STATUS_RANK[a.status] ?? 2) - (PRIORITY_STATUS_RANK[b.status] ?? 2);
+  if (status !== 0) return status;
+
+  const code = buildingCodeCollator.compare(a.building_code ?? "", b.building_code ?? "");
+  if (code !== 0) return code;
+
+  return a.category_label.localeCompare(b.category_label, "pt-PT", { sensitivity: "base" });
+};
+
 type InspectionEdit = Pick<BuildingInspection, "id" | "building_id" | "category_id" | "inspection_date" | "company_name" | "company_contact" | "notes" | "certificate_url"> & {
   result: BuildingInspection["result"] | string;
 };
@@ -62,7 +78,7 @@ export default function Inspecoes() {
       ))
       .filter(r => categoryFilter === "all" || r.category_id === categoryFilter)
       .filter(r => !q || `${r.building_code} ${r.building_name} ${r.category_label} ${r.company_name ?? ""}`.toLowerCase().includes(q))
-      .sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
+      .sort(compareInspectionRows);
   }, [rows, search, statusFilter, categoryFilter]);
 
   const openFor = (buildingId?: string, categoryId?: string) => {

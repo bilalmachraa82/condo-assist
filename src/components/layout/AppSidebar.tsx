@@ -9,9 +9,7 @@ import {
   Bell,
   Clock,
   HelpCircle,
-  Euro,
   TestTube,
-  BookOpen,
   ClipboardList,
   ShieldCheck,
   ShieldAlert,
@@ -20,6 +18,8 @@ import {
   Lock,
   Key,
   UserCog,
+  Sparkles,
+  Bug,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -53,7 +53,6 @@ const principalItems: NavItem[] = [
 
 const operacoesItems: NavItem[] = [
   { title: "Assistências", url: "/assistencias", icon: Wrench },
-  { title: "Orçamentos", url: "/orcamentos", icon: Euro },
   { title: "Follow-ups", url: "/follow-ups", icon: Bell },
   { title: "Pendências Email", url: "/pendencias-email", icon: MailQuestion },
   { title: "Comunicações", url: "/comunicacoes", icon: Mail },
@@ -63,12 +62,13 @@ const catalogoItems: NavItem[] = [
   { title: "Edifícios", url: "/edificios", icon: Building2 },
   { title: "Fornecedores", url: "/fornecedores", icon: Users },
   { title: "Administradores", url: "/administradores", icon: UserCog },
-  { title: "Seguimento Actas", url: "/assembly", icon: ClipboardList },
+  { title: "Empresa de Limpeza", url: "/empresa-limpeza", icon: Sparkles },
   { title: "Inspeções", url: "/inspecoes", icon: ShieldCheck },
   { title: "Seguros", url: "/seguros", icon: ShieldAlert },
   { title: "Sinistros", url: "/sinistros", icon: ShieldAlert },
+  { title: "Desbaratização", url: "/desbaratizacao", icon: Bug },
   { title: "Chaves", url: "/chaves", icon: Key },
-  { title: "Base de Conhecimento", url: "/knowledge", icon: BookOpen },
+  { title: "Assuntos de actas", url: "/assembly", icon: ClipboardList },
 ]
 
 const configItems: NavItem[] = [

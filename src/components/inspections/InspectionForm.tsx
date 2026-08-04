@@ -14,6 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
 export type InspectionResult = "aprovado" | "aprovado_clausulas" | "pendente_relatorio" | "chumbou";
+type GutterResponsible = "condominio" | "condomino";
+
+const GUTTER_RESPONSIBLE_RE = /\n?\[RESPONSAVEL_CALEIRAS:(condominio|condomino)\]\n?/i;
 
 interface Props {
   open: boolean;
@@ -50,6 +53,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
   const [companyName, setCompanyName] = useState("");
   const [companyContact, setCompanyContact] = useState("");
   const [notes, setNotes] = useState("");
+  const [gutterResponsible, setGutterResponsible] = useState<"" | GutterResponsible>("");
   const [certificatePath, setCertificatePath] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -73,14 +77,16 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
       setResult(normalizeOldResult(editInspection.result as string));
       setCompanyName(editInspection.company_name ?? "");
       setCompanyContact(editInspection.company_contact ?? "");
-      setNotes(editInspection.notes ?? "");
+      const storedNotes = editInspection.notes ?? "";
+      setGutterResponsible((storedNotes.match(GUTTER_RESPONSIBLE_RE)?.[1] as GutterResponsible | undefined) ?? "");
+      setNotes(storedNotes.replace(GUTTER_RESPONSIBLE_RE, "").trim());
       setCertificatePath(editInspection.certificate_url ?? null);
     } else {
       setBuildingId(defaultBuildingId ?? "");
       setCategoryId(defaultCategoryId ?? "");
       setInspectionDate(format(new Date(), "yyyy-MM-dd"));
       setResult("");
-      setCompanyName(""); setCompanyContact(""); setNotes(""); setCertificatePath(null);
+      setCompanyName(""); setCompanyContact(""); setNotes(""); setGutterResponsible(""); setCertificatePath(null);
     }
   }, [open, defaultBuildingId, defaultCategoryId, editInspection]);
 
@@ -138,7 +144,11 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!buildingId || !categoryId || !inspectionDate || !result) return;
+    const isGutterInspection = selectedCategory?.key === "caleiras";
+    if (!buildingId || !categoryId || !inspectionDate || !result || (isGutterInspection && !gutterResponsible)) return;
+    const storedNotes = isGutterInspection
+      ? `${notes.trim()}${notes.trim() ? "\n" : ""}[RESPONSAVEL_CALEIRAS:${gutterResponsible}]`
+      : notes.trim();
     const payload = {
       building_id: buildingId,
       category_id: categoryId,
@@ -146,7 +156,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
       result: result as InspectionResult,
       company_name: companyName || null,
       company_contact: companyContact || null,
-      notes: notes || null,
+      notes: storedNotes || null,
       certificate_url: certificatePath,
     };
     if (isEdit && editInspection) {
@@ -215,6 +225,19 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
             </div>
           </div>
 
+          {selectedCategory?.key === "caleiras" && (
+            <div className="grid gap-2">
+              <Label>Responsável pela limpeza *</Label>
+              <Select value={gutterResponsible} onValueChange={(value) => setGutterResponsible(value as GutterResponsible)}>
+                <SelectTrigger><SelectValue placeholder="Escolher responsável" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="condominio">Feita pelo condomínio</SelectItem>
+                  <SelectItem value="condomino">Responsabilidade do condómino</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {nextDue && (
             <div className="flex items-center gap-2 rounded-md border bg-emerald-500/10 border-emerald-500/30 p-3 text-sm">
               <CalendarCheck2 className="h-4 w-4 text-emerald-600" />
@@ -270,7 +293,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={createMut.isPending || updateMut.isPending || !buildingId || !categoryId || !result}>
+            <Button type="submit" disabled={createMut.isPending || updateMut.isPending || !buildingId || !categoryId || !result || (selectedCategory?.key === "caleiras" && !gutterResponsible)}>
               {(createMut.isPending || updateMut.isPending) ? "A guardar..." : (isEdit ? "Guardar alterações" : "Registar inspeção")}
             </Button>
           </DialogFooter>

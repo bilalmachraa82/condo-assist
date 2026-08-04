@@ -59,10 +59,43 @@ export interface InspectionStatusRow {
 
 type InspectionCategoryJoin = Pick<InspectionCategory, "label" | "key" | "color" | "icon" | "validity_years">;
 
+async function ensureCaleirasCategory() {
+  const { data: existing } = await supabase
+    .from("inspection_categories")
+    .select("id")
+    .eq("key", "caleiras")
+    .maybeSingle();
+  if (existing) return;
+
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return;
+  const { data: role } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", auth.user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!role) return;
+
+  const { error } = await supabase.from("inspection_categories").upsert({
+    key: "caleiras",
+    label: "Caleiras",
+    description: "Limpeza anual de caleiras pelo condomínio ou pelo condómino",
+    validity_years: 1,
+    alert_days: [30, 15],
+    color: "#0ea5e9",
+    icon: "CloudRain",
+    display_order: 5,
+    is_active: true,
+  }, { onConflict: "key" });
+  if (error) console.warn("Não foi possível criar a categoria Caleiras", error);
+}
+
 export function useInspectionCategories() {
   return useQuery({
     queryKey: ["inspection_categories"],
     queryFn: async () => {
+      await ensureCaleirasCategory();
       const { data, error } = await supabase
         .from("inspection_categories")
         .select("*")
@@ -78,6 +111,7 @@ export function useInspectionStatus() {
   return useQuery({
     queryKey: ["inspection_status"],
     queryFn: async () => {
+      await ensureCaleirasCategory();
       const { data, error } = await supabase
         .from("building_inspection_status")
         .select("*")

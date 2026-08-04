@@ -10,6 +10,8 @@ import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   COVERAGE_LABEL,
+  CoverageType,
+  getEffectiveCoverageType,
   INSURANCE_STATUS_META,
   InsuranceStatus,
   InsuranceStatusRow,
@@ -18,7 +20,18 @@ import {
 import { InsuranceForm } from "@/components/insurances/InsuranceForm";
 import { formatBuildingLabel } from "@/utils/buildingDisplay";
 
-const STATUS_ORDER: InsuranceStatus[] = ["overdue", "due_soon_30", "missing", "ok"];
+const PRIORITY_STATUS_RANK: Partial<Record<InsuranceStatus, number>> = {
+  overdue: 0,
+  due_soon_30: 1,
+};
+const COVERAGE_ORDER: CoverageType[] = ["multirisco", "partes_comuns", "seguro_fracao", "acidentes_trabalho", "outro"];
+const buildingCodeCollator = new Intl.Collator("pt-PT", { numeric: true, sensitivity: "base" });
+
+const compareInsuranceRows = (a: InsuranceStatusRow, b: InsuranceStatusRow) => {
+  const status = (PRIORITY_STATUS_RANK[a.status] ?? 2) - (PRIORITY_STATUS_RANK[b.status] ?? 2);
+  if (status !== 0) return status;
+  return buildingCodeCollator.compare(a.building_code ?? "", b.building_code ?? "");
+};
 
 export default function Seguros() {
   const { data: rows = [], isLoading } = useInsuranceStatus();
@@ -29,6 +42,7 @@ export default function Seguros() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [insurerFilter, setInsurerFilter] = useState<string>("all");
+  const [coverageFilter, setCoverageFilter] = useState<string>("all");
 
   const stats = useMemo(() => {
     const s = { ok: 0, due_soon_30: 0, overdue: 0, missing: 0 };
@@ -54,9 +68,16 @@ export default function Seguros() {
     return rows
       .filter(r => statusFilter === "all" || r.status === statusFilter)
       .filter(r => insurerFilter === "all" || r.insurer === insurerFilter)
-      .filter(r => !q || `${r.building_code} ${r.building_name} ${r.insurer ?? ""} ${r.policy_number ?? ""} ${r.broker ?? ""}`.toLowerCase().includes(q))
-      .sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
-  }, [rows, search, statusFilter, insurerFilter]);
+      .filter(r => coverageFilter === "all" || getEffectiveCoverageType(r) === coverageFilter)
+      .filter(r => {
+        if (!q) return true;
+        const effectiveCoverageType = getEffectiveCoverageType(r);
+        return `${r.building_code} ${r.building_name} ${r.insurer ?? ""} ${r.policy_number ?? ""} ${r.broker ?? ""} ${effectiveCoverageType ? COVERAGE_LABEL[effectiveCoverageType] : ""}`
+          .toLowerCase()
+          .includes(q);
+      })
+      .sort(compareInsuranceRows);
+  }, [rows, search, statusFilter, insurerFilter, coverageFilter]);
 
   const openCreate = (buildingId?: string) => {
     setMode("create"); setPrefill(undefined); setPresetBuilding(buildingId); setOpen(true);
@@ -135,6 +156,13 @@ export default function Seguros() {
                 {insurers.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Select value={coverageFilter} onValueChange={setCoverageFilter}>
+              <SelectTrigger className="w-56"><SelectValue placeholder="Tipo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                {COVERAGE_ORDER.map(type => <SelectItem key={type} value={type}>{COVERAGE_LABEL[type]}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="rounded-md border overflow-x-auto">
@@ -158,13 +186,14 @@ export default function Seguros() {
                 )}
                 {filtered.map(r => {
                   const meta = INSURANCE_STATUS_META[r.status];
+                  const effectiveCoverageType = getEffectiveCoverageType(r);
                   return (
                     <TableRow key={`${r.building_id}-${r.insurance_id ?? "none"}`}>
                       <TableCell className="font-medium">{formatBuildingLabel({ code: r.building_code, name: r.building_name })}</TableCell>
                       <TableCell>{r.insurer ?? <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell className="font-mono text-xs">{r.policy_number ?? <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{r.broker ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{r.coverage_type ? COVERAGE_LABEL[r.coverage_type] : "—"}</TableCell>
+                      <TableCell className="text-sm">{effectiveCoverageType ? COVERAGE_LABEL[effectiveCoverageType] : "—"}</TableCell>
                       <TableCell>{r.renewal_date ? format(parseISO(r.renewal_date), "dd/MM/yyyy") : <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={cn(meta.bg, meta.color, meta.border)}>

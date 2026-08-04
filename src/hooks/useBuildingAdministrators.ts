@@ -19,6 +19,34 @@ export interface BuildingAdministrator {
 
 export const MAX_ADMINS_PER_BUILDING = 5;
 
+export type BuildingServicePlan = "basico" | "premium";
+
+const SERVICE_PLAN_MARKER_RE = /\[PLANO_ASSISTENCIA:(basico|premium)\]/i;
+const SERVICE_PLAN_MARKER_GLOBAL_RE = /\n?\[PLANO_ASSISTENCIA:(basico|premium)\]\n?/gi;
+
+export const SERVICE_PLAN_LABELS: Record<BuildingServicePlan, string> = {
+  basico: "Plano Básico",
+  premium: "Plano Premium",
+};
+
+export function getBuildingServicePlan(notes?: string | null): BuildingServicePlan {
+  const plan = notes?.match(SERVICE_PLAN_MARKER_RE)?.[1]?.toLowerCase();
+  return plan === "premium" ? "premium" : "basico";
+}
+
+export function setBuildingServicePlanMarker(
+  notes: string | null | undefined,
+  plan: BuildingServicePlan,
+) {
+  const marker = `[PLANO_ASSISTENCIA:${plan}]`;
+  const preservedNotes = (notes ?? "")
+    .replace(SERVICE_PLAN_MARKER_GLOBAL_RE, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return preservedNotes ? `${preservedNotes}\n${marker}` : marker;
+}
+
 export function useBuildingAdministrators(buildingId?: string | null) {
   return useQuery({
     queryKey: ["building-administrators", buildingId],
@@ -67,6 +95,40 @@ export function useDeleteBuildingAdministrator() {
     },
     onSuccess: (buildingId) => {
       qc.invalidateQueries({ queryKey: ["building-administrators", buildingId] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+}
+
+export function useUpdateBuildingServicePlan() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      adminNotes,
+      servicePlan,
+    }: {
+      id: string;
+      adminNotes?: string | null;
+      servicePlan: BuildingServicePlan;
+    }) => {
+      const { data, error } = await supabase
+        .from("buildings")
+        .update({
+          admin_notes: setBuildingServicePlanMarker(adminNotes, servicePlan),
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["buildings"] });
+      toast({ title: "Plano atualizado" });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });

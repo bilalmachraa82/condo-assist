@@ -3,7 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export type InsuranceStatus = "ok" | "due_soon_30" | "overdue" | "missing";
-export type CoverageType = "multirisco" | "partes_comuns" | "acidentes_trabalho" | "outro";
+export type CoverageType = "multirisco" | "partes_comuns" | "acidentes_trabalho" | "seguro_fracao" | "outro";
+export type PersistedCoverageType = Exclude<CoverageType, "seguro_fracao">;
+export const FRACTION_INSURANCE_MARKER = "[coverage_type:seguro_fracao]";
 
 export interface BuildingInsurance {
   id: string;
@@ -75,7 +77,7 @@ export interface InsuranceInput {
   insurer?: string | null;
   broker?: string | null;
   contact?: string | null;
-  coverage_type: CoverageType;
+  coverage_type: PersistedCoverageType;
   fractions_included?: string | null;
   observations?: string | null;
   renewal_date?: string | null;
@@ -143,10 +145,21 @@ export const INSURANCE_STATUS_META: Record<InsuranceStatus, { label: string; col
 };
 
 export const COVERAGE_LABEL: Record<CoverageType, string> = {
-  multirisco: "Multirriscos",
+  multirisco: "Seguro Condomínio",
   partes_comuns: "Partes Comuns",
   acidentes_trabalho: "Acidentes de Trabalho",
+  seguro_fracao: "Seguro Fração",
   outro: "Outro",
+};
+
+export const getEffectiveCoverageType = (
+  row: Pick<InsuranceStatusRow | BuildingInsurance, "coverage_type" | "observations">,
+): CoverageType | null => {
+  if (!row.coverage_type) return null;
+  if (row.coverage_type === "outro" && row.observations?.includes(FRACTION_INSURANCE_MARKER)) {
+    return "seguro_fracao";
+  }
+  return row.coverage_type;
 };
 
 // ===== Frações por edifício + estado por apólice =====

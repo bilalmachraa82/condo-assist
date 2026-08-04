@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useBuildings } from "@/hooks/useBuildings";
-import { CoverageType, InsuranceInput, InsuranceStatusRow, useUpsertInsurance, useBuildingFractions, useInsuranceFractionStatus, useSaveInsuranceFractionStatus, useUpsertBuildingFraction, useDeleteBuildingFraction, type FractionStatusValue } from "@/hooks/useInsurances";
+import { CoverageType, FRACTION_INSURANCE_MARKER, InsuranceInput, InsuranceStatusRow, getEffectiveCoverageType, useUpsertInsurance, useBuildingFractions, useInsuranceFractionStatus, useSaveInsuranceFractionStatus, useUpsertBuildingFraction, useDeleteBuildingFraction, type FractionStatusValue } from "@/hooks/useInsurances";
 import { addYears, format } from "date-fns";
 import { CalendarCheck2, Plus, Trash2, Upload, FileText, Eye, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,11 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
   const [uploadingPolicy, setUploadingPolicy] = useState(false);
   const { toast } = useToast();
 
+  const withCoverageMarker = (value: string) => {
+    const cleaned = value.replace(FRACTION_INSURANCE_MARKER, "").trim();
+    return cleaned ? `${FRACTION_INSURANCE_MARKER}\n${cleaned}` : FRACTION_INSURANCE_MARKER;
+  };
+
   useEffect(() => {
     if (!open) return;
     setPolicyFile(null);
@@ -49,7 +54,7 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       setInsurer(prefill.insurer ?? "");
       setBroker(prefill.broker ?? "");
       setContact(prefill.contact ?? "");
-      setCoverageType((prefill.coverage_type as CoverageType) ?? "multirisco");
+      setCoverageType(getEffectiveCoverageType({ coverage_type: prefill.coverage_type ?? null, observations: prefill.observations ?? null }) ?? "multirisco");
       setFractionsIncluded(prefill.fractions_included ?? "");
       setObservations(prefill.observations ?? "");
       const base = prefill.renewal_date ? new Date(prefill.renewal_date) : new Date();
@@ -61,7 +66,7 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       setInsurer(prefill.insurer ?? "");
       setBroker(prefill.broker ?? "");
       setContact(prefill.contact ?? "");
-      setCoverageType((prefill.coverage_type as CoverageType) ?? "multirisco");
+      setCoverageType(getEffectiveCoverageType({ coverage_type: prefill.coverage_type ?? null, observations: prefill.observations ?? null }) ?? "multirisco");
       setFractionsIncluded(prefill.fractions_included ?? "");
       setObservations(prefill.observations ?? "");
       setRenewalDate(prefill.renewal_date ?? "");
@@ -127,9 +132,9 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       insurer: insurer || null,
       broker: broker || null,
       contact: contact || null,
-      coverage_type: coverageType,
+      coverage_type: coverageType === "seguro_fracao" ? "outro" : coverageType,
       fractions_included: fractionsIncluded || null,
-      observations: observations || null,
+      observations: coverageType === "seguro_fracao" ? withCoverageMarker(observations) : observations.replace(FRACTION_INSURANCE_MARKER, "").trim() || null,
       renewal_date: renewalDate || null,
       ...(policyPath !== undefined ? { policy_path: policyPath } : {}),
     };
@@ -197,8 +202,9 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
               <Select value={coverageType} onValueChange={(v) => setCoverageType(v as CoverageType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="multirisco">Multirriscos</SelectItem>
+                  <SelectItem value="multirisco">Seguro Condomínio</SelectItem>
                   <SelectItem value="partes_comuns">Partes Comuns</SelectItem>
+                  <SelectItem value="seguro_fracao">Seguro Fração</SelectItem>
                   <SelectItem value="acidentes_trabalho">Acidentes de Trabalho</SelectItem>
                   <SelectItem value="outro">Outro</SelectItem>
                 </SelectContent>
