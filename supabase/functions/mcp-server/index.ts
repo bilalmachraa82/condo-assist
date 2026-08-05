@@ -17,6 +17,21 @@ const adminDb = SUPABASE_SERVICE_ROLE_KEY
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
   : null;
 
+// Lazy Supabase client for JWT validation (OAuth bearer tokens).
+const supabaseAnon = SUPABASE_ANON_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+  : null;
+
+async function isValidSupabaseJwt(token: string): Promise<boolean> {
+  if (!supabaseAnon || !token) return false;
+  try {
+    const { data, error } = await supabaseAnon.auth.getClaims(token);
+    return !error && !!data?.claims;
+  } catch {
+    return false;
+  }
+}
+
 // ── HTTP helper that calls the underlying agent-api ──
 class AgentApiError extends Error {
   status: number;
@@ -157,7 +172,7 @@ function defaultToolAnnotations(name: string) {
 // ── MCP Server ──
 const mcp = new McpServer({
   name: "condo-assist-mcp",
-  version: "1.4.1",
+  version: "1.4.2",
 });
 
 const registeredTools: Array<Record<string, unknown>> = [];
@@ -2252,16 +2267,32 @@ app.use("*", async (c, next) => {
   if (c.req.method === "GET" && pathname.endsWith("/info")) {
     return c.json({
       name: "condo-assist-mcp",
-      version: "1.4.1",
+      version: "1.4.2",
       transport: "streamable-http",
       tools: 133,
       protocol: "MCP Streamable HTTP",
-      compatibility: ["ChatGPT Apps SDK", "ChatGPT Agent Builder", "Claude Desktop", "MCP Inspector"],
+      compatibility: ["ChatGPT Apps SDK", "ChatGPT Agent Builder", "Claude Desktop", "MCP Inspector", "Grok Live"],
       required_tools: { search: true, fetch: true },
+      auth: {
+        methods: ["x-api-key", "bearer-oauth"],
+        oauth_issuer: `https://${new URL(SUPABASE_URL).hostname}/auth/v1`,
+        oauth_protected_resource: "/.well-known/oauth-protected-resource",
+      },
       endpoints: {
         full: "/functions/v1/mcp-server",
         chatgpt_safe: "/functions/v1/mcp-server/chatgpt",
       },
+    }, 200, corsHeaders);
+  }
+
+  // OAuth 2.1 protected resource metadata (RFC 9728)
+  if (c.req.method === "GET" && pathname.endsWith("/.well-known/oauth-protected-resource")) {
+    return c.json({
+      resource: `${SUPABASE_URL}/functions/v1/mcp-server`,
+      authorization_servers: [`https://${new URL(SUPABASE_URL).hostname}/auth/v1`],
+      bearer_methods: ["header"],
+      bearer_header_name: "Authorization",
+      authorization_server_metadata: `https://${new URL(SUPABASE_URL).hostname}/auth/v1/.well-known/openid-configuration`,
     }, 200, corsHeaders);
   }
 
@@ -2370,11 +2401,29 @@ app.use("*", async (c, next) => {
 
   const authHeader = c.req.header("authorization") ?? "";
   const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
-  const apiKey = (c.req.header("x-api-key") || bearer || new URL(c.req.url).searchParams.get("api_key") || "").trim();
+  const xApiKey = (c.req.header("x-api-key") || "").trim();
+  const queryKey = (new URL(c.req.url).searchParams.get("api_key") || "").trim();
+  const apiKey = xApiKey || bearer || queryKey;
 
-  if (!EXTERNAL_API_KEY.trim() || apiKey !== EXTERNAL_API_KEY.trim()) {
+  const configured = EXTERNAL_API_KEY.trim().length > 0;
+  const apiKeyMatched = configured && apiKey === EXTERNAL_API_KEY.trim();
+
+  if (!apiKeyMatched) {
+    // OAuth 2.1 / Supabase JWT bearer path: if an Authorization header was
+    // supplied and it is NOT the raw API key, try to validate it as a
+    // Supabase access token. This lets MCP clients that require an OAuth
+    // token flow (e.g. Grok Live) connect once the Supabase Auth server is
+    // configured as the authorization server.
+    const isBearer = /^Bearer\s+/i.test(authHeader) && bearer && bearer !== EXTERNAL_API_KEY.trim();
+    if (isBearer) {
+      const jwtOk = await isValidSupabaseJwt(bearer);
+      if (jwtOk) {
+        await next();
+        return;
+      }
+    }
     const correlationId = await logAuthRejected(c, pathname.endsWith("/chatgpt") ? "chatgpt" : "full", apiKey ? "invalid-key" : "missing-key");
-    return c.json({ error: "Unauthorized. Provide x-api-key header or Bearer token.", correlationId }, 401, {
+    return c.json({ error: "Unauthorized. Provide x-api-key header or a valid OAuth Bearer token.", correlationId }, 401, {
       ...corsHeaders,
       "x-correlation-id": correlationId,
     });

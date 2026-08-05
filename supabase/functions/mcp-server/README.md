@@ -20,12 +20,29 @@ GET https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server/info
 Usa a mesma `EXTERNAL_API_KEY` da Agent API. Aceita:
 
 - Header: `x-api-key: <KEY>`
-- Header: `Authorization: Bearer <KEY>`
+- Header: `Authorization: Bearer <KEY>` (quando `<KEY>` é a EXTERNAL_API_KEY)
 - Query param: `?api_key=<KEY>`
+- Header: `Authorization: Bearer <SUPABASE_JWT>` (OAuth 2.1 — token emitido pelo Supabase Auth)
+
+### OAuth 2.1 / Grok Live
+
+O servidor também funciona como **resource server** OAuth 2.1 e valida tokens Supabase:
+
+- Protected resource metadata: `GET /.well-known/oauth-protected-resource`
+- Authorization server: `https://zmpitnpmplemfozvtbam.supabase.co/auth/v1`
+- Token endpoint: `https://zmpitnpmplemfozvtbam.supabase.co/auth/v1/token`
+- OpenID discovery: `https://zmpitnpmplemfozvtbam.supabase.co/auth/v1/.well-known/openid-configuration`
+
+> Nota: o fluxo OAuth 2.1 requer que o Supabase Auth esteja configurado como authorization server no projeto. Se o cliente MCP só suportar API key, usa o header `x-api-key`.
 
 ## Ferramentas expostas — inventário completo (133, v1.4.0)
 
 Paridade completa com a app web. Lista extraída diretamente de `index.ts`.
+
+### Notas v1.4.2 (OAuth + Grok Live — Ago 2026)
+- **Suporte OAuth 2.1 adicionado.** O `mcp-server` valida `Authorization: Bearer <SUPABASE_JWT>` via `supabase.auth.getClaims`, mantendo total compatibilidade com `x-api-key`.
+- **Protected resource metadata** disponível em `GET /.well-known/oauth-protected-resource`.
+- **Endpoint `/info`** agora inclui `auth.methods`, `auth.oauth_issuer` e `auth.oauth_protected_resource`.
 
 ### Notas v1.4.1 (write-path hardening — Jun 2026)
 - **Erros estruturados em TODAS as write tools.** Removidos os 22 `throw HttpError(500, "Failed to …")` opacos remanescentes; agora todos os `create_*`/`update_*`/`delete_*` passam pelo `pgErrorToHttp`, que devolve `{ error, code, field?, allowed_values?, pg_code, details }` (nunca 500).
