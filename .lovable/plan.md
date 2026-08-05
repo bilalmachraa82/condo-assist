@@ -1,42 +1,40 @@
-## Bug: toast "[object Object]" ao eliminar fornecedor
+# Página de configuração MCP (/mcp-setup)
 
-### Causa raiz
-O `QueryClient` global em `src/App.tsx` (linhas 56-61) tem:
+Criar um ecrã na app com todos os dados necessários para ligar o servidor MCP a clientes externos (Grok Live, Claude Desktop, ChatGPT), com botões de copiar.
 
-```ts
-mutations: {
-  onError: (error) => {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    showErrorToast(errorMessage);
-  },
-}
+## O que a página mostra
+
+**1. Server URL**
+- Modo completo (133 tools): `https://zmpitnpmplemfozvtbam.supabase.co/functions/v1/mcp-server`
+- Modo ChatGPT-safe (só `search` + `fetch`): `.../mcp-server/chatgpt`
+- Cada URL com botão de copiar.
+
+**2. HTTP headers**
+Tabela pronta a preencher no formulário "Add custom MCP server":
+
+```text
+x-api-key   <EXTERNAL_API_KEY>                      Secret: sim
+accept      application/json, text/event-stream     Secret: não
 ```
 
-Alguns hooks de fornecedor (`useDeactivateSupplier`, `useForceDeleteSupplier` em `src/hooks/useSupplierDependencies.ts`, e `useUpdateSupplier` em `src/hooks/useSuppliers.ts`) fazem `throw error` do objecto PostgrestError do Supabase — **não** é uma instância de `Error`. `String({...})` produz `"[object Object]"`, que aparece como toast sem título nem descrição útil (exactamente o que se vê no screenshot).
+Aviso explícito: não adicionar `Authorization: Bearer …` (a função tem `verify_jwt = false` e o header extra já causou 401 no passado).
 
-O `SafeDeleteSupplierDialog` já tem um `extractMessage` local a fazer o trabalho certo, mas o toast global do React Query dispara **primeiro** (a mutation rejeita antes do `catch` do componente atingir o toast bonito), por isso o utilizador vê `[object Object]`.
+O valor real da chave NÃO é mostrado nem embutido no código — campo com placeholder e nota de onde a copiar (Project Settings → Secrets).
 
-### Correcção (só frontend, mínima)
+**3. Verificação de estado**
+Botão que faz `GET /mcp-server/info` (endpoint público, sem auth) e mostra `tools` e `version` devolvidos, com indicador verde/vermelho.
 
-1. **`src/utils/errorHandler.ts`** — adicionar `extractErrorMessage(e)` que cobre:
-   - `Error` → `e.message`
-   - Supabase `PostgrestError` → `e.message || e.details || e.hint || e.code`
-   - string → tal e qual
-   - objecto qualquer → `JSON.stringify` (nunca `"[object Object]"`)
-   
-   Exportar e usar em `showErrorToast` também (aceitar `unknown`).
+**4. Instruções passo-a-passo para Grok Live**
+Lista curta: Name → Server URL → adicionar header `x-api-key` marcado como Secret → guardar → testar com "lista 3 edifícios".
 
-2. **`src/App.tsx`** (linhas 56-61) — trocar o `onError` global para usar `extractErrorMessage(error)` em vez do `String(error)` actual. Ignorar se `error?.__silent === true` (para o dialog poder silenciar quando quiser mostrar toast próprio).
+**5. Ligações rápidas**
+Botões para `/mcp-test`, `/mcp-health` e `/mcp-diagnostics`.
 
-3. **`src/hooks/useSupplierDependencies.ts`** — nos três hooks (`useDeactivateSupplier`, `useForceDeleteSupplier`, `useCompleteDeleteSupplier`), embrulhar os throws em `throw new Error(extractErrorMessage(err))` para que a stack traga já a mensagem limpa. Mesmo tratamento em `useDeleteSupplier` / `useUpdateSupplier` de `src/hooks/useSuppliers.ts` para o mesmo problema noutros ecrãs.
+## Detalhes técnicos
 
-4. **`src/components/suppliers/SafeDeleteSupplierDialog.tsx`** — substituir o `extractMessage` local por `extractErrorMessage` importado (dedup) e manter a lógica de detectar `23503`.
-
-### Sem mudanças
-- Nenhuma alteração de schema, RPC, edge function, RLS.
-- Nenhuma alteração das tools MCP.
-- Nenhuma alteração de UI/copy fora dos toasts de erro.
-
-### Validação
-- Abrir Fornecedores → tentar eliminar um fornecedor com dependências críticas → toast mostra mensagem legível (ex.: `has_critical_dependencies` ou o erro Postgres com HINT), nunca `[object Object]`.
-- Confirmar via console: `error` recebido no `onError` global passa pelo extractor.
+- Novo ficheiro `src/pages/McpSetup.tsx`.
+- Rota `/mcp-setup` em `src/App.tsx`, envolvida em `ProtectedRoute` + `DashboardLayout` (mesmo padrão de `/mcp-health`).
+- Reutiliza `MCP_BASE` / `CHATGPT_URL` de `src/lib/mcpClient.ts` em vez de repetir URLs.
+- Componentes shadcn existentes (Card, Button, Badge, Table) e tokens semânticos; sem cores fixas.
+- Copiar via `navigator.clipboard.writeText` + toast.
+- Sem alterações a edge functions, base de dados ou tools MCP.
