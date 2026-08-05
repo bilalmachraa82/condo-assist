@@ -1,6 +1,6 @@
 ---
-name: MCP Server for Claude Desktop / ChatGPT
-description: Edge function mcp-server expondo Agent API como 133 tools MCP via mcp-lite + Hono. v1.4.1 — write-path hardening: todas as write tools devolvem 400 estruturado (com field + allowed_values) em input inválido, nunca 500. update_assistance pré-valida status/priority contra ENUMS. delete_building/delete_supplier são soft-delete reais (is_active=false). pgErrorToHttp aplicado a todos os create_*/update_*/delete_*.
+name: MCP Server for Claude Desktop / ChatGPT / Grok Live
+description: Edge function mcp-server expondo Agent API como 133 tools MCP via mcp-lite + Hono. v1.4.2 — suporte OAuth 2.1 (valida Supabase JWT bearer tokens) além de x-api-key. Write-path hardening v1.4.1 mantido.
 type: feature
 ---
 
@@ -22,17 +22,30 @@ Claude Desktop / ChatGPT → mcp-server (MCP/JSON-RPC) → agent-api (REST /v1/*
 ```
 
 ### Auth
-Mesma `EXTERNAL_API_KEY` da agent-api. Aceita `x-api-key`, `Authorization: Bearer`, ou `?api_key=`.
+Mesma `EXTERNAL_API_KEY` da agent-api. Aceita:
+- `x-api-key: <KEY>`
+- `Authorization: Bearer <KEY>` (quando `<KEY>` é a EXTERNAL_API_KEY)
+- `?api_key=<KEY>`
+- `Authorization: Bearer <SUPABASE_JWT>` (OAuth 2.1 — token emitido pelo Supabase Auth)
 
 #### ⚠️ Auth header priority (regressão histórica — não inverter)
 `agent-api/extractToken` DEVE ler `x-api-key` **antes** de `Authorization`. A plataforma Supabase injecta `Authorization: Bearer <anon>` em cada chamada server-to-server; se for lido primeiro, é comparado contra a `EXTERNAL_API_KEY` e devolve **401** em todas as operações. O `mcp-server/callAgentApi` também NÃO envia `Authorization` (apenas `x-api-key` + `apikey` para routing).
 
 Cobertura: `supabase/functions/agent-api/auth_regression_test.ts` corre live contra 4 endpoints e valida que `x-api-key` ganha mesmo com `Authorization` inválido presente.
 
+#### OAuth 2.1 / Grok Live (v1.4.2)
+O `mcp-server` funciona como **resource server** e valida tokens Supabase via `supabase.auth.getClaims`. Metadata em `GET /.well-known/oauth-protected-resource`. O authorization server é o Supabase Auth (`https://zmpitnpmplemfozvtbam.supabase.co/auth/v1`).
+
 ### Endpoints
-- `POST /mcp-server` — JSON-RPC MCP "full" (Claude Desktop, MCP Inspector) → 128 tools
+- `POST /mcp-server` — JSON-RPC MCP "full" (Claude Desktop, MCP Inspector, Grok Live) → 133 tools
 - `POST /mcp-server/chatgpt` — JSON-RPC MCP "chatgpt-safe" → só `search` + `fetch`
-- `GET /mcp-server/info` — metadata pública (sem auth) → `{ tools: 128, version: "1.3.2" }`
+- `GET /mcp-server/info` — metadata pública (sem auth) → `{ tools: 133, version: "1.4.2" }`
+- `GET /.well-known/oauth-protected-resource` — metadata OAuth 2.1
+
+### v1.4.2 — OAuth 2.1 + Grok Live (Ago 2026)
+- **Suporte OAuth 2.1.** O `mcp-server` valida `Authorization: Bearer <SUPABASE_JWT>` via `supabase.auth.getClaims`, mantendo total compatibilidade com `x-api-key`.
+- **Protected resource metadata** em `GET /.well-known/oauth-protected-resource`.
+- **`/info`** inclui `auth.methods`, `auth.oauth_issuer` e `auth.oauth_protected_resource`.
 
 ### v1.3.2 — bugfixes operacionais (Jun 2026)
 - **`lookup_building_by_email`** agora procura em `building_administrators` E `condominium_contacts` (com `lower(trim(email))`). Sem match exacto faz fallback por domínio (`%@dominio`). Devolve `{found, building_id, building_code, name, match_type: administrator|contact|domain, contact, matches[]}`.

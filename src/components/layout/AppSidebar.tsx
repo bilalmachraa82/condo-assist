@@ -20,6 +20,7 @@ import {
   UserCog,
   Sparkles,
   Bug,
+  Bot,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -81,6 +82,7 @@ const configItems: NavItem[] = [
 const devItems: NavItem[] = [
   { title: "Teste Follow-ups", url: "/follow-up-testing", icon: TestTube, adminOnly: true },
   { title: "Teste Email", url: "/email-testing", icon: TestTube, adminOnly: true },
+  { title: "Configuração MCP", url: "/mcp-setup", icon: Bot, adminOnly: true },
 ]
 
 export function AppSidebar() {
