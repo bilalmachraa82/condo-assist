@@ -77,7 +77,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
         }
       }}
     >
-      {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+      {copied ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
     </Button>
   );
 }
@@ -221,9 +221,9 @@ export default function McpSetup() {
               ))}
             </TableBody>
           </Table>
-          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-3 flex gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-            <div className="text-sm text-amber-800 dark:text-amber-200">
+          <div className="mt-4 rounded-md border border-warning/20 bg-warning/10 p-3 flex gap-3">
+            <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0" />
+            <div className="text-sm text-warning-foreground">
               <strong>Não adiciones</strong> <code>Authorization: Bearer ...</code>. O servidor aceita <code>x-api-key</code> ou um token OAuth Supabase válido; um <code>Authorization</code> com a anon key causa 401.
             </div>
           </div>
@@ -273,7 +273,7 @@ export default function McpSetup() {
               Verificar agora
             </Button>
             {status === "ok" && (
-              <div className="flex items-center gap-2 text-emerald-600">
+              <div className="flex items-center gap-2 text-success">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="text-sm font-medium">Online</span>
               </div>
