@@ -12,6 +12,12 @@ import { CalendarCheck2, Paperclip, FileCheck2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatBuildingLabel } from "@/utils/buildingDisplay";
+import {
+  inspectionDateIsRequired,
+  inspectionDatesForSave,
+  isElevatorInspection,
+  nextDueDateIsRequired,
+} from "@/utils/inspectionRules";
 
 export type InspectionResult = "aprovado" | "aprovado_clausulas" | "pendente_relatorio" | "chumbou";
 type GutterResponsible = "condominio" | "condomino";
@@ -28,7 +34,8 @@ interface Props {
     id: string;
     building_id: string;
     category_id: string;
-    inspection_date: string;
+    inspection_date: string | null;
+    next_due_date?: string | null;
     result: InspectionResult | string;
     company_name?: string | null;
     company_contact?: string | null;
@@ -48,6 +55,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
   const [buildingId, setBuildingId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [inspectionDate, setInspectionDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+  const [nextDueDate, setNextDueDate] = useState<string>("");
   // Sem default: o utilizador tem de escolher explicitamente o resultado.
   const [result, setResult] = useState<"" | InspectionResult>("");
   const [companyName, setCompanyName] = useState("");
@@ -73,7 +81,8 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
     if (editInspection) {
       setBuildingId(editInspection.building_id);
       setCategoryId(editInspection.category_id);
-      setInspectionDate(editInspection.inspection_date);
+      setInspectionDate(editInspection.inspection_date ?? "");
+      setNextDueDate(editInspection.next_due_date ?? "");
       setResult(normalizeOldResult(editInspection.result as string));
       setCompanyName(editInspection.company_name ?? "");
       setCompanyContact(editInspection.company_contact ?? "");
@@ -85,6 +94,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
       setBuildingId(defaultBuildingId ?? "");
       setCategoryId(defaultCategoryId ?? "");
       setInspectionDate(format(new Date(), "yyyy-MM-dd"));
+      setNextDueDate("");
       setResult("");
       setCompanyName(""); setCompanyContact(""); setNotes(""); setGutterResponsible(""); setCertificatePath(null);
     }
@@ -98,11 +108,12 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
     () => buildings?.find(b => b.id === buildingId),
     [buildings, buildingId]
   );
+  const isElevator = isElevatorInspection(selectedCategory?.key);
 
   const nextDue = useMemo(() => {
-    if (!selectedCategory || !inspectionDate) return null;
+    if (!selectedCategory || !inspectionDate || isElevator) return null;
     return addYears(new Date(inspectionDate), selectedCategory.validity_years);
-  }, [selectedCategory, inspectionDate]);
+  }, [selectedCategory, inspectionDate, isElevator]);
 
   // Etiqueta do anexo conforme categoria: cláusulas para elevadores, certificado para o resto.
   const attachmentLabel = useMemo(() => {
@@ -127,8 +138,12 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
       if (error) throw error;
       setCertificatePath(path);
       toast({ title: "Documento anexado" });
-    } catch (e: any) {
-      toast({ title: "Erro a anexar", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({
+        title: "Erro a anexar",
+        description: e instanceof Error ? e.message : "Não foi possível anexar o documento.",
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
     }
@@ -145,15 +160,26 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isGutterInspection = selectedCategory?.key === "caleiras";
-    if (!buildingId || !categoryId || !inspectionDate || !result || (isGutterInspection && !gutterResponsible)) return;
+    if (
+      !buildingId ||
+      !categoryId ||
+      !result ||
+      (inspectionDateIsRequired(selectedCategory?.key) && !inspectionDate) ||
+      (nextDueDateIsRequired(selectedCategory?.key, result) && !nextDueDate) ||
+      (isGutterInspection && !gutterResponsible)
+    ) return;
     const storedNotes = isGutterInspection
       ? `${notes.trim()}${notes.trim() ? "\n" : ""}[RESPONSAVEL_CALEIRAS:${gutterResponsible}]`
       : notes.trim();
     const payload = {
       building_id: buildingId,
       category_id: categoryId,
-      inspection_date: inspectionDate,
-      result: result as InspectionResult,
+      ...inspectionDatesForSave({
+        categoryKey: selectedCategory?.key,
+        result: result as InspectionResult,
+        inspectionDate,
+        nextDueDate,
+      }),
       company_name: companyName || null,
       company_contact: companyContact || null,
       notes: storedNotes || null,
@@ -172,7 +198,11 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar inspeção" : "Registar inspeção"}</DialogTitle>
-          <DialogDescription>A próxima data é calculada automaticamente com base no tipo.</DialogDescription>
+          <DialogDescription>
+            {isElevator
+              ? "Indique apenas a próxima data. Para o estado Pendente, a data pode ficar em branco."
+              : "A próxima data é calculada automaticamente com base no tipo."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-2">
@@ -187,7 +217,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
             </Select>
             {selectedBuilding && selectedCategory?.key?.toLowerCase().includes("elevador") && (
               <p className="text-xs text-muted-foreground">
-                Edifício tem <strong>{(selectedBuilding as any).elevator_count ?? 0}</strong> elevador(es) registados.
+                Edifício tem <strong>{selectedBuilding.elevator_count ?? 0}</strong> elevador(es) registados.
               </p>
             )}
           </div>
@@ -208,8 +238,20 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label>Data inspeção</Label>
-              <Input type="date" value={inspectionDate} onChange={e => setInspectionDate(e.target.value)} required />
+              <Label>{isElevator ? "Próxima data" : "Data inspeção"}</Label>
+              {isElevator ? (
+                <Input
+                  type="date"
+                  value={nextDueDate}
+                  onChange={e => setNextDueDate(e.target.value)}
+                  required={nextDueDateIsRequired(selectedCategory?.key, result)}
+                />
+              ) : (
+                <Input type="date" value={inspectionDate} onChange={e => setInspectionDate(e.target.value)} required />
+              )}
+              {isElevator && result === "pendente_relatorio" && (
+                <p className="text-xs text-muted-foreground">Opcional enquanto a próxima data não for conhecida.</p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label>Resultado *</Label>
@@ -293,7 +335,16 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={createMut.isPending || updateMut.isPending || !buildingId || !categoryId || !result || (selectedCategory?.key === "caleiras" && !gutterResponsible)}>
+            <Button type="submit" disabled={
+              createMut.isPending ||
+              updateMut.isPending ||
+              !buildingId ||
+              !categoryId ||
+              !result ||
+              (inspectionDateIsRequired(selectedCategory?.key) && !inspectionDate) ||
+              (nextDueDateIsRequired(selectedCategory?.key, result) && !nextDueDate) ||
+              (selectedCategory?.key === "caleiras" && !gutterResponsible)
+            }>
               {(createMut.isPending || updateMut.isPending) ? "A guardar..." : (isEdit ? "Guardar alterações" : "Registar inspeção")}
             </Button>
           </DialogFooter>

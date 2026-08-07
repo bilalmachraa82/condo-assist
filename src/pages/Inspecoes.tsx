@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useInspectionStatus, useInspectionCategories, STATUS_META, InspectionStatus, type BuildingInspection, type InspectionStatusRow } from "@/hooks/useInspections";
+import { useInspectionStatus, useInspectionCategories, useDeleteInspection, STATUS_META, InspectionStatus, type BuildingInspection, type InspectionStatusRow } from "@/hooks/useInspections";
 import { InspectionForm } from "@/components/inspections/InspectionForm";
-import { ShieldCheck, AlertTriangle, Clock, CalendarX, HelpCircle, Plus, Search, Hourglass, X } from "lucide-react";
+import { ShieldCheck, AlertTriangle, Clock, CalendarX, HelpCircle, Plus, Search, Hourglass, Trash2, X } from "lucide-react";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formatBuildingLabel } from "@/utils/buildingDisplay";
@@ -30,7 +31,7 @@ const compareInspectionRows = (a: InspectionStatusRow, b: InspectionStatusRow) =
   return a.category_label.localeCompare(b.category_label, "pt-PT", { sensitivity: "base" });
 };
 
-type InspectionEdit = Pick<BuildingInspection, "id" | "building_id" | "category_id" | "inspection_date" | "company_name" | "company_contact" | "notes" | "certificate_url"> & {
+type InspectionEdit = Pick<BuildingInspection, "id" | "building_id" | "category_id" | "inspection_date" | "next_due_date" | "company_name" | "company_contact" | "notes" | "certificate_url"> & {
   result: BuildingInspection["result"] | string;
 };
 
@@ -41,6 +42,8 @@ export default function Inspecoes() {
   const [presetBuilding, setPresetBuilding] = useState<string | undefined>();
   const [presetCategory, setPresetCategory] = useState<string | undefined>();
   const [editInspection, setEditInspection] = useState<InspectionEdit | null>(null);
+  const [deleteInspectionRow, setDeleteInspectionRow] = useState<InspectionStatusRow | null>(null);
+  const deleteInspection = useDeleteInspection();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -93,6 +96,7 @@ export default function Inspecoes() {
       building_id: r.building_id,
       category_id: r.category_id,
       inspection_date: r.inspection_date,
+      next_due_date: r.next_due_date,
       result: r.result ?? "aprovado",
       company_name: r.company_name,
       company_contact: r.company_contact,
@@ -232,7 +236,7 @@ export default function Inspecoes() {
                           <span className="text-xs text-muted-foreground">({r.validity_years}a)</span>
                         </span>
                       </TableCell>
-                      <TableCell>{r.inspection_date ? format(parseISO(r.inspection_date), "dd/MM/yyyy") : <span className="text-muted-foreground">—</span>}</TableCell>
+                      <TableCell>{r.category_key !== "elevador" && r.inspection_date ? format(parseISO(r.inspection_date), "dd/MM/yyyy") : <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell>{r.next_due_date ? format(parseISO(r.next_due_date), "dd/MM/yyyy") : <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={cn(meta.bg, meta.color, meta.border)}>
@@ -247,6 +251,11 @@ export default function Inspecoes() {
                         {r.inspection_id && (
                           <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
                             Editar
+                          </Button>
+                        )}
+                        {r.inspection_id && (
+                          <Button size="icon" variant="ghost" onClick={() => setDeleteInspectionRow(r)} title="Eliminar inspeção" aria-label="Eliminar inspeção">
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         )}
                         <Button size="sm" variant="ghost" onClick={() => openFor(r.building_id, r.category_id)}>
@@ -269,6 +278,35 @@ export default function Inspecoes() {
         defaultCategoryId={presetCategory}
         editInspection={editInspection}
       />
+
+      <AlertDialog open={!!deleteInspectionRow} onOpenChange={(v) => !v && setDeleteInspectionRow(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar registo de inspeção?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O registo de {deleteInspectionRow?.category_label} do edifício {deleteInspectionRow?.building_code} será eliminado. Se não existir outro registo, o estado passará a “Sem registo”.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteInspection.isPending}
+              onClick={async () => {
+                if (!deleteInspectionRow?.inspection_id) return;
+                try {
+                  await deleteInspection.mutateAsync(deleteInspectionRow.inspection_id);
+                  setDeleteInspectionRow(null);
+                } catch {
+                  // O hook apresenta o erro e o diálogo fica aberto para nova tentativa.
+                }
+              }}
+            >
+              {deleteInspection.isPending ? "A eliminar..." : "Eliminar"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

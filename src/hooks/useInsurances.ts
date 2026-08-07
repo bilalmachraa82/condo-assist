@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 
 export type InsuranceStatus = "ok" | "due_soon_30" | "overdue" | "missing";
@@ -17,6 +18,7 @@ export interface BuildingInsurance {
   coverage_type: CoverageType;
   fractions_included: string | null;
   observations: string | null;
+  policy_path: string | null;
   renewal_date: string | null;
   notes: string | null;
   created_at: string;
@@ -35,6 +37,7 @@ export interface InsuranceStatusRow {
   coverage_type: CoverageType | null;
   fractions_included: string | null;
   observations: string | null;
+  policy_path: string | null;
   renewal_date: string | null;
   days_until_renewal: number | null;
   status: InsuranceStatus;
@@ -44,7 +47,7 @@ export function useInsuranceStatus() {
   return useQuery({
     queryKey: ["insurance_status"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("building_insurance_status")
         .select("*")
         .order("building_code");
@@ -59,7 +62,7 @@ export function useBuildingInsurances(buildingId?: string) {
     queryKey: ["building_insurances", buildingId],
     enabled: !!buildingId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("building_insurances")
         .select("*")
         .eq("building_id", buildingId)
@@ -90,19 +93,22 @@ export function useUpsertInsurance() {
   return useMutation({
     mutationFn: async (input: InsuranceInput) => {
       const { data: userData } = await supabase.auth.getUser();
-      const payload: any = { ...input, created_by: userData?.user?.id ?? null };
-      if (input.id) {
-        const { id, ...rest } = payload;
-        const { data, error } = await (supabase as any)
+      const { id, ...values } = input;
+      if (id) {
+        const { data, error } = await supabase
           .from("building_insurances")
-          .update(rest)
+          .update(values as TablesUpdate<"building_insurances">)
           .eq("id", id)
           .select()
           .single();
         if (error) throw error;
         return data;
       }
-      const { data, error } = await (supabase as any)
+      const payload: TablesInsert<"building_insurances"> = {
+        ...values,
+        created_by: userData?.user?.id ?? null,
+      };
+      const { data, error } = await supabase
         .from("building_insurances")
         .insert(payload)
         .select()
@@ -126,13 +132,16 @@ export function useDeleteInsurance() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("building_insurances").delete().eq("id", id);
+      const { error } = await supabase.from("building_insurances").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["insurance_status"] });
       qc.invalidateQueries({ queryKey: ["building_insurances"] });
       toast({ title: "Seguro removido" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao eliminar seguro", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -178,7 +187,7 @@ export function useBuildingFractions(buildingId?: string) {
     queryKey: ["building-fractions", buildingId],
     enabled: !!buildingId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("building_fractions")
         .select("*")
         .eq("building_id", buildingId)
@@ -195,16 +204,22 @@ export function useUpsertBuildingFraction() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async (input: Partial<BuildingFraction> & { building_id: string; label: string }) => {
-      const payload: any = { ...input };
-      if (payload.id) {
-        const { id, ...rest } = payload;
-        const { data, error } = await (supabase as any)
-          .from("building_fractions").update(rest).eq("id", id).select().single();
+      const { id, ...values } = input;
+      if (id) {
+        const { data, error } = await supabase
+          .from("building_fractions")
+          .update(values as TablesUpdate<"building_fractions">)
+          .eq("id", id)
+          .select()
+          .single();
         if (error) throw error;
         return data;
       }
-      const { data, error } = await (supabase as any)
-        .from("building_fractions").insert(payload).select().single();
+      const { data, error } = await supabase
+        .from("building_fractions")
+        .insert(values as TablesInsert<"building_fractions">)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
@@ -219,7 +234,7 @@ export function useDeleteBuildingFraction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string; building_id: string }) => {
-      const { error } = await (supabase as any).from("building_fractions").delete().eq("id", id);
+      const { error } = await supabase.from("building_fractions").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
@@ -243,7 +258,7 @@ export function useInsuranceFractionStatus(insuranceId?: string | null) {
     queryKey: ["insurance-fraction-status", insuranceId],
     enabled: !!insuranceId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("insurance_fraction_status")
         .select("*")
         .eq("insurance_id", insuranceId);
@@ -261,17 +276,18 @@ export function useSaveInsuranceFractionStatus() {
       entries: { fraction_id: string; status: FractionStatusValue }[];
     }) => {
       // Estratégia simples: apaga tudo e re-insere.
-      await (supabase as any)
+      const { error: deleteError } = await supabase
         .from("insurance_fraction_status")
         .delete()
         .eq("insurance_id", input.insurance_id);
+      if (deleteError) throw deleteError;
       if (input.entries.length === 0) return;
       const rows = input.entries.map((e) => ({
         insurance_id: input.insurance_id,
         fraction_id: e.fraction_id,
         status: e.status,
       }));
-      const { error } = await (supabase as any).from("insurance_fraction_status").insert(rows);
+      const { error } = await supabase.from("insurance_fraction_status").insert(rows);
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {

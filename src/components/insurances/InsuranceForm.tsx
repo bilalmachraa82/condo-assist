@@ -70,7 +70,7 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       setFractionsIncluded(prefill.fractions_included ?? "");
       setObservations(prefill.observations ?? "");
       setRenewalDate(prefill.renewal_date ?? "");
-      setExistingPolicyPath((prefill as any)?.policy_path ?? null);
+      setExistingPolicyPath(prefill.policy_path ?? null);
     } else {
       setBuildingId(defaultBuildingId ?? "");
       setPolicyNumber(""); setInsurer(""); setBroker(""); setContact("");
@@ -116,8 +116,12 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
           .upload(path, policyFile, { upsert: false, contentType: policyFile.type || undefined });
         if (upErr) throw upErr;
         policyPath = path;
-      } catch (err: any) {
-        toast({ title: "Erro a carregar apólice", description: err.message, variant: "destructive" });
+      } catch (err: unknown) {
+        toast({
+          title: "Erro a carregar apólice",
+          description: err instanceof Error ? err.message : "Não foi possível carregar a apólice.",
+          variant: "destructive",
+        });
         setUploadingPolicy(false);
         return;
       } finally {

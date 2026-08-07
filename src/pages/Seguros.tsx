@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShieldAlert, ShieldCheck, Clock, CalendarX, HelpCircle, Plus, Search, RefreshCw, Pencil } from "lucide-react";
+import { ShieldAlert, ShieldCheck, Clock, CalendarX, HelpCircle, Plus, Search, RefreshCw, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
@@ -16,6 +17,7 @@ import {
   InsuranceStatus,
   InsuranceStatusRow,
   useInsuranceStatus,
+  useDeleteInsurance,
 } from "@/hooks/useInsurances";
 import { InsuranceForm } from "@/components/insurances/InsuranceForm";
 import { formatBuildingLabel } from "@/utils/buildingDisplay";
@@ -39,6 +41,8 @@ export default function Seguros() {
   const [mode, setMode] = useState<"create" | "renew" | "edit">("create");
   const [prefill, setPrefill] = useState<InsuranceStatusRow | undefined>();
   const [presetBuilding, setPresetBuilding] = useState<string | undefined>();
+  const [deleteInsuranceRow, setDeleteInsuranceRow] = useState<InsuranceStatusRow | null>(null);
+  const deleteInsurance = useDeleteInsurance();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [insurerFilter, setInsurerFilter] = useState<string>("all");
@@ -57,8 +61,10 @@ export default function Seguros() {
   }, [rows]);
 
   const coverage = useMemo(() => {
-    const total = rows.length;
-    const covered = rows.filter(r => r.status !== "missing").length;
+    const buildingIds = new Set(rows.map(r => r.building_id));
+    const coveredBuildingIds = new Set(rows.filter(r => r.insurance_id).map(r => r.building_id));
+    const total = buildingIds.size;
+    const covered = coveredBuildingIds.size;
     const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
     return { total, covered, pct };
   }, [rows]);
@@ -218,6 +224,12 @@ export default function Seguros() {
                             <Button size="sm" variant="ghost" onClick={() => openRenew(r)} title="Renovar">
                               <RefreshCw className="h-3.5 w-3.5 mr-1" /> Renovar
                             </Button>
+                            <Button size="sm" variant="ghost" onClick={() => openCreate(r.building_id)} title="Registar outro seguro">
+                              <Plus className="h-3.5 w-3.5 mr-1" /> Outro seguro
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => setDeleteInsuranceRow(r)} title="Eliminar seguro" aria-label="Eliminar seguro">
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
                           </div>
                         )}
                       </TableCell>
@@ -237,6 +249,35 @@ export default function Seguros() {
         prefill={prefill}
         mode={mode}
       />
+
+      <AlertDialog open={!!deleteInsuranceRow} onOpenChange={(v) => !v && setDeleteInsuranceRow(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A apólice {deleteInsuranceRow?.policy_number || "sem número"} será eliminada. Se for o último seguro do edifício, este passará a “Sem registo”.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteInsurance.isPending}
+              onClick={async () => {
+                if (!deleteInsuranceRow?.insurance_id) return;
+                try {
+                  await deleteInsurance.mutateAsync(deleteInsuranceRow.insurance_id);
+                  setDeleteInsuranceRow(null);
+                } catch {
+                  // O hook apresenta o erro e o diálogo fica aberto para nova tentativa.
+                }
+              }}
+            >
+              {deleteInsurance.isPending ? "A eliminar..." : "Eliminar"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

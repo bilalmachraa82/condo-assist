@@ -19,6 +19,14 @@ function requireString(v: unknown, field: string): string {
   return v.trim();
 }
 
+function optionalNullableString(v: unknown, field: string): string | null {
+  if (v === undefined || v === null || v === "") return null;
+  if (typeof v !== "string") {
+    throw new HttpError(400, `Field '${field}' must be a string or null`, "INVALID_INPUT");
+  }
+  return v.trim() || null;
+}
+
 function requireUUID(v: unknown, field: string): string {
   const s = requireString(v, field);
   if (!UUID_RE.test(s)) {
@@ -1568,7 +1576,7 @@ async function handleUploadAssistancePhoto(req: Request, params: Record<string, 
 
   if (uploadError) {
     console.error("Photo upload error:", maskPII(JSON.stringify(uploadError)));
-    pgErrorToHttp(error, "Failed to upload photo");
+    pgErrorToHttp(uploadError, "Failed to upload photo");
   }
 
   const { data: photoRecord, error: dbError } = await supabase
@@ -1585,7 +1593,7 @@ async function handleUploadAssistancePhoto(req: Request, params: Record<string, 
   if (dbError) {
     await supabase.storage.from("assistance-photos").remove([fileName]);
     console.error("Photo DB error:", maskPII(JSON.stringify(dbError)));
-    pgErrorToHttp(error, "Failed to save photo");
+    pgErrorToHttp(dbError, "Failed to save photo");
   }
 
   await supabase.from("activity_log").insert({
@@ -2510,9 +2518,9 @@ async function handleCreateBuildingInspection(req: Request, params: Record<strin
   const insertData = {
     building_id: params.buildingId,
     category_id: requireUUID(body.category_id, "category_id"),
-    inspection_date: requireString(body.inspection_date, "inspection_date"),
+    inspection_date: optionalNullableString(body.inspection_date, "inspection_date"),
     result: requireString(body.result, "result"),
-    next_due_date: requireString(body.next_due_date, "next_due_date"),
+    next_due_date: optionalNullableString(body.next_due_date, "next_due_date"),
     company_name: body.company_name || null,
     company_contact: body.company_contact || null,
     certificate_url: body.certificate_url || null,

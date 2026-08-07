@@ -1355,8 +1355,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
-          inspection_date: string
-          next_due_date: string
+          inspection_date: string | null
+          next_due_date: string | null
           notes: string | null
           result: string
           updated_at: string
@@ -1370,8 +1370,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
-          inspection_date: string
-          next_due_date: string
+          inspection_date?: string | null
+          next_due_date?: string | null
           notes?: string | null
           result?: string
           updated_at?: string
@@ -1385,8 +1385,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
-          inspection_date?: string
-          next_due_date?: string
+          inspection_date?: string | null
+          next_due_date?: string | null
           notes?: string | null
           result?: string
           updated_at?: string
@@ -3168,6 +3168,7 @@ export type Database = {
           insurance_id: string | null
           insurer: string | null
           observations: string | null
+          policy_path: string | null
           policy_number: string | null
           renewal_date: string | null
           status: string | null

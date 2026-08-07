@@ -8,7 +8,6 @@ extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
 [db]
-enabled = true
 port = 54322
 shadow_port = 54320
 major_version = 15
@@ -22,8 +21,7 @@ max_client_conn = 100
 
 [realtime]
 enabled = true
-ip_version = "ipv4"
-port = 54323
+ip_version = "IPv4"
 max_header_length = 4096
 
 [studio]
@@ -49,8 +47,6 @@ site_url = "http://127.0.0.1:3000"
 additional_redirect_urls = ["https://127.0.0.1:3000"]
 jwt_expiry = 3600
 enable_signup = true
-enable_email_confirmations = false
-enable_email_autoconfirm = true
 
 [auth.email]
 enable_signup = true
@@ -64,15 +60,13 @@ template = "Your code is {{ .Code }} ."
 
 [edge_runtime]
 enabled = true
-ip_version = "ipv4"
-port = 54321
 inspector_port = 8083
 
 [analytics]
 enabled = false
 port = 54327
 vector_port = 54328
-gw_mode = "disabled"
+backend = "postgres"
 
 [functions.send-email]
 verify_jwt = false
@@ -94,3 +88,6 @@ verify_jwt = false
 
 [functions.mcp-health-cron]
 verify_jwt = false
+
+[functions.insurance-alerts-cron]
+verify_jwt = true

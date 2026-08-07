@@ -24,9 +24,9 @@ export interface BuildingInspection {
   id: string;
   building_id: string;
   category_id: string;
-  inspection_date: string;
+  inspection_date: string | null;
   result: InspectionResult;
-  next_due_date: string;
+  next_due_date: string | null;
   company_name: string | null;
   company_contact: string | null;
   certificate_url: string | null;
@@ -146,7 +146,8 @@ export function useCreateInspection() {
     mutationFn: async (input: {
       building_id: string;
       category_id: string;
-      inspection_date: string;
+      inspection_date: string | null;
+      next_due_date?: string | null;
       result: BuildingInspection["result"];
       company_name?: string | null;
       company_contact?: string | null;
@@ -179,7 +180,8 @@ export function useUpdateInspection() {
       id: string;
       building_id?: string;
       category_id?: string;
-      inspection_date?: string;
+      inspection_date?: string | null;
+      next_due_date?: string | null;
       result?: BuildingInspection["result"];
       company_name?: string | null;
       company_contact?: string | null;
@@ -215,6 +217,9 @@ export function useDeleteInspection() {
       qc.invalidateQueries({ queryKey: ["inspection_status"] });
       qc.invalidateQueries({ queryKey: ["building_inspections"] });
       toast({ title: "Inspeção removida" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao eliminar inspeção", description: error.message, variant: "destructive" });
     },
   });
 }

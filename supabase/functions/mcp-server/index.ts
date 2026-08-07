@@ -5,6 +5,7 @@
 
 import { Hono } from "hono";
 import { McpServer, StreamableHttpTransport } from "mcp-lite";
+import type { ToolCallResult } from "mcp-lite";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -25,8 +26,8 @@ const supabaseAnon = SUPABASE_ANON_KEY
 async function isValidSupabaseJwt(token: string): Promise<boolean> {
   if (!supabaseAnon || !token) return false;
   try {
-    const { data, error } = await supabaseAnon.auth.getClaims(token);
-    return !error && !!data?.claims;
+    const { data, error } = await supabaseAnon.auth.getUser(token);
+    return !error && !!data?.user;
   } catch {
     return false;
   }
@@ -179,12 +180,14 @@ const registeredTools: Array<Record<string, unknown>> = [];
 const originalTool = mcp.tool.bind(mcp);
 (mcp as any).tool = (name: string, def: Record<string, unknown>) => {
   const inputSchema = def.inputSchema ?? { type: "object", properties: {} };
-  const originalHandler = (def as any).handler as (args: any) => Promise<unknown> | unknown;
+  const originalHandler = (def as any).handler as (
+    args: any,
+  ) => Promise<ToolCallResult> | ToolCallResult;
   // Wrap every handler: (1) validate required params, (2) convert thrown
   // errors into descriptive structured results so the agent never sees a
   // generic "Internal error". search/fetch keep their own try/catch logic
   // because they have their own fallback shape.
-  const wrappedHandler = async (args: any) => {
+  const wrappedHandler = async (args: any): Promise<ToolCallResult> => {
     const missing = validateRequired(args, inputSchema);
     if (missing) {
       const payload = { tool: name, error: missing, cause: "missing_required_parameter" };
@@ -1584,12 +1587,12 @@ mcp.tool("list_building_inspections", {
   handler: async ({ building_id }: { building_id: string }) => asText(await callAgentApi("GET", `/v1/buildings/${building_id}/inspections`)),
 });
 mcp.tool("create_building_inspection", {
-  description: "[Edifício] Regista nova inspeção periódica.",
+  description: "[Edifício] Regista nova inspeção periódica. Em elevadores, a data histórica é omitida; a próxima data pode ser omitida apenas quando o resultado está pendente.",
   inputSchema: { type: "object", properties: {
     building_id: { type: "string" }, category_id: { type: "string" }, inspection_date: { type: "string" },
     result: { type: "string" }, next_due_date: { type: "string" },
     company_name: { type: "string" }, company_contact: { type: "string" }, certificate_url: { type: "string" }, notes: { type: "string" },
-  }, required: ["building_id", "category_id", "inspection_date", "result", "next_due_date"] },
+  }, required: ["building_id", "category_id", "result"] },
   handler: async ({ building_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/buildings/${building_id}/inspections`, { body })),
 });
 mcp.tool("update_building_inspection", {
@@ -2711,4 +2714,3 @@ app.all("/chatgpt", (c) => handleMcp(c, chatgptRpcHandler, "chatgpt"));
 app.all("*", (c) => handleMcp(c, mcpHandler, "full"));
 
 Deno.serve(app.fetch);
-
