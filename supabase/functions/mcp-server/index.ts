@@ -3,9 +3,9 @@
 // URL: https://<project>.supabase.co/functions/v1/mcp-server
 // Auth: header "x-api-key: <EXTERNAL_API_KEY>" (also accepts Authorization: Bearer)
 
-import { Hono } from "hono";
-import { McpServer, StreamableHttpTransport } from "mcp-lite";
-import type { ToolCallResult } from "mcp-lite";
+import { Hono } from "npm:hono@^4.6.14";
+import { McpServer, StreamableHttpTransport } from "npm:mcp-lite@^0.10.0";
+import type { ToolCallResult } from "npm:mcp-lite@^0.10.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -2249,6 +2249,19 @@ const corsHeaders = {
 
 const app = new Hono();
 
+function hasExternalApiKey(c: any): boolean {
+  const authHeader = c.req.header("authorization") ?? "";
+  const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const xApiKey = (c.req.header("x-api-key") ?? "").trim();
+  const queryKey = (new URL(c.req.url).searchParams.get("api_key") ?? "").trim();
+  const providedKey = xApiKey || bearer || queryKey;
+  return EXTERNAL_API_KEY.trim().length > 0 && providedKey === EXTERNAL_API_KEY.trim();
+}
+
+function debugUnauthorized(c: any) {
+  return c.json({ error: "Unauthorized" }, 401, corsHeaders);
+}
+
 // Auth middleware — accepts Bearer token, x-api-key, or query param ?api_key=
 app.use("*", async (c, next) => {
   if (c.req.method === "OPTIONS") {
@@ -2299,11 +2312,12 @@ app.use("*", async (c, next) => {
     }, 200, corsHeaders);
   }
 
-  // Public discovery: returns the registered tool descriptors, the live
+  // Authenticated diagnostics: returns the registered tool descriptors, the live
   // tools/list JSON-RPC response from the same handler the Agent Builder hits,
   // and the last N MCP requests (method + rpc + body snippet) so we can
-  // compare discovery vs manual calls without auth.
+  // compare discovery vs manual calls without exposing request data publicly.
   if (c.req.method === "GET" && pathname.endsWith("/debug/tools")) {
+    if (!hasExternalApiKey(c)) return debugUnauthorized(c);
     const url = new URL(c.req.url);
     const variant = url.searchParams.get("variant") === "chatgpt" ? "chatgpt" : "full";
     const handler = variant === "chatgpt" ? chatgptRpcHandler : mcpHandler;
@@ -2345,6 +2359,7 @@ app.use("*", async (c, next) => {
 
   // Filterable recent requests log: /debug/recent?rpc=initialize&mcp=chatgpt&limit=20
   if (c.req.method === "GET" && pathname.endsWith("/debug/recent")) {
+    if (!hasExternalApiKey(c)) return debugUnauthorized(c);
     const url = new URL(c.req.url);
     const rpc = url.searchParams.get("rpc");
     const mcpLabel = url.searchParams.get("mcp");
@@ -2357,6 +2372,7 @@ app.use("*", async (c, next) => {
 
   // Lookup a single request by correlationId: /debug/correlation/<id>
   if (c.req.method === "GET" && pathname.includes("/debug/correlation/")) {
+    if (!hasExternalApiKey(c)) return debugUnauthorized(c);
     const id = pathname.split("/debug/correlation/")[1]?.split("/")[0] ?? "";
     const entry = findByCorrelation(id);
     if (!entry) return c.json({ error: "not found", correlationId: id }, 404, corsHeaders);

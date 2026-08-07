@@ -61,6 +61,14 @@ Deno.test("GET /.well-known/oauth-protected-resource returns metadata", async ()
   assert(typeof meta.authorization_server_metadata === "string");
 });
 
+Deno.test("debug diagnostics reject unauthenticated access", async () => {
+  for (const path of ["/debug/tools", "/debug/recent", "/debug/correlation/unknown"]) {
+    const { status, json } = await get(path);
+    assertEquals(status, 401, `${path} must not be public`);
+    assertEquals((json as any)?.error, "Unauthorized");
+  }
+});
+
 Deno.test("POST tools/list with x-api-key returns 200", async () => {
   if (skipIfNoKey()) return;
   const { status, json } = await post("", { "x-api-key": KEY! }, {
