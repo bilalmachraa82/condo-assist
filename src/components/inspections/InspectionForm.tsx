@@ -16,7 +16,9 @@ import {
   inspectionDateIsRequired,
   inspectionDatesForSave,
   isElevatorInspection,
+  isGasInspection,
   nextDueDateIsRequired,
+  usesOnlyNextInspectionDate,
 } from "@/utils/inspectionRules";
 
 export type InspectionResult = "aprovado" | "aprovado_clausulas" | "pendente_relatorio" | "chumbou";
@@ -109,11 +111,13 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
     [buildings, buildingId]
   );
   const isElevator = isElevatorInspection(selectedCategory?.key);
+  const isGas = isGasInspection(selectedCategory?.key);
+  const nextDateOnly = usesOnlyNextInspectionDate(selectedCategory?.key);
 
   const nextDue = useMemo(() => {
-    if (!selectedCategory || !inspectionDate || isElevator) return null;
+    if (!selectedCategory || !inspectionDate || nextDateOnly) return null;
     return addYears(new Date(inspectionDate), selectedCategory.validity_years);
-  }, [selectedCategory, inspectionDate, isElevator]);
+  }, [selectedCategory, inspectionDate, nextDateOnly]);
 
   // Etiqueta do anexo conforme categoria: cláusulas para elevadores, certificado para o resto.
   const attachmentLabel = useMemo(() => {
@@ -201,6 +205,8 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
           <DialogDescription>
             {isElevator
               ? "Indique apenas a próxima data. Para o estado Pendente, a data pode ficar em branco."
+              : isGas
+                ? "Indique apenas a próxima data da inspeção de gás."
               : "A próxima data é calculada automaticamente com base no tipo."}
           </DialogDescription>
         </DialogHeader>
@@ -238,8 +244,8 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label>{isElevator ? "Próxima data" : "Data inspeção"}</Label>
-              {isElevator ? (
+              <Label>{nextDateOnly ? "Próxima data" : "Data inspeção"}</Label>
+              {nextDateOnly ? (
                 <Input
                   type="date"
                   value={nextDueDate}

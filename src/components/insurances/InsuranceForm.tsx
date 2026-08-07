@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useBuildings } from "@/hooks/useBuildings";
-import { CoverageType, FRACTION_INSURANCE_MARKER, InsuranceInput, InsuranceStatusRow, getEffectiveCoverageType, useUpsertInsurance, useBuildingFractions, useInsuranceFractionStatus, useSaveInsuranceFractionStatus, useUpsertBuildingFraction, useDeleteBuildingFraction, type FractionStatusValue } from "@/hooks/useInsurances";
+import { COVERAGE_MARKER_RE, CoverageType, FRACTION_INSURANCE_MARKER, InsuranceInput, InsuranceStatusRow, getEffectiveCoverageType, useUpsertInsurance, useBuildingFractions, useInsuranceFractionStatus, useSaveInsuranceFractionStatus, useUpsertBuildingFraction, useDeleteBuildingFraction, type FractionStatusValue } from "@/hooks/useInsurances";
 import { addYears, format } from "date-fns";
 import { CalendarCheck2, Plus, Trash2, Upload, FileText, Eye, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +41,7 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
   const { toast } = useToast();
 
   const withCoverageMarker = (value: string) => {
-    const cleaned = value.replace(FRACTION_INSURANCE_MARKER, "").trim();
+    const cleaned = value.replace(COVERAGE_MARKER_RE, "").trim();
     return cleaned ? `${FRACTION_INSURANCE_MARKER}\n${cleaned}` : FRACTION_INSURANCE_MARKER;
   };
 
@@ -136,9 +136,9 @@ export function InsuranceForm({ open, onOpenChange, defaultBuildingId, prefill, 
       insurer: insurer || null,
       broker: broker || null,
       contact: contact || null,
-      coverage_type: coverageType === "seguro_fracao" ? "outro" : coverageType,
+      coverage_type: coverageType,
       fractions_included: fractionsIncluded || null,
-      observations: coverageType === "seguro_fracao" ? withCoverageMarker(observations) : observations.replace(FRACTION_INSURANCE_MARKER, "").trim() || null,
+      observations: coverageType === "seguro_fracao" ? withCoverageMarker(observations) : observations.replace(COVERAGE_MARKER_RE, "").trim() || null,
       renewal_date: renewalDate || null,
       ...(policyPath !== undefined ? { policy_path: policyPath } : {}),
     };

@@ -5,8 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 
 export type InsuranceStatus = "ok" | "due_soon_30" | "overdue" | "missing";
 export type CoverageType = "multirisco" | "partes_comuns" | "acidentes_trabalho" | "seguro_fracao" | "outro";
-export type PersistedCoverageType = Exclude<CoverageType, "seguro_fracao">;
+export type PersistedCoverageType = CoverageType;
 export const FRACTION_INSURANCE_MARKER = "[coverage_type:seguro_fracao]";
+export const COVERAGE_MARKER_RE = /\[coverage_type:[^\]]+\]\s*/gi;
 
 export interface BuildingInsurance {
   id: string;

@@ -84,6 +84,10 @@ export default function Inspecoes() {
       .sort(compareInspectionRows);
   }, [rows, search, statusFilter, categoryFilter]);
 
+  const selectedCategoryKey = categories.find((category) => category.id === categoryFilter)?.key?.toLowerCase();
+  const showHistoricalInspectionDate = selectedCategoryKey !== "elevador" && selectedCategoryKey !== "gas";
+  const visibleColumnCount = showHistoricalInspectionDate ? 7 : 6;
+
   const openFor = (buildingId?: string, categoryId?: string) => {
     setEditInspection(null);
     setPresetBuilding(buildingId); setPresetCategory(categoryId); setOpenForm(true);
@@ -212,7 +216,7 @@ export default function Inspecoes() {
                 <TableRow>
                   <TableHead>Edifício</TableHead>
                   <TableHead>Categoria</TableHead>
-                  <TableHead>Última inspeção</TableHead>
+                  {showHistoricalInspectionDate && <TableHead>Última inspeção</TableHead>}
                   <TableHead>Próxima</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Empresa</TableHead>
@@ -220,9 +224,9 @@ export default function Inspecoes() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading && <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>}
+                {isLoading && <TableRow><TableCell colSpan={visibleColumnCount} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>}
                 {!isLoading && filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Sem resultados.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleColumnCount} className="text-center py-8 text-muted-foreground">Sem resultados.</TableCell></TableRow>
                 )}
                 {filtered.map(r => {
                   const meta = STATUS_META[r.status];
@@ -236,7 +240,9 @@ export default function Inspecoes() {
                           <span className="text-xs text-muted-foreground">({r.validity_years}a)</span>
                         </span>
                       </TableCell>
-                      <TableCell>{r.category_key !== "elevador" && r.inspection_date ? format(parseISO(r.inspection_date), "dd/MM/yyyy") : <span className="text-muted-foreground">—</span>}</TableCell>
+                      {showHistoricalInspectionDate && (
+                        <TableCell>{!["elevador", "gas"].includes(r.category_key) && r.inspection_date ? format(parseISO(r.inspection_date), "dd/MM/yyyy") : <span className="text-muted-foreground">—</span>}</TableCell>
+                      )}
                       <TableCell>{r.next_due_date ? format(parseISO(r.next_due_date), "dd/MM/yyyy") : <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={cn(meta.bg, meta.color, meta.border)}>

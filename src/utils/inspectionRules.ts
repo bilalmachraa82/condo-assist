@@ -7,13 +7,19 @@ export type InspectionResultValue =
 export const isElevatorInspection = (categoryKey?: string | null) =>
   categoryKey?.toLowerCase() === "elevador";
 
+export const isGasInspection = (categoryKey?: string | null) =>
+  ["gas", "gás"].includes(categoryKey?.toLowerCase() ?? "");
+
+export const usesOnlyNextInspectionDate = (categoryKey?: string | null) =>
+  isElevatorInspection(categoryKey) || isGasInspection(categoryKey);
+
 export const inspectionDateIsRequired = (categoryKey?: string | null) =>
-  !isElevatorInspection(categoryKey);
+  !usesOnlyNextInspectionDate(categoryKey);
 
 export const nextDueDateIsRequired = (
   categoryKey: string | null | undefined,
   result: InspectionResultValue | "",
-) => isElevatorInspection(categoryKey) && result !== "pendente_relatorio";
+) => isGasInspection(categoryKey) || (isElevatorInspection(categoryKey) && result !== "pendente_relatorio");
 
 export const inspectionDatesForSave = ({
   categoryKey,
@@ -26,7 +32,7 @@ export const inspectionDatesForSave = ({
   inspectionDate: string;
   nextDueDate: string;
 }) => ({
-  inspection_date: isElevatorInspection(categoryKey) ? null : inspectionDate || null,
-  next_due_date: isElevatorInspection(categoryKey) ? nextDueDate || null : undefined,
+  inspection_date: usesOnlyNextInspectionDate(categoryKey) ? null : inspectionDate || null,
+  next_due_date: usesOnlyNextInspectionDate(categoryKey) ? nextDueDate || null : undefined,
   result,
 });

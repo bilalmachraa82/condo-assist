@@ -46,6 +46,42 @@ const ENUMS = {
   insurance_claim_status: ["aberto","em_analise","aguarda_peritagem","peritagem_realizada","aguarda_pagamento","pago","recusado","arquivado"],
 } as const;
 
+const INSURANCE_COVERAGE_TYPES = ["multirisco", "partes_comuns", "acidentes_trabalho", "seguro_fracao", "outro"] as const;
+const INSURANCE_COVERAGE_ALIASES: Record<string, typeof INSURANCE_COVERAGE_TYPES[number]> = {
+  "seguro condomínio": "multirisco",
+  "seguro condominio": "multirisco",
+  "partes comuns": "partes_comuns",
+  "acidentes de trabalho": "acidentes_trabalho",
+  "seguro fração": "seguro_fracao",
+  "seguro fracao": "seguro_fracao",
+  "fração": "seguro_fracao",
+  "fracao": "seguro_fracao",
+  "frações": "seguro_fracao",
+  "fracoes": "seguro_fracao",
+};
+
+function normalizeInsuranceCoverageType(value: unknown, required = false): string | undefined {
+  if (value === undefined || value === null || value === "") {
+    if (required) {
+      throw new HttpError(400, "Field 'coverage_type' is required", "MISSING_FIELD", {
+        field: "coverage_type",
+        allowed_values: INSURANCE_COVERAGE_TYPES,
+      });
+    }
+    return undefined;
+  }
+  const normalized = String(value).trim().toLowerCase();
+  const resolved = INSURANCE_COVERAGE_ALIASES[normalized] ?? normalized;
+  if (!(INSURANCE_COVERAGE_TYPES as readonly string[]).includes(resolved)) {
+    throw new HttpError(400, `Invalid value for 'coverage_type': '${value}'`, "INVALID_ENUM", {
+      field: "coverage_type",
+      allowed_values: INSURANCE_COVERAGE_TYPES,
+      given: value,
+    });
+  }
+  return resolved;
+}
+
 // Virtual aliases (logical groupings → real enum values).
 const STATUS_ALIASES: Record<string, Record<string, string[]>> = {
   assistance_status: {
@@ -2556,7 +2592,7 @@ async function handleCreateBuildingInsurance(req: Request, params: Record<string
   const insertData: Record<string, unknown> = {
     building_id,
     // coverage_type tem default 'multirisco' na BD → não é obrigatório.
-    coverage_type: typeof body.coverage_type === "string" && body.coverage_type.trim() ? body.coverage_type.trim() : undefined,
+    coverage_type: normalizeInsuranceCoverageType(body.coverage_type),
     policy_number: body.policy_number || null,
     insurer: body.insurer || null,
     broker: body.broker || null,
@@ -2577,6 +2613,7 @@ async function handleUpdateBuildingInsurance(req: Request, params: Record<string
   const body = await req.json();
   const updateData: Record<string, unknown> = {};
   for (const k of ["coverage_type","policy_number","insurer","broker","contact","fractions_included","observations","renewal_date","notes","policy_path"]) if (body[k] !== undefined) updateData[k] = body[k];
+  if (body.coverage_type !== undefined) updateData.coverage_type = normalizeInsuranceCoverageType(body.coverage_type, true);
   if (!Object.keys(updateData).length) throw new HttpError(400, "No fields to update", "INVALID_INPUT");
   const { data, error } = await supabase.from("building_insurances").update(updateData).eq("id", params.insuranceId).select("*").single();
   if (error) pgErrorToHttp(error, "Failed to update");

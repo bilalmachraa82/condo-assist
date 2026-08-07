@@ -1615,18 +1615,18 @@ mcp.tool("list_building_insurances", {
   handler: async ({ building_id }: { building_id: string }) => asText(await callAgentApi("GET", `/v1/buildings/${building_id}/insurances`)),
 });
 mcp.tool("create_building_insurance", {
-  description: "[Edifício] Cria novo seguro do edifício.",
+  description: "[Edifício] Cria novo seguro do edifício. Tipos: multirisco, partes_comuns, acidentes_trabalho, seguro_fracao ou outro.",
   inputSchema: { type: "object", properties: {
-    building_id: { type: "string" }, coverage_type: { type: "string" }, policy_number: { type: "string" },
+    building_id: { type: "string" }, coverage_type: { type: "string", enum: ["multirisco", "partes_comuns", "acidentes_trabalho", "seguro_fracao", "outro"] }, policy_number: { type: "string" },
     insurer: { type: "string" }, broker: { type: "string" }, contact: { type: "string" },
     fractions_included: { type: "string" }, observations: { type: "string" }, renewal_date: { type: "string" }, notes: { type: "string" }, policy_path: { type: "string" },
   }, required: ["building_id", "coverage_type"] },
   handler: async ({ building_id, ...body }: any) => asText(await callAgentApi("POST", `/v1/buildings/${building_id}/insurances`, { body })),
 });
 mcp.tool("update_building_insurance", {
-  description: "[Edifício] Atualiza seguro.",
+  description: "[Edifício] Atualiza seguro, incluindo o tipo de cobertura e as frações abrangidas.",
   inputSchema: { type: "object", properties: {
-    insurance_id: { type: "string" }, coverage_type: { type: "string" }, policy_number: { type: "string" },
+    insurance_id: { type: "string" }, coverage_type: { type: "string", enum: ["multirisco", "partes_comuns", "acidentes_trabalho", "seguro_fracao", "outro"] }, policy_number: { type: "string" },
     insurer: { type: "string" }, broker: { type: "string" }, contact: { type: "string" },
     fractions_included: { type: "string" }, observations: { type: "string" }, renewal_date: { type: "string" }, notes: { type: "string" }, policy_path: { type: "string" },
   }, required: ["insurance_id"] },

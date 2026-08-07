@@ -36,6 +36,40 @@ Deno.test("ordinary inspections retain their inspection date", () => {
   assertEquals(nextDueDateIsRequired("extintor", "aprovado"), false);
 });
 
+Deno.test("gas inspections store and require only the next date", () => {
+  assertEquals(inspectionDateIsRequired("gas"), false);
+  assertEquals(nextDueDateIsRequired("gas", "aprovado"), true);
+  assertEquals(nextDueDateIsRequired("gás", "pendente_relatorio"), true);
+  assertEquals(
+    inspectionDatesForSave({
+      categoryKey: "gas",
+      result: "aprovado",
+      inspectionDate: "2022-10-06",
+      nextDueDate: "2027-10-06",
+    }),
+    {
+      inspection_date: null,
+      next_due_date: "2027-10-06",
+      result: "aprovado",
+    },
+  );
+});
+
+Deno.test("insurance coverage migration and LIA tools accept every UI type", async () => {
+  const migration = await Deno.readTextFile(
+    new URL("../../migrations/20260807151000_fix_luvimg_insurance_types_gas_dates.sql", import.meta.url),
+  );
+  const agentApi = await Deno.readTextFile(new URL("./index.ts", import.meta.url));
+  const mcpServer = await Deno.readTextFile(new URL("../mcp-server/index.ts", import.meta.url));
+
+  for (const coverageType of ["acidentes_trabalho", "seguro_fracao"]) {
+    assertStringIncludes(migration, `'${coverageType}'`);
+    assertStringIncludes(agentApi, `"${coverageType}"`);
+    assertStringIncludes(mcpServer, `"${coverageType}"`);
+  }
+  assertStringIncludes(migration, "v_category_key = 'gas'");
+});
+
 Deno.test("insurance status migration exposes every policy", async () => {
   const migrationUrl = new URL(
     "../../migrations/20260806120000_fix_luvimg_inspections_insurances_elevators.sql",
