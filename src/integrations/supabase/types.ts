@@ -1351,11 +1351,13 @@ export type Database = {
           category_id: string
           certificate_url: string | null
           company_contact: string | null
+          company_email: string | null
           company_name: string | null
           created_at: string
           created_by: string | null
           id: string
           inspection_date: string | null
+          maintenance_type: string | null
           next_due_date: string | null
           notes: string | null
           result: string
@@ -1366,11 +1368,13 @@ export type Database = {
           category_id: string
           certificate_url?: string | null
           company_contact?: string | null
+          company_email?: string | null
           company_name?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           inspection_date?: string | null
+          maintenance_type?: string | null
           next_due_date?: string | null
           notes?: string | null
           result?: string
@@ -1381,11 +1385,13 @@ export type Database = {
           category_id?: string
           certificate_url?: string | null
           company_contact?: string | null
+          company_email?: string | null
           company_name?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           inspection_date?: string | null
+          maintenance_type?: string | null
           next_due_date?: string | null
           notes?: string | null
           result?: string
@@ -3142,11 +3148,13 @@ export type Database = {
           category_label: string | null
           certificate_url: string | null
           company_contact: string | null
+          company_email: string | null
           company_name: string | null
           days_until_due: number | null
           elevator_count: number | null
           inspection_date: string | null
           inspection_id: string | null
+          maintenance_type: string | null
           next_due_date: string | null
           notes: string | null
           result: string | null

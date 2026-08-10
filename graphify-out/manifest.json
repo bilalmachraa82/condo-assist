@@ -50,7 +50,7 @@
     "semantic_hash": "2861902ac5f2959ce20f715959aa26ec"
   },
   "src/App.tsx": {
-    "mtime": 1786049714.6324592,
+    "mtime": 1786366651.116276,
     "ast_hash": "769e3fcbb5281cc8a809f3a5eaf052e4",
     "semantic_hash": ""
   },
@@ -290,13 +290,13 @@
     "semantic_hash": "e2dade6acec80bf888e2abfe911a54b5"
   },
   "src/components/inspections/InspectionForm.tsx": {
-    "mtime": 1786050213.7617784,
-    "ast_hash": "620651ac5bd4375266ffbbcee745d189",
+    "mtime": 1786366518.5275023,
+    "ast_hash": "91f43f5d299d1c2f565b19a9da2560f2",
     "semantic_hash": ""
   },
   "src/components/insurances/InsuranceForm.tsx": {
-    "mtime": 1786087460.5767977,
-    "ast_hash": "bee14904367c73bbf11059a390c2c3df",
+    "mtime": 1786114553.6781087,
+    "ast_hash": "c4829f50a4159bb09b3b504b0f76d336",
     "semantic_hash": ""
   },
   "src/components/knowledge/KnowledgeCard.tsx": {
@@ -970,8 +970,8 @@
     "semantic_hash": "f7005fafcae6dabe5d8b4eba2eb9e62c"
   },
   "src/hooks/useInspections.ts": {
-    "mtime": 1786050377.46744,
-    "ast_hash": "3b03f2cbcf7c0dfb4a7e2d8bc8d13801",
+    "mtime": 1786366275.0486913,
+    "ast_hash": "3a9167083e22ea30199db928ccb00e8f",
     "semantic_hash": ""
   },
   "src/hooks/useInsuranceClaims.ts": {
@@ -980,8 +980,8 @@
     "semantic_hash": "0cb672ceee27881180f7b1f1fc71ad2b"
   },
   "src/hooks/useInsurances.ts": {
-    "mtime": 1786087492.0251153,
-    "ast_hash": "e0a1abe9ea95e9f61c79a1ba39940cba",
+    "mtime": 1786114553.6773453,
+    "ast_hash": "e353715ad0fa75caba36fb45a3167ea1",
     "semantic_hash": ""
   },
   "src/hooks/useInterventionTypes.ts": {
@@ -1140,8 +1140,8 @@
     "semantic_hash": "e39b18996e7cd869dd1134a0a0bf5e96"
   },
   "src/integrations/supabase/types.ts": {
-    "mtime": 1786087383.5611353,
-    "ast_hash": "89d6c6ed1ba0160f8502a9c0643a42c5",
+    "mtime": 1786366275.0513947,
+    "ast_hash": "9930365a7560144354214d62a170c1fe",
     "semantic_hash": ""
   },
   "src/lib/mcpClient.ts": {
@@ -1240,8 +1240,8 @@
     "semantic_hash": "2d9630476cab5837e03b9bfd52cbfcff"
   },
   "src/pages/Inspecoes.tsx": {
-    "mtime": 1786087517.1976364,
-    "ast_hash": "a790267abf32abacc36f0d55d3024d9d",
+    "mtime": 1786366275.0502465,
+    "ast_hash": "a0a89bba74e4a7b81338b98f9617c6b7",
     "semantic_hash": ""
   },
   "src/pages/Keys.tsx": {
@@ -1415,8 +1415,8 @@
     "semantic_hash": "a81a63acb478cf893ec785e5c9c34238"
   },
   "supabase/functions/agent-api/index.ts": {
-    "mtime": 1786087552.4909434,
-    "ast_hash": "e9f0026dd740add11adfb0471a6bae83",
+    "mtime": 1786114553.6800911,
+    "ast_hash": "886975ab14789652edd571265db4b2e8",
     "semantic_hash": ""
   },
   "supabase/functions/api-assistances/index.ts": {
@@ -1465,8 +1465,8 @@
     "semantic_hash": "e55783cf4047ae1cd703b7d72e941990"
   },
   "supabase/functions/mcp-server/index.ts": {
-    "mtime": 1786087601.1285331,
-    "ast_hash": "8843536c0f9625a327d014a7c52e8411",
+    "mtime": 1786114553.68321,
+    "ast_hash": "d2abcd3d40137104d802990146445ca2",
     "semantic_hash": ""
   },
   "supabase/functions/parse-assembly-minutes/index.ts": {
@@ -2620,18 +2620,18 @@
     "semantic_hash": ""
   },
   "src/utils/inspectionRules.ts": {
-    "mtime": 1786050146.2257214,
-    "ast_hash": "5587d87ae013508c5af4b8e6bd0e0d72",
+    "mtime": 1786114553.673245,
+    "ast_hash": "e3195c50936a7f85d3f3c5c80dcce7da",
     "semantic_hash": ""
   },
   "supabase/functions/agent-api/luvimg_email_fixes_test.ts": {
-    "mtime": 1786087557.838118,
-    "ast_hash": "00849635b8e7f4c10addddc8753ddfa8",
+    "mtime": 1786114553.690126,
+    "ast_hash": "79fdfa7f5420aa8b2bc1a0a4d63e19b8",
     "semantic_hash": ""
   },
   "supabase/functions/mcp-server/oauth_regression_test.ts": {
-    "mtime": 1786049714.6381893,
-    "ast_hash": "4faa0e41071561dd0388e403bdee0133",
+    "mtime": 1786106733.3631492,
+    "ast_hash": "e63f25406cf7f4ed350e28cc820f8af9",
     "semantic_hash": ""
   },
   "supabase/migrations/20260804221341_4aa88b20-97db-4afc-9047-e913b22f988a.sql": {
@@ -2640,13 +2640,23 @@
     "semantic_hash": ""
   },
   "supabase/migrations/20260806120000_fix_luvimg_inspections_insurances_elevators.sql": {
-    "mtime": 1786087383.560083,
-    "ast_hash": "77bd7730064e18b448a1c89d055c6acf",
+    "mtime": 1786087834.7598827,
+    "ast_hash": "bfe0cc891b1c4923b7527f53076e2ef1",
     "semantic_hash": ""
   },
   ".lovable/plan/integra\u00e7\u00e3o-grok-live-p\u00e1gina-mcp-setup-2026-08-05.md": {
     "mtime": 1786049714.6318789,
     "ast_hash": "0afe5d6cdc76f07d2e7f7807fcb2db10",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/20260807151000_fix_luvimg_insurance_types_gas_dates.sql": {
+    "mtime": 1786114553.6923237,
+    "ast_hash": "ff41e57aff289b910d3db85eb49dd478",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/20260810130000_add_inspection_maintenance_type_and_company_email.sql": {
+    "mtime": 1786366275.0515954,
+    "ast_hash": "5e2a686a5cfa59c531b663b55956a4f3",
     "semantic_hash": ""
   }
 }

@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export type InspectionStatus = "ok" | "due_soon_30" | "due_soon_15" | "overdue" | "missing" | "pending";
 export type InspectionResult = "aprovado" | "aprovado_clausulas" | "pendente_relatorio" | "chumbou";
+export type MaintenanceType = "simples" | "completa";
 
 export interface InspectionCategory {
   id: string;
@@ -29,6 +30,8 @@ export interface BuildingInspection {
   next_due_date: string | null;
   company_name: string | null;
   company_contact: string | null;
+  company_email: string | null;
+  maintenance_type: MaintenanceType | null;
   certificate_url: string | null;
   notes: string | null;
   created_at: string;
@@ -51,6 +54,8 @@ export interface InspectionStatusRow {
   result: string | null;
   company_name: string | null;
   company_contact: string | null;
+  company_email: string | null;
+  maintenance_type: MaintenanceType | null;
   notes: string | null;
   certificate_url: string | null;
   days_until_due: number | null;
@@ -151,6 +156,8 @@ export function useCreateInspection() {
       result: BuildingInspection["result"];
       company_name?: string | null;
       company_contact?: string | null;
+      company_email?: string | null;
+      maintenance_type?: MaintenanceType | null;
       notes?: string | null;
       certificate_url?: string | null;
     }) => {
@@ -185,6 +192,8 @@ export function useUpdateInspection() {
       result?: BuildingInspection["result"];
       company_name?: string | null;
       company_contact?: string | null;
+      company_email?: string | null;
+      maintenance_type?: MaintenanceType | null;
       notes?: string | null;
       certificate_url?: string | null;
     }) => {

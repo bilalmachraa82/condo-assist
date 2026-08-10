@@ -31,7 +31,7 @@ const compareInspectionRows = (a: InspectionStatusRow, b: InspectionStatusRow) =
   return a.category_label.localeCompare(b.category_label, "pt-PT", { sensitivity: "base" });
 };
 
-type InspectionEdit = Pick<BuildingInspection, "id" | "building_id" | "category_id" | "inspection_date" | "next_due_date" | "company_name" | "company_contact" | "notes" | "certificate_url"> & {
+type InspectionEdit = Pick<BuildingInspection, "id" | "building_id" | "category_id" | "inspection_date" | "next_due_date" | "company_name" | "company_contact" | "company_email" | "maintenance_type" | "notes" | "certificate_url"> & {
   result: BuildingInspection["result"] | string;
 };
 
@@ -80,7 +80,7 @@ export default function Inspecoes() {
           : r.status === statusFilter
       ))
       .filter(r => categoryFilter === "all" || r.category_id === categoryFilter)
-      .filter(r => !q || `${r.building_code} ${r.building_name} ${r.category_label} ${r.company_name ?? ""}`.toLowerCase().includes(q))
+      .filter(r => !q || `${r.building_code} ${r.building_name} ${r.category_label} ${r.company_name ?? ""} ${r.company_email ?? ""} ${r.maintenance_type ?? ""}`.toLowerCase().includes(q))
       .sort(compareInspectionRows);
   }, [rows, search, statusFilter, categoryFilter]);
 
@@ -104,6 +104,8 @@ export default function Inspecoes() {
       result: r.result ?? "aprovado",
       company_name: r.company_name,
       company_contact: r.company_contact,
+      company_email: r.company_email,
+      maintenance_type: r.maintenance_type,
       notes: r.notes,
       certificate_url: r.certificate_url ?? null,
     });
@@ -238,6 +240,9 @@ export default function Inspecoes() {
                           <span className="h-2.5 w-2.5 rounded-full" style={{ background: r.category_color }} />
                           {r.category_label}
                           <span className="text-xs text-muted-foreground">({r.validity_years}a)</span>
+                          {r.category_key === "elevador" && r.maintenance_type && (
+                            <span className="text-xs text-muted-foreground">· {r.maintenance_type === "simples" ? "Simples" : "Completa"}</span>
+                          )}
                         </span>
                       </TableCell>
                       {showHistoricalInspectionDate && (
@@ -252,7 +257,14 @@ export default function Inspecoes() {
                           )}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{r.company_name ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        <div>{r.company_name ?? "—"}</div>
+                        {r.company_email && (
+                          <a className="text-xs hover:text-primary hover:underline" href={`mailto:${r.company_email}`}>
+                            {r.company_email}
+                          </a>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right space-x-1">
                         {r.inspection_id && (
                           <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>

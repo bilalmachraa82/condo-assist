@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useBuildings } from "@/hooks/useBuildings";
-import { useCreateInspection, useUpdateInspection, useInspectionCategories } from "@/hooks/useInspections";
+import { useCreateInspection, useUpdateInspection, useInspectionCategories, type MaintenanceType } from "@/hooks/useInspections";
 import { addYears, format } from "date-fns";
 import { CalendarCheck2, Paperclip, FileCheck2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +41,8 @@ interface Props {
     result: InspectionResult | string;
     company_name?: string | null;
     company_contact?: string | null;
+    company_email?: string | null;
+    maintenance_type?: MaintenanceType | null;
     notes?: string | null;
     certificate_url?: string | null;
   } | null;
@@ -62,6 +64,8 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
   const [result, setResult] = useState<"" | InspectionResult>("");
   const [companyName, setCompanyName] = useState("");
   const [companyContact, setCompanyContact] = useState("");
+  const [companyEmail, setCompanyEmail] = useState("");
+  const [maintenanceType, setMaintenanceType] = useState<"" | MaintenanceType>("");
   const [notes, setNotes] = useState("");
   const [gutterResponsible, setGutterResponsible] = useState<"" | GutterResponsible>("");
   const [certificatePath, setCertificatePath] = useState<string | null>(null);
@@ -88,6 +92,8 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
       setResult(normalizeOldResult(editInspection.result as string));
       setCompanyName(editInspection.company_name ?? "");
       setCompanyContact(editInspection.company_contact ?? "");
+      setCompanyEmail(editInspection.company_email ?? "");
+      setMaintenanceType(editInspection.maintenance_type ?? "");
       const storedNotes = editInspection.notes ?? "";
       setGutterResponsible((storedNotes.match(GUTTER_RESPONSIBLE_RE)?.[1] as GutterResponsible | undefined) ?? "");
       setNotes(storedNotes.replace(GUTTER_RESPONSIBLE_RE, "").trim());
@@ -98,7 +104,8 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
       setInspectionDate(format(new Date(), "yyyy-MM-dd"));
       setNextDueDate("");
       setResult("");
-      setCompanyName(""); setCompanyContact(""); setNotes(""); setGutterResponsible(""); setCertificatePath(null);
+      setCompanyName(""); setCompanyContact(""); setCompanyEmail(""); setMaintenanceType("");
+      setNotes(""); setGutterResponsible(""); setCertificatePath(null);
     }
   }, [open, defaultBuildingId, defaultCategoryId, editInspection]);
 
@@ -170,6 +177,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
       !result ||
       (inspectionDateIsRequired(selectedCategory?.key) && !inspectionDate) ||
       (nextDueDateIsRequired(selectedCategory?.key, result) && !nextDueDate) ||
+      (isElevator && !maintenanceType) ||
       (isGutterInspection && !gutterResponsible)
     ) return;
     const storedNotes = isGutterInspection
@@ -186,6 +194,8 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
       }),
       company_name: companyName || null,
       company_contact: companyContact || null,
+      company_email: companyEmail.trim() || null,
+      maintenance_type: isElevator ? maintenanceType || null : null,
       notes: storedNotes || null,
       certificate_url: certificatePath,
     };
@@ -300,7 +310,32 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
             </div>
             <div className="grid gap-2">
               <Label>Contacto</Label>
-              <Input value={companyContact} onChange={e => setCompanyContact(e.target.value)} placeholder="Email/Tel" />
+              <Input value={companyContact} onChange={e => setCompanyContact(e.target.value)} placeholder="Telefone" />
+            </div>
+          </div>
+
+          <div className={isElevator ? "grid grid-cols-2 gap-3" : "grid gap-3"}>
+            {isElevator && (
+              <div className="grid gap-2">
+                <Label>Tipo de manutenção *</Label>
+                <Select value={maintenanceType} onValueChange={(value) => setMaintenanceType(value as MaintenanceType)}>
+                  <SelectTrigger><SelectValue placeholder="Escolher tipo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="simples">Simples</SelectItem>
+                    <SelectItem value="completa">Completa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Label>Email da empresa</Label>
+              <Input
+                type="email"
+                value={companyEmail}
+                onChange={e => setCompanyEmail(e.target.value)}
+                placeholder="empresa@exemplo.pt"
+                autoComplete="email"
+              />
             </div>
           </div>
 
@@ -349,6 +384,7 @@ export function InspectionForm({ open, onOpenChange, defaultBuildingId, defaultC
               !result ||
               (inspectionDateIsRequired(selectedCategory?.key) && !inspectionDate) ||
               (nextDueDateIsRequired(selectedCategory?.key, result) && !nextDueDate) ||
+              (isElevator && !maintenanceType) ||
               (selectedCategory?.key === "caleiras" && !gutterResponsible)
             }>
               {(createMut.isPending || updateMut.isPending) ? "A guardar..." : (isEdit ? "Guardar alterações" : "Registar inspeção")}
