@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { classifyQueryFailure } from "../_shared/queryFailure.ts";
 
 // ── PII Masking (Correcção 4) ──
 function maskPII(s: string): string {
@@ -2111,7 +2112,9 @@ async function handleListEmailPendencies(url: URL, supabase: ReturnType<typeof g
   const { data, error, count } = await q;
   if (error) {
     console.error("List pendencies error:", maskPII(JSON.stringify(error)));
-    return errorResponse(400, error.message || "Query failed", "QUERY_ERROR", { details: error.message });
+    const message = error.message || "Query failed";
+    const failure = classifyQueryFailure(message);
+    return errorResponse(failure.httpStatus, message, failure.code, { details: message });
   }
   return json({ total: count ?? 0, limit, offset, pendencies: data || [] });
 }

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
+import { collectAllPages } from "@/lib/paginatedQuery";
 
 export type Assistance = Tables<"assistances"> & {
   buildings?: Tables<"buildings">;
@@ -13,17 +14,21 @@ export const useAssistances = () => {
   return useQuery({
     queryKey: ["assistances"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("assistances")
-        .select(`
-          *,
-          buildings (id, name, code, address, nif, cadastral_code),
-          suppliers (id, name),
-          intervention_types (id, name, category)
-        `)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Assistance[];
+      return collectAllPages<Assistance>(async (from, to) => {
+        const { data, error } = await supabase
+          .from("assistances")
+          .select(`
+            *,
+            buildings (id, name, code, address, nif, cadastral_code),
+            suppliers (id, name),
+            intervention_types (id, name, category)
+          `)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to);
+        if (error) throw error;
+        return (data ?? []) as Assistance[];
+      });
     },
   });
 };
@@ -39,34 +44,45 @@ export const useAssistanceStats = () => {
 
       if (totalError) throw totalError;
 
-      // Get counts by status
-      const { data: statusData, error: statusError } = await supabase
-        .from("assistances")
-        .select("status, intervention_types(category)");
+      const statuses = ["pending", "in_progress", "completed", "cancelled"] as const;
+      const statusCountQueries = statuses.map((status) =>
+        supabase
+          .from("assistances")
+          .select("*", { count: "exact", head: true })
+          .eq("status", status)
+      );
 
+      const { data: elevatorTypes, error: elevatorTypesError } = await supabase
+        .from("intervention_types")
+        .select("id")
+        .or("category.ilike.%elevador%,category.ilike.%elevator%");
+
+      if (elevatorTypesError) throw elevatorTypesError;
+
+      const elevatorTypeIds = (elevatorTypes ?? []).map(({ id }) => id);
+      const elevatorCountQuery = elevatorTypeIds.length
+        ? supabase
+          .from("assistances")
+          .select("*", { count: "exact", head: true })
+          .in("intervention_type_id", elevatorTypeIds)
+        : Promise.resolve({ count: 0, error: null });
+
+      const [statusResults, elevatorResult] = await Promise.all([
+        Promise.all(statusCountQueries),
+        elevatorCountQuery,
+      ]);
+
+      const statusError = statusResults.find(({ error }) => error)?.error;
       if (statusError) throw statusError;
+      if (elevatorResult.error) throw elevatorResult.error;
 
-      const counts = {
-        pending: 0,
-        in_progress: 0,
-        completed: 0,
-        cancelled: 0,
-      };
-      let elevators = 0;
-
-      statusData?.forEach((item: any) => {
-        if (item.status in counts) {
-          counts[item.status as keyof typeof counts]++;
-        }
-        const cat = (item.intervention_types?.category ?? "").toLowerCase();
-        if (cat.includes("elevador") || cat.includes("elevator")) {
-          elevators++;
-        }
-      });
+      const counts = Object.fromEntries(
+        statuses.map((status, index) => [status, statusResults[index].count ?? 0]),
+      ) as Record<(typeof statuses)[number], number>;
 
       return {
         total: totalCount || 0,
-        elevators,
+        elevators: elevatorResult.count ?? 0,
         ...counts,
       };
     },

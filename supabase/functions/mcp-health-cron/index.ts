@@ -5,6 +5,7 @@
 // Scheduled via pg_cron (see migration / dashboard).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { fetchWithSingleRetry } from "./retryFetch.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -62,9 +63,11 @@ type Result = {
 async function probe(p: Probe): Promise<Result> {
   const started = performance.now();
   try {
-    const res = await fetch(`${AGENT_API}${p.path}`, {
-      headers: { "x-api-key": EXTERNAL_API_KEY },
-    });
+    const res = await fetchWithSingleRetry(() =>
+      fetch(`${AGENT_API}${p.path}`, {
+        headers: { "x-api-key": EXTERNAL_API_KEY },
+      })
+    );
     const text = await res.text();
     const latency = Math.round(performance.now() - started);
     if (!res.ok) {
