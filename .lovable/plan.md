@@ -1,41 +1,68 @@
-# Diagnóstico (só leitura): falha list_email_pendencies no run 17c4456a
+# Download seguro de anexos via MCP
 
-## Evidência recolhida
+Hoje a integração lista anexos (pendências de email, sinistros, documentos de edifício, fotos de assistências) mas não consegue obtê-los: não existe nenhuma operação de download. Além disso, a auditoria encontrou dois erros de armazenamento que já afetam a remoção de ficheiros.
 
-Registos `mcp_health_checks` para `list_email_pendencies` (14/09):
+## Problemas encontrados na auditoria
 
-| Hora (UTC) | Estado | HTTP | Latência |
-|---|---|---|---|
-| 10:50 | ok | 200 | 3851 ms |
-| 10:55 | ok | 200 | 523 ms |
-| **11:00:15** | **fail** | **400** | **7409 ms** — `{"error":"Gateway Timeout","code":"QUERY_ERROR","details":"Gateway Timeout"}` |
-| 11:05 | ok | 200 | 683 ms |
-| 11:10 | ok | 200 | 499 ms |
-| 11:15 | ok | 200 | 985 ms |
+1. Não existe operação de download de anexos em nenhuma das quatro áreas (pendências, sinistros, documentos de edifício, fotos).
+2. A remoção de anexos de pendências aponta para um local de armazenamento inexistente (`pendency-attachments` em vez de `email-pendencies`) — o registo é apagado mas o ficheiro fica órfão.
+3. O mesmo acontece na remoção de anexos de sinistros (`insurance-claim-attachments` em vez de `building-documents`).
 
-- No run 17c4456a apenas 1 das 8 sondas falhou; as outras 7 deram 200.
-- Nas ~2 horas anteriores e seguintes, todas as execuções de 5 em 5 minutos deram 200, com picos ocasionais de latência (4173 ms às 09:45, 3851 ms às 10:50).
-- Volume de dados: `email_pendencies` tem **54 linhas**.
-- Índices existentes incluem `idx_email_pendencies_last_activity (last_activity_at DESC)`, exactamente o usado pela ordenação da consulta.
-- Plano real da consulta: Index Scan, `Execution Time: 1.206 ms`, 2 buffers. Não há problema de consulta nem de índice.
-- Nos últimos 14 dias houve 44 falhas registadas, das quais apenas 4 são "Gateway Timeout".
+## O que vai ser feito
 
-## Causa mais provável
+### 1. Nova operação de download (só leitura, autenticada)
 
-Instabilidade transitória da camada HTTP entre a edge function e a base de dados (PostgREST/gateway), não a consulta. A consulta executa em ~1 ms sobre 54 linhas com índice adequado; o pedido demorou 7,4 s e devolveu um corpo de gateway, não um erro de Postgres.
+Uma operação nova por tipo de anexo, todas com o mesmo comportamento:
 
-Factor agravante de diagnóstico: o handler `handleListEmailPendencies` (agent-api, linha ~2114) mapeia **qualquer** erro para HTTP **400 QUERY_ERROR**. Um timeout de infraestrutura (que deveria ser 504) fica assim disfarçado de erro de pedido inválido, o que induz em erro quem lê o alerta.
+- recebe o identificador do anexo;
+- confirma que o anexo existe e a que processo e edifício pertence;
+- confirma que o processo pertence a um edifício ativo e acessível; caso contrário recusa;
+- devolve, à escolha de quem chama, um link temporário (validade curta, por omissão 5 minutos) ou o conteúdo do ficheiro em base64;
+- o conteúdo em base64 só é devolvido até um limite de tamanho; acima disso devolve sempre link temporário;
+- valida o tipo de ficheiro contra uma lista permitida (PDF, imagens, email, texto, folhas de cálculo e documentos de escritório);
+- regista cada acesso no registo de atividade, com o anexo, o processo, o edifício e o formato pedido.
 
-`max_rows = 1000` em `config.toml` **não é causal**: é apenas um tecto de linhas por resposta, a tabela tem 54 linhas e o pedido usa `limit=1`.
+Nenhum local de armazenamento passa a público e não são necessárias credenciais extra: os links são gerados no servidor e expiram.
 
-## Impacto real
+### 2. Respostas distinguíveis
 
-Baixo. Uma falha isolada numa sonda automática de 5 em 5 minutos, auto-recuperada no run seguinte. Não há indício de indisponibilidade prolongada nem de erro de dados. O único impacto prático é ruído no painel e potencial email de alerta.
+- anexo ou processo inexistente → "não existe";
+- anexo fora do âmbito permitido, edifício inativo, tipo de ficheiro não permitido → "sem permissão"/"recusado", com indicação do motivo;
+- falha ao gerar link ou a ler do armazenamento → "erro temporário", que a integração pode repetir.
 
-## Correção mínima sugerida (não implementada)
+### 3. Correção dos locais de armazenamento
 
-1. Distinguir timeouts de erros de pedido: quando a mensagem de erro indicar timeout/gateway, devolver **504** em vez de 400, com código próprio (`UPSTREAM_TIMEOUT`). Uma alteração localizada no tratamento de erro.
-2. Opcional: no cron de saúde, uma repetição única após ~2 s antes de marcar `fail`, para evitar alertas por falhas transitórias.
-3. Não é necessária nenhuma alteração de índices, de consulta nem de `max_rows`.
+Corrigir a remoção de anexos de pendências e de sinistros para apontar ao local correto, para deixar de haver ficheiros órfãos.
 
-Nada foi alterado: nem código, nem base de dados, nem secrets, nem deployment.
+### 4. Novas ferramentas para o assistente
+
+Quatro ferramentas novas no catálogo MCP, sem alterar nem renomear nenhuma das existentes, pelo que a configuração já feita no Grok Live continua válida.
+
+## Detalhes técnicos
+
+Novos endpoints em `agent-api` (mantendo o prefixo `/v1/`, só leitura, método GET):
+
+- `GET /v1/email-pendency-attachments/:id/download`
+- `GET /v1/insurance-claim-attachments/:id/download`
+- `GET /v1/building-documents/:id/download`
+- `GET /v1/assistance-photos/:id/download`
+
+Parâmetros: `mode=url|content` (omissão `url`), `expires_in` (60–3600s, omissão 300).
+
+Implementação partilhada num helper novo em `supabase/functions/_shared/attachmentDownload.ts`:
+
+- resolução do bucket real por tipo: `email-pendencies` (pendências), `building-documents` (sinistros e documentos de edifício), `assistance-photos` (fotos);
+- validação de UUID com o `requireUUID` existente → 400;
+- join até `building_id` e verificação de `buildings.is_active` → 403;
+- MIME allowlist + limite de 10 MB para `mode=content` → 403 / fallback para `url`;
+- `createSignedUrl` com `expires_in`; falha de storage/rede classificada com `classifyQueryFailure` → 503/504;
+- registo em `activity_log` (`action: attachment_downloaded`, metadata com `attachment_id`, `kind`, `building_id`, `mode`), best-effort, não bloqueia a resposta;
+- respostas de erro no formato já usado: `{ error, code }` com códigos `NOT_FOUND`, `FORBIDDEN`, `INVALID_INPUT`, `UPSTREAM_TIMEOUT`.
+
+Correções: `deleteEmailPendencyAttachment` → bucket `email-pendencies`; `deleteInsuranceClaimAttachment` → bucket `building-documents`.
+
+Novas tools em `mcp-server/index.ts` (v1.4.3): `download_email_pendency_attachment`, `download_insurance_claim_attachment`, `download_building_document`, `download_assistance_photo` (total 137).
+
+Testes de regressão em `supabase/functions/agent-api/attachment_download_test.ts`: id inválido → 400, inexistente → 404, tipo não permitido → 403, sucesso devolve URL assinado, `mode=content` acima do limite volta a URL.
+
+Por fim, deploy de `agent-api` e `mcp-server` e verificação em produção com a chave existente.
