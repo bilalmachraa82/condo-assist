@@ -173,7 +173,7 @@ function defaultToolAnnotations(name: string) {
 // ── MCP Server ──
 const mcp = new McpServer({
   name: "condo-assist-mcp",
-  version: "1.4.2",
+  version: "1.4.3",
 });
 
 const registeredTools: Array<Record<string, unknown>> = [];
@@ -1679,6 +1679,43 @@ mcp.tool("delete_insurance_claim_attachment", {
   inputSchema: { type: "object", properties: { attachment_id: { type: "string" } }, required: ["attachment_id"] },
   handler: async ({ attachment_id }: { attachment_id: string }) => asText(await callAgentApi("DELETE", `/v1/insurance-claim-attachments/${attachment_id}`)),
 });
+// ═══════════════════════════════════════════════════════════════════════
+// Download seguro de anexos (só leitura)
+// ═══════════════════════════════════════════════════════════════════════
+const downloadProps = {
+  mode: { type: "string", enum: ["url", "content"], description: "url (predefinido) devolve link temporário; content devolve base64 apenas para ficheiros pequenos." },
+  expires_in: { type: "number", description: "Validade do link em segundos (60-3600, predefinido 300)." },
+};
+const downloadQuery = (a: any) => ({
+  mode: a.mode ? String(a.mode) : undefined,
+  expires_in: a.expires_in != null ? String(a.expires_in) : undefined,
+});
+
+mcp.tool("download_email_pendency_attachment", {
+  description: "[Anexos] Descarrega um anexo de pendência de email. Recebe o ID DO ANEXO (não o da pendência). Devolve metadados + link temporário assinado (ou base64 em mode=content, se pequeno).",
+  inputSchema: { type: "object", properties: { attachment_id: { type: "string" }, ...downloadProps }, required: ["attachment_id"] },
+  handler: async ({ attachment_id, ...a }: any) =>
+    asText(await callAgentApi("GET", `/v1/email-pendency-attachments/${attachment_id}/download`, { query: downloadQuery(a) })),
+});
+mcp.tool("download_insurance_claim_attachment", {
+  description: "[Anexos] Descarrega um anexo de sinistro. Recebe o ID DO ANEXO (não o do sinistro). Devolve metadados + link temporário assinado (ou base64 em mode=content, se pequeno).",
+  inputSchema: { type: "object", properties: { attachment_id: { type: "string" }, ...downloadProps }, required: ["attachment_id"] },
+  handler: async ({ attachment_id, ...a }: any) =>
+    asText(await callAgentApi("GET", `/v1/insurance-claim-attachments/${attachment_id}/download`, { query: downloadQuery(a) })),
+});
+mcp.tool("download_building_document", {
+  description: "[Anexos] Descarrega um documento de edifício. Recebe o ID DO DOCUMENTO. Devolve metadados + link temporário assinado (ou base64 em mode=content, se pequeno).",
+  inputSchema: { type: "object", properties: { document_id: { type: "string" }, ...downloadProps }, required: ["document_id"] },
+  handler: async ({ document_id, ...a }: any) =>
+    asText(await callAgentApi("GET", `/v1/building-documents/${document_id}/download`, { query: downloadQuery(a) })),
+});
+mcp.tool("download_assistance_photo", {
+  description: "[Anexos] Descarrega uma fotografia de assistência. Recebe o ID DA FOTO (não o da assistência). Devolve metadados + link temporário assinado (ou base64 em mode=content, se pequena).",
+  inputSchema: { type: "object", properties: { photo_id: { type: "string" }, ...downloadProps }, required: ["photo_id"] },
+  handler: async ({ photo_id, ...a }: any) =>
+    asText(await callAgentApi("GET", `/v1/assistance-photos/${photo_id}/download`, { query: downloadQuery(a) })),
+});
+
 mcp.tool("list_insurance_fraction_status", {
   description: "[Sinistros] Estado de cobertura por fração (relacionado com seguros).",
   inputSchema: { type: "object", properties: { insurance_id: { type: "string" }, fraction_id: { type: "string" } } },
@@ -2283,9 +2320,9 @@ app.use("*", async (c, next) => {
   if (c.req.method === "GET" && pathname.endsWith("/info")) {
     return c.json({
       name: "condo-assist-mcp",
-      version: "1.4.2",
+      version: "1.4.3",
       transport: "streamable-http",
-      tools: 133,
+      tools: 137,
       protocol: "MCP Streamable HTTP",
       compatibility: ["ChatGPT Apps SDK", "ChatGPT Agent Builder", "Claude Desktop", "MCP Inspector", "Grok Live"],
       required_tools: { search: true, fetch: true },
