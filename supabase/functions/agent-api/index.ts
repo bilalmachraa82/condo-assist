@@ -1,5 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { classifyQueryFailure } from "../_shared/queryFailure.ts";
+import {
+  AttachmentError,
+  type AttachmentKind,
+  parseExpiresIn,
+  parseMode,
+  resolveAttachmentDownload,
+} from "../_shared/attachmentDownload.ts";
 
 // ── PII Masking (Correcção 4) ──
 function maskPII(s: string): string {
@@ -405,6 +412,11 @@ function matchRoute(method: string, pathname: string): { handler: string; params
     // ── Insurance claim attachments ──
     { method: "GET", pattern: /^\/v1\/insurance-claims\/([^/]+)\/attachments$/, handler: "listInsuranceClaimAttachments", paramNames: ["claimId"] },
     { method: "DELETE", pattern: /^\/v1\/insurance-claim-attachments\/([^/]+)$/, handler: "deleteInsuranceClaimAttachment", paramNames: ["attachmentId"] },
+    // ── Secure attachment downloads (read-only) ──
+    { method: "GET", pattern: /^\/v1\/email-pendency-attachments\/([^/]+)\/download$/, handler: "downloadEmailPendencyAttachment", paramNames: ["attachmentId"] },
+    { method: "GET", pattern: /^\/v1\/insurance-claim-attachments\/([^/]+)\/download$/, handler: "downloadInsuranceClaimAttachment", paramNames: ["attachmentId"] },
+    { method: "GET", pattern: /^\/v1\/building-documents\/([^/]+)\/download$/, handler: "downloadBuildingDocument", paramNames: ["attachmentId"] },
+    { method: "GET", pattern: /^\/v1\/assistance-photos\/([^/]+)\/download$/, handler: "downloadAssistancePhoto", paramNames: ["attachmentId"] },
     // ── Insurance fraction status ──
     { method: "GET", pattern: /^\/v1\/insurance-fraction-status$/, handler: "listInsuranceFractionStatus", paramNames: [] },
     { method: "PATCH", pattern: /^\/v1\/insurance-fraction-status\/([^/]+)$/, handler: "updateInsuranceFractionStatus", paramNames: ["statusId"] },
@@ -2204,9 +2216,12 @@ async function handleListEmailPendencyAttachments(params: Record<string, string>
 }
 
 async function handleDeleteEmailPendencyAttachment(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
-  const { data: att } = await supabase.from("email_pendency_attachments").select("file_path").eq("id", params.attachmentId).maybeSingle();
-  if (att?.file_path) await supabase.storage.from("pendency-attachments").remove([att.file_path]).catch(() => {});
-  const { error } = await supabase.from("email_pendency_attachments").delete().eq("id", params.attachmentId);
+  const attachmentId = requireUUID(params.attachmentId, "attachmentId");
+  const { data: att } = await supabase.from("email_pendency_attachments").select("file_path").eq("id", attachmentId).maybeSingle();
+  if (!att) return errorResponse(404, "Attachment not found", "NOT_FOUND");
+  // Storage first; "already gone" is treated as success (idempotent).
+  if (att.file_path) await removeStorageObject(supabase, "email-pendencies", att.file_path);
+  const { error } = await supabase.from("email_pendency_attachments").delete().eq("id", attachmentId);
   if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
 }
@@ -2678,11 +2693,69 @@ async function handleListInsuranceClaimAttachments(params: Record<string, string
   return json({ claim_id: params.claimId, attachments: data || [] });
 }
 async function handleDeleteInsuranceClaimAttachment(params: Record<string, string>, supabase: ReturnType<typeof getSupabase>) {
-  const { data: att } = await supabase.from("insurance_claim_attachments").select("file_path").eq("id", params.attachmentId).maybeSingle();
-  if (att?.file_path) await supabase.storage.from("insurance-claim-attachments").remove([att.file_path]).catch(() => {});
-  const { error } = await supabase.from("insurance_claim_attachments").delete().eq("id", params.attachmentId);
+  const attachmentId = requireUUID(params.attachmentId, "attachmentId");
+  const { data: att } = await supabase.from("insurance_claim_attachments").select("file_path").eq("id", attachmentId).maybeSingle();
+  if (!att) return errorResponse(404, "Attachment not found", "NOT_FOUND");
+  if (att.file_path) await removeStorageObject(supabase, "building-documents", att.file_path);
+  const { error } = await supabase.from("insurance_claim_attachments").delete().eq("id", attachmentId);
   if (error) pgErrorToHttp(error, "Failed to delete");
   return json({ deleted: true });
+}
+
+/** Remove a storage object. Missing object = success (idempotent).
+ *  Any other storage failure aborts, so the DB row is never orphaned. */
+async function removeStorageObject(supabase: ReturnType<typeof getSupabase>, bucket: string, path: string) {
+  const { error } = await supabase.storage.from(bucket).remove([path]);
+  if (!error) return;
+  const msg = String((error as { message?: string }).message ?? "");
+  if (/not.?found|does not exist/i.test(msg)) return;
+  console.error("Storage remove failed:", maskPII(msg));
+  throw new HttpError(503, "Temporary failure removing stored file", "UPSTREAM_ERROR");
+}
+
+// ═══════ Secure attachment downloads (read-only) ═══════
+async function handleAttachmentDownload(
+  kind: AttachmentKind,
+  url: URL,
+  params: Record<string, string>,
+  supabase: ReturnType<typeof getSupabase>,
+): Promise<Response> {
+  const attachmentId = requireUUID(params.attachmentId, "attachment_id");
+  try {
+    const mode = parseMode(url.searchParams.get("mode"));
+    const expiresIn = parseExpiresIn(url.searchParams.get("expires_in"));
+    const result = await resolveAttachmentDownload(supabase, kind, attachmentId, { mode, expiresIn });
+
+    // Access log — best effort, never blocks the download, never stores URL/content.
+    supabase.from("activity_log").insert({
+      assistance_id: kind === "assistance_photo" ? result.parent_id : null,
+      action: "attachment_downloaded",
+      details: `Download de anexo (${kind}) via API`,
+      metadata: {
+        attachment_id: result.attachment_id,
+        kind,
+        parent_type: result.parent_type,
+        parent_id: result.parent_id,
+        building_id: result.building_id,
+        requested_mode: result.requested_mode,
+        effective_mode: result.effective_mode,
+        fallback_reason: result.fallback_reason ?? null,
+        size: result.size,
+      },
+    }).then(({ error }: { error: unknown }) => {
+      if (error) console.warn("attachment activity_log failed");
+    });
+
+    return json(result);
+  } catch (e) {
+    if (e instanceof AttachmentError) {
+      throw new HttpError(e.status, e.message, e.code, e.extra);
+    }
+    const msg = e instanceof Error ? e.message : String(e);
+    const cls = classifyQueryFailure(msg);
+    console.error("Attachment download error:", maskPII(msg));
+    throw new HttpError(cls.httpStatus, "Temporary failure serving attachment", cls.code);
+  }
 }
 
 async function handleListInsuranceFractionStatus(url: URL, supabase: ReturnType<typeof getSupabase>) {
@@ -3066,6 +3139,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
       case "deleteInsuranceClaim": return await handleDeleteInsuranceClaim(route.params, supabase);
       case "deleteSupplier": return await handleDeleteSupplier(route.params, supabase);
       case "deleteFollowUp": return await handleDeleteFollowUp(route.params, supabase);
+      // Secure attachment downloads (read-only)
+      case "downloadEmailPendencyAttachment": return await handleAttachmentDownload("email_pendency_attachment", url, route.params, supabase);
+      case "downloadInsuranceClaimAttachment": return await handleAttachmentDownload("insurance_claim_attachment", url, route.params, supabase);
+      case "downloadBuildingDocument": return await handleAttachmentDownload("building_document", url, route.params, supabase);
+      case "downloadAssistancePhoto": return await handleAttachmentDownload("assistance_photo", url, route.params, supabase);
       default:
         return errorResponse(404, "Not found", "NOT_FOUND");
     }
