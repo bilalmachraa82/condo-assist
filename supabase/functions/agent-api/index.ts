@@ -7,6 +7,7 @@ import {
   parseMode,
   resolveAttachmentDownload,
 } from "../_shared/attachmentDownload.ts";
+import { removeStorageObjectShared } from "../_shared/storageRemove.ts";
 
 // ── PII Masking (Correcção 4) ──
 function maskPII(s: string): string {
@@ -2705,12 +2706,12 @@ async function handleDeleteInsuranceClaimAttachment(params: Record<string, strin
 /** Remove a storage object. Missing object = success (idempotent).
  *  Any other storage failure aborts, so the DB row is never orphaned. */
 async function removeStorageObject(supabase: ReturnType<typeof getSupabase>, bucket: string, path: string) {
-  const { error } = await supabase.storage.from(bucket).remove([path]);
-  if (!error) return;
-  const msg = String((error as { message?: string }).message ?? "");
-  if (/not.?found|does not exist/i.test(msg)) return;
-  console.error("Storage remove failed:", maskPII(msg));
-  throw new HttpError(503, "Temporary failure removing stored file", "UPSTREAM_ERROR");
+  try {
+    await removeStorageObjectShared(supabase as unknown as Parameters<typeof removeStorageObjectShared>[0], bucket, path);
+  } catch (e) {
+    console.error("Storage remove failed:", maskPII(String((e as Error).message ?? "")));
+    throw new HttpError(503, "Temporary failure removing stored file", "UPSTREAM_ERROR");
+  }
 }
 
 // ═══════ Secure attachment downloads (read-only) ═══════
