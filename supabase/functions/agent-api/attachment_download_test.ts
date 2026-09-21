@@ -73,13 +73,13 @@ function okBytes(bytes: Uint8Array, total = bytes.length) {
   return (url: string, init?: RequestInit) => {
     const range = (init?.headers as Record<string, string> | undefined)?.Range;
     if (range) {
-      return new Response(new Blob([bytes.subarray(0, 64)]), {
+      return new Response(new Blob([bytes.slice(0, 64).buffer as ArrayBuffer]), {
         status: 206,
         headers: { "content-range": `bytes 0-63/${total}` },
       });
     }
     if (!url) return new Response(null, { status: 404 });
-    return new Response(new Blob([bytes]), { status: 200 });
+    return new Response(new Blob([bytes.slice().buffer as ArrayBuffer]), { status: 200 });
   };
 }
 
