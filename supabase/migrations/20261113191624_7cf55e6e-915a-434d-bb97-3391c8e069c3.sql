@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Authenticated users can view inspection categories" ON public.inspection_categories;
+CREATE POLICY "Admins can view inspection categories" ON public.inspection_categories FOR SELECT TO authenticated USING (public.is_admin(auth.uid()));
