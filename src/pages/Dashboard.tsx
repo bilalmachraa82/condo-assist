@@ -22,8 +22,6 @@ import {
 } from "lucide-react"
 
 import { useAssistanceStats } from "@/hooks/useAssistances"
-import { useBuildingStats } from "@/hooks/useBuildings"
-import { useSupplierStats } from "@/hooks/useSuppliers"
 import { useUrgentAlerts } from "@/hooks/useUrgentAlerts"
 import { usePerformanceMetrics } from "@/hooks/usePerformanceMetrics"
 import { useUpcomingSchedules } from "@/hooks/useUpcomingSchedules"
@@ -33,13 +31,11 @@ import { format } from "date-fns"
 export default function Dashboard() {
   const navigate = useNavigate();
   const { data: assistanceStats, isLoading: assistanceLoading } = useAssistanceStats();
-  const { data: buildingStats, isLoading: buildingLoading } = useBuildingStats();
-  const { data: supplierStats, isLoading: supplierLoading } = useSupplierStats();
   const { data: urgentAlerts, isLoading: alertsLoading } = useUrgentAlerts();
   const { data: performanceMetrics, isLoading: performanceLoading } = usePerformanceMetrics();
   const { data: upcomingSchedules, isLoading: schedulesLoading } = useUpcomingSchedules();
 
-  const isLoading = assistanceLoading || buildingLoading || supplierLoading;
+  const isLoading = assistanceLoading;
   return (
     <div className="space-y-6">
       {/* Header */}

@@ -3501,6 +3501,22 @@ export type Database = {
       }
       safe_delete_supplier: { Args: { p_supplier_id: string }; Returns: Json }
       schedule_assistance_reminders: { Args: never; Returns: undefined }
+      search_assistances_page: {
+        Args: {
+          p_assistance_number?: string
+          p_building_id?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_elevator_only?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_priority?: string
+          p_search?: string
+          p_status?: string
+          p_supplier_id?: string
+        }
+        Returns: Json
+      }
       search_knowledge_articles: {
         Args: {
           filter_building_id?: string

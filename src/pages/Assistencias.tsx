@@ -27,9 +27,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAssistanceReminders } from "@/hooks/useAssistanceReminders"
 import QuickElevatorForm from "@/components/assistance/QuickElevatorForm"
 import { useQuery } from "@tanstack/react-query"
-import { useAssistances, useAssistanceStats, useDeleteAssistance, type Assistance } from "@/hooks/useAssistances"
+import { useAssistancesPage, useAssistanceStats, useDeleteAssistance, type Assistance } from "@/hooks/useAssistances"
+import { ASSISTANCE_PAGE_SIZE, fetchAllMatchingAssistances, parseAssistanceSearchParams, toAssistanceSearchParams, type AssistanceListQuery, type AssistanceListRow } from "@/lib/assistanceQuery"
 import { supabase } from "@/integrations/supabase/client"
-import { useRequestQuotation, useQuotationsByAssistance } from "@/hooks/useQuotations"
+import { useRequestQuotation } from "@/hooks/useQuotations"
 import { formatDistanceToNow, format } from "date-fns"
 import { pt } from "date-fns/locale"
 import AssistanceDetail from "@/components/assistance/AssistanceDetail"
@@ -66,15 +67,14 @@ const getStatusIcon = (status: string) => {
 
 
 // Quick quotation component
-function QuickQuotationAction({ assistance }: { assistance: Assistance }) {
+function QuickQuotationAction({ assistance }: { assistance: AssistanceListRow }) {
   const [deadline, setDeadline] = useState("")
   const [isOpen, setIsOpen] = useState(false)
   const requestQuotation = useRequestQuotation()
-  const { data: quotations } = useQuotationsByAssistance(assistance.id)
 
   const canRequest = assistance.assigned_supplier_id && !assistance.requires_quotation
-  const hasQuotations = quotations && quotations.length > 0
-  const quotationCount = quotations?.length || 0
+  const quotationCount = Number(assistance.quotation_count) || 0
+  const hasQuotations = quotationCount > 0
 
   const handleRequest = async () => {
     await requestQuotation.mutateAsync({
@@ -141,6 +141,17 @@ function QuickQuotationAction({ assistance }: { assistance: Assistance }) {
   )
 }
 
+// Export: fetches every row matching the current search/filters (server-side), only when the dialog opens
+function AssistanceExportContent({ query, filters }: { query: AssistanceListQuery; filters: AssistanceFilters }) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["assistances", "export", query.search, query.filters, query.elevatorOnly],
+    queryFn: () => fetchAllMatchingAssistances(query),
+  })
+  if (isLoading) return <SkeletonList count={3} />
+  if (error) return <p className="text-sm text-destructive">Erro ao preparar a exportação. Tente novamente.</p>
+  return <AssistanceListPDFTemplate assistances={data ?? []} title="Listagem de Assistências" filters={filters} />
+}
+
 // Delete assistance component
 function DeleteAssistanceAction({ assistance, onDeleted }: { assistance: Assistance; onDeleted?: () => void }) {
   const deleteAssistance = useDeleteAssistance()
@@ -188,36 +199,56 @@ function DeleteAssistanceAction({ assistance, onDeleted }: { assistance: Assista
 }
 
 export default function Assistencias() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlState = useMemo(() => parseAssistanceSearchParams(searchParams), [searchParams])
+  const { filters, page, elevatorOnly } = urlState
+  const [searchTerm, setSearchTerm] = useState(urlState.search)
   const [selectedAssistance, setSelectedAssistance] = useState<Assistance | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showElevatorForm, setShowElevatorForm] = useState(false)
-  const [elevatorOnly, setElevatorOnly] = useState(false)
-  const [searchParams] = useSearchParams()
-  const [filters, setFilters] = useState<AssistanceFilters>(() => {
-    const status = searchParams.get('status')
-    return status ? { status } : {}
-  })
+  const updateUrl = useCallback((patch: Partial<typeof urlState>, resetPage = true) => {
+    setSearchParams(prev => {
+      const cur = parseAssistanceSearchParams(prev)
+      return toAssistanceSearchParams({ ...cur, ...(resetPage ? { page: 1 } : {}), ...patch })
+    }, { replace: true })
+  }, [setSearchParams])
+  const setFilters = useCallback((f: AssistanceFilters) => updateUrl({ filters: f }), [updateUrl])
+  const setElevatorOnly = useCallback((v: boolean) => updateUrl({ elevatorOnly: v }), [updateUrl])
+  const setPage = useCallback((p: number) => { updateUrl({ page: p }, false); window.scrollTo({ top: 0 }) }, [updateUrl])
+
+  // Keep input in sync with back/forward navigation
+  useEffect(() => { setSearchTerm(urlState.search) }, [urlState.search])
+  // Debounce search into the URL (server-side search over full history)
   useEffect(() => {
-    const status = searchParams.get('status')
-    if (status) setFilters(f => ({ ...f, status }))
-  }, [searchParams])
-  const { data: assistances, isLoading, refetch } = useAssistances();
+    if (searchTerm === urlState.search) return
+    const t = setTimeout(() => updateUrl({ search: searchTerm }), 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm])
+
+  const listQuery: AssistanceListQuery = useMemo(
+    () => ({ search: urlState.search, filters, elevatorOnly }),
+    [urlState.search, filters, elevatorOnly],
+  )
+  const { data: pageData, isLoading, isFetching, refetch } = useAssistancesPage(listQuery, page);
+  const filteredAssistances = pageData?.rows ?? [];
+  const totalMatches = pageData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalMatches / ASSISTANCE_PAGE_SIZE));
+  const activeSearch = urlState.search;
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const { data: remindersMap } = useAssistanceReminders();
 
   const dashboardStats = useMemo(() => {
-    const total = assistances?.length ?? stats?.total ?? 0;
-    const closed = assistances?.filter((a) => ["completed", "cancelled"].includes(a.status)).length
-      ?? ((stats?.completed ?? 0) + (stats?.cancelled ?? 0));
+    const total = stats?.total ?? 0;
+    const closed = (stats?.completed ?? 0) + (stats?.cancelled ?? 0);
     return {
       total,
       open: Math.max(0, total - closed),
       closed,
     };
-  }, [assistances, stats]);
+  }, [stats]);
 
   // Count active elevator assistances
   const elevatorCount = useQuery({
@@ -248,67 +279,6 @@ export default function Assistencias() {
     },
     disabled: showCreateForm || !!selectedAssistance
   });
-
-  // Filter assistances based on search term and filters
-  const filteredAssistances = assistances?.filter(assistance => {
-
-    // Status filter
-    const matchesStatus = !filters.status || assistance.status === filters.status;
-
-    // Priority filter  
-    const matchesPriority = !filters.priority || assistance.priority === filters.priority;
-
-    // Building filter
-    const matchesBuilding = !filters.buildingId || assistance.building_id === filters.buildingId;
-
-    // Supplier filter
-    const matchesSupplier = !filters.supplierId || assistance.assigned_supplier_id === filters.supplierId;
-
-    // Assistance number filter
-    const matchesAssistanceNumber = !filters.assistanceNumber || 
-      assistance.assistance_number?.toString().includes(filters.assistanceNumber);
-
-    // Enhanced search - includes all relevant text fields
-    const cleanedSearchTerm = searchTerm.toLowerCase().trim();
-    const assistanceNumberStr = assistance.assistance_number?.toString() || '';
-    
-    const matchesSearch = !searchTerm || 
-      // Título
-      assistance.title?.toLowerCase().includes(cleanedSearchTerm) ||
-      // Descrição (ex: "5º esquerdo", "Garagem B2", "sala de reuniões")
-      assistance.description?.toLowerCase().includes(cleanedSearchTerm) ||
-      // Nome do edifício
-      assistance.buildings?.name?.toLowerCase().includes(cleanedSearchTerm) ||
-      // Morada do edifício
-      assistance.buildings?.address?.toLowerCase().includes(cleanedSearchTerm) ||
-      // Código do edifício
-      assistance.buildings?.code?.toLowerCase().includes(cleanedSearchTerm) ||
-      // Nome do fornecedor
-      assistance.suppliers?.name?.toLowerCase().includes(cleanedSearchTerm) ||
-      // Tipo de intervenção
-      assistance.intervention_types?.name?.toLowerCase().includes(cleanedSearchTerm) ||
-      // Notas do fornecedor
-      assistance.supplier_notes?.toLowerCase().includes(cleanedSearchTerm) ||
-      // Notas do admin
-      assistance.admin_notes?.toLowerCase().includes(cleanedSearchTerm) ||
-      // Notas de progresso
-      assistance.progress_notes?.toLowerCase().includes(cleanedSearchTerm) ||
-      // Número da assistência (suporta "#4" e "4")
-      assistanceNumberStr.includes(cleanedSearchTerm.replace('#', '')) ||
-      (`#${assistanceNumberStr}`).includes(cleanedSearchTerm);
-
-    // Date filters
-    const createdDate = new Date(assistance.created_at);
-    const matchesDateFrom = !filters.dateFrom || createdDate >= new Date(filters.dateFrom);
-    const matchesDateTo = !filters.dateTo || createdDate <= new Date(filters.dateTo + 'T23:59:59');
-
-    return matchesSearch && matchesStatus && matchesPriority && matchesBuilding && matchesSupplier && matchesAssistanceNumber && matchesDateFrom && matchesDateTo;
-  })?.filter(a => {
-    if (!elevatorOnly) return true;
-    const isElevatorType = a.intervention_types?.name?.toLowerCase().includes('elevador');
-    const isActiveStatus = ['pending', 'in_progress', 'accepted', 'scheduled', 'awaiting_quotation'].includes(a.status);
-    return isElevatorType && isActiveStatus;
-  }) || [];
 
   // Pull to refresh functionality
   const handleRefresh = useCallback(async () => {
@@ -389,11 +359,7 @@ export default function Assistencias() {
                 variant="outline"
                 size="default"
               >
-                <AssistanceListPDFTemplate 
-                  assistances={filteredAssistances}
-                  title="Listagem de Assistências"
-                  filters={filters}
-                />
+                <AssistanceExportContent query={listQuery} filters={filters} />
               </PDFExportButton>
             </>
           )}
@@ -657,6 +623,20 @@ export default function Assistencias() {
         )}
       </div>
 
+      {!isLoading && totalMatches > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            {(page - 1) * ASSISTANCE_PAGE_SIZE + 1}–{Math.min(page * ASSISTANCE_PAGE_SIZE, totalMatches)} de {totalMatches}
+            {isFetching && " · a atualizar…"}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button>
+            <span className="text-sm text-muted-foreground">Página {page} de {totalPages}</span>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Seguinte</Button>
+          </div>
+        </div>
+      )}
+
       {filteredAssistances.length === 0 && !isLoading && (
         <Card className="p-8">
           <div className="text-center space-y-4">
@@ -686,7 +666,7 @@ export default function Assistencias() {
                 variant="outline" 
                 onClick={() => {
                   setSearchTerm('');
-                  setFilters({});
+                  updateUrl({ search: '', filters: {}, elevatorOnly: false });
                 }}
                 className="mt-4"
               >

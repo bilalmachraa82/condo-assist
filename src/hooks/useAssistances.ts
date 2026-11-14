@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { fetchAssistancePage, ASSISTANCE_PAGE_SIZE, type AssistanceListQuery } from "@/lib/assistanceQuery";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +31,18 @@ export const useAssistances = () => {
         return (data ?? []) as Assistance[];
       });
     },
+  });
+};
+
+/**
+ * Server-side filtered + paginated list (single RPC per page, includes quotation_count).
+ * Key lives under ["assistances"] so every existing invalidation also refreshes it.
+ */
+export const useAssistancesPage = (q: AssistanceListQuery, page: number, pageSize = ASSISTANCE_PAGE_SIZE) => {
+  return useQuery({
+    queryKey: ["assistances", "page", q.search, q.filters, q.elevatorOnly, page, pageSize],
+    queryFn: () => fetchAssistancePage(q, page, pageSize),
+    placeholderData: keepPreviousData,
   });
 };
 

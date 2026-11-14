@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.search_assistances_page(text,text,text,uuid,uuid,text,timestamptz,timestamptz,boolean,integer,integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.search_assistances_page(text,text,text,uuid,uuid,text,timestamptz,timestamptz,boolean,integer,integer) TO authenticated, service_role;
