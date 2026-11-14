@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Printer } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface PDFExportButtonProps {
   children: React.ReactNode;
+  onOpenChange?: (open: boolean) => void;
+  printDisabled?: boolean;
   filename?: string;
   size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
@@ -12,7 +14,9 @@ interface PDFExportButtonProps {
 }
 
 export const PDFExportButton = ({ 
-  children, 
+  children,
+  onOpenChange,
+  printDisabled = false,
   filename = "documento",
   size = "default",
   variant = "outline",
@@ -20,75 +24,72 @@ export const PDFExportButton = ({
 }: PDFExportButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handlePrint = () => {
-    // Close dialog before printing
-    setIsOpen(false);
-    
-    // Small delay to ensure dialog is closed
-    setTimeout(async () => {
-      // Create a new window for printing
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) return;
+  const previewRef = useRef<HTMLDivElement>(null);
+  const changeOpen = (open: boolean) => {
+    setIsOpen(open);
+    onOpenChange?.(open);
+  };
 
-      // Get the content to print
-      const printTemplateElement = document.querySelector('.print-template');
-      if (!printTemplateElement) return;
-      
-      // Clone the content to avoid modifying the original
-      const clonedContent = printTemplateElement.cloneNode(true) as HTMLElement;
-      
-      // Convert images to base64 for proper printing
-      const images = clonedContent.querySelectorAll('img');
-      const imagePromises: Promise<void>[] = [];
-      
-      images.forEach((img) => {
-        const promise = new Promise<void>((resolve) => {
-          const imgSrc = img.src;
-          
-          // If already base64, skip
-          if (imgSrc.startsWith('data:')) {
-            resolve();
-            return;
-          }
-          
-          // Create a canvas to convert image to base64
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          const tempImg = new Image();
-          tempImg.crossOrigin = 'anonymous';
-          
-          tempImg.onload = () => {
-            canvas.width = tempImg.naturalWidth;
-            canvas.height = tempImg.naturalHeight;
-            ctx?.drawImage(tempImg, 0, 0);
-            try {
-              const base64 = canvas.toDataURL('image/png');
-              img.src = base64;
-            } catch {
-              // If CORS fails, keep original src with absolute URL
-              img.src = new URL(imgSrc, window.location.origin).href;
-            }
-            resolve();
-          };
-          
-          tempImg.onerror = () => {
-            // Keep absolute URL on error
+  const handlePrint = async () => {
+    const template = previewRef.current?.querySelector('.print-template');
+    if (!template || printDisabled) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    const clonedContent = template.cloneNode(true) as HTMLElement;
+    changeOpen(false);
+
+    // Convert images to base64 for proper printing
+    const images = clonedContent.querySelectorAll('img');
+    const imagePromises: Promise<void>[] = [];
+
+    images.forEach((img) => {
+      const promise = new Promise<void>((resolve) => {
+        const imgSrc = img.src;
+
+        // If already base64, skip
+        if (imgSrc.startsWith('data:')) {
+          resolve();
+          return;
+        }
+
+        // Create a canvas to convert image to base64
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const tempImg = new Image();
+        tempImg.crossOrigin = 'anonymous';
+
+        tempImg.onload = () => {
+          canvas.width = tempImg.naturalWidth;
+          canvas.height = tempImg.naturalHeight;
+          ctx?.drawImage(tempImg, 0, 0);
+          try {
+            const base64 = canvas.toDataURL('image/png');
+            img.src = base64;
+          } catch {
+            // If CORS fails, keep original src with absolute URL
             img.src = new URL(imgSrc, window.location.origin).href;
-            resolve();
-          };
-          
-          tempImg.src = imgSrc;
-        });
-        imagePromises.push(promise);
-      });
-      
-      // Wait for all images to be processed
-      await Promise.all(imagePromises);
-      
-      const printContent = clonedContent.outerHTML;
+          }
+          resolve();
+        };
 
-      // Write the content to the new window
-      printWindow.document.write(`
+        tempImg.onerror = () => {
+          // Keep absolute URL on error
+          img.src = new URL(imgSrc, window.location.origin).href;
+          resolve();
+        };
+
+        tempImg.src = imgSrc;
+      });
+      imagePromises.push(promise);
+    });
+
+    // Wait for all images to be processed
+    await Promise.all(imagePromises);
+
+    const printContent = clonedContent.outerHTML;
+
+    // Write the content to the new window
+    printWindow.document.write(`
         <!DOCTYPE html>
         <html>
           <head>
@@ -101,133 +102,133 @@ export const PDFExportButton = ({
                 margin: 0;
                 padding: 0;
               }
-              
+
               body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
                 line-height: 1.5;
                 color: #000;
                 background: #fff;
               }
-              
+
               .print-template {
                 max-width: 800px !important;
                 margin: 0 auto !important;
                 padding: 32px !important;
                 background: #fff !important;
               }
-              
+
               /* Logo styles */
               img {
                 max-width: 100%;
                 height: auto;
               }
-              
+
               .h-32 {
                 height: 128px !important;
               }
-              
+
               .h-24 {
                 height: 96px !important;
               }
-              
+
               .w-auto {
                 width: auto !important;
               }
-              
+
               .mx-auto {
                 margin-left: auto !important;
                 margin-right: auto !important;
                 display: block !important;
               }
-              
+
               /* Flex utilities */
               .flex {
                 display: flex !important;
               }
-              
+
               .items-center {
                 align-items: center !important;
               }
-              
+
               .justify-center {
                 justify-content: center !important;
               }
-              
+
               .gap-3 {
                 gap: 0.75rem !important;
               }
-              
+
               table {
                 width: 100% !important;
                 border-collapse: collapse !important;
                 margin: 0 !important;
               }
-              
+
               th, td {
                 border: 1px solid #ddd !important;
                 padding: 8px !important;
                 text-align: left !important;
                 font-size: 12px !important;
               }
-              
+
               th {
                 background-color: #f5f5f5 !important;
                 font-weight: bold !important;
               }
-              
+
               .grid {
                 display: grid !important;
                 gap: 1.5rem !important;
               }
-              
+
               .grid-cols-2 {
                 grid-template-columns: repeat(2, 1fr) !important;
               }
-              
+
               .grid-cols-4 {
                 grid-template-columns: repeat(4, 1fr) !important;
               }
-              
+
               .text-center {
                 text-align: center !important;
               }
-              
+
               .text-left {
                 text-align: left !important;
               }
-              
+
               .font-bold {
                 font-weight: bold !important;
               }
-              
+
               .font-semibold {
                 font-weight: 600 !important;
               }
-              
+
               .font-medium {
                 font-weight: 500 !important;
               }
-              
+
               .text-2xl {
                 font-size: 1.5rem !important;
               }
-              
+
               .text-xl {
                 font-size: 1.25rem !important;
               }
-              
+
               .text-lg {
                 font-size: 1.125rem !important;
               }
-              
+
               .text-sm {
                 font-size: 0.875rem !important;
               }
-              
+
               .text-xs {
                 font-size: 0.75rem !important;
               }
-              
+
               .mb-2 { margin-bottom: 0.5rem !important; }
               .mb-3 { margin-bottom: 0.75rem !important; }
               .mb-6 { margin-bottom: 1.5rem !important; }
@@ -243,18 +244,18 @@ export const PDFExportButton = ({
               .pb-4 { padding-bottom: 1rem !important; }
               .px-2 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
               .py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
-              
+
               .border { border: 1px solid #d1d5db !important; }
               .border-b-2 { border-bottom: 2px solid #d1d5db !important; }
               .border-t { border-top: 1px solid #d1d5db !important; }
               .border-gray-300 { border-color: #d1d5db !important; }
               .rounded { border-radius: 0.25rem !important; }
-              
+
               .bg-white { background-color: #fff !important; }
               .bg-gray-50 { background-color: #f9fafb !important; }
               .bg-gray-100 { background-color: #f3f4f6 !important; }
               .bg-blue-50 { background-color: #eff6ff !important; }
-              
+
               .text-black { color: #000 !important; }
               .text-gray-500 { color: #6b7280 !important; }
               .text-gray-600 { color: #4b5563 !important; }
@@ -264,7 +265,7 @@ export const PDFExportButton = ({
               .text-green-600 { color: #16a34a !important; }
               .text-yellow-600 { color: #ca8a04 !important; }
               .text-orange-600 { color: #ea580c !important; }
-              
+
               .bg-green-100 { background-color: #dcfce7 !important; }
               .text-green-800 { color: #166534 !important; }
               .bg-yellow-100 { background-color: #fef3c7 !important; }
@@ -273,12 +274,12 @@ export const PDFExportButton = ({
               .text-orange-800 { color: #9a3412 !important; }
               .bg-red-100 { background-color: #fee2e2 !important; }
               .text-red-800 { color: #991b1b !important; }
-              
+
               .space-y-2 > * + * { margin-top: 0.5rem !important; }
               .leading-relaxed { line-height: 1.625 !important; }
               .overflow-hidden { overflow: hidden !important; }
               .inline-block { display: inline-block !important; }
-              
+
               @media print {
                 @page {
                   margin: 15mm;
@@ -316,24 +317,23 @@ export const PDFExportButton = ({
           </body>
         </html>
       `);
-      try {
-        printWindow.history.replaceState(null, '', `/pdf/${encodeURIComponent(filename)}`);
-      } catch {}
-      printWindow.document.close();
-      
-      // Wait for images to load in print window before printing
-      setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-        // Don't close immediately, let user handle it
-      }, 500);
-    }, 100);
+    try {
+      printWindow.history.replaceState(null, '', `/pdf/${encodeURIComponent(filename)}`);
+    } catch {}
+    printWindow.document.close();
+
+    // Wait for images to load in print window before printing
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      // Don't close immediately, let user handle it
+    }, 500);
   };
 
   const IconComponent = icon === "print" ? Printer : Download;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={changeOpen}>
       <DialogTrigger asChild>
         <Button variant={variant} size={size}>
           <IconComponent className="w-4 h-4 mr-2" />
@@ -345,12 +345,12 @@ export const PDFExportButton = ({
           <DialogTitle>Pré-visualização do Documento</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          {children}
+          <div ref={previewRef}>{children}</div>
           <div className="flex justify-end space-x-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
+            <Button variant="outline" onClick={() => changeOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handlePrint}>
+            <Button onClick={handlePrint} disabled={printDisabled}>
               <Printer className="w-4 h-4 mr-2" />
               Imprimir / Salvar como PDF
             </Button>

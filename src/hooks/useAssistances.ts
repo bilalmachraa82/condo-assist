@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchAssistancePage, ASSISTANCE_PAGE_SIZE, type AssistanceListQuery } from "@/lib/assistanceQuery";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
@@ -42,7 +42,6 @@ export const useAssistancesPage = (q: AssistanceListQuery, page: number, pageSiz
   return useQuery({
     queryKey: ["assistances", "page", q.search, q.filters, q.elevatorOnly, page, pageSize],
     queryFn: () => fetchAssistancePage(q, page, pageSize),
-    placeholderData: keepPreviousData,
   });
 };
 

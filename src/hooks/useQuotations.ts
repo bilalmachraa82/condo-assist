@@ -188,6 +188,7 @@ export const useDeleteQuotation = () => {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       queryClient.invalidateQueries({ queryKey: ["quotation-stats"] });
       queryClient.invalidateQueries({ queryKey: ["quotation-stats-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["assistances"] });
       toast.success("Orçamento eliminado com sucesso!");
     },
     onError: (error) => {

@@ -69,7 +69,9 @@ export function parseAssistanceSearchParams(sp: URLSearchParams) {
     const v = sp.get(k);
     if (v) filters[key] = v;
   }
-  const page = Math.max(1, parseInt(sp.get("page") || "1", 10) || 1);
+  const requestedPage = Number(sp.get("page"));
+  const maxPage = Math.floor(2147483647 / ASSISTANCE_PAGE_SIZE) + 1;
+  const page = Number.isSafeInteger(requestedPage) && requestedPage >= 1 && requestedPage <= maxPage ? requestedPage : 1;
   return { filters, search: sp.get("q") || "", page, elevatorOnly: sp.get("elevator") === "1" };
 }
 

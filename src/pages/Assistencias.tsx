@@ -142,14 +142,24 @@ function QuickQuotationAction({ assistance }: { assistance: AssistanceListRow })
 }
 
 // Export: fetches every row matching the current search/filters (server-side), only when the dialog opens
-function AssistanceExportContent({ query, filters }: { query: AssistanceListQuery; filters: AssistanceFilters }) {
-  const { data, isLoading, error } = useQuery({
+function AssistanceExportButton({ query, filters }: { query: AssistanceListQuery; filters: AssistanceFilters }) {
+  const [open, setOpen] = useState(false)
+  const { data, isFetching, error, refetch } = useQuery({
+    enabled: open,
     queryKey: ["assistances", "export", query.search, query.filters, query.elevatorOnly],
     queryFn: () => fetchAllMatchingAssistances(query),
   })
-  if (isLoading) return <SkeletonList count={3} />
-  if (error) return <p className="text-sm text-destructive">Erro ao preparar a exportação. Tente novamente.</p>
-  return <AssistanceListPDFTemplate assistances={data ?? []} title="Listagem de Assistências" filters={filters} />
+  return (
+    <PDFExportButton filename="listagem-assistencias" onOpenChange={setOpen} printDisabled={!data || isFetching || !!error}>
+      {error ? (
+        <p role="alert">Erro ao preparar a exportação. <Button variant="outline" onClick={() => refetch()}>Tentar novamente</Button></p>
+      ) : isFetching || !data ? (
+        <SkeletonList count={3} />
+      ) : (
+        <AssistanceListPDFTemplate assistances={data} title="Listagem de Assistências" filters={filters} />
+      )}
+    </PDFExportButton>
+  )
 }
 
 // Delete assistance component
@@ -230,11 +240,13 @@ export default function Assistencias() {
     () => ({ search: urlState.search, filters, elevatorOnly }),
     [urlState.search, filters, elevatorOnly],
   )
-  const { data: pageData, isLoading, isFetching, refetch } = useAssistancesPage(listQuery, page);
+  const { data: pageData, isLoading, isFetching, isError, refetch } = useAssistancesPage(listQuery, page);
   const filteredAssistances = pageData?.rows ?? [];
   const totalMatches = pageData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalMatches / ASSISTANCE_PAGE_SIZE));
-  const activeSearch = urlState.search;
+  useEffect(() => {
+    if (pageData && !isFetching && !isError && page > totalPages) setPage(totalPages)
+  }, [pageData, isFetching, isError, page, totalPages, setPage])
   const { data: stats, isLoading: statsLoading } = useAssistanceStats();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -354,13 +366,7 @@ export default function Assistencias() {
                 onFiltersChange={setFilters}
               />
               
-              <PDFExportButton 
-                filename="listagem-assistencias"
-                variant="outline"
-                size="default"
-              >
-                <AssistanceExportContent query={listQuery} filters={filters} />
-              </PDFExportButton>
+              <AssistanceExportButton query={listQuery} filters={filters} />
             </>
           )}
         </div>
@@ -451,7 +457,12 @@ export default function Assistencias() {
 
       {/* Assistances List */}
       <div className="grid gap-4">
-        {isLoading ? (
+        {isError ? (
+          <div role="alert" className="space-y-2">
+            <p>Não foi possível carregar as assistências.</p>
+            <Button variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
+          </div>
+        ) : isLoading || page > totalPages ? (
           <SkeletonList count={5} />
         ) : (
           filteredAssistances.map((assistance) => {
@@ -623,7 +634,7 @@ export default function Assistencias() {
         )}
       </div>
 
-      {!isLoading && totalMatches > 0 && (
+      {!isError && !isLoading && page <= totalPages && totalMatches > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             {(page - 1) * ASSISTANCE_PAGE_SIZE + 1}–{Math.min(page * ASSISTANCE_PAGE_SIZE, totalMatches)} de {totalMatches}
@@ -637,7 +648,7 @@ export default function Assistencias() {
         </div>
       )}
 
-      {filteredAssistances.length === 0 && !isLoading && (
+      {totalMatches === 0 && !isLoading && !isError && page === 1 && (
         <Card className="p-8">
           <div className="text-center space-y-4">
             <Wrench className="h-12 w-12 text-muted-foreground mx-auto" />
