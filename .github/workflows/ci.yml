@@ -1,0 +1,28 @@
+name: CI
+
+# Typecheck e build em cada PR e push para main. A instalação usa o bun.lock, o único lockfile
+# em sincronia com o package.json (o package-lock.json está desactualizado: `npm ci` falha).
+# O ESLint fica de fora por agora: tem 453 erros já existentes (428 de no-explicit-any) e deixaria o CI vermelho.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx tsc --noEmit -p tsconfig.app.json
+      - run: bunx vite build
